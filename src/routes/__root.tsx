@@ -77,14 +77,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Will Design 3D — Impresión 3D de gran formato en Bogotá" },
+      {
+        name: "description",
+        content:
+          "Especialistas en impresión 3D de gran formato en Bogotá. Diseño, post-procesado, insumos y mantenimiento. Supervisado por Kiara 🐾.",
+      },
+      { property: "og:title", content: "Will Design 3D — Impresión 3D en Bogotá" },
+      {
+        property: "og:description",
+        content: "Llevamos tus ideas a la realidad. Sin límites de tamaño.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
