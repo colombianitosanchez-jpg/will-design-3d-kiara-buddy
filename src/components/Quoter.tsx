@@ -51,7 +51,7 @@ export function Quoter() {
       fileName ? `📎 Archivo de referencia: ${fileName}` : "",
     ].filter(Boolean);
     const msg = encodeURIComponent(lines.join("\n"));
-    window.open(`https://wa.me/573000000000?text=${msg}`, "_blank");
+    window.open(`https://wa.me/573156724474?text=${msg}`, "_blank");
   };
 
   return (

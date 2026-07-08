@@ -1,9 +1,18 @@
 import { useState } from "react";
-import { MessageCircle, X } from "lucide-react";
+import { MessageCircle, X, Radio } from "lucide-react";
 import kiaraAsset from "@/assets/kiara.asset.json";
+import { useLive } from "@/lib/live-store";
+
+const WHATSAPP_URL =
+  "https://wa.me/573156724474?text=Hola%20Kiara%2C%20quiero%20cotizar%20un%20proyecto";
 
 export function KiaraWidget() {
   const [open, setOpen] = useState(false);
+  const { isLive, platform, url } = useLive();
+
+  const teaser = isLive
+    ? "¡Guau! Mis humanos están en vivo ahora mismo, ¡ven a verlos!"
+    : "¡Hola! Soy Kiara, ¿qué vamos a imprimir hoy?";
 
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
@@ -20,7 +29,9 @@ export function KiaraWidget() {
               />
               <div>
                 <p className="text-sm font-bold text-foreground">Kiara 🐾</p>
-                <p className="text-[11px] text-muted-foreground">Asistente virtual</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Asistente virtual
+                </p>
               </div>
             </div>
             <button
@@ -31,25 +42,68 @@ export function KiaraWidget() {
               <X className="h-4 w-4" />
             </button>
           </div>
-          <p className="mt-3 text-sm text-foreground">
-            ¡Hola! Soy <span className="font-semibold">Kiara</span>, ¿qué vamos
-            a imprimir hoy? 🐕
-          </p>
-          <a
-            href="https://wa.me/573000000000?text=Hola%20Kiara%2C%20quiero%20cotizar%20un%20proyecto"
-            target="_blank"
-            rel="noreferrer"
-            className="btn-primary mt-3 w-full text-sm"
-          >
-            <MessageCircle className="h-4 w-4" />
-            Chatear por WhatsApp
-          </a>
+
+          {isLive ? (
+            <>
+              <p className="mt-3 text-sm text-foreground">
+                🔴 ¡Mis humanos están{" "}
+                <span className="font-bold">EN VIVO en {platform}</span> ahora
+                mismo! No te lo pierdas 🐕
+              </p>
+              <a
+                href={url || "#"}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-primary mt-3 w-full text-sm"
+                style={{ background: "#dc2626" }}
+              >
+                <Radio className="h-4 w-4" />
+                Ver transmisión
+              </a>
+              <a
+                href={WHATSAPP_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-outline mt-2 w-full text-sm"
+              >
+                <MessageCircle className="h-4 w-4" />
+                O escríbenos por WhatsApp
+              </a>
+            </>
+          ) : (
+            <>
+              <p className="mt-3 text-sm text-foreground">
+                ¡Hola! Soy <span className="font-semibold">Kiara</span>, ¿qué
+                vamos a imprimir hoy? 🐕
+              </p>
+              <a
+                href={WHATSAPP_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-primary mt-3 w-full text-sm"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Chatear por WhatsApp
+              </a>
+            </>
+          )}
         </div>
       )}
 
       {!open && (
-        <div className="pointer-events-none mr-1 max-w-[14rem] rounded-2xl rounded-br-sm bg-card px-3 py-2 text-xs font-medium text-foreground shadow-lg ring-1 ring-border sm:text-sm">
-          ¡Hola! Soy Kiara, ¿qué vamos a imprimir hoy?
+        <div
+          className="pointer-events-none mr-1 max-w-[15rem] rounded-2xl rounded-br-sm bg-card px-3 py-2 text-xs font-medium text-foreground shadow-lg ring-1 ring-border sm:text-sm"
+          style={
+            isLive
+              ? {
+                  background:
+                    "color-mix(in oklab, #dc2626 12%, white)",
+                  borderColor: "#dc2626",
+                }
+              : undefined
+          }
+        >
+          {teaser}
         </div>
       )}
 
@@ -60,6 +114,7 @@ export function KiaraWidget() {
         style={{
           boxShadow:
             "0 20px 40px -10px color-mix(in oklab, var(--brand-orange) 55%, transparent)",
+          borderColor: isLive ? "#dc2626" : undefined,
         }}
       >
         <img
@@ -69,7 +124,12 @@ export function KiaraWidget() {
           height={80}
           className="h-full w-full object-cover"
         />
-        <span className="absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-card bg-secondary sm:h-5 sm:w-5" />
+        <span
+          className={`absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-card sm:h-5 sm:w-5 ${
+            isLive ? "animate-pulse" : ""
+          }`}
+          style={{ background: isLive ? "#dc2626" : "var(--brand-teal)" }}
+        />
       </button>
     </div>
   );
