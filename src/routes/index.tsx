@@ -93,11 +93,12 @@ const services = [
 function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <LiveBanner />
       <Header />
       <main>
         <Hero />
         <Services />
-        <Portfolio />
+        <InstagramFeed />
         <Quoter />
         <ShopCTA />
         <Contact />
