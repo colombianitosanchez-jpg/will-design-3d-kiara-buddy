@@ -90,15 +90,6 @@ const services = [
   },
 ];
 
-const portfolio = [
-  { img: p1, title: "Escultura orgánica XL", tag: "Gran formato" },
-  { img: p2, title: "Casco pulido premium", tag: "Post-procesado" },
-  { img: p3, title: "Impresora en acción", tag: "Producción" },
-  { img: p4, title: "Maqueta arquitectónica", tag: "Modelado" },
-  { img: p5, title: "Figura monumental", tag: "Sin límite" },
-  { img: p6, title: "Prototipos mecánicos", tag: "Industrial" },
-];
-
 function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground">
