@@ -23,6 +23,7 @@ import p4 from "@/assets/portfolio-4.jpg";
 import p5 from "@/assets/portfolio-5.jpg";
 import p6 from "@/assets/portfolio-6.jpg";
 import { KiaraWidget } from "@/components/KiaraWidget";
+import { Quoter } from "@/components/Quoter";
 
 export const Route = createFileRoute("/")({
   head: () => ({
