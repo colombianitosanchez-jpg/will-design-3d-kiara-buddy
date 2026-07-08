@@ -110,6 +110,7 @@ function Home() {
         <Hero />
         <Services />
         <Portfolio />
+        <Quoter />
         <ShopCTA />
         <Contact />
       </main>
