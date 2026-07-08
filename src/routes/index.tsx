@@ -397,7 +397,7 @@ function Contact() {
                 <MessageCircle className="h-4 w-4" />
               </span>
               <a
-                href="https://wa.me/573000000000"
+                href="https://wa.me/573156724474"
                 target="_blank"
                 rel="noreferrer"
                 className="font-semibold hover:underline"
@@ -448,7 +448,7 @@ function Contact() {
             const msg = encodeURIComponent(
               `Hola Will Design 3D, soy ${data.get("name")}.\n${data.get("msg")}`,
             );
-            window.open(`https://wa.me/573000000000?text=${msg}`, "_blank");
+            window.open(`https://wa.me/573156724474?text=${msg}`, "_blank");
           }}
         >
           <h3 className="text-lg font-bold">Cotiza tu proyecto</h3>
@@ -551,7 +551,7 @@ function Footer() {
               Threads
             </a>
             <a
-              href="https://wa.me/573000000000"
+              href="https://wa.me/573156724474"
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm hover:bg-muted"
