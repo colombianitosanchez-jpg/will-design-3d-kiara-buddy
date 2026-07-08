@@ -16,14 +16,11 @@ import {
 } from "lucide-react";
 import logoAsset from "@/assets/will_logo.asset.json";
 import heroImg from "@/assets/hero.jpg";
-import p1 from "@/assets/portfolio-1.jpg";
-import p2 from "@/assets/portfolio-2.jpg";
-import p3 from "@/assets/portfolio-3.jpg";
-import p4 from "@/assets/portfolio-4.jpg";
-import p5 from "@/assets/portfolio-5.jpg";
-import p6 from "@/assets/portfolio-6.jpg";
 import { KiaraWidget } from "@/components/KiaraWidget";
 import { Quoter } from "@/components/Quoter";
+import { LiveBanner } from "@/components/LiveBanner";
+import { InstagramFeed } from "@/components/InstagramFeed";
+import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 
 export const Route = createFileRoute("/")({
   head: () => ({
