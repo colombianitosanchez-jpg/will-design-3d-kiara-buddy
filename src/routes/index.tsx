@@ -16,14 +16,11 @@ import {
 } from "lucide-react";
 import logoAsset from "@/assets/will_logo.asset.json";
 import heroImg from "@/assets/hero.jpg";
-import p1 from "@/assets/portfolio-1.jpg";
-import p2 from "@/assets/portfolio-2.jpg";
-import p3 from "@/assets/portfolio-3.jpg";
-import p4 from "@/assets/portfolio-4.jpg";
-import p5 from "@/assets/portfolio-5.jpg";
-import p6 from "@/assets/portfolio-6.jpg";
 import { KiaraWidget } from "@/components/KiaraWidget";
 import { Quoter } from "@/components/Quoter";
+import { LiveBanner } from "@/components/LiveBanner";
+import { InstagramFeed } from "@/components/InstagramFeed";
+import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -93,23 +90,15 @@ const services = [
   },
 ];
 
-const portfolio = [
-  { img: p1, title: "Escultura orgánica XL", tag: "Gran formato" },
-  { img: p2, title: "Casco pulido premium", tag: "Post-procesado" },
-  { img: p3, title: "Impresora en acción", tag: "Producción" },
-  { img: p4, title: "Maqueta arquitectónica", tag: "Modelado" },
-  { img: p5, title: "Figura monumental", tag: "Sin límite" },
-  { img: p6, title: "Prototipos mecánicos", tag: "Industrial" },
-];
-
 function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <LiveBanner />
       <Header />
       <main>
         <Hero />
         <Services />
-        <Portfolio />
+        <InstagramFeed />
         <Quoter />
         <ShopCTA />
         <Contact />
@@ -269,6 +258,7 @@ function Hero() {
 }
 
 function Services() {
+  const ref = useScrollReveal<HTMLElement>();
   const colorFor = (a: string) =>
     a === "orange"
       ? "var(--brand-orange)"
@@ -276,7 +266,7 @@ function Services() {
         ? "var(--brand-teal)"
         : "var(--brand-wine)";
   return (
-    <section id="servicios" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
+    <section ref={ref} id="servicios" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
       <div className="mx-auto max-w-2xl text-center">
         <span className="chip-teal">Nuestros servicios</span>
         <h2 className="mt-3 text-3xl font-black sm:text-4xl md:text-5xl">
@@ -329,72 +319,6 @@ function Services() {
   );
 }
 
-function Portfolio() {
-  return (
-    <section
-      id="portafolio"
-      className="border-y border-border"
-      style={{ background: "color-mix(in oklab, var(--brand-teal) 6%, white)" }}
-    >
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="max-w-xl">
-            <span className="chip-teal">Portafolio</span>
-            <h2 className="mt-3 text-3xl font-black sm:text-4xl md:text-5xl">
-              Piezas que hablan por sí solas
-            </h2>
-            <p className="mt-3 text-muted-foreground">
-              Una selección de trabajos recientes — destacando piezas de gran
-              tamaño. Síguenos en Instagram y Threads para ver más.
-            </p>
-          </div>
-          <a
-            href="https://www.instagram.com/will_design2020/"
-            target="_blank"
-            rel="noreferrer"
-            className="btn-outline"
-          >
-            <Instagram className="h-4 w-4" />
-            @will_design2020
-          </a>
-        </div>
-
-        <div className="mt-10 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
-          {portfolio.map((p, i) => (
-            <a
-              key={p.title}
-              href="https://www.instagram.com/will_design2020/"
-              target="_blank"
-              rel="noreferrer"
-              className={`group relative block overflow-hidden rounded-2xl bg-card ring-1 ring-border ${
-                i === 0 ? "col-span-2 row-span-2 md:col-span-2 md:row-span-2" : ""
-              }`}
-            >
-              <img
-                src={p.img}
-                alt={p.title}
-                width={800}
-                height={800}
-                loading="lazy"
-                className="aspect-square h-full w-full object-cover transition duration-500 group-hover:scale-105"
-              />
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-transparent opacity-0 transition group-hover:opacity-100" />
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between p-3 opacity-0 transition group-hover:opacity-100">
-                <span className="text-sm font-bold text-white">{p.title}</span>
-                <span
-                  className="rounded-full px-2 py-0.5 text-[10px] font-bold"
-                  style={{ background: "var(--brand-orange)", color: "white" }}
-                >
-                  {p.tag}
-                </span>
-              </div>
-            </a>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
 
 function ShopCTA() {
   return (
@@ -474,7 +398,7 @@ function Contact() {
                 <MessageCircle className="h-4 w-4" />
               </span>
               <a
-                href="https://wa.me/573000000000"
+                href="https://wa.me/573156724474"
                 target="_blank"
                 rel="noreferrer"
                 className="font-semibold hover:underline"
@@ -525,7 +449,7 @@ function Contact() {
             const msg = encodeURIComponent(
               `Hola Will Design 3D, soy ${data.get("name")}.\n${data.get("msg")}`,
             );
-            window.open(`https://wa.me/573000000000?text=${msg}`, "_blank");
+            window.open(`https://wa.me/573156724474?text=${msg}`, "_blank");
           }}
         >
           <h3 className="text-lg font-bold">Cotiza tu proyecto</h3>
@@ -628,7 +552,7 @@ function Footer() {
               Threads
             </a>
             <a
-              href="https://wa.me/573000000000"
+              href="https://wa.me/573156724474"
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm hover:bg-muted"
