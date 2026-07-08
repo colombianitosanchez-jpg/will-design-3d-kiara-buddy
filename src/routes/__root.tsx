@@ -81,15 +81,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Especialistas en impresión 3D de gran formato en Bogotá. Diseño, post-procesado, insumos y mantenimiento. Supervisado por Kiara 🐾.",
+          "Especialistas en impresión 3D de gran formato en Bogotá. Diseño, post-procesado, venta de equipos e insumos, mantenimiento técnico. Supervisado por Kiara 🐾.",
       },
-      { property: "og:title", content: "Will Design 3D — Impresión 3D en Bogotá" },
+      { property: "og:title", content: "Will Design 3D — Impresión 3D de gran formato en Bogotá" },
       {
         property: "og:description",
-        content: "Llevamos tus ideas a la realidad. Sin límites de tamaño.",
+        content: "Especialistas en impresión 3D de gran formato en Bogotá. Diseño, post-procesado, venta de equipos e insumos, mantenimiento técnico. Supervisado por Kiara 🐾.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Will Design 3D — Impresión 3D de gran formato en Bogotá" },
+      { name: "twitter:description", content: "Especialistas en impresión 3D de gran formato en Bogotá. Diseño, post-procesado, venta de equipos e insumos, mantenimiento técnico. Supervisado por Kiara 🐾." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/Hj8JfrWa2qQArO2BOXZdviQDjWA2/social-images/social-1783472807154-WILL_LOGO.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/Hj8JfrWa2qQArO2BOXZdviQDjWA2/social-images/social-1783472807154-WILL_LOGO.webp" },
     ],
     links: [
       {

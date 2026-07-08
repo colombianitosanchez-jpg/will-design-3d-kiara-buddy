@@ -31,11 +31,11 @@ export const Route = createFileRoute("/")({
         content:
           "Especialistas en impresión 3D de gran formato en Bogotá. Diseño, post-procesado, venta de equipos e insumos, mantenimiento técnico. Supervisado por Kiara 🐾.",
       },
-      { property: "og:title", content: "Will Design 3D — Impresión 3D en Bogotá" },
+      { property: "og:title", content: "Will Design 3D — Impresión 3D de gran formato en Bogotá" },
       {
         property: "og:description",
         content:
-          "Llevamos tus ideas a la realidad. Sin límites de tamaño. Impresión 3D de gran formato.",
+          "Especialistas en impresión 3D de gran formato en Bogotá. Diseño, post-procesado, venta de equipos e insumos, mantenimiento técnico. Supervisado por Kiara 🐾.",
       },
     ],
   }),
