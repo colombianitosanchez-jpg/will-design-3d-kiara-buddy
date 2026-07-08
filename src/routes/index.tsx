@@ -23,6 +23,7 @@ import p4 from "@/assets/portfolio-4.jpg";
 import p5 from "@/assets/portfolio-5.jpg";
 import p6 from "@/assets/portfolio-6.jpg";
 import { KiaraWidget } from "@/components/KiaraWidget";
+import { Quoter } from "@/components/Quoter";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -47,6 +48,7 @@ export const Route = createFileRoute("/")({
 const navLinks = [
   { href: "#inicio", label: "Inicio" },
   { href: "#servicios", label: "Servicios" },
+  { href: "#cotizador", label: "Cotizador" },
   { href: "#tienda", label: "Tienda" },
   { href: "#portafolio", label: "Portafolio" },
   { href: "#contacto", label: "Contacto" },
@@ -108,6 +110,7 @@ function Home() {
         <Hero />
         <Services />
         <Portfolio />
+        <Quoter />
         <ShopCTA />
         <Contact />
       </main>
