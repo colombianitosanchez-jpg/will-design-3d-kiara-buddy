@@ -258,6 +258,7 @@ function Hero() {
 }
 
 function Services() {
+  const ref = useScrollReveal<HTMLElement>();
   const colorFor = (a: string) =>
     a === "orange"
       ? "var(--brand-orange)"
@@ -265,7 +266,7 @@ function Services() {
         ? "var(--brand-teal)"
         : "var(--brand-wine)";
   return (
-    <section id="servicios" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
+    <section ref={ref} id="servicios" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
       <div className="mx-auto max-w-2xl text-center">
         <span className="chip-teal">Nuestros servicios</span>
         <h2 className="mt-3 text-3xl font-black sm:text-4xl md:text-5xl">
