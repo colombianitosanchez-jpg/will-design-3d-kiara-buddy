@@ -1,50 +1,94 @@
 
-## Plan: Feed de Instagram, Alerta "EN VIVO" y consolidación de WhatsApp
+# Plan por fases — Will Design 3D
 
-### 1. Actualizar número de WhatsApp
-Reemplazar el número placeholder `573000000000` por `573156724474` en:
-- `src/components/Quoter.tsx` (submit del cotizador)
-- `src/components/KiaraWidget.tsx` (botón de chat)
-- `src/routes/index.tsx` (cualquier CTA/footer que use el número)
+Avanzamos "todo por fases en Lovable". Esta iteración cubre **Fase 1** (contenido + feed real de Instagram). Las fases 2-4 quedan definidas para siguientes turnos.
 
-### 2. Portafolio: reemplazar galería estática por feed de Instagram
-- Eliminar la sección de portafolio actual con imágenes generadas (`portfolio-1..6.jpg`) y su grid manual en `src/routes/index.tsx`.
-- Crear `src/components/InstagramFeed.tsx`: grid responsivo (2 col móvil / 3-4 col desktop) con el estilo visual actual (bordes redondeados, hover, overlay).
-- Preparar dos modos de integración, seleccionables por variable de entorno:
-  - **Widget de terceros (Elfsight/SnapWidget)**: contenedor `<div>` con `data-*` + script cargado on-mount. Instrucciones en comentarios para pegar el ID del widget.
-  - **API oficial de Instagram Basic Display**: server function `getInstagramFeed` en `src/lib/instagram.functions.ts` que lee `INSTAGRAM_ACCESS_TOKEN` desde `process.env`, hace fetch a `graph.instagram.com/me/media`, cachea con TanStack Query. Se cargará solo si el token está configurado.
-- Mientras no haya token/widget: mostrar estado placeholder con enlace a `https://instagram.com/will_design2020` y mensaje "Conecta tu cuenta de Instagram para ver el feed automático".
-- No se solicita el token ahora; queda documentado cómo agregarlo con `add_secret` cuando el usuario esté listo.
+---
 
-### 3. Sistema "EN VIVO"
-- **Estado global** con Zustand ligero o Context: `src/lib/live-store.ts` expone `{ isLive, platform, url, setLive }`. Persistencia en `localStorage` para que el toggle sobreviva recargas (uso solo del admin; los visitantes leen el mismo valor localmente — para sincronización real entre dispositivos se necesitaría backend, se menciona como upgrade futuro).
-- **Top Announcement Bar** (`src/components/LiveBanner.tsx`): barra superior fija en rojo/naranja con punto pulsante (`animate-pulse`), texto "🔴 ¡Estamos EN VIVO en {platform}! Haz clic aquí para unirte", enlace al `url`. Empuja el header hacia abajo cuando está activa. Solo se renderiza si `isLive`.
-- **Kiara dinámica**: en `KiaraWidget.tsx`, si `isLive`, el globo cambia a "¡Guau! Mis humanos están en vivo ahora mismo, ¡ven a verlos!" y el botón de acción abre el `url` de la transmisión en lugar de WhatsApp.
-- **Panel admin oculto** en `/admin/live` (`src/routes/admin.live.tsx`): ruta no enlazada en el nav, protegida por una contraseña simple guardada en `localStorage` (prompt inicial). Contiene:
-  - Toggle On/Off "En Vivo"
-  - Select de plataforma (Instagram / YouTube / TikTok)
-  - Input para el URL de la transmisión
-  - Botón Guardar
-- Se documenta que esta protección es client-side; para seguridad real se recomendaría auth con Lovable Cloud (upgrade opcional).
+## Fase 1 (ahora) — Contenido, navegación y feed real
 
-### 4. Animaciones (mantener/asegurar)
-- Verificar que la animación flotante de Kiara (`kiara-float`) siga activa en `styles.css`.
-- Añadir utilidad `scroll-reveal` con `IntersectionObserver` en un hook `useScrollReveal` y aplicar a secciones principales (Servicios, Portafolio, Cotizador). Ya existe la base visual; solo se conecta.
+### Nueva estructura de rutas
+Cada sección importante pasa a ser una ruta propia (mejor SEO y compartibilidad). La home queda como landing resumen.
 
-### Archivos a crear
-- `src/components/InstagramFeed.tsx`
-- `src/components/LiveBanner.tsx`
-- `src/lib/live-store.ts`
-- `src/lib/instagram.functions.ts` (opcional, activa cuando exista el token)
-- `src/hooks/use-scroll-reveal.ts`
-- `src/routes/admin.live.tsx`
+```
+src/routes/
+  index.tsx          → / (hero, servicios destacados, productos destacados, feed IG)
+  servicios.tsx      → /servicios (detalle completo + formulario cotización)
+  tienda.tsx         → /tienda (catálogo estático por categorías, placeholder de "próximamente comprar")
+  galeria.tsx        → /galeria (feed Instagram grande + link a @will_design2020)
+  nosotros.tsx       → /nosotros (historia, misión, visión, foto taller)
+  contacto.tsx       → /contacto (form, WhatsApp, mapa Google, redes)
+  admin.live.tsx     → (ya existe)
+```
 
-### Archivos a modificar
-- `src/routes/index.tsx` — reemplazar galería, montar `<LiveBanner />`, aplicar scroll-reveal, actualizar número WhatsApp
-- `src/routes/__root.tsx` — proveer estado live si se usa Context
-- `src/components/KiaraWidget.tsx` — mensaje/enlace dinámico + número WhatsApp
-- `src/components/Quoter.tsx` — número WhatsApp
+Cada ruta con su propio `head()` (title + description + og:title/description únicos).
 
-### Notas para después de la implementación
-- Para activar el feed real de Instagram: elegir entre widget de Elfsight (pegar el ID en `.env` como `VITE_ELFSIGHT_INSTAGRAM_ID`) o token de API (`INSTAGRAM_ACCESS_TOKEN` vía `add_secret`).
-- El toggle "En Vivo" es local por navegador; si quieres que se sincronice para todos los visitantes en tiempo real, activamos Lovable Cloud y guardamos el estado en la base de datos.
+### Header/nav global
+- Nuevo `src/components/SiteHeader.tsx` con logo (`will_logo.asset.json`), menú horizontal en desktop, menú hamburguesa en móvil (usando `use-mobile`), y CTAs "Cotizar" + WhatsApp.
+- Nuevo `src/components/SiteFooter.tsx` con logo, columnas (Servicios, Tienda, Empresa), redes, WhatsApp, "Supervisado por Kiara 🐾".
+- Se montan en `__root.tsx` alrededor del `<Outlet />` para que aparezcan en todas las páginas.
+
+### Servicios detallados (`/servicios`)
+Tarjetas grandes con descripción profesional para: **Mantenimiento y arreglo**, **Upgrade y mejora**, **Diseño 3D personalizado**, **Impresión a pedido (FDM + Resina, PLA/PETG/ABS/Nylon/TPU)**, **Post-procesado y pintura**. Al final, versión compacta del `<Quoter />` existente pre-seleccionando el servicio elegido.
+
+### Tienda (`/tienda`) — catálogo estático fase 1
+- Componente `ProductCard` reutilizable.
+- Datos en `src/data/products.ts` (array tipado: impresoras, repuestos, filamentos, resinas, escáners, lápices, cámaras).
+- Filtros client-side simples (categoría, material, color) usando `useState`.
+- Página de detalle `tienda.$slug.tsx` con fotos, descripción técnica, precio en COP, **"Consejo de Kiara"** (globo con avatar), botón **"Consultar por WhatsApp"** (aún sin carrito).
+- Submenús en el nav para las categorías principales.
+
+### Kiara: Consejos contextuales
+- Nuevo `src/components/KiaraTip.tsx` (avatar pequeño + globo). Recibe `tip` como prop.
+- Se usa en fichas de producto y en secciones clave (ej. cotizador, servicios).
+
+### Feed real de Instagram (Elfsight)
+- El componente `InstagramFeed.tsx` ya está listo para leer `VITE_ELFSIGHT_INSTAGRAM_ID`.
+- **Acción del usuario**: crear el widget gratis en https://elfsight.com/instagram-feed-instashow/, apuntándolo a `@will_design2020`, copiar el ID (ej. `abc123def`) y guardarlo como variable de entorno. Le indico exactamente dónde pegarlo.
+- Se monta en `/galeria` (grande) y en la home (versión compacta).
+
+### Inicio (`/`) reestructurado
+1. Hero con CTAs "Explorar tienda" / "Cotizar servicio" + globo de Kiara.
+2. Servicios destacados (iconos, links a `/servicios`).
+3. Productos destacados: carrusel simple (scroll horizontal) con 6 items del catálogo.
+4. "Will Design 3D en acción" → feed Instagram.
+5. CTA final a contacto.
+
+### Contacto (`/contacto`)
+- Form con validación Zod (nombre, email, tel, mensaje) que arma link `wa.me/573156724474`.
+- Bloque con: dirección (pediré confirmación al construir), teléfono, email, botones redes.
+- Google Maps embebido (iframe estándar, sin API key). **Necesito la dirección exacta**; si no la tienes aún, dejo Bogotá como centro.
+
+### Otros
+- `.env.example` con `VITE_ELFSIGHT_INSTAGRAM_ID=` documentado.
+- Reveal-on-scroll aplicado a las nuevas secciones.
+- Todo responsive (móvil / tablet / desktop) con Tailwind.
+
+---
+
+## Fase 2 (siguiente iteración) — E-commerce con Lovable Cloud
+- Activar Lovable Cloud.
+- Tablas: `products`, `product_images`, `categories`, `orders`, `order_items`, `customers`, `shipping_rules` + RLS.
+- Migrar catálogo estático a base de datos.
+- Carrito persistente (Zustand + Cloud).
+- Panel `/admin` protegido con roles (`user_roles` + `has_role`): CRUD productos, pedidos, clientes, envíos.
+
+## Fase 3 — Pasarela de pago
+Decidir entre MercadoPago / PayU (integración manual con `add_secret` para llaves + server routes para webhooks en `/api/public/*`) o Stripe (integrado nativo). Checkout completo con confirmación por email.
+
+## Fase 4 — Pulido y lanzamiento
+SEO avanzado (sitemap, JSON-LD Product), analítica, optimización de imágenes, publicación + dominio custom.
+
+---
+
+## Sobre WordPress / Hostinger
+Lovable **no exporta a WordPress/WooCommerce**. La plataforma se publica directamente desde Lovable (dominio custom incluido) y corre sobre su infraestructura serverless. Si estrictamente necesitas WordPress en Hostinger, tendríamos que rehacerlo fuera de Lovable — te recomiendo probar primero con el despliegue nativo, es más simple y no pierdes nada.
+
+---
+
+## Preguntas menores para cuando construya
+1. Dirección física para el mapa (o dejo Bogotá centro).
+2. Foto real del equipo/taller para `/nosotros` (o genero placeholder ilustrado).
+3. Lista real de productos destacados para el catálogo inicial, o los genero yo con datos plausibles marcados como "demo".
+
+¿Apruebas la Fase 1?
