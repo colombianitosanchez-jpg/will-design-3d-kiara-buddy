@@ -1,94 +1,104 @@
+# Fase 2 — Panel de Administración privado
 
-# Plan por fases — Will Design 3D
+Esto activa **Lovable Cloud** (backend gestionado: base de datos, autenticación, almacenamiento de archivos). Sin él no hay login real, ni inventario persistente, ni subida de imágenes desde el navegador.
 
-Avanzamos "todo por fases en Lovable". Esta iteración cubre **Fase 1** (contenido + feed real de Instagram). Las fases 2-4 quedan definidas para siguientes turnos.
+## 1. Activar Lovable Cloud
+- Crea automáticamente base de datos, auth y storage.
+- Sin cuentas externas ni configuración manual.
 
----
+## 2. Autenticación
+- Login con **email + contraseña** en `/auth` (público).
+- Todo `/admin/*` protegido: solo usuarios con rol `admin` entran; el resto se redirige.
+- Tabla `user_roles` separada (`admin` / `staff`) + función `has_role` (seguridad estándar, sin escalada de privilegios).
+- **Primer admin**: te creas la cuenta en `/auth`, y yo te doy un botón "hacerme admin" que solo funciona si aún no hay ningún admin (bootstrap seguro). Después ese botón deja de funcionar.
 
-## Fase 1 (ahora) — Contenido, navegación y feed real
+## 3. Base de datos (tablas nuevas)
+- `categories` (id, nombre, slug)
+- `brands` (id, nombre)
+- `products` (id, nombre, slug, precio COP, categoria_id, brand_id, descripcion corta/larga, specs JSON, kiara_tip, imagen_url, destacado, activo, stock)
+- `orders` (id, cliente nombre/email/tel, dirección envío, total, estado: `pendiente|empacando|enviado|entregado|cancelado`, fecha)
+- `order_items` (id, order_id, product_id, cantidad, precio unitario)
+- `site_content` (clave, valor) — para textos editables (hero título, hero subtítulo, mensaje Kiara, etc.) y URL de la foto de Kiara.
+- Bucket de Storage **público** `product-images` para fotos de productos y mascota.
+- RLS estricto: lectura pública solo de `products/categories/brands/site_content` activos; escritura solo admin; `orders` solo admin lee/edita, clientes pueden insertar la suya.
 
-### Nueva estructura de rutas
-Cada sección importante pasa a ser una ruta propia (mejor SEO y compartibilidad). La home queda como landing resumen.
+## 4. Panel `/admin` (layout con sidebar)
 
+```text
+┌──────────────┬──────────────────────────────┐
+│  Will Design │  [Dashboard actual]          │
+│  ─────────   │                              │
+│  📦 Productos│                              │
+│  🛒 Pedidos  │                              │
+│  ✏️  Contenido│                              │
+│  📡 Live     │                              │
+│  🚪 Salir    │                              │
+└──────────────┴──────────────────────────────┘
 ```
-src/routes/
-  index.tsx          → / (hero, servicios destacados, productos destacados, feed IG)
-  servicios.tsx      → /servicios (detalle completo + formulario cotización)
-  tienda.tsx         → /tienda (catálogo estático por categorías, placeholder de "próximamente comprar")
-  galeria.tsx        → /galeria (feed Instagram grande + link a @will_design2020)
-  nosotros.tsx       → /nosotros (historia, misión, visión, foto taller)
-  contacto.tsx       → /contacto (form, WhatsApp, mapa Google, redes)
-  admin.live.tsx     → (ya existe)
-```
 
-Cada ruta con su propio `head()` (title + description + og:title/description únicos).
+### 4.1 `/admin` (home) — Resumen
+Tarjetas: nº productos activos, pedidos pendientes, pedidos del mes, estado Live.
 
-### Header/nav global
-- Nuevo `src/components/SiteHeader.tsx` con logo (`will_logo.asset.json`), menú horizontal en desktop, menú hamburguesa en móvil (usando `use-mobile`), y CTAs "Cotizar" + WhatsApp.
-- Nuevo `src/components/SiteFooter.tsx` con logo, columnas (Servicios, Tienda, Empresa), redes, WhatsApp, "Supervisado por Kiara 🐾".
-- Se montan en `__root.tsx` alrededor del `<Outlet />` para que aparezcan en todas las páginas.
+### 4.2 `/admin/productos` — Gestor de productos
+- Tabla con: miniatura, nombre, categoría, marca, precio, stock, activo (switch), acciones (editar/eliminar).
+- Buscador + filtro por categoría.
+- Botón grande naranja **"+ Añadir Producto"** arriba a la derecha.
 
-### Servicios detallados (`/servicios`)
-Tarjetas grandes con descripción profesional para: **Mantenimiento y arreglo**, **Upgrade y mejora**, **Diseño 3D personalizado**, **Impresión a pedido (FDM + Resina, PLA/PETG/ABS/Nylon/TPU)**, **Post-procesado y pintura**. Al final, versión compacta del `<Quoter />` existente pre-seleccionando el servicio elegido.
+### 4.3 `/admin/productos/nuevo` y `/admin/productos/$id/editar`
+Formulario visual (labels claros, sin jerga técnica):
+- Nombre, Precio (COP), Descripción corta, Descripción larga
+- Categoría (dropdown, con botón "+ nueva categoría")
+- Marca (dropdown, con botón "+ nueva marca")
+- Specs (lista dinámica label/valor, botón "+ agregar spec")
+- Consejo de Kiara (textarea corto)
+- Destacado (checkbox), Activo (checkbox), Stock (número)
+- **Imagen**: botón "Subir imagen" (input file estándar) → sube a Storage → preview inmediato.
+- Botón **Guardar** grande → actualiza y vuelve a la tabla. La tienda pública se actualiza al instante (los productos se leen de la BD, no del archivo estático).
 
-### Tienda (`/tienda`) — catálogo estático fase 1
-- Componente `ProductCard` reutilizable.
-- Datos en `src/data/products.ts` (array tipado: impresoras, repuestos, filamentos, resinas, escáners, lápices, cámaras).
-- Filtros client-side simples (categoría, material, color) usando `useState`.
-- Página de detalle `tienda.$slug.tsx` con fotos, descripción técnica, precio en COP, **"Consejo de Kiara"** (globo con avatar), botón **"Consultar por WhatsApp"** (aún sin carrito).
-- Submenús en el nav para las categorías principales.
+### 4.4 `/admin/pedidos` — Gestor de pedidos
+- Tabla: fecha, cliente, total, estado (badge de color), acciones.
+- Click en fila → panel lateral con detalle: items comprados, dirección de envío, teléfono, email, notas.
+- Dropdown grande para cambiar estado: **Pendiente → Empacando → Enviado → Entregado**. Guarda al instante.
+- Filtro por estado + búsqueda por cliente.
+- (En Fase 3 se conectará con la pasarela de pago para que los pedidos entren solos; por ahora podrás crear pedidos de prueba manualmente y ver la interfaz completa.)
 
-### Kiara: Consejos contextuales
-- Nuevo `src/components/KiaraTip.tsx` (avatar pequeño + globo). Recibe `tip` como prop.
-- Se usa en fichas de producto y en secciones clave (ej. cotizador, servicios).
+### 4.5 `/admin/contenido` — Textos e imágenes del sitio
+Formulario con campos editables clave por clave:
+- Título del hero
+- Subtítulo del hero
+- Mensaje de bienvenida de Kiara
+- Texto "Nosotros" corto
+- **Foto de Kiara**: botón subir imagen → preview → guardar.
+- Botón Guardar por sección. Los cambios se reflejan en la web pública inmediatamente (la home leerá de `site_content` con fallback a los textos actuales).
 
-### Feed real de Instagram (Elfsight)
-- El componente `InstagramFeed.tsx` ya está listo para leer `VITE_ELFSIGHT_INSTAGRAM_ID`.
-- **Acción del usuario**: crear el widget gratis en https://elfsight.com/instagram-feed-instashow/, apuntándolo a `@will_design2020`, copiar el ID (ej. `abc123def`) y guardarlo como variable de entorno. Le indico exactamente dónde pegarlo.
-- Se monta en `/galeria` (grande) y en la home (versión compacta).
+### 4.6 `/admin/live`
+El actual (toggle live) migrado a la BD para que persista entre dispositivos (hoy es solo localStorage). Mismo UI.
 
-### Inicio (`/`) reestructurado
-1. Hero con CTAs "Explorar tienda" / "Cotizar servicio" + globo de Kiara.
-2. Servicios destacados (iconos, links a `/servicios`).
-3. Productos destacados: carrusel simple (scroll horizontal) con 6 items del catálogo.
-4. "Will Design 3D en acción" → feed Instagram.
-5. CTA final a contacto.
+## 5. Migración del catálogo estático
+- El array de `src/data/products.ts` se **importa una vez** a la BD como seed inicial (para que veas la tienda igual el primer día).
+- La tienda pública (`/tienda`, `/tienda/$slug`, home) pasa a leer de la BD.
 
-### Contacto (`/contacto`)
-- Form con validación Zod (nombre, email, tel, mensaje) que arma link `wa.me/573156724474`.
-- Bloque con: dirección (pediré confirmación al construir), teléfono, email, botones redes.
-- Google Maps embebido (iframe estándar, sin API key). **Necesito la dirección exacta**; si no la tienes aún, dejo Bogotá como centro.
+## 6. Seguridad
+- RLS activo en todas las tablas.
+- Roles en tabla separada + `has_role` (nunca en `profiles`).
+- Storage con políticas: lectura pública, escritura solo admin.
+- Validación Zod en cliente y servidor (server functions con `requireSupabaseAuth` + chequeo `admin`).
+- El PIN `kiara2024` del panel live actual se elimina (reemplazado por login real).
 
-### Otros
-- `.env.example` con `VITE_ELFSIGHT_INSTAGRAM_ID=` documentado.
-- Reveal-on-scroll aplicado a las nuevas secciones.
-- Todo responsive (móvil / tablet / desktop) con Tailwind.
+## Detalles técnicos (para referencia)
+- Server functions TanStack con `requireSupabaseAuth` para escrituras admin.
+- Uploads: `supabase.storage.from('product-images').upload(...)` desde el cliente admin.
+- Reads públicos: cliente publishable + políticas `TO anon` de solo lectura en columnas seguras.
+- Migraciones SQL con `GRANT`s explícitos + `ENABLE RLS` + policies en el mismo archivo.
 
----
+## Lo que NO incluye esta fase
+- Carrito de compra público y checkout (Fase 3, con pasarela).
+- Emails automáticos (Fase 3).
+- Multi-imagen por producto (esta fase: 1 imagen principal; ampliable después sin romper nada).
 
-## Fase 2 (siguiente iteración) — E-commerce con Lovable Cloud
-- Activar Lovable Cloud.
-- Tablas: `products`, `product_images`, `categories`, `orders`, `order_items`, `customers`, `shipping_rules` + RLS.
-- Migrar catálogo estático a base de datos.
-- Carrito persistente (Zustand + Cloud).
-- Panel `/admin` protegido con roles (`user_roles` + `has_role`): CRUD productos, pedidos, clientes, envíos.
+## Preguntas antes de construir
+1. **Email del primer admin**: ¿qué email vas a usar para tu cuenta? (lo mencionamos en el mensaje de bienvenida del bootstrap).
+2. ¿Confirmas que el catálogo actual (11 productos demo) sirve como semilla inicial, o prefieres empezar con la tabla vacía?
+3. ¿Quieres que los empleados de ventas tengan un rol `staff` con permisos limitados (ver pedidos, cambiar estados, pero no borrar productos), o por ahora todos son `admin` completo?
 
-## Fase 3 — Pasarela de pago
-Decidir entre MercadoPago / PayU (integración manual con `add_secret` para llaves + server routes para webhooks en `/api/public/*`) o Stripe (integrado nativo). Checkout completo con confirmación por email.
-
-## Fase 4 — Pulido y lanzamiento
-SEO avanzado (sitemap, JSON-LD Product), analítica, optimización de imágenes, publicación + dominio custom.
-
----
-
-## Sobre WordPress / Hostinger
-Lovable **no exporta a WordPress/WooCommerce**. La plataforma se publica directamente desde Lovable (dominio custom incluido) y corre sobre su infraestructura serverless. Si estrictamente necesitas WordPress en Hostinger, tendríamos que rehacerlo fuera de Lovable — te recomiendo probar primero con el despliegue nativo, es más simple y no pierdes nada.
-
----
-
-## Preguntas menores para cuando construya
-1. Dirección física para el mapa (o dejo Bogotá centro).
-2. Foto real del equipo/taller para `/nosotros` (o genero placeholder ilustrado).
-3. Lista real de productos destacados para el catálogo inicial, o los genero yo con datos plausibles marcados como "demo".
-
-¿Apruebas la Fase 1?
+¿Apruebas la Fase 2 así?

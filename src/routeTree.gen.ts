@@ -11,11 +11,17 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TiendaRouteImport } from './routes/tienda'
 import { Route as ServiciosRouteImport } from './routes/servicios'
+import { Route as PanelRouteImport } from './routes/panel'
 import { Route as NosotrosRouteImport } from './routes/nosotros'
 import { Route as GaleriaRouteImport } from './routes/galeria'
 import { Route as ContactoRouteImport } from './routes/contacto'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PanelIndexRouteImport } from './routes/panel.index'
 import { Route as TiendaSlugRouteImport } from './routes/tienda.$slug'
+import { Route as PanelProductosRouteImport } from './routes/panel.productos'
+import { Route as PanelPedidosRouteImport } from './routes/panel.pedidos'
+import { Route as PanelContenidoRouteImport } from './routes/panel.contenido'
 import { Route as AdminLiveRouteImport } from './routes/admin.live'
 
 const TiendaRoute = TiendaRouteImport.update({
@@ -26,6 +32,11 @@ const TiendaRoute = TiendaRouteImport.update({
 const ServiciosRoute = ServiciosRouteImport.update({
   id: '/servicios',
   path: '/servicios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PanelRoute = PanelRouteImport.update({
+  id: '/panel',
+  path: '/panel',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NosotrosRoute = NosotrosRouteImport.update({
@@ -43,15 +54,40 @@ const ContactoRoute = ContactoRouteImport.update({
   path: '/contacto',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PanelIndexRoute = PanelIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PanelRoute,
+} as any)
 const TiendaSlugRoute = TiendaSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
   getParentRoute: () => TiendaRoute,
+} as any)
+const PanelProductosRoute = PanelProductosRouteImport.update({
+  id: '/productos',
+  path: '/productos',
+  getParentRoute: () => PanelRoute,
+} as any)
+const PanelPedidosRoute = PanelPedidosRouteImport.update({
+  id: '/pedidos',
+  path: '/pedidos',
+  getParentRoute: () => PanelRoute,
+} as any)
+const PanelContenidoRoute = PanelContenidoRouteImport.update({
+  id: '/contenido',
+  path: '/contenido',
+  getParentRoute: () => PanelRoute,
 } as any)
 const AdminLiveRoute = AdminLiveRouteImport.update({
   id: '/admin/live',
@@ -61,73 +97,109 @@ const AdminLiveRoute = AdminLiveRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/contacto': typeof ContactoRoute
   '/galeria': typeof GaleriaRoute
   '/nosotros': typeof NosotrosRoute
+  '/panel': typeof PanelRouteWithChildren
   '/servicios': typeof ServiciosRoute
   '/tienda': typeof TiendaRouteWithChildren
   '/admin/live': typeof AdminLiveRoute
+  '/panel/contenido': typeof PanelContenidoRoute
+  '/panel/pedidos': typeof PanelPedidosRoute
+  '/panel/productos': typeof PanelProductosRoute
   '/tienda/$slug': typeof TiendaSlugRoute
+  '/panel/': typeof PanelIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/contacto': typeof ContactoRoute
   '/galeria': typeof GaleriaRoute
   '/nosotros': typeof NosotrosRoute
   '/servicios': typeof ServiciosRoute
   '/tienda': typeof TiendaRouteWithChildren
   '/admin/live': typeof AdminLiveRoute
+  '/panel/contenido': typeof PanelContenidoRoute
+  '/panel/pedidos': typeof PanelPedidosRoute
+  '/panel/productos': typeof PanelProductosRoute
   '/tienda/$slug': typeof TiendaSlugRoute
+  '/panel': typeof PanelIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/contacto': typeof ContactoRoute
   '/galeria': typeof GaleriaRoute
   '/nosotros': typeof NosotrosRoute
+  '/panel': typeof PanelRouteWithChildren
   '/servicios': typeof ServiciosRoute
   '/tienda': typeof TiendaRouteWithChildren
   '/admin/live': typeof AdminLiveRoute
+  '/panel/contenido': typeof PanelContenidoRoute
+  '/panel/pedidos': typeof PanelPedidosRoute
+  '/panel/productos': typeof PanelProductosRoute
   '/tienda/$slug': typeof TiendaSlugRoute
+  '/panel/': typeof PanelIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/contacto'
     | '/galeria'
     | '/nosotros'
+    | '/panel'
     | '/servicios'
     | '/tienda'
     | '/admin/live'
+    | '/panel/contenido'
+    | '/panel/pedidos'
+    | '/panel/productos'
     | '/tienda/$slug'
+    | '/panel/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth'
     | '/contacto'
     | '/galeria'
     | '/nosotros'
     | '/servicios'
     | '/tienda'
     | '/admin/live'
+    | '/panel/contenido'
+    | '/panel/pedidos'
+    | '/panel/productos'
     | '/tienda/$slug'
+    | '/panel'
   id:
     | '__root__'
     | '/'
+    | '/auth'
     | '/contacto'
     | '/galeria'
     | '/nosotros'
+    | '/panel'
     | '/servicios'
     | '/tienda'
     | '/admin/live'
+    | '/panel/contenido'
+    | '/panel/pedidos'
+    | '/panel/productos'
     | '/tienda/$slug'
+    | '/panel/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
   ContactoRoute: typeof ContactoRoute
   GaleriaRoute: typeof GaleriaRoute
   NosotrosRoute: typeof NosotrosRoute
+  PanelRoute: typeof PanelRouteWithChildren
   ServiciosRoute: typeof ServiciosRoute
   TiendaRoute: typeof TiendaRouteWithChildren
   AdminLiveRoute: typeof AdminLiveRoute
@@ -147,6 +219,13 @@ declare module '@tanstack/react-router' {
       path: '/servicios'
       fullPath: '/servicios'
       preLoaderRoute: typeof ServiciosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/panel': {
+      id: '/panel'
+      path: '/panel'
+      fullPath: '/panel'
+      preLoaderRoute: typeof PanelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/nosotros': {
@@ -170,6 +249,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContactoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -177,12 +263,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/panel/': {
+      id: '/panel/'
+      path: '/'
+      fullPath: '/panel/'
+      preLoaderRoute: typeof PanelIndexRouteImport
+      parentRoute: typeof PanelRoute
+    }
     '/tienda/$slug': {
       id: '/tienda/$slug'
       path: '/$slug'
       fullPath: '/tienda/$slug'
       preLoaderRoute: typeof TiendaSlugRouteImport
       parentRoute: typeof TiendaRoute
+    }
+    '/panel/productos': {
+      id: '/panel/productos'
+      path: '/productos'
+      fullPath: '/panel/productos'
+      preLoaderRoute: typeof PanelProductosRouteImport
+      parentRoute: typeof PanelRoute
+    }
+    '/panel/pedidos': {
+      id: '/panel/pedidos'
+      path: '/pedidos'
+      fullPath: '/panel/pedidos'
+      preLoaderRoute: typeof PanelPedidosRouteImport
+      parentRoute: typeof PanelRoute
+    }
+    '/panel/contenido': {
+      id: '/panel/contenido'
+      path: '/contenido'
+      fullPath: '/panel/contenido'
+      preLoaderRoute: typeof PanelContenidoRouteImport
+      parentRoute: typeof PanelRoute
     }
     '/admin/live': {
       id: '/admin/live'
@@ -193,6 +307,22 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface PanelRouteChildren {
+  PanelContenidoRoute: typeof PanelContenidoRoute
+  PanelPedidosRoute: typeof PanelPedidosRoute
+  PanelProductosRoute: typeof PanelProductosRoute
+  PanelIndexRoute: typeof PanelIndexRoute
+}
+
+const PanelRouteChildren: PanelRouteChildren = {
+  PanelContenidoRoute: PanelContenidoRoute,
+  PanelPedidosRoute: PanelPedidosRoute,
+  PanelProductosRoute: PanelProductosRoute,
+  PanelIndexRoute: PanelIndexRoute,
+}
+
+const PanelRouteWithChildren = PanelRoute._addFileChildren(PanelRouteChildren)
 
 interface TiendaRouteChildren {
   TiendaSlugRoute: typeof TiendaSlugRoute
@@ -207,9 +337,11 @@ const TiendaRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
   ContactoRoute: ContactoRoute,
   GaleriaRoute: GaleriaRoute,
   NosotrosRoute: NosotrosRoute,
+  PanelRoute: PanelRouteWithChildren,
   ServiciosRoute: ServiciosRoute,
   TiendaRoute: TiendaRouteWithChildren,
   AdminLiveRoute: AdminLiveRoute,
