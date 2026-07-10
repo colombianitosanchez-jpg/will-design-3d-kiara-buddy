@@ -122,7 +122,10 @@ export function SiteFooter() {
       <div className="border-t border-border">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-4 text-xs text-muted-foreground sm:flex-row sm:px-6">
           <p>© {new Date().getFullYear()} Will Design 3D. Todos los derechos reservados.</p>
-          <p>Hecho con 🐾 en Bogotá</p>
+          <p className="flex items-center gap-3">
+            <Link to="/panel" className="hover:underline">Panel</Link>
+            <span>· Hecho con 🐾 en Bogotá</span>
+          </p>
         </div>
       </div>
     </footer>
