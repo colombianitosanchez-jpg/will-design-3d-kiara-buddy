@@ -154,6 +154,7 @@ export type Database = {
           name: string
           price_cop: number
           short: string
+          sku: string | null
           slug: string
           specs: Json
           stock: number
@@ -172,6 +173,7 @@ export type Database = {
           name: string
           price_cop?: number
           short?: string
+          sku?: string | null
           slug: string
           specs?: Json
           stock?: number
@@ -190,6 +192,7 @@ export type Database = {
           name?: string
           price_cop?: number
           short?: string
+          sku?: string | null
           slug?: string
           specs?: Json
           stock?: number

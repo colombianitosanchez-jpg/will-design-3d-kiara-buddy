@@ -13,6 +13,7 @@ import {
   Package,
   ShoppingCart,
   Wrench,
+  Users,
   LogOut,
   ShieldCheck,
   Menu,
@@ -116,10 +117,11 @@ function AdminLayout() {
   }
 
   const allLinks = [
-    { to: "/admin", label: "Resumen", icon: LayoutDashboard, exact: true, adminOnly: true },
+    { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true, adminOnly: true },
     { to: "/admin/inventario", label: "Inventario", icon: Package, adminOnly: false },
     { to: "/admin/servicios", label: "Servicios 3D", icon: Wrench, adminOnly: true },
     { to: "/admin/pedidos", label: "Pedidos", icon: ShoppingCart, adminOnly: false },
+    { to: "/admin/clientes", label: "Clientes", icon: Users, adminOnly: false },
   ];
   const links = allLinks.filter((l) => isAdmin || !l.adminOnly);
 
