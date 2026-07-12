@@ -16,13 +16,18 @@ import { Route as NosotrosRouteImport } from './routes/nosotros'
 import { Route as GaleriaRouteImport } from './routes/galeria'
 import { Route as ContactoRouteImport } from './routes/contacto'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PanelIndexRouteImport } from './routes/panel.index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TiendaSlugRouteImport } from './routes/tienda.$slug'
 import { Route as PanelProductosRouteImport } from './routes/panel.productos'
 import { Route as PanelPedidosRouteImport } from './routes/panel.pedidos'
 import { Route as PanelContenidoRouteImport } from './routes/panel.contenido'
+import { Route as AdminServiciosRouteImport } from './routes/admin.servicios'
+import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminLiveRouteImport } from './routes/admin.live'
+import { Route as AdminInventarioRouteImport } from './routes/admin.inventario'
 
 const TiendaRoute = TiendaRouteImport.update({
   id: '/tienda',
@@ -59,6 +64,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -68,6 +78,11 @@ const PanelIndexRoute = PanelIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => PanelRoute,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
 } as any)
 const TiendaSlugRoute = TiendaSlugRouteImport.update({
   id: '/$slug',
@@ -89,14 +104,30 @@ const PanelContenidoRoute = PanelContenidoRouteImport.update({
   path: '/contenido',
   getParentRoute: () => PanelRoute,
 } as any)
+const AdminServiciosRoute = AdminServiciosRouteImport.update({
+  id: '/servicios',
+  path: '/servicios',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPedidosRoute = AdminPedidosRouteImport.update({
+  id: '/pedidos',
+  path: '/pedidos',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminLiveRoute = AdminLiveRouteImport.update({
-  id: '/admin/live',
-  path: '/admin/live',
-  getParentRoute: () => rootRouteImport,
+  id: '/live',
+  path: '/live',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminInventarioRoute = AdminInventarioRouteImport.update({
+  id: '/inventario',
+  path: '/inventario',
+  getParentRoute: () => AdminRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/contacto': typeof ContactoRoute
   '/galeria': typeof GaleriaRoute
@@ -104,11 +135,15 @@ export interface FileRoutesByFullPath {
   '/panel': typeof PanelRouteWithChildren
   '/servicios': typeof ServiciosRoute
   '/tienda': typeof TiendaRouteWithChildren
+  '/admin/inventario': typeof AdminInventarioRoute
   '/admin/live': typeof AdminLiveRoute
+  '/admin/pedidos': typeof AdminPedidosRoute
+  '/admin/servicios': typeof AdminServiciosRoute
   '/panel/contenido': typeof PanelContenidoRoute
   '/panel/pedidos': typeof PanelPedidosRoute
   '/panel/productos': typeof PanelProductosRoute
   '/tienda/$slug': typeof TiendaSlugRoute
+  '/admin/': typeof AdminIndexRoute
   '/panel/': typeof PanelIndexRoute
 }
 export interface FileRoutesByTo {
@@ -119,16 +154,21 @@ export interface FileRoutesByTo {
   '/nosotros': typeof NosotrosRoute
   '/servicios': typeof ServiciosRoute
   '/tienda': typeof TiendaRouteWithChildren
+  '/admin/inventario': typeof AdminInventarioRoute
   '/admin/live': typeof AdminLiveRoute
+  '/admin/pedidos': typeof AdminPedidosRoute
+  '/admin/servicios': typeof AdminServiciosRoute
   '/panel/contenido': typeof PanelContenidoRoute
   '/panel/pedidos': typeof PanelPedidosRoute
   '/panel/productos': typeof PanelProductosRoute
   '/tienda/$slug': typeof TiendaSlugRoute
+  '/admin': typeof AdminIndexRoute
   '/panel': typeof PanelIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/contacto': typeof ContactoRoute
   '/galeria': typeof GaleriaRoute
@@ -136,17 +176,22 @@ export interface FileRoutesById {
   '/panel': typeof PanelRouteWithChildren
   '/servicios': typeof ServiciosRoute
   '/tienda': typeof TiendaRouteWithChildren
+  '/admin/inventario': typeof AdminInventarioRoute
   '/admin/live': typeof AdminLiveRoute
+  '/admin/pedidos': typeof AdminPedidosRoute
+  '/admin/servicios': typeof AdminServiciosRoute
   '/panel/contenido': typeof PanelContenidoRoute
   '/panel/pedidos': typeof PanelPedidosRoute
   '/panel/productos': typeof PanelProductosRoute
   '/tienda/$slug': typeof TiendaSlugRoute
+  '/admin/': typeof AdminIndexRoute
   '/panel/': typeof PanelIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/auth'
     | '/contacto'
     | '/galeria'
@@ -154,11 +199,15 @@ export interface FileRouteTypes {
     | '/panel'
     | '/servicios'
     | '/tienda'
+    | '/admin/inventario'
     | '/admin/live'
+    | '/admin/pedidos'
+    | '/admin/servicios'
     | '/panel/contenido'
     | '/panel/pedidos'
     | '/panel/productos'
     | '/tienda/$slug'
+    | '/admin/'
     | '/panel/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -169,15 +218,20 @@ export interface FileRouteTypes {
     | '/nosotros'
     | '/servicios'
     | '/tienda'
+    | '/admin/inventario'
     | '/admin/live'
+    | '/admin/pedidos'
+    | '/admin/servicios'
     | '/panel/contenido'
     | '/panel/pedidos'
     | '/panel/productos'
     | '/tienda/$slug'
+    | '/admin'
     | '/panel'
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/auth'
     | '/contacto'
     | '/galeria'
@@ -185,16 +239,21 @@ export interface FileRouteTypes {
     | '/panel'
     | '/servicios'
     | '/tienda'
+    | '/admin/inventario'
     | '/admin/live'
+    | '/admin/pedidos'
+    | '/admin/servicios'
     | '/panel/contenido'
     | '/panel/pedidos'
     | '/panel/productos'
     | '/tienda/$slug'
+    | '/admin/'
     | '/panel/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
   ContactoRoute: typeof ContactoRoute
   GaleriaRoute: typeof GaleriaRoute
@@ -202,7 +261,6 @@ export interface RootRouteChildren {
   PanelRoute: typeof PanelRouteWithChildren
   ServiciosRoute: typeof ServiciosRoute
   TiendaRoute: typeof TiendaRouteWithChildren
-  AdminLiveRoute: typeof AdminLiveRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -256,6 +314,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -269,6 +334,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/panel/'
       preLoaderRoute: typeof PanelIndexRouteImport
       parentRoute: typeof PanelRoute
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/tienda/$slug': {
       id: '/tienda/$slug'
@@ -298,15 +370,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelContenidoRouteImport
       parentRoute: typeof PanelRoute
     }
+    '/admin/servicios': {
+      id: '/admin/servicios'
+      path: '/servicios'
+      fullPath: '/admin/servicios'
+      preLoaderRoute: typeof AdminServiciosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/pedidos': {
+      id: '/admin/pedidos'
+      path: '/pedidos'
+      fullPath: '/admin/pedidos'
+      preLoaderRoute: typeof AdminPedidosRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/live': {
       id: '/admin/live'
-      path: '/admin/live'
+      path: '/live'
       fullPath: '/admin/live'
       preLoaderRoute: typeof AdminLiveRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/inventario': {
+      id: '/admin/inventario'
+      path: '/inventario'
+      fullPath: '/admin/inventario'
+      preLoaderRoute: typeof AdminInventarioRouteImport
+      parentRoute: typeof AdminRoute
     }
   }
 }
+
+interface AdminRouteChildren {
+  AdminInventarioRoute: typeof AdminInventarioRoute
+  AdminLiveRoute: typeof AdminLiveRoute
+  AdminPedidosRoute: typeof AdminPedidosRoute
+  AdminServiciosRoute: typeof AdminServiciosRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminInventarioRoute: AdminInventarioRoute,
+  AdminLiveRoute: AdminLiveRoute,
+  AdminPedidosRoute: AdminPedidosRoute,
+  AdminServiciosRoute: AdminServiciosRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface PanelRouteChildren {
   PanelContenidoRoute: typeof PanelContenidoRoute
@@ -337,6 +448,7 @@ const TiendaRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
   ContactoRoute: ContactoRoute,
   GaleriaRoute: GaleriaRoute,
@@ -344,18 +456,7 @@ const rootRouteChildren: RootRouteChildren = {
   PanelRoute: PanelRouteWithChildren,
   ServiciosRoute: ServiciosRoute,
   TiendaRoute: TiendaRouteWithChildren,
-  AdminLiveRoute: AdminLiveRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
