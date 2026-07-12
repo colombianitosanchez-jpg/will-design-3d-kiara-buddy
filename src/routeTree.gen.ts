@@ -28,6 +28,7 @@ import { Route as AdminServiciosRouteImport } from './routes/admin.servicios'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminLiveRouteImport } from './routes/admin.live'
 import { Route as AdminInventarioRouteImport } from './routes/admin.inventario'
+import { Route as AdminClientesRouteImport } from './routes/admin.clientes'
 
 const TiendaRoute = TiendaRouteImport.update({
   id: '/tienda',
@@ -124,6 +125,11 @@ const AdminInventarioRoute = AdminInventarioRouteImport.update({
   path: '/inventario',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminClientesRoute = AdminClientesRouteImport.update({
+  id: '/clientes',
+  path: '/clientes',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -135,6 +141,7 @@ export interface FileRoutesByFullPath {
   '/panel': typeof PanelRouteWithChildren
   '/servicios': typeof ServiciosRoute
   '/tienda': typeof TiendaRouteWithChildren
+  '/admin/clientes': typeof AdminClientesRoute
   '/admin/inventario': typeof AdminInventarioRoute
   '/admin/live': typeof AdminLiveRoute
   '/admin/pedidos': typeof AdminPedidosRoute
@@ -154,6 +161,7 @@ export interface FileRoutesByTo {
   '/nosotros': typeof NosotrosRoute
   '/servicios': typeof ServiciosRoute
   '/tienda': typeof TiendaRouteWithChildren
+  '/admin/clientes': typeof AdminClientesRoute
   '/admin/inventario': typeof AdminInventarioRoute
   '/admin/live': typeof AdminLiveRoute
   '/admin/pedidos': typeof AdminPedidosRoute
@@ -176,6 +184,7 @@ export interface FileRoutesById {
   '/panel': typeof PanelRouteWithChildren
   '/servicios': typeof ServiciosRoute
   '/tienda': typeof TiendaRouteWithChildren
+  '/admin/clientes': typeof AdminClientesRoute
   '/admin/inventario': typeof AdminInventarioRoute
   '/admin/live': typeof AdminLiveRoute
   '/admin/pedidos': typeof AdminPedidosRoute
@@ -199,6 +208,7 @@ export interface FileRouteTypes {
     | '/panel'
     | '/servicios'
     | '/tienda'
+    | '/admin/clientes'
     | '/admin/inventario'
     | '/admin/live'
     | '/admin/pedidos'
@@ -218,6 +228,7 @@ export interface FileRouteTypes {
     | '/nosotros'
     | '/servicios'
     | '/tienda'
+    | '/admin/clientes'
     | '/admin/inventario'
     | '/admin/live'
     | '/admin/pedidos'
@@ -239,6 +250,7 @@ export interface FileRouteTypes {
     | '/panel'
     | '/servicios'
     | '/tienda'
+    | '/admin/clientes'
     | '/admin/inventario'
     | '/admin/live'
     | '/admin/pedidos'
@@ -398,10 +410,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminInventarioRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/clientes': {
+      id: '/admin/clientes'
+      path: '/clientes'
+      fullPath: '/admin/clientes'
+      preLoaderRoute: typeof AdminClientesRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
 interface AdminRouteChildren {
+  AdminClientesRoute: typeof AdminClientesRoute
   AdminInventarioRoute: typeof AdminInventarioRoute
   AdminLiveRoute: typeof AdminLiveRoute
   AdminPedidosRoute: typeof AdminPedidosRoute
@@ -410,6 +430,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminClientesRoute: AdminClientesRoute,
   AdminInventarioRoute: AdminInventarioRoute,
   AdminLiveRoute: AdminLiveRoute,
   AdminPedidosRoute: AdminPedidosRoute,

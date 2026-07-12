@@ -13,6 +13,7 @@ import {
   Package,
   ShoppingCart,
   Wrench,
+  Users,
   LogOut,
   ShieldCheck,
   Menu,
