@@ -26,7 +26,7 @@ export function KiaraWidget() {
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2">
               <img
-                src={kiaraAsset.url}
+                src={kiaraImg}
                 alt="Kiara"
                 width={36}
                 height={36}
