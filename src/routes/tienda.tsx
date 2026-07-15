@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Filter } from "lucide-react";
-import { CATEGORIES, PRODUCTS, type ProductCategory } from "@/data/products";
+import { useQuery } from "@tanstack/react-query";
+import { Filter, Loader2 } from "lucide-react";
+import { productsQuery, categoriesQuery } from "@/lib/catalog";
 import { ProductCard } from "@/components/ProductCard";
 
 export const Route = createFileRoute("/tienda")({
@@ -17,24 +18,30 @@ export const Route = createFileRoute("/tienda")({
       { property: "og:description", content: "Impresoras, filamentos, resinas, repuestos y accesorios 3D con asesoría técnica en Bogotá." },
     ],
   }),
+  loader: ({ context }) => {
+    context.queryClient.prefetchQuery(productsQuery());
+    context.queryClient.prefetchQuery(categoriesQuery());
+  },
   component: TiendaPage,
 });
 
 function TiendaPage() {
-  const [cat, setCat] = useState<ProductCategory | "todos">("todos");
+  const { data: products = [], isLoading } = useQuery(productsQuery());
+  const { data: categories = [] } = useQuery(categoriesQuery());
+  const [cat, setCat] = useState<string>("todos");
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
-    return PRODUCTS.filter((p) => {
-      const okCat = cat === "todos" || p.category === cat;
+    return products.filter((p) => {
+      const okCat = cat === "todos" || p.category?.slug === cat;
       const okQ =
         !query ||
-        (p.name + " " + (p.brand ?? "") + " " + p.short)
+        (p.name + " " + (p.brand?.name ?? "") + " " + p.short)
           .toLowerCase()
           .includes(query.toLowerCase());
       return okCat && okQ;
     });
-  }, [cat, query]);
+  }, [products, cat, query]);
 
   return (
     <>
@@ -42,8 +49,7 @@ function TiendaPage() {
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20">
           <span className="chip-teal">Tienda</span>
           <h1 className="mt-3 text-4xl font-black sm:text-5xl md:text-6xl">
-            Todo para tu{" "}
-            <span style={{ color: "var(--brand-orange)" }}>taller 3D</span>
+            Todo para tu <span style={{ color: "var(--brand-orange)" }}>taller 3D</span>
           </h1>
           <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
             Marcas líderes con soporte y asesoría en Bogotá. ¿No encuentras algo?{" "}
@@ -56,7 +62,6 @@ function TiendaPage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
-        {/* Filters */}
         <div className="flex flex-col gap-4 rounded-3xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
           <div className="flex items-center gap-2 overflow-x-auto">
             <Filter className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -70,17 +75,17 @@ function TiendaPage() {
             >
               Todos
             </button>
-            {CATEGORIES.map((c) => (
+            {categories.map((c) => (
               <button
                 key={c.id}
-                onClick={() => setCat(c.id)}
+                onClick={() => setCat(c.slug)}
                 className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                  cat === c.id
+                  cat === c.slug
                     ? "bg-[var(--brand-wine)] text-white"
                     : "bg-muted text-foreground hover:bg-muted/70"
                 }`}
               >
-                {c.label}
+                {c.name}
               </button>
             ))}
           </div>
@@ -93,7 +98,11 @@ function TiendaPage() {
           />
         </div>
 
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="mt-10 flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Cargando catálogo…
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="mt-10 rounded-3xl border-2 border-dashed border-border p-10 text-center text-muted-foreground">
             No encontramos productos con ese filtro.{" "}
             <Link to="/contacto" className="font-semibold text-foreground underline">
@@ -104,7 +113,7 @@ function TiendaPage() {
         ) : (
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filtered.map((p) => (
-              <ProductCard key={p.slug} product={p} />
+              <ProductCard key={p.id} product={p} />
             ))}
           </div>
         )}
