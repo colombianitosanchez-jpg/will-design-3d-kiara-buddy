@@ -230,7 +230,7 @@ function Services() {
 }
 
 function FeaturedProducts() {
-  const featured = PRODUCTS.filter((p) => p.featured).slice(0, 4);
+  const { data: featured = [], isLoading } = useQuery(featuredProductsQuery());
   return (
     <section id="tienda" className="border-y border-border bg-muted/40">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
@@ -249,11 +249,22 @@ function FeaturedProducts() {
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {featured.map((p) => (
-            <ProductCard key={p.slug} product={p} />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="mt-10 flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Cargando productos…
+          </div>
+        ) : featured.length === 0 ? (
+          <p className="mt-10 text-center text-sm text-muted-foreground">
+            Aún no hay productos destacados. Marca algunos como "Destacado" desde el panel.
+          </p>
+        ) : (
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {featured.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        )}
+      </div>
       </div>
     </section>
   );
