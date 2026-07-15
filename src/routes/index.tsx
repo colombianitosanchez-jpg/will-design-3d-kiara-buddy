@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import {
   Boxes,
   Sparkles,
@@ -7,13 +8,14 @@ import {
   Wrench,
   ArrowRight,
   Ruler,
+  Loader2,
 } from "lucide-react";
 import heroImg from "@/assets/hero.jpg";
 import { Quoter } from "@/components/Quoter";
 import { InstagramFeed } from "@/components/InstagramFeed";
 import { ProductCard } from "@/components/ProductCard";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
-import { PRODUCTS } from "@/data/products";
+import { featuredProductsQuery, siteContentQuery } from "@/lib/catalog";
 
 export const Route = createFileRoute("/")({
   head: () => ({
