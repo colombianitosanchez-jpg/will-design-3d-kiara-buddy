@@ -77,9 +77,8 @@ export function KiaraWidget() {
             </>
           ) : (
             <>
-              <p className="mt-3 text-sm text-foreground">
-                ¡Hola! Soy <span className="font-semibold">Kiara</span>, ¿qué
-                vamos a imprimir hoy? 🐕
+              <p className="mt-3 text-sm text-foreground whitespace-pre-line">
+                {customMessage || "¡Hola! Soy Kiara, ¿qué vamos a imprimir hoy? 🐕"}
               </p>
               <a
                 href={WHATSAPP_URL}
