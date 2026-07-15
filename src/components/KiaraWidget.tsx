@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { MessageCircle, X, Radio } from "lucide-react";
 import kiaraAsset from "@/assets/kiara.asset.json";
 import { useLive } from "@/lib/live-store";
+import { siteContentQuery } from "@/lib/catalog";
 
 const WHATSAPP_URL =
   "https://wa.me/573156724474?text=Hola%20Kiara%2C%20quiero%20cotizar%20un%20proyecto";
@@ -9,10 +11,13 @@ const WHATSAPP_URL =
 export function KiaraWidget() {
   const [open, setOpen] = useState(false);
   const { isLive, platform, url } = useLive();
+  const { data: content } = useQuery(siteContentQuery());
+  const customMessage = content?.kiara_message?.trim();
+  const kiaraImg = content?.kiara_image_url?.trim() || kiaraAsset.url;
 
   const teaser = isLive
     ? "¡Guau! Mis humanos están en vivo ahora mismo, ¡ven a verlos!"
-    : "¡Hola! Soy Kiara, ¿qué vamos a imprimir hoy?";
+    : customMessage || "¡Hola! Soy Kiara, ¿qué vamos a imprimir hoy?";
 
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
@@ -21,7 +26,7 @@ export function KiaraWidget() {
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2">
               <img
-                src={kiaraAsset.url}
+                src={kiaraImg}
                 alt="Kiara"
                 width={36}
                 height={36}
@@ -72,9 +77,8 @@ export function KiaraWidget() {
             </>
           ) : (
             <>
-              <p className="mt-3 text-sm text-foreground">
-                ¡Hola! Soy <span className="font-semibold">Kiara</span>, ¿qué
-                vamos a imprimir hoy? 🐕
+              <p className="mt-3 text-sm text-foreground whitespace-pre-line">
+                {customMessage || "¡Hola! Soy Kiara, ¿qué vamos a imprimir hoy? 🐕"}
               </p>
               <a
                 href={WHATSAPP_URL}
@@ -118,7 +122,7 @@ export function KiaraWidget() {
         }}
       >
         <img
-          src={kiaraAsset.url}
+          src={kiaraImg}
           alt="Kiara, asistente virtual Pastor Alemán"
           width={80}
           height={80}

@@ -1,13 +1,21 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft, MessageCircle, ShieldCheck, Truck } from "lucide-react";
-import { formatCOP, productBySlug, PRODUCTS } from "@/data/products";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft, MessageCircle, ShieldCheck, Truck, Loader2 } from "lucide-react";
+import {
+  formatCOP,
+  gradientKeyFor,
+  productBySlugQuery,
+  productsQuery,
+  type Product,
+} from "@/lib/catalog";
 import { KiaraTip } from "@/components/KiaraTip";
 import { ProductCard } from "@/components/ProductCard";
 
 export const Route = createFileRoute("/tienda/$slug")({
-  loader: ({ params }) => {
-    const product = productBySlug(params.slug);
+  loader: async ({ params, context }) => {
+    const product = await context.queryClient.ensureQueryData(productBySlugQuery(params.slug));
     if (!product) throw notFound();
+    context.queryClient.prefetchQuery(productsQuery());
     return { product };
   },
   head: ({ loaderData }) => ({
@@ -17,6 +25,12 @@ export const Route = createFileRoute("/tienda/$slug")({
           { name: "description", content: loaderData.product.short },
           { property: "og:title", content: `${loaderData.product.name} — Will Design 3D` },
           { property: "og:description", content: loaderData.product.short },
+          ...(loaderData.product.image_url
+            ? [
+                { property: "og:image", content: loaderData.product.image_url },
+                { name: "twitter:image", content: loaderData.product.image_url },
+              ]
+            : []),
         ]
       : [
           { title: "Producto no encontrado — Will Design 3D" },
@@ -24,6 +38,12 @@ export const Route = createFileRoute("/tienda/$slug")({
         ],
   }),
   notFoundComponent: ProductNotFound,
+  errorComponent: ({ error }) => (
+    <div className="mx-auto max-w-2xl px-4 py-24 text-center">
+      <h1 className="text-3xl font-black">No pudimos cargar el producto</h1>
+      <p className="mt-3 text-muted-foreground">{error.message}</p>
+    </div>
+  ),
   component: ProductPage,
 });
 
@@ -31,9 +51,7 @@ function ProductNotFound() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-24 text-center sm:px-6">
       <h1 className="text-3xl font-black">Producto no encontrado</h1>
-      <p className="mt-3 text-muted-foreground">
-        El producto que buscas no está disponible.
-      </p>
+      <p className="mt-3 text-muted-foreground">El producto que buscas no está disponible.</p>
       <Link to="/tienda" className="btn-primary mt-6 text-sm">
         Volver a la tienda
       </Link>
@@ -51,14 +69,16 @@ const GRADIENTS: Record<string, string> = {
 };
 
 function ProductPage() {
-  const { product } = Route.useLoaderData();
-  const related = PRODUCTS.filter(
-    (p) => p.category === product.category && p.slug !== product.slug,
-  ).slice(0, 3);
+  const { product } = Route.useLoaderData() as { product: Product };
+  const { data: allProducts = [] } = useQuery(productsQuery());
+  const related = allProducts
+    .filter((p) => p.category?.slug === product.category?.slug && p.slug !== product.slug)
+    .slice(0, 3);
 
   const waMessage = encodeURIComponent(
-    `Hola Will Design 3D, me interesa el producto: ${product.name} (${formatCOP(product.price)}). ¿Está disponible?`,
+    `Hola Will Design 3D, me interesa el producto: ${product.name} (${formatCOP(product.price_cop)}). ¿Está disponible?`,
   );
+  const gradient = GRADIENTS[gradientKeyFor(product.category?.slug)];
 
   return (
     <>
@@ -75,27 +95,33 @@ function ProductPage() {
       <section className="mx-auto grid max-w-7xl gap-10 px-4 py-8 sm:px-6 md:grid-cols-2 md:py-12">
         <div>
           <div
-            className="flex aspect-square w-full items-center justify-center rounded-3xl text-5xl font-black text-white/90 shadow-lg"
-            style={{ background: GRADIENTS[product.image] ?? GRADIENTS.orange }}
+            className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-3xl text-5xl font-black text-white/90 shadow-lg"
+            style={{ background: gradient }}
           >
-            {product.name.split(" ")[0]}
+            {product.image_url ? (
+              <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" />
+            ) : (
+              <span>{product.name.split(" ")[0]}</span>
+            )}
           </div>
         </div>
 
         <div>
-          {product.brand && (
+          {product.brand?.name && (
             <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              {product.brand}
+              {product.brand.name}
             </p>
           )}
           <h1 className="mt-1 text-3xl font-black sm:text-4xl">{product.name}</h1>
           <p className="mt-3 text-muted-foreground">{product.description}</p>
 
           <p className="mt-6 text-4xl font-black text-[var(--brand-wine)]">
-            {formatCOP(product.price)}
+            {formatCOP(product.price_cop)}
           </p>
           <p className="text-xs text-muted-foreground">
-            Precio referencial · Consulta stock y descuentos por volumen.
+            {product.stock > 0
+              ? `Disponible · ${product.stock} en stock`
+              : "Consultar disponibilidad"}
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
@@ -124,23 +150,27 @@ function ProductPage() {
             </li>
           </ul>
 
-          <div className="mt-8">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-              Especificaciones
-            </h2>
-            <dl className="mt-3 divide-y divide-border rounded-2xl border border-border">
-              {product.specs.map((s: { label: string; value: string }) => (
-                <div key={s.label} className="grid grid-cols-2 gap-2 p-3 text-sm">
-                  <dt className="font-medium text-muted-foreground">{s.label}</dt>
-                  <dd className="font-semibold">{s.value}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
+          {product.specs.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                Especificaciones
+              </h2>
+              <dl className="mt-3 divide-y divide-border rounded-2xl border border-border">
+                {product.specs.map((s) => (
+                  <div key={s.label} className="grid grid-cols-2 gap-2 p-3 text-sm">
+                    <dt className="font-medium text-muted-foreground">{s.label}</dt>
+                    <dd className="font-semibold">{s.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
 
-          <div className="mt-6">
-            <KiaraTip tip={product.kiaraTip} />
-          </div>
+          {product.kiara_tip && (
+            <div className="mt-6">
+              <KiaraTip tip={product.kiara_tip} />
+            </div>
+          )}
         </div>
       </section>
 
@@ -149,7 +179,7 @@ function ProductPage() {
           <h2 className="text-2xl font-black">También te puede interesar</h2>
           <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {related.map((p) => (
-              <ProductCard key={p.slug} product={p} />
+              <ProductCard key={p.id} product={p} />
             ))}
           </div>
         </section>
