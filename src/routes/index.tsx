@@ -28,6 +28,10 @@ export const Route = createFileRoute("/")({
       },
     ],
   }),
+  loader: ({ context }) => {
+    context.queryClient.prefetchQuery(featuredProductsQuery());
+    context.queryClient.prefetchQuery(siteContentQuery());
+  },
   component: Home,
 });
 
