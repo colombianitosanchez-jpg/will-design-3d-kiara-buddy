@@ -22,6 +22,10 @@ export const Route = createFileRoute("/nosotros")({
 });
 
 function NosotrosPage() {
+  const { data: content } = useQuery(siteContentQuery());
+  const about =
+    content?.about_short ||
+    "Nacimos en 2020 con una impresora prestada, muchas ganas y una pastora alemana que se robaba los rollos de filamento. Hoy seguimos aquí — con más máquinas, más experiencia y la misma perra al mando.";
   return (
     <>
       <section className="border-b border-border bg-muted/30">
@@ -32,11 +36,8 @@ function NosotrosPage() {
               Un taller 3D con{" "}
               <span style={{ color: "var(--brand-orange)" }}>alma</span>
             </h1>
-            <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-              Nacimos en 2020 con una impresora prestada, muchas ganas y una
-              pastora alemana que se robaba los rollos de filamento. Hoy
-              seguimos aquí — con más máquinas, más experiencia y la misma
-              perra al mando.
+            <p className="mt-4 max-w-2xl text-lg text-muted-foreground whitespace-pre-line">
+              {about}
             </p>
           </div>
           <img
