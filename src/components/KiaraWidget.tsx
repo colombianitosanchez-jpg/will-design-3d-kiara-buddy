@@ -122,7 +122,7 @@ export function KiaraWidget() {
         }}
       >
         <img
-          src={kiaraAsset.url}
+          src={kiaraImg}
           alt="Kiara, asistente virtual Pastor Alemán"
           width={80}
           height={80}
