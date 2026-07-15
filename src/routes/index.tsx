@@ -87,6 +87,13 @@ function Home() {
 }
 
 function Hero() {
+  const { data: content } = useQuery(siteContentQuery());
+  const title =
+    content?.hero_title || "Llevamos tus ideas a la realidad. Sin límites de tamaño.";
+  const subtitle =
+    content?.hero_subtitle ||
+    "Especialistas en Impresión 3D de gran formato en Bogotá. Diseño, producción y acabados profesionales bajo un mismo techo.";
+
   return (
     <section id="inicio" className="relative overflow-hidden">
       <div
@@ -104,14 +111,10 @@ function Hero() {
             Bogotá · Colombia
           </span>
           <h1 className="mt-4 text-4xl font-black leading-[1.05] sm:text-5xl md:text-6xl">
-            Llevamos tus ideas a la realidad.{" "}
-            <span style={{ color: "var(--brand-orange)" }}>Sin límites</span> de
-            tamaño.
+            {title}
           </h1>
           <p className="mt-5 max-w-xl text-base text-muted-foreground sm:text-lg">
-            Especialistas en <strong className="text-foreground">Impresión 3D
-            de gran formato</strong> en Bogotá. Diseño, producción y acabados
-            profesionales bajo un mismo techo.
+            {subtitle}
           </p>
           <div className="mt-7 flex flex-wrap items-center gap-3">
             <Link to="/contacto" className="btn-primary">
