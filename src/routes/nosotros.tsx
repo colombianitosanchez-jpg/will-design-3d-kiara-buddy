@@ -1,7 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Target, Eye, Heart, MapPin, Wrench, ArrowRight } from "lucide-react";
 import kiaraAsset from "@/assets/kiara.asset.json";
 import logoAsset from "@/assets/will_logo.asset.json";
+import { siteContentQuery } from "@/lib/catalog";
 
 export const Route = createFileRoute("/nosotros")({
   head: () => ({
