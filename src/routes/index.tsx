@@ -265,7 +265,7 @@ function FeaturedProducts() {
           </div>
         )}
       </div>
-      </div>
     </section>
+
   );
 }
