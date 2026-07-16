@@ -31,6 +31,8 @@ const schema = z.object({
 
 function ContactoPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { data: content } = useQuery(siteContentQuery());
+  const contact = getContactInfo(content);
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -51,11 +53,10 @@ function ContactoPage() {
       return;
     }
     setErrors({});
-    const msg = encodeURIComponent(
-      `Hola Will Design 3D, soy ${parsed.data.name}.\nAsunto: ${parsed.data.subject}\nContacto: ${parsed.data.contact}\n\n${parsed.data.message}`,
-    );
-    window.open(`https://wa.me/573156724474?text=${msg}`, "_blank");
+    const msg = `Hola Will Design 3D, soy ${parsed.data.name}.\nAsunto: ${parsed.data.subject}\nContacto: ${parsed.data.contact}\n\n${parsed.data.message}`;
+    window.open(waLink(contact.whatsapp, msg), "_blank");
   };
+
 
   return (
     <>
