@@ -14,6 +14,9 @@ export function KiaraWidget() {
   const { data: content } = useQuery(siteContentQuery());
   const customMessage = content?.kiara_message?.trim();
   const kiaraImg = content?.kiara_image_url?.trim() || kiaraAsset.url;
+  const contact = getContactInfo(content);
+  const whatsappUrl = waLink(contact.whatsapp, "Hola Kiara, quiero cotizar un proyecto");
+
 
   const greeting = isLive
     ? `¡Guau! Mis humanos están EN VIVO en ${platform} ahora mismo. ¿Quieres el enlace?`
