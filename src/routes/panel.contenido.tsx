@@ -10,7 +10,7 @@ export const Route = createFileRoute("/panel/contenido")({
 
 type Row = { key: string; value: string };
 
-const FIELDS: { key: string; label: string; type: "text" | "textarea" | "image"; help?: string }[] = [
+
 type FieldDef = {
   key: string;
   label: string;
