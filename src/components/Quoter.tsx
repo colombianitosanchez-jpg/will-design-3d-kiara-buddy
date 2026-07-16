@@ -56,9 +56,9 @@ export function Quoter() {
       `✨ Acabado: ${finishes.find((x) => x.id === finish)?.title}`,
       fileName ? `📎 Archivo de referencia: ${fileName}` : "",
     ].filter(Boolean);
-    const msg = encodeURIComponent(lines.join("\n"));
-    window.open(`https://wa.me/573156724474?text=${msg}`, "_blank");
+    window.open(waLink(contact.whatsapp, lines.join("\n")), "_blank");
   };
+
 
   return (
     <section
