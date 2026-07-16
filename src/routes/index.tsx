@@ -93,6 +93,13 @@ function Hero() {
   const subtitle =
     content?.hero_subtitle ||
     "Especialistas en Impresión 3D de gran formato en Bogotá. Diseño, producción y acabados profesionales bajo un mismo techo.";
+  const image = content?.hero_image_url?.trim() || heroImg;
+  const badge = content?.hero_badge_title?.trim() || "Escultura 1.8 m — PLA reforzado";
+  const stats = [
+    { k: content?.hero_stat_1_k?.trim() || "50×50", v: content?.hero_stat_1_v?.trim() || "cm mínimo" },
+    { k: content?.hero_stat_2_k?.trim() || "∞", v: content?.hero_stat_2_v?.trim() || "sin límite" },
+    { k: content?.hero_stat_3_k?.trim() || "+200", v: content?.hero_stat_3_v?.trim() || "proyectos" },
+  ];
 
   return (
     <section id="inicio" className="relative overflow-hidden">
@@ -127,12 +134,8 @@ function Hero() {
           </div>
 
           <dl className="mt-10 grid max-w-md grid-cols-3 gap-4">
-            {[
-              { k: "50×50", v: "cm mínimo" },
-              { k: "∞", v: "sin límite" },
-              { k: "+200", v: "proyectos" },
-            ].map((s) => (
-              <div key={s.k} className="rounded-2xl border border-border bg-card p-3 text-center">
+            {stats.map((s, i) => (
+              <div key={i} className="rounded-2xl border border-border bg-card p-3 text-center">
                 <dt className="text-xl font-black" style={{ color: "var(--brand-wine)" }}>
                   {s.k}
                 </dt>
@@ -151,21 +154,24 @@ function Hero() {
             }}
           />
           <img
-            src={heroImg}
+            src={image}
             alt="Impresión 3D de gran formato Will Design 3D"
             width={1600}
             height={1000}
             className="aspect-[4/3] w-full rounded-3xl object-cover shadow-2xl ring-1 ring-border"
           />
-          <div className="absolute -bottom-5 -left-5 hidden max-w-[15rem] rounded-2xl border border-border bg-card p-3 shadow-xl sm:block">
-            <p className="text-xs font-semibold text-muted-foreground">Pieza destacada</p>
-            <p className="text-sm font-bold">Escultura 1.8 m — PLA reforzado</p>
-          </div>
+          {badge && (
+            <div className="absolute -bottom-5 -left-5 hidden max-w-[15rem] rounded-2xl border border-border bg-card p-3 shadow-xl sm:block">
+              <p className="text-xs font-semibold text-muted-foreground">Pieza destacada</p>
+              <p className="text-sm font-bold">{badge}</p>
+            </div>
+          )}
         </div>
       </div>
     </section>
   );
 }
+
 
 function Services() {
   const ref = useScrollReveal<HTMLElement>();
