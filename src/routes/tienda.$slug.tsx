@@ -134,7 +134,7 @@ function ProductPage() {
 
           <div className="mt-6 flex flex-wrap gap-3">
             <a
-              href={`https://wa.me/573156724474?text=${waMessage}`}
+              href={waHref}
               target="_blank"
               rel="noreferrer"
               className="btn-primary"
