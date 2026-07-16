@@ -31,7 +31,7 @@ function PanelLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [email, setEmail] = useState<string>("");
-  const [claiming, setClaiming] = useState(false);
+  
 
   async function refreshRole() {
     const { data: userData } = await supabase.auth.getUser();
