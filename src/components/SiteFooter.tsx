@@ -97,30 +97,31 @@ export function SiteFooter() {
           <ul className="mt-3 space-y-3 text-sm">
             <li>
               <a
-                href="https://wa.me/573156724474"
+                href={waLink(contact.whatsapp)}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 font-semibold hover:underline"
               >
                 <MessageCircle className="h-4 w-4 text-[var(--brand-orange)]" />
-                +57 315 672 4474
+                {contact.whatsapp_display}
               </a>
             </li>
             <li>
               <a
-                href="https://www.instagram.com/will_design2020/"
+                href={contact.instagram_url}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 font-semibold hover:underline"
               >
                 <Instagram className="h-4 w-4 text-[var(--brand-teal-deep)]" />
-                @will_design2020
+                {contact.instagram_handle}
               </a>
             </li>
             <li className="inline-flex items-center gap-2">
               <MapPin className="h-4 w-4 text-[var(--brand-wine)]" />
-              Bogotá, Colombia
+              {contact.location_short}
             </li>
+
           </ul>
         </div>
       </div>
