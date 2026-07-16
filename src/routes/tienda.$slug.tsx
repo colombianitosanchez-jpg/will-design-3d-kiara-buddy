@@ -6,8 +6,12 @@ import {
   gradientKeyFor,
   productBySlugQuery,
   productsQuery,
+  siteContentQuery,
+  getContactInfo,
+  waLink,
   type Product,
 } from "@/lib/catalog";
+
 import { KiaraTip } from "@/components/KiaraTip";
 import { ProductCard } from "@/components/ProductCard";
 
