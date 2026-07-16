@@ -134,56 +134,67 @@ function ContenidoAdmin() {
       {msg && <p className="mt-4 rounded-2xl bg-muted p-4 text-sm">{msg}</p>}
 
       <div className="mt-6 space-y-5">
-        {FIELDS.map((f) => (
-          <div key={f.key} className="rounded-3xl border border-border bg-card p-5">
-            <label className="text-sm font-bold">{f.label}</label>
-            {f.help && <p className="text-xs text-muted-foreground">{f.help}</p>}
-            {f.type === "text" && (
-              <input
-                value={values[f.key] ?? ""}
-                onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
-                className="mt-2 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-              />
-            )}
-            {f.type === "textarea" && (
-              <textarea
-                rows={3}
-                value={values[f.key] ?? ""}
-                onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
-                className="mt-2 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-              />
-            )}
-            {f.type === "image" && (
-              <div className="mt-3 flex items-center gap-4">
-                {values[f.key] ? (
-                  <img src={values[f.key]} alt="" className="h-20 w-20 rounded-xl object-cover" />
-                ) : (
-                  <div className="h-20 w-20 rounded-xl bg-muted" />
-                )}
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-muted">
-                  <Upload className="h-4 w-4" />
-                  {uploadingKey === f.key ? "Subiendo…" : "Subir nueva imagen"}
+        {FIELDS.map((f, i) => {
+          const showSection = f.section && (i === 0 || FIELDS[i - 1].section !== f.section);
+          return (
+            <div key={f.key}>
+              {showSection && (
+                <h2 className="mb-2 mt-6 text-xs font-black uppercase tracking-wider text-muted-foreground first:mt-0">
+                  {f.section}
+                </h2>
+              )}
+              <div className="rounded-3xl border border-border bg-card p-5">
+                <label className="text-sm font-bold">{f.label}</label>
+                {f.help && <p className="text-xs text-muted-foreground">{f.help}</p>}
+                {f.type === "text" && (
                   <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => e.target.files?.[0] && uploadImage(f.key, e.target.files[0])}
+                    value={values[f.key] ?? ""}
+                    onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+                    className="mt-2 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                   />
-                </label>
-                {values[f.key] && (
-                  <button
-                    type="button"
-                    onClick={() => setValues((v) => ({ ...v, [f.key]: "" }))}
-                    className="text-xs text-muted-foreground underline"
-                  >
-                    Quitar
-                  </button>
+                )}
+                {f.type === "textarea" && (
+                  <textarea
+                    rows={3}
+                    value={values[f.key] ?? ""}
+                    onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+                    className="mt-2 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                )}
+                {f.type === "image" && (
+                  <div className="mt-3 flex items-center gap-4">
+                    {values[f.key] ? (
+                      <img src={values[f.key]} alt="" className="h-20 w-20 rounded-xl object-cover" />
+                    ) : (
+                      <div className="h-20 w-20 rounded-xl bg-muted" />
+                    )}
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-muted">
+                      <Upload className="h-4 w-4" />
+                      {uploadingKey === f.key ? "Subiendo…" : "Subir nueva imagen"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => e.target.files?.[0] && uploadImage(f.key, e.target.files[0])}
+                      />
+                    </label>
+                    {values[f.key] && (
+                      <button
+                        type="button"
+                        onClick={() => setValues((v) => ({ ...v, [f.key]: "" }))}
+                        className="text-xs text-muted-foreground underline"
+                      >
+                        Quitar
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
+
     </>
   );
 }
