@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Menu, X, MessageCircle } from "lucide-react";
 import logoAsset from "@/assets/will_logo.asset.json";
+import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 
-const WHATSAPP_URL =
-  "https://wa.me/573156724474?text=Hola%20Will%20Design%203D";
 
 const NAV = [
   { to: "/", label: "Inicio" },
