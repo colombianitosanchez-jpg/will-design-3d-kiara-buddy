@@ -1,12 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Radio, Save, Power, PowerOff } from "lucide-react";
 import { setLive, useLive, type LivePlatform } from "@/lib/live-store";
-
-const ADMIN_PIN_KEY = "will3d.admin_pin";
-const DEFAULT_PIN = "kiara2024";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/admin/live")({
+  ssr: false,
+  beforeLoad: async () => {
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) throw redirect({ to: "/auth" });
+  },
   head: () => ({
     meta: [
       { title: "Admin — Transmisión en vivo · Will Design 3D" },
@@ -17,51 +20,47 @@ export const Route = createFileRoute("/admin/live")({
 });
 
 function AdminLive() {
-  const [authed, setAuthed] = useState(false);
-  const [pin, setPin] = useState("");
+  const [status, setStatus] = useState<"loading" | "denied" | "ok">("loading");
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const saved = window.localStorage.getItem(ADMIN_PIN_KEY);
-    if (saved === DEFAULT_PIN) setAuthed(true);
+    (async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return setStatus("denied");
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userData.user.id);
+      const allowed = data?.some(
+        (r) => r.role === "admin" || r.role === "staff",
+      );
+      setStatus(allowed ? "ok" : "denied");
+    })();
   }, []);
 
-  if (!authed) {
+  if (status === "loading") {
     return (
-      <div className="grid min-h-screen place-items-center bg-background p-4">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (pin === DEFAULT_PIN) {
-              window.localStorage.setItem(ADMIN_PIN_KEY, pin);
-              setAuthed(true);
-            } else {
-              alert("PIN incorrecto");
-            }
-          }}
-          className="w-full max-w-sm rounded-3xl border border-border bg-card p-6 shadow-xl"
-        >
-          <h1 className="text-lg font-black">Panel de administración</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Ingresa el PIN para gestionar el estado "En Vivo".
+      <div className="grid min-h-[60vh] place-items-center text-sm text-muted-foreground">
+        Verificando permisos…
+      </div>
+    );
+  }
+
+  if (status === "denied") {
+    return (
+      <div className="grid min-h-[60vh] place-items-center p-4">
+        <div className="max-w-md rounded-3xl border border-border bg-card p-6 text-center shadow-xl">
+          <h1 className="text-lg font-black">Acceso restringido</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Necesitas una cuenta con rol de administrador o staff para gestionar
+            la transmisión en vivo.
           </p>
-          <input
-            type="password"
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            className="mt-4 w-full rounded-xl border border-input bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-ring"
-            placeholder="PIN"
-            autoFocus
-          />
-          <button type="submit" className="btn-primary mt-4 w-full justify-center">
-            Entrar
-          </button>
-          <p className="mt-3 text-[11px] text-muted-foreground">
-            PIN por defecto:{" "}
-            <code className="rounded bg-muted px-1">{DEFAULT_PIN}</code> —
-            cámbialo en <code>src/routes/admin.live.tsx</code>.
-          </p>
-        </form>
+          <Link
+            to="/auth"
+            className="btn-primary mt-4 inline-flex justify-center"
+          >
+            Iniciar sesión
+          </Link>
+        </div>
       </div>
     );
   }
@@ -172,9 +171,8 @@ function LivePanel() {
           </form>
 
           <p className="mt-6 rounded-xl bg-muted p-3 text-xs text-muted-foreground">
-            ℹ️ Este estado se guarda en tu navegador. Para que aparezca en vivo
-            para todos los visitantes desde cualquier dispositivo, activa
-            Lovable Cloud y podemos moverlo a la base de datos.
+            ℹ️ Este estado se guarda por navegador. Para sincronizarlo entre
+            dispositivos podemos moverlo a la base de datos más adelante.
           </p>
         </div>
       </div>

@@ -36,7 +36,7 @@ function AdminLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [roles, setRoles] = useState<Role[] | null>(null);
   const [email, setEmail] = useState("");
-  const [claiming, setClaiming] = useState(false);
+  
   const [mobileOpen, setMobileOpen] = useState(false);
 
   async function refreshRole() {
@@ -61,14 +61,6 @@ function AdminLayout() {
     setMobileOpen(false);
   }, [pathname]);
 
-  async function claimAdmin() {
-    setClaiming(true);
-    const { data, error } = await supabase.rpc("claim_first_admin");
-    setClaiming(false);
-    if (error) return alert("No se pudo activar: " + error.message);
-    if (data === true) await refreshRole();
-    else alert("Ya existe un administrador. Pide acceso al administrador actual.");
-  }
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -96,15 +88,8 @@ function AdminLayout() {
             Tu cuenta ({email}) no tiene rol asignado.
           </p>
           <p className="mt-4 text-sm">
-            Si eres el primer usuario del equipo, actívate como Super Admin con un clic:
+            Pide a un administrador que te asigne un rol para acceder al panel.
           </p>
-          <button
-            onClick={claimAdmin}
-            disabled={claiming}
-            className="mt-4 w-full rounded-full bg-[var(--brand-wine)] px-5 py-3 text-sm font-bold text-white hover:opacity-90 disabled:opacity-60"
-          >
-            {claiming ? "Activando…" : "Activarme como Super Admin"}
-          </button>
           <button
             onClick={signOut}
             className="mt-3 w-full rounded-full border border-border px-5 py-3 text-sm font-semibold"
