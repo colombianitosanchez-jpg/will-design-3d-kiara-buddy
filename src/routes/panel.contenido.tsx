@@ -11,12 +11,45 @@ export const Route = createFileRoute("/panel/contenido")({
 type Row = { key: string; value: string };
 
 const FIELDS: { key: string; label: string; type: "text" | "textarea" | "image"; help?: string }[] = [
-  { key: "hero_title", label: "Título del hero (home)", type: "text" },
-  { key: "hero_subtitle", label: "Subtítulo del hero (home)", type: "textarea" },
-  { key: "kiara_message", label: "Mensaje de Kiara (widget)", type: "textarea" },
-  { key: "about_short", label: "Descripción corta 'Nosotros'", type: "textarea" },
-  { key: "kiara_image_url", label: "Foto de Kiara", type: "image", help: "Sube una nueva foto para reemplazar la mascota." },
+type FieldDef = {
+  key: string;
+  label: string;
+  type: "text" | "textarea" | "image";
+  help?: string;
+  section?: string;
+};
+
+const FIELDS: FieldDef[] = [
+  // Hero / Home
+  { key: "hero_title", label: "Título del hero (home)", type: "text", section: "Home · Hero" },
+  { key: "hero_subtitle", label: "Subtítulo del hero (home)", type: "textarea", section: "Home · Hero" },
+  { key: "hero_image_url", label: "Imagen del hero", type: "image", help: "Foto principal a la derecha del título.", section: "Home · Hero" },
+  { key: "hero_badge_title", label: "Etiqueta flotante (pieza destacada)", type: "text", help: "Ej: Escultura 1.8 m — PLA reforzado", section: "Home · Hero" },
+  { key: "hero_stat_1_k", label: "Estadística 1 · valor", type: "text", help: "Ej: 50×50", section: "Home · Hero" },
+  { key: "hero_stat_1_v", label: "Estadística 1 · descripción", type: "text", help: "Ej: cm mínimo", section: "Home · Hero" },
+  { key: "hero_stat_2_k", label: "Estadística 2 · valor", type: "text", section: "Home · Hero" },
+  { key: "hero_stat_2_v", label: "Estadística 2 · descripción", type: "text", section: "Home · Hero" },
+  { key: "hero_stat_3_k", label: "Estadística 3 · valor", type: "text", section: "Home · Hero" },
+  { key: "hero_stat_3_v", label: "Estadística 3 · descripción", type: "text", section: "Home · Hero" },
+
+  // Nosotros
+  { key: "about_short", label: "Descripción corta 'Nosotros'", type: "textarea", section: "Página Nosotros" },
+
+  // Kiara
+  { key: "kiara_message", label: "Mensaje de Kiara (widget)", type: "textarea", section: "Kiara (asistente)" },
+  { key: "kiara_image_url", label: "Foto de Kiara", type: "image", help: "Se usa en widget y página Nosotros.", section: "Kiara (asistente)" },
+
+  // Contacto
+  { key: "contact_whatsapp", label: "WhatsApp (solo dígitos, con país)", type: "text", help: "Ej: 573156724474 — se usa en todos los enlaces wa.me.", section: "Contacto" },
+  { key: "contact_whatsapp_display", label: "WhatsApp (formato visible)", type: "text", help: "Ej: +57 315 672 4474", section: "Contacto" },
+  { key: "contact_email", label: "Correo de contacto", type: "text", section: "Contacto" },
+  { key: "contact_instagram_url", label: "URL de Instagram", type: "text", section: "Contacto" },
+  { key: "contact_instagram_handle", label: "Usuario de Instagram (visible)", type: "text", help: "Ej: @will_design2020", section: "Contacto" },
+  { key: "contact_location_text", label: "Ubicación (texto)", type: "text", help: "Ej: Bogotá, Colombia · atención por cita previa", section: "Contacto" },
+  { key: "contact_location_short", label: "Ubicación corta (footer)", type: "text", help: "Ej: Bogotá, Colombia", section: "Contacto" },
+  { key: "contact_map_embed_url", label: "URL del mapa (Google Maps embed)", type: "textarea", help: "Pega la URL del src del iframe de Google Maps (Compartir → Insertar mapa → copia el src).", section: "Contacto" },
 ];
+
 
 function ContenidoAdmin() {
   const [values, setValues] = useState<Record<string, string>>({});
