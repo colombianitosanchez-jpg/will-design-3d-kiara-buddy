@@ -51,20 +51,6 @@ function PanelLayout() {
     refreshRole();
   }, []);
 
-  async function claimAdmin() {
-    setClaiming(true);
-    const { data, error } = await supabase.rpc("claim_first_admin");
-    setClaiming(false);
-    if (error) {
-      alert("No se pudo activar como administrador: " + error.message);
-      return;
-    }
-    if (data === true) {
-      await refreshRole();
-    } else {
-      alert("Ya existe un administrador. Pide acceso al administrador actual.");
-    }
-  }
 
   async function signOut() {
     await supabase.auth.signOut();
