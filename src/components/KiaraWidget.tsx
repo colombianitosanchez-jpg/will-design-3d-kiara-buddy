@@ -1,29 +1,58 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { MessageCircle, X, Radio } from "lucide-react";
+import { MessageCircle, X, Radio, Send } from "lucide-react";
 import kiaraAsset from "@/assets/kiara.asset.json";
 import { useLive } from "@/lib/live-store";
 import { siteContentQuery } from "@/lib/catalog";
+import { useKiaraChat } from "@/hooks/use-kiara-chat";
 
 const WHATSAPP_URL =
   "https://wa.me/573156724474?text=Hola%20Kiara%2C%20quiero%20cotizar%20un%20proyecto";
 
 export function KiaraWidget() {
   const [open, setOpen] = useState(false);
+  const [input, setInput] = useState("");
   const { isLive, platform, url } = useLive();
   const { data: content } = useQuery(siteContentQuery());
   const customMessage = content?.kiara_message?.trim();
   const kiaraImg = content?.kiara_image_url?.trim() || kiaraAsset.url;
 
+  const greeting = isLive
+    ? `¡Guau! Mis humanos están EN VIVO en ${platform} ahora mismo. ¿Quieres el enlace?`
+    : customMessage ||
+      "¡Hola! Soy Kiara 🐾 ¿Qué vamos a imprimir hoy? Pregúntame por precios, materiales o servicios.";
+
+  const { messages, sending, send, reset } = useKiaraChat(greeting);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    reset(greeting);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [greeting]);
+
+  useEffect(() => {
+    if (open && scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, open, sending]);
+
   const teaser = isLive
     ? "¡Guau! Mis humanos están en vivo ahora mismo, ¡ven a verlos!"
     : customMessage || "¡Hola! Soy Kiara, ¿qué vamos a imprimir hoy?";
 
+  function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const text = input;
+    setInput("");
+    send(text);
+  }
+
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
       {open && (
-        <div className="max-w-[18rem] rounded-2xl border border-border bg-card p-4 shadow-2xl">
-          <div className="flex items-start justify-between gap-2">
+        <div className="flex h-[28rem] w-[20rem] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+          {/* Header */}
+          <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/40 px-4 py-3">
             <div className="flex items-center gap-2">
               <img
                 src={kiaraImg}
@@ -35,7 +64,7 @@ export function KiaraWidget() {
               <div>
                 <p className="text-sm font-bold text-foreground">Kiara 🐾</p>
                 <p className="text-[11px] text-muted-foreground">
-                  Asistente virtual
+                  {sending ? "escribiendo…" : "Asistente virtual"}
                 </p>
               </div>
             </div>
@@ -48,49 +77,80 @@ export function KiaraWidget() {
             </button>
           </div>
 
-          {isLive ? (
-            <>
-              <p className="mt-3 text-sm text-foreground">
-                🔴 ¡Mis humanos están{" "}
-                <span className="font-bold">EN VIVO en {platform}</span> ahora
-                mismo! No te lo pierdas 🐕
-              </p>
-              <a
-                href={url || "#"}
-                target="_blank"
-                rel="noreferrer"
-                className="btn-primary mt-3 w-full text-sm"
-                style={{ background: "#dc2626" }}
-              >
-                <Radio className="h-4 w-4" />
-                Ver transmisión
-              </a>
-              <a
-                href={WHATSAPP_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="btn-outline mt-2 w-full text-sm"
-              >
-                <MessageCircle className="h-4 w-4" />
-                O escríbenos por WhatsApp
-              </a>
-            </>
-          ) : (
-            <>
-              <p className="mt-3 text-sm text-foreground whitespace-pre-line">
-                {customMessage || "¡Hola! Soy Kiara, ¿qué vamos a imprimir hoy? 🐕"}
-              </p>
-              <a
-                href={WHATSAPP_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="btn-primary mt-3 w-full text-sm"
-              >
-                <MessageCircle className="h-4 w-4" />
-                Chatear por WhatsApp
-              </a>
-            </>
+          {isLive && (
+            <a
+              href={url || "#"}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-center gap-2 bg-red-600 px-3 py-2 text-xs font-bold text-white hover:opacity-90"
+            >
+              <Radio className="h-3.5 w-3.5" /> Ver transmisión en {platform}
+            </a>
           )}
+
+          {/* Messages */}
+          <div
+            ref={scrollRef}
+            className="flex-1 space-y-3 overflow-y-auto px-3 py-3"
+          >
+            {messages.map((m) => (
+              <div
+                key={m.id}
+                className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
+              >
+                <div
+                  className={`max-w-[85%] whitespace-pre-line rounded-2xl px-3 py-2 text-sm ${
+                    m.role === "user"
+                      ? "rounded-br-sm bg-[var(--brand-wine)] text-white"
+                      : "rounded-bl-sm bg-muted text-foreground"
+                  }`}
+                >
+                  {m.content}
+                </div>
+              </div>
+            ))}
+            {sending && (
+              <div className="flex justify-start">
+                <div className="rounded-2xl rounded-bl-sm bg-muted px-3 py-2 text-sm text-muted-foreground">
+                  <span className="inline-flex gap-1">
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:120ms]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:240ms]" />
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Input */}
+          <form
+            onSubmit={onSubmit}
+            className="flex items-center gap-2 border-t border-border bg-background px-2 py-2"
+          >
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              maxLength={1000}
+              placeholder="Escríbele a Kiara…"
+              className="flex-1 rounded-full border border-input bg-background px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+            />
+            <button
+              type="submit"
+              disabled={sending || !input.trim()}
+              aria-label="Enviar"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--brand-orange)] text-white transition hover:opacity-90 disabled:opacity-50"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </form>
+          <a
+            href={WHATSAPP_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center justify-center gap-2 border-t border-border bg-muted/40 py-2 text-xs font-semibold text-foreground hover:bg-muted"
+          >
+            <MessageCircle className="h-3.5 w-3.5" /> Prefiero WhatsApp
+          </a>
         </div>
       )}
 
@@ -100,8 +160,7 @@ export function KiaraWidget() {
           style={
             isLive
               ? {
-                  background:
-                    "color-mix(in oklab, #dc2626 12%, white)",
+                  background: "color-mix(in oklab, #dc2626 12%, white)",
                   borderColor: "#dc2626",
                 }
               : undefined
