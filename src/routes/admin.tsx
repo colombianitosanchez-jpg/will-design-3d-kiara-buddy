@@ -36,7 +36,7 @@ function AdminLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [roles, setRoles] = useState<Role[] | null>(null);
   const [email, setEmail] = useState("");
-  const [claiming, setClaiming] = useState(false);
+  
   const [mobileOpen, setMobileOpen] = useState(false);
 
   async function refreshRole() {
