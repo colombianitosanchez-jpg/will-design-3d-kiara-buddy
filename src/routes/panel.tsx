@@ -74,15 +74,9 @@ function PanelLayout() {
             Tu cuenta ({email}) no tiene rol de administrador.
           </p>
           <p className="mt-4 text-sm">
-            Si eres el primer usuario del equipo, actívate como administrador con un clic:
+            Pide a un administrador que te asigne un rol desde la base de datos
+            para acceder al panel.
           </p>
-          <button
-            onClick={claimAdmin}
-            disabled={claiming}
-            className="mt-4 w-full rounded-full bg-[var(--brand-wine)] px-5 py-3 text-sm font-bold text-white hover:opacity-90 disabled:opacity-60"
-          >
-            {claiming ? "Activando…" : "Activarme como administrador"}
-          </button>
           <button
             onClick={signOut}
             className="mt-3 w-full rounded-full border border-border px-5 py-3 text-sm font-semibold"
