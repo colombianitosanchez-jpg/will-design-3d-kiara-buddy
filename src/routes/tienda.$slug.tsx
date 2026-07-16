@@ -79,10 +79,14 @@ function ProductPage() {
     .filter((p) => p.category?.slug === product.category?.slug && p.slug !== product.slug)
     .slice(0, 3);
 
-  const waMessage = encodeURIComponent(
+  const { data: content } = useQuery(siteContentQuery());
+  const contact = getContactInfo(content);
+  const waHref = waLink(
+    contact.whatsapp,
     `Hola Will Design 3D, me interesa el producto: ${product.name} (${formatCOP(product.price_cop)}). ¿Está disponible?`,
   );
   const gradient = GRADIENTS[gradientKeyFor(product.category?.slug)];
+
 
   return (
     <>
