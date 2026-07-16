@@ -1,8 +1,13 @@
 import { Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Instagram, MessageCircle, MapPin } from "lucide-react";
 import logoAsset from "@/assets/will_logo.asset.json";
+import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 
 export function SiteFooter() {
+  const { data: content } = useQuery(siteContentQuery());
+  const contact = getContactInfo(content);
+
   return (
     <footer className="mt-16 border-t border-border bg-card">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-4">
