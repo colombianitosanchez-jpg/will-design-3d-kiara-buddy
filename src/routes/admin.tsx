@@ -88,15 +88,8 @@ function AdminLayout() {
             Tu cuenta ({email}) no tiene rol asignado.
           </p>
           <p className="mt-4 text-sm">
-            Si eres el primer usuario del equipo, actívate como Super Admin con un clic:
+            Pide a un administrador que te asigne un rol para acceder al panel.
           </p>
-          <button
-            onClick={claimAdmin}
-            disabled={claiming}
-            className="mt-4 w-full rounded-full bg-[var(--brand-wine)] px-5 py-3 text-sm font-bold text-white hover:opacity-90 disabled:opacity-60"
-          >
-            {claiming ? "Activando…" : "Activarme como Super Admin"}
-          </button>
           <button
             onClick={signOut}
             className="mt-3 w-full rounded-full border border-border px-5 py-3 text-sm font-semibold"
