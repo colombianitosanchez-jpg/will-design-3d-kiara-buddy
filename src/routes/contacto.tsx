@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { MessageCircle, Instagram, MapPin, Mail, Send } from "lucide-react";
+import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
+
 
 export const Route = createFileRoute("/contacto")({
   head: () => ({
