@@ -1,8 +1,13 @@
 import { Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Instagram, MessageCircle, MapPin } from "lucide-react";
 import logoAsset from "@/assets/will_logo.asset.json";
+import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 
 export function SiteFooter() {
+  const { data: content } = useQuery(siteContentQuery());
+  const contact = getContactInfo(content);
+
   return (
     <footer className="mt-16 border-t border-border bg-card">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-4">
@@ -92,30 +97,31 @@ export function SiteFooter() {
           <ul className="mt-3 space-y-3 text-sm">
             <li>
               <a
-                href="https://wa.me/573156724474"
+                href={waLink(contact.whatsapp)}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 font-semibold hover:underline"
               >
                 <MessageCircle className="h-4 w-4 text-[var(--brand-orange)]" />
-                +57 315 672 4474
+                {contact.whatsapp_display}
               </a>
             </li>
             <li>
               <a
-                href="https://www.instagram.com/will_design2020/"
+                href={contact.instagram_url}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 font-semibold hover:underline"
               >
                 <Instagram className="h-4 w-4 text-[var(--brand-teal-deep)]" />
-                @will_design2020
+                {contact.instagram_handle}
               </a>
             </li>
             <li className="inline-flex items-center gap-2">
               <MapPin className="h-4 w-4 text-[var(--brand-wine)]" />
-              Bogotá, Colombia
+              {contact.location_short}
             </li>
+
           </ul>
         </div>
       </div>

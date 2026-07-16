@@ -1,6 +1,9 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Upload, CheckCircle2 } from "lucide-react";
 import kiaraAsset from "@/assets/kiara.asset.json";
+import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
+
 
 type Finish = "estandar" | "preparado" | "premium";
 
@@ -28,8 +31,11 @@ export function Quoter() {
   const [material, setMaterial] = useState("");
   const [finish, setFinish] = useState<Finish>("estandar");
   const [fileName, setFileName] = useState("");
+  const { data: content } = useQuery(siteContentQuery());
+  const contact = getContactInfo(content);
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+
     e.preventDefault();
     const f = e.currentTarget;
     const data = new FormData(f);
@@ -50,9 +56,9 @@ export function Quoter() {
       `✨ Acabado: ${finishes.find((x) => x.id === finish)?.title}`,
       fileName ? `📎 Archivo de referencia: ${fileName}` : "",
     ].filter(Boolean);
-    const msg = encodeURIComponent(lines.join("\n"));
-    window.open(`https://wa.me/573156724474?text=${msg}`, "_blank");
+    window.open(waLink(contact.whatsapp, lines.join("\n")), "_blank");
   };
+
 
   return (
     <section

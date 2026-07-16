@@ -3,11 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { MessageCircle, X, Radio, Send } from "lucide-react";
 import kiaraAsset from "@/assets/kiara.asset.json";
 import { useLive } from "@/lib/live-store";
-import { siteContentQuery } from "@/lib/catalog";
+import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 import { useKiaraChat } from "@/hooks/use-kiara-chat";
 
-const WHATSAPP_URL =
-  "https://wa.me/573156724474?text=Hola%20Kiara%2C%20quiero%20cotizar%20un%20proyecto";
 
 export function KiaraWidget() {
   const [open, setOpen] = useState(false);
@@ -16,6 +14,9 @@ export function KiaraWidget() {
   const { data: content } = useQuery(siteContentQuery());
   const customMessage = content?.kiara_message?.trim();
   const kiaraImg = content?.kiara_image_url?.trim() || kiaraAsset.url;
+  const contact = getContactInfo(content);
+  const whatsappUrl = waLink(contact.whatsapp, "Hola Kiara, quiero cotizar un proyecto");
+
 
   const greeting = isLive
     ? `¡Guau! Mis humanos están EN VIVO en ${platform} ahora mismo. ¿Quieres el enlace?`
@@ -144,7 +145,7 @@ export function KiaraWidget() {
             </button>
           </form>
           <a
-            href={WHATSAPP_URL}
+            href={whatsappUrl}
             target="_blank"
             rel="noreferrer"
             className="flex items-center justify-center gap-2 border-t border-border bg-muted/40 py-2 text-xs font-semibold text-foreground hover:bg-muted"

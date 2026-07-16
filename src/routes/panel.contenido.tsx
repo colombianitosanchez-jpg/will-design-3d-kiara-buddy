@@ -10,13 +10,46 @@ export const Route = createFileRoute("/panel/contenido")({
 
 type Row = { key: string; value: string };
 
-const FIELDS: { key: string; label: string; type: "text" | "textarea" | "image"; help?: string }[] = [
-  { key: "hero_title", label: "Título del hero (home)", type: "text" },
-  { key: "hero_subtitle", label: "Subtítulo del hero (home)", type: "textarea" },
-  { key: "kiara_message", label: "Mensaje de Kiara (widget)", type: "textarea" },
-  { key: "about_short", label: "Descripción corta 'Nosotros'", type: "textarea" },
-  { key: "kiara_image_url", label: "Foto de Kiara", type: "image", help: "Sube una nueva foto para reemplazar la mascota." },
+
+type FieldDef = {
+  key: string;
+  label: string;
+  type: "text" | "textarea" | "image";
+  help?: string;
+  section?: string;
+};
+
+const FIELDS: FieldDef[] = [
+  // Hero / Home
+  { key: "hero_title", label: "Título del hero (home)", type: "text", section: "Home · Hero" },
+  { key: "hero_subtitle", label: "Subtítulo del hero (home)", type: "textarea", section: "Home · Hero" },
+  { key: "hero_image_url", label: "Imagen del hero", type: "image", help: "Foto principal a la derecha del título.", section: "Home · Hero" },
+  { key: "hero_badge_title", label: "Etiqueta flotante (pieza destacada)", type: "text", help: "Ej: Escultura 1.8 m — PLA reforzado", section: "Home · Hero" },
+  { key: "hero_stat_1_k", label: "Estadística 1 · valor", type: "text", help: "Ej: 50×50", section: "Home · Hero" },
+  { key: "hero_stat_1_v", label: "Estadística 1 · descripción", type: "text", help: "Ej: cm mínimo", section: "Home · Hero" },
+  { key: "hero_stat_2_k", label: "Estadística 2 · valor", type: "text", section: "Home · Hero" },
+  { key: "hero_stat_2_v", label: "Estadística 2 · descripción", type: "text", section: "Home · Hero" },
+  { key: "hero_stat_3_k", label: "Estadística 3 · valor", type: "text", section: "Home · Hero" },
+  { key: "hero_stat_3_v", label: "Estadística 3 · descripción", type: "text", section: "Home · Hero" },
+
+  // Nosotros
+  { key: "about_short", label: "Descripción corta 'Nosotros'", type: "textarea", section: "Página Nosotros" },
+
+  // Kiara
+  { key: "kiara_message", label: "Mensaje de Kiara (widget)", type: "textarea", section: "Kiara (asistente)" },
+  { key: "kiara_image_url", label: "Foto de Kiara", type: "image", help: "Se usa en widget y página Nosotros.", section: "Kiara (asistente)" },
+
+  // Contacto
+  { key: "contact_whatsapp", label: "WhatsApp (solo dígitos, con país)", type: "text", help: "Ej: 573156724474 — se usa en todos los enlaces wa.me.", section: "Contacto" },
+  { key: "contact_whatsapp_display", label: "WhatsApp (formato visible)", type: "text", help: "Ej: +57 315 672 4474", section: "Contacto" },
+  { key: "contact_email", label: "Correo de contacto", type: "text", section: "Contacto" },
+  { key: "contact_instagram_url", label: "URL de Instagram", type: "text", section: "Contacto" },
+  { key: "contact_instagram_handle", label: "Usuario de Instagram (visible)", type: "text", help: "Ej: @will_design2020", section: "Contacto" },
+  { key: "contact_location_text", label: "Ubicación (texto)", type: "text", help: "Ej: Bogotá, Colombia · atención por cita previa", section: "Contacto" },
+  { key: "contact_location_short", label: "Ubicación corta (footer)", type: "text", help: "Ej: Bogotá, Colombia", section: "Contacto" },
+  { key: "contact_map_embed_url", label: "URL del mapa (Google Maps embed)", type: "textarea", help: "Pega la URL del src del iframe de Google Maps (Compartir → Insertar mapa → copia el src).", section: "Contacto" },
 ];
+
 
 function ContenidoAdmin() {
   const [values, setValues] = useState<Record<string, string>>({});
@@ -101,56 +134,67 @@ function ContenidoAdmin() {
       {msg && <p className="mt-4 rounded-2xl bg-muted p-4 text-sm">{msg}</p>}
 
       <div className="mt-6 space-y-5">
-        {FIELDS.map((f) => (
-          <div key={f.key} className="rounded-3xl border border-border bg-card p-5">
-            <label className="text-sm font-bold">{f.label}</label>
-            {f.help && <p className="text-xs text-muted-foreground">{f.help}</p>}
-            {f.type === "text" && (
-              <input
-                value={values[f.key] ?? ""}
-                onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
-                className="mt-2 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-              />
-            )}
-            {f.type === "textarea" && (
-              <textarea
-                rows={3}
-                value={values[f.key] ?? ""}
-                onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
-                className="mt-2 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-              />
-            )}
-            {f.type === "image" && (
-              <div className="mt-3 flex items-center gap-4">
-                {values[f.key] ? (
-                  <img src={values[f.key]} alt="" className="h-20 w-20 rounded-xl object-cover" />
-                ) : (
-                  <div className="h-20 w-20 rounded-xl bg-muted" />
-                )}
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-muted">
-                  <Upload className="h-4 w-4" />
-                  {uploadingKey === f.key ? "Subiendo…" : "Subir nueva imagen"}
+        {FIELDS.map((f, i) => {
+          const showSection = f.section && (i === 0 || FIELDS[i - 1].section !== f.section);
+          return (
+            <div key={f.key}>
+              {showSection && (
+                <h2 className="mb-2 mt-6 text-xs font-black uppercase tracking-wider text-muted-foreground first:mt-0">
+                  {f.section}
+                </h2>
+              )}
+              <div className="rounded-3xl border border-border bg-card p-5">
+                <label className="text-sm font-bold">{f.label}</label>
+                {f.help && <p className="text-xs text-muted-foreground">{f.help}</p>}
+                {f.type === "text" && (
                   <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => e.target.files?.[0] && uploadImage(f.key, e.target.files[0])}
+                    value={values[f.key] ?? ""}
+                    onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+                    className="mt-2 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                   />
-                </label>
-                {values[f.key] && (
-                  <button
-                    type="button"
-                    onClick={() => setValues((v) => ({ ...v, [f.key]: "" }))}
-                    className="text-xs text-muted-foreground underline"
-                  >
-                    Quitar
-                  </button>
+                )}
+                {f.type === "textarea" && (
+                  <textarea
+                    rows={3}
+                    value={values[f.key] ?? ""}
+                    onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+                    className="mt-2 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                )}
+                {f.type === "image" && (
+                  <div className="mt-3 flex items-center gap-4">
+                    {values[f.key] ? (
+                      <img src={values[f.key]} alt="" className="h-20 w-20 rounded-xl object-cover" />
+                    ) : (
+                      <div className="h-20 w-20 rounded-xl bg-muted" />
+                    )}
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-muted">
+                      <Upload className="h-4 w-4" />
+                      {uploadingKey === f.key ? "Subiendo…" : "Subir nueva imagen"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => e.target.files?.[0] && uploadImage(f.key, e.target.files[0])}
+                      />
+                    </label>
+                    {values[f.key] && (
+                      <button
+                        type="button"
+                        onClick={() => setValues((v) => ({ ...v, [f.key]: "" }))}
+                        className="text-xs text-muted-foreground underline"
+                      >
+                        Quitar
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
+
     </>
   );
 }

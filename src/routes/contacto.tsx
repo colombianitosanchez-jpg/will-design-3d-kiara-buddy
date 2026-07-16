@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { MessageCircle, Instagram, MapPin, Mail, Send } from "lucide-react";
+import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
+
 
 export const Route = createFileRoute("/contacto")({
   head: () => ({
@@ -28,6 +31,8 @@ const schema = z.object({
 
 function ContactoPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { data: content } = useQuery(siteContentQuery());
+  const contact = getContactInfo(content);
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -48,11 +53,10 @@ function ContactoPage() {
       return;
     }
     setErrors({});
-    const msg = encodeURIComponent(
-      `Hola Will Design 3D, soy ${parsed.data.name}.\nAsunto: ${parsed.data.subject}\nContacto: ${parsed.data.contact}\n\n${parsed.data.message}`,
-    );
-    window.open(`https://wa.me/573156724474?text=${msg}`, "_blank");
+    const msg = `Hola Will Design 3D, soy ${parsed.data.name}.\nAsunto: ${parsed.data.subject}\nContacto: ${parsed.data.contact}\n\n${parsed.data.message}`;
+    window.open(waLink(contact.whatsapp, msg), "_blank");
   };
+
 
   return (
     <>
@@ -76,7 +80,7 @@ function ContactoPage() {
           <ul className="mt-4 space-y-3 text-sm">
             <li>
               <a
-                href="https://wa.me/573156724474"
+                href={waLink(contact.whatsapp)}
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition hover:-translate-y-0.5 hover:shadow-md"
@@ -92,13 +96,13 @@ function ContactoPage() {
                 </span>
                 <span>
                   <span className="block font-bold">WhatsApp</span>
-                  <span className="text-muted-foreground">+57 315 672 4474</span>
+                  <span className="text-muted-foreground">{contact.whatsapp_display}</span>
                 </span>
               </a>
             </li>
             <li>
               <a
-                href="https://www.instagram.com/will_design2020/"
+                href={contact.instagram_url}
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition hover:-translate-y-0.5 hover:shadow-md"
@@ -114,13 +118,13 @@ function ContactoPage() {
                 </span>
                 <span>
                   <span className="block font-bold">Instagram</span>
-                  <span className="text-muted-foreground">@will_design2020</span>
+                  <span className="text-muted-foreground">{contact.instagram_handle}</span>
                 </span>
               </a>
             </li>
             <li>
               <a
-                href="mailto:contacto@willdesign3d.com"
+                href={`mailto:${contact.email}`}
                 className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition hover:-translate-y-0.5 hover:shadow-md"
               >
                 <span
@@ -134,9 +138,7 @@ function ContactoPage() {
                 </span>
                 <span>
                   <span className="block font-bold">Correo</span>
-                  <span className="text-muted-foreground">
-                    contacto@willdesign3d.com
-                  </span>
+                  <span className="text-muted-foreground">{contact.email}</span>
                 </span>
               </a>
             </li>
@@ -152,23 +154,22 @@ function ContactoPage() {
               </span>
               <span>
                 <span className="block font-bold">Ubicación</span>
-                <span className="text-muted-foreground">
-                  Bogotá, Colombia · atención por cita previa
-                </span>
+                <span className="text-muted-foreground">{contact.location_text}</span>
               </span>
             </li>
           </ul>
 
           <div className="mt-6 overflow-hidden rounded-2xl border border-border">
             <iframe
-              title="Ubicación Bogotá"
-              src="https://www.google.com/maps?q=Bogot%C3%A1%2C+Colombia&output=embed"
+              title="Ubicación"
+              src={contact.map_embed_url}
               className="h-64 w-full"
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
             />
           </div>
         </div>
+
 
         <form
           onSubmit={onSubmit}

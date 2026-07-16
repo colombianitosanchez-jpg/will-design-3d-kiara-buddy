@@ -6,8 +6,12 @@ import {
   gradientKeyFor,
   productBySlugQuery,
   productsQuery,
+  siteContentQuery,
+  getContactInfo,
+  waLink,
   type Product,
 } from "@/lib/catalog";
+
 import { KiaraTip } from "@/components/KiaraTip";
 import { ProductCard } from "@/components/ProductCard";
 
@@ -75,10 +79,14 @@ function ProductPage() {
     .filter((p) => p.category?.slug === product.category?.slug && p.slug !== product.slug)
     .slice(0, 3);
 
-  const waMessage = encodeURIComponent(
+  const { data: content } = useQuery(siteContentQuery());
+  const contact = getContactInfo(content);
+  const waHref = waLink(
+    contact.whatsapp,
     `Hola Will Design 3D, me interesa el producto: ${product.name} (${formatCOP(product.price_cop)}). ¿Está disponible?`,
   );
   const gradient = GRADIENTS[gradientKeyFor(product.category?.slug)];
+
 
   return (
     <>
@@ -126,7 +134,7 @@ function ProductPage() {
 
           <div className="mt-6 flex flex-wrap gap-3">
             <a
-              href={`https://wa.me/573156724474?text=${waMessage}`}
+              href={waHref}
               target="_blank"
               rel="noreferrer"
               className="btn-primary"

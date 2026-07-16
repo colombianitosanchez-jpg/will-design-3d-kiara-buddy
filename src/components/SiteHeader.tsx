@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Menu, X, MessageCircle } from "lucide-react";
 import logoAsset from "@/assets/will_logo.asset.json";
+import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 
-const WHATSAPP_URL =
-  "https://wa.me/573156724474?text=Hola%20Will%20Design%203D";
 
 const NAV = [
   { to: "/", label: "Inicio" },
@@ -17,7 +17,11 @@ const NAV = [
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const { data: content } = useQuery(siteContentQuery());
+  const contact = getContactInfo(content);
+  const WHATSAPP_URL = waLink(contact.whatsapp, "Hola Will Design 3D");
   return (
+
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur">
       <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-3 sm:px-6">
         <Link to="/" className="flex min-w-0 items-center gap-3">
