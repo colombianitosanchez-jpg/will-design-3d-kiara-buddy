@@ -31,8 +31,11 @@ export function Quoter() {
   const [material, setMaterial] = useState("");
   const [finish, setFinish] = useState<Finish>("estandar");
   const [fileName, setFileName] = useState("");
+  const { data: content } = useQuery(siteContentQuery());
+  const contact = getContactInfo(content);
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+
     e.preventDefault();
     const f = e.currentTarget;
     const data = new FormData(f);
