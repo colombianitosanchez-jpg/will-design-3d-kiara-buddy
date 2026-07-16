@@ -1,6 +1,9 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Upload, CheckCircle2 } from "lucide-react";
 import kiaraAsset from "@/assets/kiara.asset.json";
+import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
+
 
 type Finish = "estandar" | "preparado" | "premium";
 
