@@ -3,11 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { MessageCircle, X, Radio, Send } from "lucide-react";
 import kiaraAsset from "@/assets/kiara.asset.json";
 import { useLive } from "@/lib/live-store";
-import { siteContentQuery } from "@/lib/catalog";
+import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 import { useKiaraChat } from "@/hooks/use-kiara-chat";
 
-const WHATSAPP_URL =
-  "https://wa.me/573156724474?text=Hola%20Kiara%2C%20quiero%20cotizar%20un%20proyecto";
 
 export function KiaraWidget() {
   const [open, setOpen] = useState(false);
