@@ -2,7 +2,7 @@ import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export type Category = { id: string; slug: string; name: string; sort_order: number };
-export type Brand = { id: string; name: string };
+export type Brand = { id: string; name: string; slug: string | null };
 export type ProductSpec = { label: string; value: string };
 
 export type Product = {
