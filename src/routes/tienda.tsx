@@ -1,11 +1,21 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Filter, Loader2 } from "lucide-react";
-import { productsQuery, categoriesQuery } from "@/lib/catalog";
+import { Filter, Loader2, X } from "lucide-react";
+import {
+  productsQuery,
+  categoriesQuery,
+  resolveCategorySlug,
+  brandSlugOf,
+  slugify,
+} from "@/lib/catalog";
 import { ProductCard } from "@/components/ProductCard";
 
 export const Route = createFileRoute("/tienda")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    categoria: typeof search.categoria === "string" ? search.categoria : undefined,
+    marca: typeof search.marca === "string" ? search.marca : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Tienda 3D — Impresoras, filamentos y accesorios | Will Design 3D" },
@@ -28,20 +38,41 @@ export const Route = createFileRoute("/tienda")({
 function TiendaPage() {
   const { data: products = [], isLoading } = useQuery(productsQuery());
   const { data: categories = [] } = useQuery(categoriesQuery());
-  const [cat, setCat] = useState<string>("todos");
+  const { categoria, marca } = Route.useSearch();
+  const navigate = useNavigate({ from: "/tienda" });
   const [query, setQuery] = useState("");
+
+  const catSlug = useMemo(
+    () => resolveCategorySlug(categoria, categories),
+    [categoria, categories],
+  );
+  const brandSlug = marca ? slugify(marca) : null;
 
   const filtered = useMemo(() => {
     return products.filter((p) => {
-      const okCat = cat === "todos" || p.category?.slug === cat;
+      const okCat = !catSlug || p.category?.slug === catSlug;
+      const okBrand = !brandSlug || brandSlugOf(p.brand) === brandSlug;
       const okQ =
         !query ||
         (p.name + " " + (p.brand?.name ?? "") + " " + p.short)
           .toLowerCase()
           .includes(query.toLowerCase());
-      return okCat && okQ;
+      return okCat && okBrand && okQ;
     });
-  }, [products, cat, query]);
+  }, [products, catSlug, brandSlug, query]);
+
+  const catLabel =
+    categories.find((c) => c.slug === catSlug)?.name ??
+    (categoria ? categoria.replace(/-/g, " ") : null);
+  const brandLabel =
+    products.find((p) => brandSlugOf(p.brand) === brandSlug)?.brand?.name ??
+    (marca ? marca.replace(/-/g, " ") : null);
+  const hasFilter = Boolean(catSlug || brandSlug);
+
+  const setCat = (slug: string | null) =>
+    navigate({
+      search: (prev) => ({ ...prev, categoria: slug ?? undefined, marca: undefined }),
+    });
 
   return (
     <>
@@ -66,9 +97,9 @@ function TiendaPage() {
           <div className="flex items-center gap-2 overflow-x-auto">
             <Filter className="h-4 w-4 shrink-0 text-muted-foreground" />
             <button
-              onClick={() => setCat("todos")}
+              onClick={() => setCat(null)}
               className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                cat === "todos"
+                !catSlug
                   ? "bg-[var(--brand-wine)] text-white"
                   : "bg-muted text-foreground hover:bg-muted/70"
               }`}
@@ -80,7 +111,7 @@ function TiendaPage() {
                 key={c.id}
                 onClick={() => setCat(c.slug)}
                 className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                  cat === c.slug
+                  catSlug === c.slug
                     ? "bg-[var(--brand-wine)] text-white"
                     : "bg-muted text-foreground hover:bg-muted/70"
                 }`}
@@ -97,6 +128,24 @@ function TiendaPage() {
             className="w-full rounded-full border border-input bg-background px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-ring sm:w-64"
           />
         </div>
+
+        {hasFilter && (
+          <div className="mt-5 flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-muted/40 px-4 py-3">
+            <span className="text-sm">
+              Mostrando:{" "}
+              <strong className="capitalize">
+                {catLabel ?? "Todos"}
+                {brandLabel ? ` > ${brandLabel}` : ""}
+              </strong>
+            </span>
+            <button
+              onClick={() => navigate({ search: {} })}
+              className="inline-flex items-center gap-1.5 rounded-full bg-[var(--brand-wine)] px-3 py-1.5 text-xs font-bold text-white transition hover:opacity-90"
+            >
+              <X className="h-3.5 w-3.5" /> Quitar filtro
+            </button>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="mt-10 flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
