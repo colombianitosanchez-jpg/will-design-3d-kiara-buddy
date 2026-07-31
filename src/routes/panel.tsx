@@ -13,6 +13,8 @@ import {
   Package,
   ShoppingCart,
   FileText,
+  ListTree,
+
   LogOut,
   ShieldCheck,
 } from "lucide-react";
