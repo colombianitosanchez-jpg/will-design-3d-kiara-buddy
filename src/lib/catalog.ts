@@ -154,3 +154,52 @@ export function gradientKeyFor(categorySlug: string | null | undefined): "orange
       return "wine";
   }
 }
+
+// ---- URL filter helpers (categoria / marca) ----
+export function slugify(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/** Alias entre slugs usados en el menú y los slugs reales de categories */
+const CATEGORY_ALIASES: Record<string, string> = {
+  "impresoras-3d": "impresoras",
+  "impresoras-filamento": "impresoras",
+  "impresoras-resina": "impresoras",
+  "impresora-3d": "impresoras",
+  "filamento": "filamentos",
+  "materiales-3d": "filamentos",
+  "resina": "resinas",
+  "lapices-3d": "lapices",
+  "lapiz-3d": "lapices",
+  "escaner-3d": "escaners",
+  "escaners-3d": "escaners",
+  "escaneres-3d": "escaners",
+  "camaras-3d": "camaras",
+  "repuestos-3d": "repuestos",
+};
+
+/** Resuelve el parámetro `categoria` de la URL al slug real de la categoría. */
+export function resolveCategorySlug(
+  param: string | undefined | null,
+  categories: Category[],
+): string | null {
+  const raw = slugify(param ?? "");
+  if (!raw) return null;
+  if (categories.some((c) => c.slug === raw)) return raw;
+  const alias = CATEGORY_ALIASES[raw];
+  if (alias && categories.some((c) => c.slug === alias)) return alias;
+  const byName = categories.find((c) => slugify(c.name) === raw);
+  if (byName) return byName.slug;
+  const partial = categories.find((c) => raw.startsWith(c.slug) || c.slug.startsWith(raw));
+  return partial ? partial.slug : raw;
+}
+
+export function brandSlugOf(brand: { name: string; slug?: string | null } | null | undefined) {
+  if (!brand) return null;
+  return brand.slug?.trim() ? brand.slug.trim() : slugify(brand.name);
+}
