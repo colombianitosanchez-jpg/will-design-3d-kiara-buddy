@@ -71,7 +71,7 @@ function TiendaPage() {
 
   const setCat = (slug: string | null) =>
     navigate({
-      search: (prev) => ({ ...prev, categoria: slug ?? undefined, marca: undefined }),
+      search: { categoria: slug ?? undefined, marca: undefined },
     });
 
   return (
