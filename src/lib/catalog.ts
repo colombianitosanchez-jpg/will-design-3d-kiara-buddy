@@ -19,12 +19,12 @@ export type Product = {
   stock: number;
   sku: string | null;
   category: { slug: string; name: string } | null;
-  brand: { name: string } | null;
+  brand: { name: string; slug: string | null } | null;
   specs: ProductSpec[];
 };
 
 const PRODUCT_SELECT =
-  "id,slug,name,price_cop,short,description,kiara_tip,image_url,featured,active,stock,sku,specs,category:categories(slug,name),brand:brands(name)";
+  "id,slug,name,price_cop,short,description,kiara_tip,image_url,featured,active,stock,sku,specs,category:categories(slug,name),brand:brands(name,slug)";
 
 function normalize(row: any): Product {
   let specs: ProductSpec[] = [];
