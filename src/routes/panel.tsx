@@ -13,6 +13,8 @@ import {
   Package,
   ShoppingCart,
   FileText,
+  ListTree,
+
   LogOut,
   ShieldCheck,
 } from "lucide-react";
@@ -61,7 +63,9 @@ function PanelLayout() {
     { to: "/panel", label: "Inicio", icon: LayoutDashboard, exact: true },
     { to: "/panel/productos", label: "Productos", icon: Package },
     { to: "/panel/pedidos", label: "Pedidos", icon: ShoppingCart },
+    { to: "/panel/menu", label: "Menú de navegación", icon: ListTree },
     { to: "/panel/contenido", label: "Contenido", icon: FileText },
+
   ];
 
   if (isAdmin === false) {

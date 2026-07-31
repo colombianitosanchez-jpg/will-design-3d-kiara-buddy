@@ -23,6 +23,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TiendaSlugRouteImport } from './routes/tienda.$slug'
 import { Route as PanelProductosRouteImport } from './routes/panel.productos'
 import { Route as PanelPedidosRouteImport } from './routes/panel.pedidos'
+import { Route as PanelMenuRouteImport } from './routes/panel.menu'
 import { Route as PanelContenidoRouteImport } from './routes/panel.contenido'
 import { Route as AdminServiciosRouteImport } from './routes/admin.servicios'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
@@ -100,6 +101,11 @@ const PanelPedidosRoute = PanelPedidosRouteImport.update({
   path: '/pedidos',
   getParentRoute: () => PanelRoute,
 } as any)
+const PanelMenuRoute = PanelMenuRouteImport.update({
+  id: '/menu',
+  path: '/menu',
+  getParentRoute: () => PanelRoute,
+} as any)
 const PanelContenidoRoute = PanelContenidoRouteImport.update({
   id: '/contenido',
   path: '/contenido',
@@ -147,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/servicios': typeof AdminServiciosRoute
   '/panel/contenido': typeof PanelContenidoRoute
+  '/panel/menu': typeof PanelMenuRoute
   '/panel/pedidos': typeof PanelPedidosRoute
   '/panel/productos': typeof PanelProductosRoute
   '/tienda/$slug': typeof TiendaSlugRoute
@@ -167,6 +174,7 @@ export interface FileRoutesByTo {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/servicios': typeof AdminServiciosRoute
   '/panel/contenido': typeof PanelContenidoRoute
+  '/panel/menu': typeof PanelMenuRoute
   '/panel/pedidos': typeof PanelPedidosRoute
   '/panel/productos': typeof PanelProductosRoute
   '/tienda/$slug': typeof TiendaSlugRoute
@@ -190,6 +198,7 @@ export interface FileRoutesById {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/servicios': typeof AdminServiciosRoute
   '/panel/contenido': typeof PanelContenidoRoute
+  '/panel/menu': typeof PanelMenuRoute
   '/panel/pedidos': typeof PanelPedidosRoute
   '/panel/productos': typeof PanelProductosRoute
   '/tienda/$slug': typeof TiendaSlugRoute
@@ -214,6 +223,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/servicios'
     | '/panel/contenido'
+    | '/panel/menu'
     | '/panel/pedidos'
     | '/panel/productos'
     | '/tienda/$slug'
@@ -234,6 +244,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/servicios'
     | '/panel/contenido'
+    | '/panel/menu'
     | '/panel/pedidos'
     | '/panel/productos'
     | '/tienda/$slug'
@@ -256,6 +267,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/servicios'
     | '/panel/contenido'
+    | '/panel/menu'
     | '/panel/pedidos'
     | '/panel/productos'
     | '/tienda/$slug'
@@ -375,6 +387,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelPedidosRouteImport
       parentRoute: typeof PanelRoute
     }
+    '/panel/menu': {
+      id: '/panel/menu'
+      path: '/menu'
+      fullPath: '/panel/menu'
+      preLoaderRoute: typeof PanelMenuRouteImport
+      parentRoute: typeof PanelRoute
+    }
     '/panel/contenido': {
       id: '/panel/contenido'
       path: '/contenido'
@@ -442,6 +461,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface PanelRouteChildren {
   PanelContenidoRoute: typeof PanelContenidoRoute
+  PanelMenuRoute: typeof PanelMenuRoute
   PanelPedidosRoute: typeof PanelPedidosRoute
   PanelProductosRoute: typeof PanelProductosRoute
   PanelIndexRoute: typeof PanelIndexRoute
@@ -449,6 +469,7 @@ interface PanelRouteChildren {
 
 const PanelRouteChildren: PanelRouteChildren = {
   PanelContenidoRoute: PanelContenidoRoute,
+  PanelMenuRoute: PanelMenuRoute,
   PanelPedidosRoute: PanelPedidosRoute,
   PanelProductosRoute: PanelProductosRoute,
   PanelIndexRoute: PanelIndexRoute,
