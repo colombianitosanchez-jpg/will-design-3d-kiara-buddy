@@ -8,6 +8,8 @@ import {
   ShoppingBag,
   ArrowRight,
   CheckCircle2,
+  ScanLine,
+  GraduationCap,
 } from "lucide-react";
 import { KiaraTip } from "@/components/KiaraTip";
 
@@ -29,7 +31,7 @@ export const Route = createFileRoute("/servicios")({
 
 const services = [
   {
-    id: "impresion",
+    id: "impresion-3d",
     icon: Boxes,
     title: "Impresión 3D a Pedido",
     color: "orange",
@@ -45,7 +47,7 @@ const services = [
       "Si tu archivo aún no está optimizado, avísanos: revisamos huecos y grosores gratis.",
   },
   {
-    id: "diseno",
+    id: "modelado-3d",
     icon: PenTool,
     title: "Diseño 3D Personalizado",
     color: "teal",
@@ -61,7 +63,7 @@ const services = [
       "Cuéntanos función y tamaño primero — un buen diseño ahorra horas de impresión.",
   },
   {
-    id: "mantenimiento",
+    id: "servicio-tecnico",
     icon: Wrench,
     title: "Mantenimiento y Reparación",
     color: "wine",
@@ -75,6 +77,22 @@ const services = [
     ],
     kiaraTip:
       "Un mantenimiento cada 500 h de impresión evita el 80 % de las fallas comunes.",
+  },
+  {
+    id: "escaneo-3d",
+    icon: ScanLine,
+    title: "Escaneo 3D",
+    color: "teal",
+    lead:
+      "Digitalizamos objetos, espacios y piezas reales para obtener modelos 3D listos para editar o imprimir.",
+    bullets: [
+      "Escaneo de objetos pequeños con alta precisión",
+      "Escaneo de espacios y ambientes (tours 3D)",
+      "Limpieza y reparación de malla",
+      "Entrega en STL/OBJ y ingeniería inversa",
+    ],
+    kiaraTip:
+      "Si la pieza es brillante u oscura, la tratamos con spray mate para que el escáner la lea mejor.",
   },
   {
     id: "upgrades",
@@ -126,6 +144,31 @@ const services = [
   },
 ];
 
+
+const cursos = [
+  {
+    id: "cursos-3d-modelado",
+    title: "Curso de Modelado 3D",
+    lead:
+      "Aprende a modelar tus propias piezas desde cero: de la idea al archivo listo para imprimir.",
+    color: "orange",
+  },
+  {
+    id: "cursos-3d-impresion",
+    title: "Curso de Impresión 3D",
+    lead:
+      "Domina el laminado, materiales y parámetros para lograr impresiones limpias y consistentes.",
+    color: "teal",
+  },
+  {
+    id: "cursos-3d-mantenimiento",
+    title: "Curso de Mantenimiento de Impresoras",
+    lead:
+      "Calibración, limpieza y reparación: mantén tu impresora funcionando como el primer día.",
+    color: "wine",
+  },
+];
+
 const colorFor = (a: string) =>
   a === "orange"
     ? "var(--brand-orange)"
@@ -158,7 +201,7 @@ function ServiciosPage() {
             <article
               key={s.id}
               id={s.id}
-              className={`grid items-start gap-8 md:grid-cols-2 ${flip ? "md:[&>div:first-child]:order-2" : ""}`}
+              className={`scroll-mt-24 grid items-start gap-8 md:grid-cols-2 ${flip ? "md:[&>div:first-child]:order-2" : ""}`}
             >
               <div>
                 <div
@@ -202,6 +245,47 @@ function ServiciosPage() {
             </article>
           );
         })}
+      </section>
+
+      <section className="border-t border-border bg-muted/30">
+        <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20">
+          <span className="chip-teal">Cursos 3D</span>
+          <h2 className="mt-3 text-3xl font-black sm:text-4xl">
+            Formación en <span style={{ color: "var(--brand-orange)" }}>impresión 3D</span>
+          </h2>
+          <p className="mt-3 max-w-2xl text-muted-foreground">
+            Clases presenciales y virtuales, con práctica real en nuestro taller de Bogotá.
+          </p>
+
+          <div className="mt-8 grid gap-5 md:grid-cols-3">
+            {cursos.map((c) => {
+              const col = colorFor(c.color);
+              return (
+                <article
+                  key={c.id}
+                  id={c.id}
+                  className="scroll-mt-24 rounded-3xl border border-border bg-card p-6 shadow-sm"
+                >
+                  <div
+                    className="grid h-12 w-12 place-items-center rounded-2xl"
+                    style={{
+                      background: `color-mix(in oklab, ${col} 15%, white)`,
+                      color: col,
+                    }}
+                  >
+                    <GraduationCap className="h-6 w-6" />
+                  </div>
+                  <h3 className="mt-4 text-xl font-black">{c.title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">{c.lead}</p>
+                  <Link to="/contacto" className="btn-primary mt-5 text-sm">
+                    Quiero inscribirme
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </article>
+              );
+            })}
+          </div>
+        </div>
       </section>
     </>
   );
