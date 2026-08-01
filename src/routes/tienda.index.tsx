@@ -1,12 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Filter, Loader2, X } from "lucide-react";
+import { Filter, Loader2, MessageCircle, PackageSearch, X } from "lucide-react";
 import {
   productsQuery,
   categoriesQuery,
-  resolveCategorySlug,
+  siteContentQuery,
+  getContactInfo,
+  waLink,
+  resolveStoreFilter,
+  productTech,
   brandSlugOf,
+  prettySlug,
   slugify,
 } from "@/lib/catalog";
 import { ProductCard } from "@/components/ProductCard";
@@ -38,41 +43,62 @@ export const Route = createFileRoute("/tienda/")({
 function TiendaPage() {
   const { data: products = [], isLoading } = useQuery(productsQuery());
   const { data: categories = [] } = useQuery(categoriesQuery());
+  const { data: content } = useQuery(siteContentQuery());
+  const contact = getContactInfo(content);
   const { categoria, marca } = Route.useSearch();
   const navigate = useNavigate({ from: "/tienda/" });
   const [query, setQuery] = useState("");
 
-  const catSlug = useMemo(
-    () => resolveCategorySlug(categoria, categories),
+  const filter = useMemo(
+    () => resolveStoreFilter(categoria, categories),
     [categoria, categories],
   );
+  const catSlug = filter.categorySlug;
   const brandSlug = marca ? slugify(marca) : null;
 
+  /** Solo coincidencias exactas: categoría real + tecnología + marca real. */
   const filtered = useMemo(() => {
+    if (filter.unknown) return [];
     return products.filter((p) => {
       const okCat = !catSlug || p.category?.slug === catSlug;
+      const okTech = !filter.tech || productTech(p) === filter.tech;
       const okBrand = !brandSlug || brandSlugOf(p.brand) === brandSlug;
       const okQ =
         !query ||
         (p.name + " " + (p.brand?.name ?? "") + " " + p.short)
           .toLowerCase()
           .includes(query.toLowerCase());
-      return okCat && okBrand && okQ;
+      return okCat && okTech && okBrand && okQ;
     });
-  }, [products, catSlug, brandSlug, query]);
+  }, [products, catSlug, brandSlug, filter.tech, filter.unknown, query]);
 
   const catLabel =
-    categories.find((c) => c.slug === catSlug)?.name ??
-    (categoria ? categoria.replace(/-/g, " ") : null);
+    (filter.tech
+      ? `Impresoras 3D de ${filter.tech}`
+      : categories.find((c) => c.slug === catSlug)?.name) ??
+    (categoria ? prettySlug(categoria) : null);
   const brandLabel =
     products.find((p) => brandSlugOf(p.brand) === brandSlug)?.brand?.name ??
-    (marca ? marca.replace(/-/g, " ") : null);
-  const hasFilter = Boolean(catSlug || brandSlug);
+    (marca ? prettySlug(marca) : null);
+  const hasFilter = Boolean(categoria || brandSlug);
+
+  const emptyMessage = (() => {
+    const parts = [brandLabel, catLabel ? catLabel.toLowerCase() : null].filter(Boolean);
+    if (parts.length === 0) return "No encontramos productos con ese filtro.";
+    return `Todavía no tenemos productos ${parts.join(" de ")} en inventario.`;
+  })();
+  const emptyWaLink = waLink(
+    contact.whatsapp,
+    `Hola Will Design 3D, quiero saber cuándo llegan productos ${[brandLabel, catLabel]
+      .filter(Boolean)
+      .join(" / ")}`,
+  );
 
   const setCat = (slug: string | null) =>
     navigate({
       search: { categoria: slug ?? undefined, marca: undefined },
     });
+
 
   return (
     <>
@@ -152,13 +178,27 @@ function TiendaPage() {
             <Loader2 className="h-4 w-4 animate-spin" /> Cargando catálogo…
           </div>
         ) : filtered.length === 0 ? (
-          <div className="mt-10 rounded-3xl border-2 border-dashed border-border p-10 text-center text-muted-foreground">
-            No encontramos productos con ese filtro.{" "}
-            <Link to="/contacto" className="font-semibold text-foreground underline">
-              Pídelo por WhatsApp
-            </Link>
-            .
+          <div className="mt-10 flex flex-col items-center gap-4 rounded-3xl border-2 border-dashed border-border p-10 text-center">
+            <PackageSearch className="h-10 w-10 text-muted-foreground" />
+            <p className="max-w-xl text-muted-foreground">
+              {emptyMessage} Escríbenos por WhatsApp y te avisamos apenas lleguen.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <a href={emptyWaLink} target="_blank" rel="noreferrer" className="btn-primary text-sm">
+                <MessageCircle className="h-4 w-4" /> Consultar por WhatsApp
+              </a>
+              <button
+                onClick={() => navigate({ search: {} })}
+                className="rounded-full border border-border px-4 py-2 text-sm font-semibold hover:bg-muted"
+              >
+                Ver todo el catálogo
+              </button>
+              <Link to="/contacto" className="text-sm font-semibold underline">
+                Otras formas de contacto
+              </Link>
+            </div>
           </div>
+
         ) : (
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filtered.map((p) => (
