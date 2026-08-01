@@ -265,6 +265,66 @@ export type Database = {
           },
         ]
       }
+      quotes: {
+        Row: {
+          created_at: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string | null
+          design_state: string
+          file_name: string | null
+          file_path: string | null
+          finish: string
+          height_cm: number | null
+          id: string
+          length_cm: number | null
+          material: string
+          notes: string
+          size_label: string
+          status: string
+          updated_at: string
+          width_cm: number | null
+        }
+        Insert: {
+          created_at?: string
+          customer_email: string
+          customer_name: string
+          customer_phone?: string | null
+          design_state?: string
+          file_name?: string | null
+          file_path?: string | null
+          finish?: string
+          height_cm?: number | null
+          id?: string
+          length_cm?: number | null
+          material?: string
+          notes?: string
+          size_label?: string
+          status?: string
+          updated_at?: string
+          width_cm?: number | null
+        }
+        Update: {
+          created_at?: string
+          customer_email?: string
+          customer_name?: string
+          customer_phone?: string | null
+          design_state?: string
+          file_name?: string | null
+          file_path?: string | null
+          finish?: string
+          height_cm?: number | null
+          id?: string
+          length_cm?: number | null
+          material?: string
+          notes?: string
+          size_label?: string
+          status?: string
+          updated_at?: string
+          width_cm?: number | null
+        }
+        Relationships: []
+      }
       site_content: {
         Row: {
           key: string
