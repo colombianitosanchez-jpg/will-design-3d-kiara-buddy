@@ -1,12 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Filter, Loader2, X } from "lucide-react";
+import { Filter, Loader2, MessageCircle, PackageSearch, X } from "lucide-react";
 import {
   productsQuery,
   categoriesQuery,
-  resolveCategorySlug,
+  siteContentQuery,
+  getContactInfo,
+  waLink,
+  resolveStoreFilter,
+  productTech,
   brandSlugOf,
+  prettySlug,
   slugify,
 } from "@/lib/catalog";
 import { ProductCard } from "@/components/ProductCard";
@@ -38,41 +43,62 @@ export const Route = createFileRoute("/tienda/")({
 function TiendaPage() {
   const { data: products = [], isLoading } = useQuery(productsQuery());
   const { data: categories = [] } = useQuery(categoriesQuery());
+  const { data: content } = useQuery(siteContentQuery());
+  const contact = getContactInfo(content);
   const { categoria, marca } = Route.useSearch();
   const navigate = useNavigate({ from: "/tienda/" });
   const [query, setQuery] = useState("");
 
-  const catSlug = useMemo(
-    () => resolveCategorySlug(categoria, categories),
+  const filter = useMemo(
+    () => resolveStoreFilter(categoria, categories),
     [categoria, categories],
   );
+  const catSlug = filter.categorySlug;
   const brandSlug = marca ? slugify(marca) : null;
 
+  /** Solo coincidencias exactas: categoría real + tecnología + marca real. */
   const filtered = useMemo(() => {
+    if (filter.unknown) return [];
     return products.filter((p) => {
       const okCat = !catSlug || p.category?.slug === catSlug;
+      const okTech = !filter.tech || productTech(p) === filter.tech;
       const okBrand = !brandSlug || brandSlugOf(p.brand) === brandSlug;
       const okQ =
         !query ||
         (p.name + " " + (p.brand?.name ?? "") + " " + p.short)
           .toLowerCase()
           .includes(query.toLowerCase());
-      return okCat && okBrand && okQ;
+      return okCat && okTech && okBrand && okQ;
     });
-  }, [products, catSlug, brandSlug, query]);
+  }, [products, catSlug, brandSlug, filter.tech, filter.unknown, query]);
 
   const catLabel =
-    categories.find((c) => c.slug === catSlug)?.name ??
-    (categoria ? categoria.replace(/-/g, " ") : null);
+    (filter.tech
+      ? `Impresoras 3D de ${filter.tech}`
+      : categories.find((c) => c.slug === catSlug)?.name) ??
+    (categoria ? prettySlug(categoria) : null);
   const brandLabel =
     products.find((p) => brandSlugOf(p.brand) === brandSlug)?.brand?.name ??
-    (marca ? marca.replace(/-/g, " ") : null);
-  const hasFilter = Boolean(catSlug || brandSlug);
+    (marca ? prettySlug(marca) : null);
+  const hasFilter = Boolean(categoria || brandSlug);
+
+  const emptyMessage = (() => {
+    const parts = [brandLabel, catLabel ? catLabel.toLowerCase() : null].filter(Boolean);
+    if (parts.length === 0) return "No encontramos productos con ese filtro.";
+    return `Todavía no tenemos productos ${parts.join(" de ")} en inventario.`;
+  })();
+  const emptyWaLink = waLink(
+    contact.whatsapp,
+    `Hola Will Design 3D, quiero saber cuándo llegan productos ${[brandLabel, catLabel]
+      .filter(Boolean)
+      .join(" / ")}`,
+  );
 
   const setCat = (slug: string | null) =>
     navigate({
       search: { categoria: slug ?? undefined, marca: undefined },
     });
+
 
   return (
     <>
