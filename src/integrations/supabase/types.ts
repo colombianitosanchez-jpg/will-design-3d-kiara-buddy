@@ -197,6 +197,7 @@ export type Database = {
           featured: boolean
           id: string
           image_url: string | null
+          images: Json
           kiara_tip: string
           name: string
           price_cop: number
@@ -216,6 +217,7 @@ export type Database = {
           featured?: boolean
           id?: string
           image_url?: string | null
+          images?: Json
           kiara_tip?: string
           name: string
           price_cop?: number
@@ -235,6 +237,7 @@ export type Database = {
           featured?: boolean
           id?: string
           image_url?: string | null
+          images?: Json
           kiara_tip?: string
           name?: string
           price_cop?: number
