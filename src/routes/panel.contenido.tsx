@@ -14,7 +14,7 @@ type Row = { key: string; value: string };
 type FieldDef = {
   key: string;
   label: string;
-  type: "text" | "textarea" | "image";
+  type: "text" | "textarea" | "image" | "images";
   help?: string;
   section?: string;
 };
@@ -31,6 +31,10 @@ const FIELDS: FieldDef[] = [
   { key: "hero_stat_2_v", label: "Estadística 2 · descripción", type: "text", section: "Home · Hero" },
   { key: "hero_stat_3_k", label: "Estadística 3 · valor", type: "text", section: "Home · Hero" },
   { key: "hero_stat_3_v", label: "Estadística 3 · descripción", type: "text", section: "Home · Hero" },
+
+  // Portafolio
+  { key: "portfolio_images", label: "Fotos de portafolio", type: "images", help: "Se muestran en la sección de portafolio del inicio y en /galeria mientras no haya widget de Instagram. Puedes subir varias.", section: "Portafolio (Instagram)" },
+  { key: "elfsight_instagram_id", label: "ID del widget de Instagram (Elfsight)", type: "text", help: "Cuando lo tengas, pega aquí el ID del widget (el texto después de 'elfsight-app-'). Si está lleno, reemplaza la galería de fotos por el feed automático.", section: "Portafolio (Instagram)" },
 
   // Nosotros
   { key: "about_short", label: "Descripción corta 'Nosotros'", type: "textarea", section: "Página Nosotros" },
@@ -103,6 +107,51 @@ function ContenidoAdmin() {
     } finally {
       setUploadingKey(null);
     }
+  }
+
+  async function uploadToStorage(key: string, file: File) {
+    const path = `content/${key}-${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    const up = await supabase.storage.from("product-images").upload(path, file, { upsert: false });
+    if (up.error) throw up.error;
+    const signed = await supabase.storage
+      .from("product-images")
+      .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+    if (signed.error) throw signed.error;
+    return signed.data.signedUrl;
+  }
+
+  function parseList(raw: string | undefined): string[] {
+    if (!raw?.trim()) return [];
+    try {
+      const p = JSON.parse(raw);
+      if (Array.isArray(p)) return p.filter((x) => typeof x === "string" && x.trim());
+    } catch {
+      /* lista simple */
+    }
+    return raw.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean);
+  }
+
+  async function uploadImages(key: string, files: File[]) {
+    setUploadingKey(key);
+    try {
+      const urls: string[] = [];
+      for (const f of files) urls.push(await uploadToStorage(key, f));
+      setValues((v) => ({
+        ...v,
+        [key]: JSON.stringify([...parseList(v[key]), ...urls]),
+      }));
+    } catch (e) {
+      alert("Error al subir: " + (e as Error).message);
+    } finally {
+      setUploadingKey(null);
+    }
+  }
+
+  function removeImageAt(key: string, index: number) {
+    setValues((v) => {
+      const list = parseList(v[key]).filter((_, i) => i !== index);
+      return { ...v, [key]: list.length ? JSON.stringify(list) : "" };
+    });
   }
 
   if (loading) {
@@ -187,6 +236,45 @@ function ContenidoAdmin() {
                         Quitar
                       </button>
                     )}
+                  </div>
+                )}
+                {f.type === "images" && (
+                  <div className="mt-3">
+                    <div className="flex flex-wrap gap-3">
+                      {parseList(values[f.key]).map((src, idx) => (
+                        <div key={src + idx} className="relative">
+                          <img src={src} alt="" className="h-20 w-20 rounded-xl object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeImageAt(f.key, idx)}
+                            aria-label="Quitar foto"
+                            className="absolute -right-2 -top-2 rounded-full border border-border bg-card px-2 text-xs font-bold shadow"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                      {parseList(values[f.key]).length === 0 && (
+                        <div className="grid h-20 w-20 place-items-center rounded-xl bg-muted text-xs text-muted-foreground">
+                          Vacío
+                        </div>
+                      )}
+                    </div>
+                    <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-muted">
+                      <Upload className="h-4 w-4" />
+                      {uploadingKey === f.key ? "Subiendo…" : "Subir fotos"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files ?? []);
+                          if (files.length) uploadImages(f.key, files);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
                   </div>
                 )}
               </div>

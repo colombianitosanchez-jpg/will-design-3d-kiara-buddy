@@ -8,14 +8,13 @@ import {
   Wrench,
   ArrowRight,
   Ruler,
-  Loader2,
 } from "lucide-react";
 import heroImg from "@/assets/hero.jpg";
 import { Quoter } from "@/components/Quoter";
 import { InstagramFeed } from "@/components/InstagramFeed";
 import { ProductCard } from "@/components/ProductCard";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
-import { featuredProductsQuery, siteContentQuery } from "@/lib/catalog";
+import { productsQuery, siteContentQuery } from "@/lib/catalog";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -29,7 +28,7 @@ export const Route = createFileRoute("/")({
     ],
   }),
   loader: ({ context }) => {
-    context.queryClient.prefetchQuery(featuredProductsQuery());
+    context.queryClient.prefetchQuery(productsQuery());
     context.queryClient.prefetchQuery(siteContentQuery());
   },
   component: Home,
@@ -236,7 +235,15 @@ function Services() {
 }
 
 function FeaturedProducts() {
-  const { data: featured = [], isLoading } = useQuery(featuredProductsQuery());
+  // Reutiliza exactamente la misma consulta que /tienda (única fuente de verdad).
+  const { data: products, isPending, isError } = useQuery(productsQuery());
+
+  const list = products ?? [];
+  const marked = list.filter((p) => p.featured);
+  // Si no hay ninguno marcado como destacado, mostramos los más recientes.
+  const shown = (marked.length > 0 ? marked : list).slice(0, 4);
+  const loading = isPending && !products;
+
   return (
     <section id="tienda" className="border-y border-border bg-muted/40">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
@@ -255,23 +262,56 @@ function FeaturedProducts() {
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
-        {isLoading ? (
-          <div className="mt-10 flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Cargando productos…
-          </div>
-        ) : featured.length === 0 ? (
-          <p className="mt-10 text-center text-sm text-muted-foreground">
-            Aún no hay productos destacados. Marca algunos como "Destacado" desde el panel.
-          </p>
-        ) : (
+
+        {loading ? (
           <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {featured.map((p) => (
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="animate-pulse overflow-hidden rounded-3xl border border-border bg-card"
+              >
+                <div className="aspect-[4/3] w-full bg-muted" />
+                <div className="space-y-2 p-5">
+                  <div className="h-4 w-3/4 rounded bg-muted" />
+                  <div className="h-3 w-1/2 rounded bg-muted" />
+                  <div className="h-5 w-1/3 rounded bg-muted" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : shown.length > 0 ? (
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {shown.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
+          </div>
+        ) : (
+          <div className="mt-10 rounded-3xl border border-dashed border-border bg-card p-10 text-center">
+            <ShoppingBag
+              className="mx-auto h-10 w-10"
+              style={{ color: "var(--brand-orange)" }}
+            />
+            <h3 className="mt-4 text-lg font-bold">
+              {isError
+                ? "No pudimos cargar el catálogo en este momento"
+                : "Estamos cargando nuevos productos"}
+            </h3>
+            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+              Escríbenos y te asesoramos con impresoras, filamentos y resinas
+              disponibles bajo pedido.
+            </p>
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+              <Link to="/tienda" className="btn-primary text-sm">
+                Ver la tienda
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link to="/contacto" className="btn-outline text-sm">
+                Contactar al equipo
+              </Link>
+            </div>
           </div>
         )}
       </div>
     </section>
-
   );
 }
