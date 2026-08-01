@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Upload, CheckCircle2 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { ArrowRight, Upload, CheckCircle2, X, AlertTriangle, Loader2 } from "lucide-react";
 import kiaraAsset from "@/assets/kiara.asset.json";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
-
+import { supabase } from "@/integrations/supabase/client";
+import { createQuoteRequest } from "@/lib/quotes.functions";
 
 type Finish = "estandar" | "preparado" | "premium";
 
@@ -25,40 +27,125 @@ const finishes: { id: Finish; title: string; desc: string }[] = [
   },
 ];
 
+const LARGE_FORMAT = "Gran Formato (50x50 cm o más — ¡Nuestra especialidad!)";
+
+const MAX_BYTES = 50 * 1024 * 1024; // 50 MB
+const ALLOWED_EXT = [".stl", ".obj", ".jpg", ".jpeg", ".png"];
+
+function validateFile(file: File): string | null {
+  const name = file.name.toLowerCase();
+  if (!ALLOWED_EXT.some((ext) => name.endsWith(ext))) {
+    return `Formato no permitido (“${file.name}”). Solo aceptamos .stl, .obj, .jpg y .png.`;
+  }
+  if (file.size > MAX_BYTES) {
+    return `El archivo pesa ${(file.size / 1024 / 1024).toFixed(1)} MB y el límite es 50 MB.`;
+  }
+  return null;
+}
+
 export function Quoter() {
   const [design, setDesign] = useState("archivo");
   const [size, setSize] = useState("");
   const [material, setMaterial] = useState("");
   const [finish, setFinish] = useState<Finish>("estandar");
-  const [fileName, setFileName] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const { data: content } = useQuery(siteContentQuery());
   const contact = getContactInfo(content);
+  const saveQuote = useServerFn(createQuoteRequest);
 
-  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const isLarge = size === LARGE_FORMAT;
 
+  function pickFile(list: FileList | null) {
+    const f = list?.[0] ?? null;
+    if (!f) return;
+    const err = validateFile(f);
+    if (err) {
+      setFileError(err);
+      setFile(null);
+      return;
+    }
+    setFileError(null);
+    setFile(f);
+  }
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const f = e.currentTarget;
-    const data = new FormData(f);
-    const lines = [
-      `Hola Will Design 3D, quiero cotizar un proyecto:`,
-      ``,
-      `👤 Nombre: ${data.get("name")}`,
-      `✉️ Correo: ${data.get("email")}`,
-      `📱 WhatsApp: ${data.get("phone")}`,
-      ``,
-      `🧩 Estado del diseño: ${
-        design === "archivo"
-          ? "Ya tengo el archivo 3D"
-          : "Necesito diseño 3D personalizado"
-      }`,
-      `📐 Tamaño: ${size}`,
-      `🧪 Material: ${material}`,
-      `✨ Acabado: ${finishes.find((x) => x.id === finish)?.title}`,
-      fileName ? `📎 Archivo de referencia: ${fileName}` : "",
-    ].filter(Boolean);
-    window.open(waLink(contact.whatsapp, lines.join("\n")), "_blank");
-  };
+    if (fileError) return;
+    const form = e.currentTarget;
+    const data = new FormData(form);
 
+    const length_cm = isLarge ? Number(data.get("length_cm")) : null;
+    const width_cm = isLarge ? Number(data.get("width_cm")) : null;
+    const height_cm = isLarge ? Number(data.get("height_cm")) : null;
+
+    const designLabel =
+      design === "archivo" ? "Ya tengo el archivo 3D" : "Necesito diseño 3D personalizado";
+    const finishLabel = finishes.find((x) => x.id === finish)?.title ?? "";
+
+    setSending(true);
+    setSendError(null);
+    try {
+      let file_path: string | null = null;
+      let file_name: string | null = null;
+      if (file) {
+        const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const path = `cotizaciones/${crypto.randomUUID()}-${safe}`;
+        const up = await supabase.storage.from("quote-files").upload(path, file, {
+          upsert: false,
+        });
+        if (up.error) throw new Error("No pudimos subir el archivo: " + up.error.message);
+        file_path = path;
+        file_name = file.name;
+      }
+
+      await saveQuote({
+        data: {
+          customer_name: String(data.get("name") ?? ""),
+          customer_email: String(data.get("email") ?? ""),
+          customer_phone: String(data.get("phone") ?? ""),
+          design_state: designLabel,
+          size_label: size,
+          length_cm,
+          width_cm,
+          height_cm,
+          material,
+          finish: finishLabel,
+          notes: "",
+          file_name,
+          file_path,
+        },
+      });
+
+      const lines = [
+        `Hola Will Design 3D, quiero cotizar un proyecto:`,
+        ``,
+        `👤 Nombre: ${data.get("name")}`,
+        `✉️ Correo: ${data.get("email")}`,
+        `📱 WhatsApp: ${data.get("phone")}`,
+        ``,
+        `🧩 Estado del diseño: ${designLabel}`,
+        `📐 Tamaño: ${size}`,
+        isLarge ? `📏 Medidas aprox.: ${length_cm} × ${width_cm} × ${height_cm} cm` : "",
+        `🧪 Material: ${material}`,
+        `✨ Acabado: ${finishLabel}`,
+        file_name ? `📎 Archivo adjunto enviado al equipo: ${file_name}` : "",
+      ].filter(Boolean);
+
+      setSent(true);
+      window.open(waLink(contact.whatsapp, lines.join("\n")), "_blank");
+    } catch (err) {
+      setSendError((err as Error).message || "No pudimos enviar la cotización.");
+    } finally {
+      setSending(false);
+    }
+  }
 
   return (
     <section
@@ -150,9 +237,42 @@ export function Quoter() {
               <option value="">Selecciona un tamaño…</option>
               <option>Pequeño (hasta 10x10 cm)</option>
               <option>Mediano (hasta 30x30 cm)</option>
-              <option>Gran Formato (50x50 cm o más — ¡Nuestra especialidad!)</option>
+              <option>{LARGE_FORMAT}</option>
             </select>
           </label>
+
+          {/* Medidas para gran formato */}
+          {isLarge && (
+            <fieldset className="rounded-2xl border border-[var(--brand-teal)] bg-[color-mix(in_oklab,var(--brand-teal)_7%,white)] p-4">
+              <legend className="px-1 text-sm font-bold">
+                Medidas aproximadas (cm)
+              </legend>
+              <p className="text-xs text-muted-foreground">
+                Para gran formato necesitamos las medidas para cotizar con precisión.
+              </p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                {[
+                  { name: "length_cm", label: "Largo (cm)" },
+                  { name: "width_cm", label: "Ancho (cm)" },
+                  { name: "height_cm", label: "Alto (cm)" },
+                ].map((d) => (
+                  <label key={d.name} className="grid gap-1 text-sm">
+                    <span className="font-medium">{d.label}</span>
+                    <input
+                      name={d.name}
+                      type="number"
+                      required
+                      min={1}
+                      max={10000}
+                      step="0.1"
+                      placeholder="Ej: 60"
+                      className="rounded-xl border border-input bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
 
           {/* Material */}
           <label className="grid gap-2 text-sm">
@@ -214,26 +334,77 @@ export function Quoter() {
 
           {/* Archivo */}
           <div className="grid gap-2 text-sm">
-            <span className="font-bold">Archivo 3D o imágenes de referencia</span>
-            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-background px-4 py-5 text-sm font-semibold text-muted-foreground transition hover:border-[var(--brand-teal)] hover:text-foreground">
-              <Upload className="h-4 w-4" />
-              {fileName || "Sube tu archivo 3D o imágenes de referencia"}
+            <span className="font-bold">Archivo 3D o imagen de referencia</span>
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragging(true);
+              }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragging(false);
+                pickFile(e.dataTransfer.files);
+              }}
+              className={`rounded-2xl border-2 border-dashed p-5 text-center transition ${
+                dragging
+                  ? "border-[var(--brand-teal)] bg-[color-mix(in_oklab,var(--brand-teal)_8%,white)]"
+                  : "border-border bg-background"
+              }`}
+            >
+              <Upload className="mx-auto h-5 w-5 text-muted-foreground" />
+              <p className="mt-2 text-sm font-semibold">
+                Arrastra tu archivo aquí o
+              </p>
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                className="mt-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold hover:bg-muted"
+              >
+                Seleccionar archivo
+              </button>
               <input
+                ref={inputRef}
                 type="file"
-                accept=".stl,.obj,.3mf,.step,.stp,image/*"
-                multiple
+                accept=".stl,.obj,.jpg,.jpeg,.png"
                 className="hidden"
                 onChange={(e) => {
-                  const files = e.target.files;
-                  if (!files || files.length === 0) return setFileName("");
-                  setFileName(
-                    files.length === 1
-                      ? files[0].name
-                      : `${files.length} archivos seleccionados`,
-                  );
+                  pickFile(e.target.files);
+                  e.target.value = "";
                 }}
               />
-            </label>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Formatos permitidos: .stl, .obj, .jpg, .png — máximo 50 MB.
+              </p>
+
+              {file && (
+                <div className="mx-auto mt-4 flex max-w-md items-center justify-between gap-3 rounded-xl border border-border bg-card px-3 py-2 text-left">
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                    {file.name}
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      {(file.size / 1024 / 1024).toFixed(1)} MB
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Quitar archivo"
+                    onClick={() => setFile(null)}
+                    className="rounded-full p-1 hover:bg-muted"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+            {fileError && (
+              <p
+                role="alert"
+                className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs font-semibold text-destructive"
+              >
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                {fileError}
+              </p>
+            )}
           </div>
 
           {/* Contacto */}
@@ -272,12 +443,36 @@ export function Quoter() {
             </label>
           </div>
 
+          {sendError && (
+            <p
+              role="alert"
+              className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm font-semibold text-destructive"
+            >
+              {sendError}
+            </p>
+          )}
+          {sent && !sendError && (
+            <p className="rounded-xl border border-border bg-muted px-3 py-2 text-sm font-semibold">
+              ¡Listo! Recibimos tu cotización y abrimos WhatsApp para confirmar los
+              detalles.
+            </p>
+          )}
+
           <button
             type="submit"
-            className="btn-primary mt-2 w-full justify-center py-3 text-base"
+            disabled={sending}
+            className="btn-primary mt-2 w-full justify-center py-3 text-base disabled:opacity-60"
           >
-            Solicitar Cotización Exacta
-            <ArrowRight className="h-4 w-4" />
+            {sending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Enviando…
+              </>
+            ) : (
+              <>
+                Solicitar Cotización Exacta
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
           </button>
         </form>
       </div>
