@@ -178,13 +178,27 @@ function TiendaPage() {
             <Loader2 className="h-4 w-4 animate-spin" /> Cargando catálogo…
           </div>
         ) : filtered.length === 0 ? (
-          <div className="mt-10 rounded-3xl border-2 border-dashed border-border p-10 text-center text-muted-foreground">
-            No encontramos productos con ese filtro.{" "}
-            <Link to="/contacto" className="font-semibold text-foreground underline">
-              Pídelo por WhatsApp
-            </Link>
-            .
+          <div className="mt-10 flex flex-col items-center gap-4 rounded-3xl border-2 border-dashed border-border p-10 text-center">
+            <PackageSearch className="h-10 w-10 text-muted-foreground" />
+            <p className="max-w-xl text-muted-foreground">
+              {emptyMessage} Escríbenos por WhatsApp y te avisamos apenas lleguen.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <a href={emptyWaLink} target="_blank" rel="noreferrer" className="btn-primary text-sm">
+                <MessageCircle className="h-4 w-4" /> Consultar por WhatsApp
+              </a>
+              <button
+                onClick={() => navigate({ search: {} })}
+                className="rounded-full border border-border px-4 py-2 text-sm font-semibold hover:bg-muted"
+              >
+                Ver todo el catálogo
+              </button>
+              <Link to="/contacto" className="text-sm font-semibold underline">
+                Otras formas de contacto
+              </Link>
+            </div>
           </div>
+
         ) : (
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filtered.map((p) => (
