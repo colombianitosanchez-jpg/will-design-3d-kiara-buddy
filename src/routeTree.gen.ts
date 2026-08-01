@@ -18,6 +18,7 @@ import { Route as ContactoRouteImport } from './routes/contacto'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TiendaIndexRouteImport } from './routes/tienda.index'
 import { Route as PanelIndexRouteImport } from './routes/panel.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TiendaSlugRouteImport } from './routes/tienda.$slug'
@@ -75,6 +76,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const TiendaIndexRoute = TiendaIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TiendaRoute,
 } as any)
 const PanelIndexRoute = PanelIndexRouteImport.update({
   id: '/',
@@ -159,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/tienda/$slug': typeof TiendaSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/panel/': typeof PanelIndexRoute
+  '/tienda/': typeof TiendaIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -167,7 +174,6 @@ export interface FileRoutesByTo {
   '/galeria': typeof GaleriaRoute
   '/nosotros': typeof NosotrosRoute
   '/servicios': typeof ServiciosRoute
-  '/tienda': typeof TiendaRouteWithChildren
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/inventario': typeof AdminInventarioRoute
   '/admin/live': typeof AdminLiveRoute
@@ -180,6 +186,7 @@ export interface FileRoutesByTo {
   '/tienda/$slug': typeof TiendaSlugRoute
   '/admin': typeof AdminIndexRoute
   '/panel': typeof PanelIndexRoute
+  '/tienda': typeof TiendaIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -204,6 +211,7 @@ export interface FileRoutesById {
   '/tienda/$slug': typeof TiendaSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/panel/': typeof PanelIndexRoute
+  '/tienda/': typeof TiendaIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -229,6 +237,7 @@ export interface FileRouteTypes {
     | '/tienda/$slug'
     | '/admin/'
     | '/panel/'
+    | '/tienda/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -237,7 +246,6 @@ export interface FileRouteTypes {
     | '/galeria'
     | '/nosotros'
     | '/servicios'
-    | '/tienda'
     | '/admin/clientes'
     | '/admin/inventario'
     | '/admin/live'
@@ -250,6 +258,7 @@ export interface FileRouteTypes {
     | '/tienda/$slug'
     | '/admin'
     | '/panel'
+    | '/tienda'
   id:
     | '__root__'
     | '/'
@@ -273,6 +282,7 @@ export interface FileRouteTypes {
     | '/tienda/$slug'
     | '/admin/'
     | '/panel/'
+    | '/tienda/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -351,6 +361,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/tienda/': {
+      id: '/tienda/'
+      path: '/'
+      fullPath: '/tienda/'
+      preLoaderRoute: typeof TiendaIndexRouteImport
+      parentRoute: typeof TiendaRoute
     }
     '/panel/': {
       id: '/panel/'
@@ -479,10 +496,12 @@ const PanelRouteWithChildren = PanelRoute._addFileChildren(PanelRouteChildren)
 
 interface TiendaRouteChildren {
   TiendaSlugRoute: typeof TiendaSlugRoute
+  TiendaIndexRoute: typeof TiendaIndexRoute
 }
 
 const TiendaRouteChildren: TiendaRouteChildren = {
   TiendaSlugRoute: TiendaSlugRoute,
+  TiendaIndexRoute: TiendaIndexRoute,
 }
 
 const TiendaRouteWithChildren =
