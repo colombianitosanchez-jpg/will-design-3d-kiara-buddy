@@ -1,14 +1,10 @@
-import { useEffect, useRef } from "react";
-import { Instagram, ExternalLink } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Instagram, ImageIcon, X } from "lucide-react";
+import { siteContentQuery, getContactInfo } from "@/lib/catalog";
 
-const INSTAGRAM_HANDLE = "will_design2020";
-const INSTAGRAM_URL = `https://www.instagram.com/${INSTAGRAM_HANDLE}/`;
-
-// Set VITE_ELFSIGHT_INSTAGRAM_ID in your env once you create an Elfsight widget
-// pointing to @will_design2020. Docs: https://elfsight.com/instagram-feed-instashow/
-const ELFSIGHT_WIDGET_ID = import.meta.env.VITE_ELFSIGHT_INSTAGRAM_ID as
-  | string
-  | undefined;
+// Fallback si aún no hay nada configurado en Panel → Contenido.
+const ENV_WIDGET_ID = import.meta.env.VITE_ELFSIGHT_INSTAGRAM_ID as string | undefined;
 
 function useElfsightScript(enabled: boolean) {
   const loaded = useRef(false);
@@ -27,9 +23,30 @@ function useElfsightScript(enabled: boolean) {
   }, [enabled]);
 }
 
+function parseImages(raw: string | undefined): string[] {
+  if (!raw?.trim()) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed.filter((x) => typeof x === "string" && x.trim());
+  } catch {
+    /* también aceptamos lista separada por saltos de línea o comas */
+  }
+  return raw
+    .split(/[\n,]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 export function InstagramFeed() {
-  const hasWidget = Boolean(ELFSIGHT_WIDGET_ID);
-  useElfsightScript(hasWidget);
+  const { data: content } = useQuery(siteContentQuery());
+  const contact = getContactInfo(content);
+  const handle = contact.instagram_handle.replace(/^@/, "");
+  const instagramUrl = contact.instagram_url;
+
+  const widgetId = (content?.elfsight_instagram_id?.trim() || ENV_WIDGET_ID || "").trim();
+  const photos = parseImages(content?.portfolio_images);
+
+  useElfsightScript(Boolean(widgetId));
 
   return (
     <section
@@ -46,73 +63,106 @@ export function InstagramFeed() {
             </h2>
             <p className="mt-3 text-muted-foreground">
               Las últimas publicaciones de{" "}
-              <strong className="text-foreground">@{INSTAGRAM_HANDLE}</strong> —
-              se actualizan automáticamente.
+              <strong className="text-foreground">@{handle}</strong> — se
+              actualizan automáticamente.
             </p>
           </div>
-          <a
-            href={INSTAGRAM_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="btn-outline"
-          >
-            <Instagram className="h-4 w-4" />
-            @{INSTAGRAM_HANDLE}
+          <a href={instagramUrl} target="_blank" rel="noreferrer" className="btn-outline">
+            <Instagram className="h-4 w-4" />@{handle}
           </a>
         </div>
 
         <div className="mt-10">
-          {hasWidget ? (
-            <div
-              className={`elfsight-app-${ELFSIGHT_WIDGET_ID}`}
-              data-elfsight-app-lazy
-            />
+          {widgetId ? (
+            <div className={`elfsight-app-${widgetId}`} data-elfsight-app-lazy />
+          ) : photos.length > 0 ? (
+            <PhotoGallery photos={photos} handle={handle} />
           ) : (
-            <FeedPlaceholder />
+            <PortfolioTeaser instagramUrl={instagramUrl} handle={handle} />
           )}
         </div>
+
+        {/* Solo visible en desarrollo: nunca se muestra al público. */}
+        {import.meta.env.DEV && !widgetId && (
+          <p className="mt-6 rounded-2xl border border-dashed border-border bg-card p-4 text-xs text-muted-foreground">
+            <strong>Nota de desarrollo (no visible en producción):</strong> sube fotos en
+            Panel → Contenido → «Fotos de portafolio», o pega el ID del widget de Elfsight
+            en «ID del widget de Instagram (Elfsight)» para activar el feed automático.
+          </p>
+        )}
       </div>
     </section>
   );
 }
 
-function FeedPlaceholder() {
+function PhotoGallery({ photos, handle }: { photos: string[]; handle: string }) {
+  const [zoom, setZoom] = useState<string | null>(null);
   return (
-    <div className="rounded-3xl border-2 border-dashed border-border bg-card p-8 text-center">
-      <Instagram
-        className="mx-auto h-10 w-10"
-        style={{ color: "var(--brand-orange)" }}
-      />
-      <h3 className="mt-4 text-lg font-bold">
-        Conecta el feed automático de Instagram
-      </h3>
+    <>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {photos.map((src, i) => (
+          <button
+            key={src + i}
+            type="button"
+            onClick={() => setZoom(src)}
+            className="group relative aspect-square overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+          >
+            <img
+              src={src}
+              alt={`Proyecto de impresión 3D de Will Design 3D ${i + 1}`}
+              loading="lazy"
+              className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+            />
+          </button>
+        ))}
+      </div>
+
+      {zoom && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setZoom(null)}
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-4"
+        >
+          <button
+            onClick={() => setZoom(null)}
+            aria-label="Cerrar"
+            className="absolute right-4 top-4 rounded-full bg-card p-2 shadow"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <img
+            src={zoom}
+            alt={`Proyecto de Will Design 3D — @${handle}`}
+            className="max-h-[85vh] max-w-full rounded-2xl object-contain"
+          />
+        </div>
+      )}
+    </>
+  );
+}
+
+function PortfolioTeaser({ instagramUrl, handle }: { instagramUrl: string; handle: string }) {
+  return (
+    <div className="rounded-3xl border border-border bg-card p-8 text-center shadow-sm">
+      <div
+        className="mx-auto grid h-14 w-14 place-items-center rounded-2xl"
+        style={{
+          background: "color-mix(in oklab, var(--brand-orange) 15%, white)",
+          color: "var(--brand-orange)",
+        }}
+      >
+        <ImageIcon className="h-7 w-7" />
+      </div>
+      <h3 className="mt-4 text-xl font-bold">Estamos preparando la galería</h3>
       <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-        Este espacio mostrará automáticamente las publicaciones de{" "}
-        <strong>@{INSTAGRAM_HANDLE}</strong>. Crea un widget gratuito en
-        Elfsight, cópialo y guárdalo como variable{" "}
-        <code className="rounded bg-muted px-1 py-0.5 text-xs">
-          VITE_ELFSIGHT_INSTAGRAM_ID
-        </code>
-        .
+        Mientras tanto, mira nuestros proyectos más recientes de impresión 3D de gran
+        formato directamente en Instagram.
       </p>
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-        <a
-          href="https://elfsight.com/instagram-feed-instashow/"
-          target="_blank"
-          rel="noreferrer"
-          className="btn-primary text-sm"
-        >
-          Crear widget Elfsight
-          <ExternalLink className="h-4 w-4" />
-        </a>
-        <a
-          href={INSTAGRAM_URL}
-          target="_blank"
-          rel="noreferrer"
-          className="btn-outline text-sm"
-        >
-          Ver Instagram
+      <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+        <a href={instagramUrl} target="_blank" rel="noreferrer" className="btn-primary text-sm">
           <Instagram className="h-4 w-4" />
+          Ver @{handle}
         </a>
       </div>
     </div>
