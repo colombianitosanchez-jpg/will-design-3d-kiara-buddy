@@ -109,6 +109,51 @@ function ContenidoAdmin() {
     }
   }
 
+  async function uploadToStorage(key: string, file: File) {
+    const path = `content/${key}-${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    const up = await supabase.storage.from("product-images").upload(path, file, { upsert: false });
+    if (up.error) throw up.error;
+    const signed = await supabase.storage
+      .from("product-images")
+      .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+    if (signed.error) throw signed.error;
+    return signed.data.signedUrl;
+  }
+
+  function parseList(raw: string | undefined): string[] {
+    if (!raw?.trim()) return [];
+    try {
+      const p = JSON.parse(raw);
+      if (Array.isArray(p)) return p.filter((x) => typeof x === "string" && x.trim());
+    } catch {
+      /* lista simple */
+    }
+    return raw.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean);
+  }
+
+  async function uploadImages(key: string, files: File[]) {
+    setUploadingKey(key);
+    try {
+      const urls: string[] = [];
+      for (const f of files) urls.push(await uploadToStorage(key, f));
+      setValues((v) => ({
+        ...v,
+        [key]: JSON.stringify([...parseList(v[key]), ...urls]),
+      }));
+    } catch (e) {
+      alert("Error al subir: " + (e as Error).message);
+    } finally {
+      setUploadingKey(null);
+    }
+  }
+
+  function removeImageAt(key: string, index: number) {
+    setValues((v) => {
+      const list = parseList(v[key]).filter((_, i) => i !== index);
+      return { ...v, [key]: list.length ? JSON.stringify(list) : "" };
+    });
+  }
+
   if (loading) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
