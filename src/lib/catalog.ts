@@ -173,11 +173,14 @@ export function slugify(value: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-/** Alias entre slugs usados en el menú y los slugs reales de categories */
+/**
+ * Alias entre slugs usados en el menú y los slugs reales de `categories`.
+ * Solo equivalencias de NOMBRE (misma categoría escrita distinto).
+ * Los slugs de tecnología (impresoras-filamento / impresoras-resina) NO van aquí:
+ * se resuelven en `resolveStoreFilter` como categoría + tecnología.
+ */
 const CATEGORY_ALIASES: Record<string, string> = {
   "impresoras-3d": "impresoras",
-  "impresoras-filamento": "impresoras",
-  "impresoras-resina": "impresoras",
   "impresora-3d": "impresoras",
   "filamento": "filamentos",
   "materiales-3d": "filamentos",
@@ -188,26 +191,96 @@ const CATEGORY_ALIASES: Record<string, string> = {
   "escaners-3d": "escaners",
   "escaneres-3d": "escaners",
   "camaras-3d": "camaras",
+  "camara-3d": "camaras",
   "repuestos-3d": "repuestos",
 };
 
-/** Resuelve el parámetro `categoria` de la URL al slug real de la categoría. */
+/** Slugs del menú que significan "impresoras" + una tecnología concreta. */
+const TECH_CATEGORY: Record<string, { category: string; tech: PrinterTech }> = {
+  "impresoras-filamento": { category: "impresoras", tech: "filamento" },
+  "impresoras-fdm": { category: "impresoras", tech: "filamento" },
+  "impresoras-3d-filamento": { category: "impresoras", tech: "filamento" },
+  "impresoras-resina": { category: "impresoras", tech: "resina" },
+  "impresoras-3d-resina": { category: "impresoras", tech: "resina" },
+  "impresoras-sla": { category: "impresoras", tech: "resina" },
+};
+
+export type PrinterTech = "filamento" | "resina";
+
+export type StoreFilter = {
+  /** Slug real de la categoría, o null si no hay filtro de categoría. */
+  categorySlug: string | null;
+  /** Tecnología exigida (solo para impresoras), o null. */
+  tech: PrinterTech | null;
+  /** true cuando el parámetro no corresponde a ninguna categoría real. */
+  unknown: boolean;
+};
+
+/**
+ * Resuelve el parámetro `categoria` de la URL a un filtro exacto contra la tabla
+ * `products`. Nunca hace coincidencias parciales: si el parámetro no existe como
+ * categoría real, `unknown = true` y la tienda muestra un estado vacío claro.
+ */
+export function resolveStoreFilter(
+  param: string | undefined | null,
+  categories: Category[],
+): StoreFilter {
+  const raw = slugify(param ?? "");
+  if (!raw) return { categorySlug: null, tech: null, unknown: false };
+
+  const exists = (slug: string) => categories.some((c) => c.slug === slug);
+
+  const tech = TECH_CATEGORY[raw];
+  if (tech) {
+    return exists(tech.category)
+      ? { categorySlug: tech.category, tech: tech.tech, unknown: false }
+      : { categorySlug: tech.category, tech: tech.tech, unknown: true };
+  }
+  if (exists(raw)) return { categorySlug: raw, tech: null, unknown: false };
+
+  const alias = CATEGORY_ALIASES[raw];
+  if (alias && exists(alias)) return { categorySlug: alias, tech: null, unknown: false };
+
+  const byName = categories.find((c) => slugify(c.name) === raw);
+  if (byName) return { categorySlug: byName.slug, tech: null, unknown: false };
+
+  return { categorySlug: raw, tech: null, unknown: true };
+}
+
+/** Compatibilidad: devuelve solo el slug de categoría resuelto. */
 export function resolveCategorySlug(
   param: string | undefined | null,
   categories: Category[],
 ): string | null {
-  const raw = slugify(param ?? "");
-  if (!raw) return null;
-  if (categories.some((c) => c.slug === raw)) return raw;
-  const alias = CATEGORY_ALIASES[raw];
-  if (alias && categories.some((c) => c.slug === alias)) return alias;
-  const byName = categories.find((c) => slugify(c.name) === raw);
-  if (byName) return byName.slug;
-  const partial = categories.find((c) => raw.startsWith(c.slug) || c.slug.startsWith(raw));
-  return partial ? partial.slug : raw;
+  return resolveStoreFilter(param, categories).categorySlug;
+}
+
+const RESIN_RE = /(resina|resin|msla|\bsla\b|\blcd\b|dlp|halot|mars\b|saturn|photon|sonic\s*mighty|mage)/i;
+
+/**
+ * Tecnología de una impresora deducida de campos reales y editables desde el
+ * Panel (especificaciones técnicas, nombre y descripción).
+ */
+export function productTech(product: Product): PrinterTech {
+  const haystack = [
+    product.name,
+    product.short,
+    product.description,
+    ...product.specs.flatMap((s) => [s.label, s.value]),
+  ]
+    .filter(Boolean)
+    .join(" ");
+  return RESIN_RE.test(haystack) ? "resina" : "filamento";
 }
 
 export function brandSlugOf(brand: { name: string; slug?: string | null } | null | undefined) {
   if (!brand) return null;
   return brand.slug?.trim() ? brand.slug.trim() : slugify(brand.name);
 }
+
+/** Etiqueta legible para un slug de categoría/tecnología del menú. */
+export function prettySlug(value: string | null | undefined): string {
+  if (!value) return "";
+  return value.replace(/-/g, " ");
+}
+
