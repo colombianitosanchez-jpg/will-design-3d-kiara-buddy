@@ -14,6 +14,7 @@ export type Product = {
   description: string;
   kiara_tip: string;
   image_url: string | null;
+  images: string[];
   featured: boolean;
   active: boolean;
   stock: number;
@@ -24,7 +25,7 @@ export type Product = {
 };
 
 const PRODUCT_SELECT =
-  "id,slug,name,price_cop,short,description,kiara_tip,image_url,featured,active,stock,sku,specs,category:categories(slug,name),brand:brands(name,slug)";
+  "id,slug,name,price_cop,short,description,kiara_tip,image_url,images,featured,active,stock,sku,specs,category:categories(slug,name),brand:brands(name,slug)";
 
 function normalize(row: any): Product {
   let specs: ProductSpec[] = [];
@@ -34,7 +35,14 @@ function normalize(row: any): Product {
   } catch {
     specs = [];
   }
-  return { ...row, specs } as Product;
+  let images: string[] = [];
+  try {
+    if (Array.isArray(row.images)) images = row.images.filter((x: unknown) => typeof x === "string");
+    else if (typeof row.images === "string") images = JSON.parse(row.images);
+  } catch {
+    images = [];
+  }
+  return { ...row, specs, images } as Product;
 }
 
 export async function fetchProducts(): Promise<Product[]> {

@@ -1,6 +1,9 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, MessageCircle, ShieldCheck, Truck, Loader2 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { useMemo, useState } from "react";
+import { ArrowLeft, MessageCircle, ShieldCheck, Truck, Loader2, ShoppingBag, X, CheckCircle2 } from "lucide-react";
+import { createOrderRequest } from "@/lib/orders.functions";
 import {
   formatCOP,
   gradientKeyFor,
@@ -86,6 +89,14 @@ function ProductPage() {
     `Hola Will Design 3D, me interesa el producto: ${product.name} (${formatCOP(product.price_cop)}). ¿Está disponible?`,
   );
   const gradient = GRADIENTS[gradientKeyFor(product.category?.slug)];
+  const gallery = useMemo(() => {
+    const all = [product.image_url, ...(product.images ?? [])].filter(
+      (u): u is string => !!u && u.trim().length > 0,
+    );
+    return Array.from(new Set(all));
+  }, [product.image_url, product.images]);
+  const [activeImage, setActiveImage] = useState(0);
+  const [orderOpen, setOrderOpen] = useState(false);
 
 
   return (
@@ -106,12 +117,36 @@ function ProductPage() {
             className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-3xl text-5xl font-black text-white/90 shadow-lg"
             style={{ background: gradient }}
           >
-            {product.image_url ? (
-              <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" />
+            {gallery.length > 0 ? (
+              <img
+                src={gallery[Math.min(activeImage, gallery.length - 1)]}
+                alt={product.name}
+                className="h-full w-full object-cover"
+              />
             ) : (
               <span>{product.name.split(" ")[0]}</span>
             )}
           </div>
+
+          {gallery.length > 1 && (
+            <div className="mt-4 grid grid-cols-5 gap-3">
+              {gallery.map((url, i) => (
+                <button
+                  key={url}
+                  type="button"
+                  onClick={() => setActiveImage(i)}
+                  aria-label={`Ver imagen ${i + 1} de ${product.name}`}
+                  className={`aspect-square overflow-hidden rounded-xl border-2 transition ${
+                    i === activeImage
+                      ? "border-[var(--brand-orange)]"
+                      : "border-border hover:border-muted-foreground/40"
+                  }`}
+                >
+                  <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div>
@@ -123,6 +158,19 @@ function ProductPage() {
           <h1 className="mt-1 text-3xl font-black sm:text-4xl">{product.name}</h1>
           <p className="mt-3 text-muted-foreground">{product.description}</p>
 
+          <div className="mt-4 flex flex-wrap gap-2 text-xs">
+            {product.category?.name && (
+              <span className="rounded-full bg-muted px-3 py-1 font-semibold text-muted-foreground">
+                {product.category.name}
+              </span>
+            )}
+            {product.sku && (
+              <span className="rounded-full bg-muted px-3 py-1 font-semibold text-muted-foreground">
+                SKU: {product.sku}
+              </span>
+            )}
+          </div>
+
           <p className="mt-6 text-4xl font-black text-[var(--brand-wine)]">
             {formatCOP(product.price_cop)}
           </p>
@@ -133,18 +181,14 @@ function ProductPage() {
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <a
-              href={waHref}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-primary"
-            >
+            <button type="button" onClick={() => setOrderOpen(true)} className="btn-primary">
+              <ShoppingBag className="h-4 w-4" />
+              Solicitar pedido
+            </button>
+            <a href={waHref} target="_blank" rel="noreferrer" className="btn-outline">
               <MessageCircle className="h-4 w-4" />
-              Comprar por WhatsApp
+              Consultar por WhatsApp
             </a>
-            <Link to="/contacto" className="btn-outline">
-              Solicitar asesoría
-            </Link>
           </div>
 
           <ul className="mt-6 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
@@ -182,6 +226,10 @@ function ProductPage() {
         </div>
       </section>
 
+      {orderOpen && (
+        <OrderRequestModal product={product} onClose={() => setOrderOpen(false)} />
+      )}
+
       {related.length > 0 && (
         <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
           <h2 className="text-2xl font-black">También te puede interesar</h2>
@@ -193,5 +241,158 @@ function ProductPage() {
         </section>
       )}
     </>
+  );
+}
+
+const inputCls =
+  "mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring";
+
+function OrderRequestModal({ product, onClose }: { product: Product; onClose: () => void }) {
+  const submit = useServerFn(createOrderRequest);
+  const [sending, setSending] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    quantity: 1,
+    customer_name: "",
+    customer_email: "",
+    customer_phone: "",
+    shipping_address: "",
+    shipping_city: "",
+    notes: "",
+  });
+
+  function set<K extends keyof typeof form>(k: K, v: (typeof form)[K]) {
+    setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSending(true);
+    setError(null);
+    try {
+      await submit({ data: { ...form, product_id: product.id, quantity: Number(form.quantity) || 1 } });
+      setDone(true);
+    } catch (err) {
+      setError((err as Error).message || "No pudimos enviar tu solicitud.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4">
+      <div className="my-8 w-full max-w-lg rounded-3xl bg-background p-6 shadow-2xl">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-black">Solicitar pedido</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{product.name}</p>
+          </div>
+          <button onClick={onClose} className="rounded-full p-2 hover:bg-muted" aria-label="Cerrar">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {done ? (
+          <div className="py-8 text-center">
+            <CheckCircle2 className="mx-auto h-10 w-10 text-[var(--brand-teal-deep)]" />
+            <p className="mt-4 font-bold">¡Solicitud enviada!</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Nuestro equipo la verá en el panel de pedidos y te contactará muy pronto.
+            </p>
+            <button onClick={onClose} className="btn-primary mt-6 text-sm">
+              Listo
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={onSubmit} className="mt-5 grid gap-3 sm:grid-cols-2">
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Cantidad
+              <input
+                type="number"
+                min={1}
+                max={99}
+                required
+                value={form.quantity}
+                onChange={(e) => set("quantity", Number(e.target.value))}
+                className={inputCls}
+              />
+            </label>
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Nombre completo
+              <input
+                required
+                value={form.customer_name}
+                onChange={(e) => set("customer_name", e.target.value)}
+                className={inputCls}
+              />
+            </label>
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Correo
+              <input
+                type="email"
+                required
+                value={form.customer_email}
+                onChange={(e) => set("customer_email", e.target.value)}
+                className={inputCls}
+              />
+            </label>
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Teléfono / WhatsApp
+              <input
+                value={form.customer_phone}
+                onChange={(e) => set("customer_phone", e.target.value)}
+                className={inputCls}
+              />
+            </label>
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:col-span-2">
+              Dirección de envío
+              <input
+                required
+                value={form.shipping_address}
+                onChange={(e) => set("shipping_address", e.target.value)}
+                className={inputCls}
+              />
+            </label>
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Ciudad
+              <input
+                value={form.shipping_city}
+                onChange={(e) => set("shipping_city", e.target.value)}
+                className={inputCls}
+              />
+            </label>
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:col-span-2">
+              Notas (opcional)
+              <textarea
+                rows={3}
+                value={form.notes}
+                onChange={(e) => set("notes", e.target.value)}
+                className={inputCls}
+              />
+            </label>
+
+            <p className="text-sm font-bold sm:col-span-2">
+              Total estimado: {formatCOP(product.price_cop * (Number(form.quantity) || 1))}
+            </p>
+            {error && <p className="text-sm text-red-600 sm:col-span-2">{error}</p>}
+
+            <div className="mt-2 flex justify-end gap-2 sm:col-span-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-full border border-border px-5 py-2 text-sm font-semibold"
+              >
+                Cancelar
+              </button>
+              <button disabled={sending} className="btn-primary text-sm disabled:opacity-60">
+                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {sending ? "Enviando…" : "Enviar solicitud"}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
   );
 }

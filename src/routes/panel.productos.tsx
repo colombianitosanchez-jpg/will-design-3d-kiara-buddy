@@ -21,6 +21,9 @@ type Product = {
   description: string;
   kiara_tip: string;
   image_url: string | null;
+  images: string[];
+  specs: { label: string; value: string }[];
+  sku: string | null;
   featured: boolean;
   active: boolean;
   stock: number;
@@ -36,6 +39,9 @@ const empty: Omit<Product, "id"> = {
   description: "",
   kiara_tip: "",
   image_url: null,
+  images: [],
+  specs: [],
+  sku: null,
   featured: false,
   active: true,
   stock: 0,
@@ -68,7 +74,13 @@ function ProductosAdmin() {
       supabase.from("categories").select("id,name,slug").order("sort_order"),
       supabase.from("brands").select("id,name").order("name"),
     ]);
-    setProducts((p.data as Product[]) ?? []);
+    setProducts(
+      ((p.data as any[]) ?? []).map((r) => ({
+        ...r,
+        images: Array.isArray(r.images) ? r.images : [],
+        specs: Array.isArray(r.specs) ? r.specs : [],
+      })) as Product[],
+    );
     setCategories((c.data as Category[]) ?? []);
     setBrands((b.data as Brand[]) ?? []);
     setLoading(false);
@@ -213,9 +225,7 @@ function ProductModal({
     setForm((f) => ({ ...f, [k]: v }));
   }
 
-  async function uploadImage(file: File) {
-    setUploading(true);
-    try {
+  async function uploadToStorage(file: File): Promise<string> {
       const path = `${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
       const up = await supabase.storage.from("product-images").upload(path, file, {
         cacheControl: "3600",
@@ -227,12 +237,39 @@ function ProductModal({
         .from("product-images")
         .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
       if (signed.error) throw signed.error;
-      set("image_url", signed.data.signedUrl);
+      return signed.data.signedUrl;
+  }
+
+  async function uploadImage(file: File) {
+    setUploading(true);
+    try {
+      set("image_url", await uploadToStorage(file));
     } catch (e) {
       alert("Error al subir la imagen: " + (e as Error).message);
     } finally {
       setUploading(false);
     }
+  }
+
+  async function uploadGallery(files: FileList) {
+    setUploading(true);
+    try {
+      const urls: string[] = [];
+      for (const f of Array.from(files)) urls.push(await uploadToStorage(f));
+      setForm((fm) => ({ ...fm, images: [...(fm.images ?? []), ...urls] }));
+    } catch (e) {
+      alert("Error al subir imágenes: " + (e as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function setSpec(i: number, key: "label" | "value", v: string) {
+    setForm((fm) => {
+      const specs = [...(fm.specs ?? [])];
+      specs[i] = { ...specs[i], [key]: v };
+      return { ...fm, specs };
+    });
   }
 
   async function save(e: React.FormEvent) {
@@ -249,6 +286,9 @@ function ProductModal({
         description: form.description ?? "",
         kiara_tip: form.kiara_tip ?? "",
         image_url: form.image_url ?? null,
+        images: (form.images ?? []).filter((u) => !!u),
+        specs: (form.specs ?? []).filter((sp) => sp.label?.trim() || sp.value?.trim()),
+        sku: form.sku?.trim() ? form.sku.trim() : null,
         featured: !!form.featured,
         active: form.active ?? true,
         stock: Number(form.stock) || 0,
@@ -299,6 +339,14 @@ function ProductModal({
               onChange={(e) => set("slug", slugify(e.target.value))}
               className={inputCls}
               placeholder="mi-producto"
+            />
+          </Field>
+          <Field label="SKU / Referencia">
+            <input
+              value={form.sku ?? ""}
+              onChange={(e) => set("sku", e.target.value)}
+              className={inputCls}
+              placeholder="WD3D-001"
             />
           </Field>
           <Field label="Precio (COP)" required>
@@ -400,6 +448,74 @@ function ProductModal({
                 Quitar
               </button>
             )}
+          </div>
+        </Field>
+
+        <Field label="Galería de imágenes (opcional)">
+          <div className="flex flex-wrap items-center gap-3">
+            {(form.images ?? []).map((url, i) => (
+              <div key={url + i} className="relative">
+                <img src={url} alt="" className="h-20 w-20 rounded-lg object-cover" />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setForm((fm) => ({ ...fm, images: (fm.images ?? []).filter((_, j) => j !== i) }))
+                  }
+                  className="absolute -right-2 -top-2 rounded-full bg-red-600 p-1 text-white"
+                  aria-label="Quitar imagen"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold hover:bg-muted">
+              <Upload className="h-4 w-4" />
+              {uploading ? "Subiendo…" : "Añadir imágenes"}
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => e.target.files?.length && uploadGallery(e.target.files)}
+              />
+            </label>
+          </div>
+        </Field>
+
+        <Field label="Especificaciones técnicas (tecnología, volumen, material…)">
+          <div className="grid gap-2">
+            {(form.specs ?? []).map((sp, i) => (
+              <div key={i} className="flex gap-2">
+                <input
+                  value={sp.label ?? ""}
+                  onChange={(e) => setSpec(i, "label", e.target.value)}
+                  placeholder="Tecnología"
+                  className={inputCls}
+                />
+                <input
+                  value={sp.value ?? ""}
+                  onChange={(e) => setSpec(i, "value", e.target.value)}
+                  placeholder="FDM"
+                  className={inputCls}
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setForm((fm) => ({ ...fm, specs: (fm.specs ?? []).filter((_, j) => j !== i) }))
+                  }
+                  className="mt-1 rounded-lg bg-red-50 px-3 text-xs font-semibold text-red-700"
+                >
+                  Quitar
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => setForm((fm) => ({ ...fm, specs: [...(fm.specs ?? []), { label: "", value: "" }] }))}
+              className="justify-self-start rounded-full border border-border px-4 py-1.5 text-xs font-semibold hover:bg-muted"
+            >
+              + Añadir especificación
+            </button>
           </div>
         </Field>
 
