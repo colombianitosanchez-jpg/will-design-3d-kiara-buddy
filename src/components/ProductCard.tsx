@@ -52,7 +52,7 @@ export function ProductCard({ product }: { product: Product }) {
             {formatCOP(product.price_cop)}
           </span>
           <span className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--brand-orange)] transition group-hover:gap-2">
-            Ver <ArrowRight className="h-3 w-3" />
+            Ver más <ArrowRight className="h-3 w-3" />
           </span>
         </div>
       </div>
