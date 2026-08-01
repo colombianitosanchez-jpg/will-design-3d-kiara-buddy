@@ -238,6 +238,45 @@ function ContenidoAdmin() {
                     )}
                   </div>
                 )}
+                {f.type === "images" && (
+                  <div className="mt-3">
+                    <div className="flex flex-wrap gap-3">
+                      {parseList(values[f.key]).map((src, idx) => (
+                        <div key={src + idx} className="relative">
+                          <img src={src} alt="" className="h-20 w-20 rounded-xl object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeImageAt(f.key, idx)}
+                            aria-label="Quitar foto"
+                            className="absolute -right-2 -top-2 rounded-full border border-border bg-card px-2 text-xs font-bold shadow"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                      {parseList(values[f.key]).length === 0 && (
+                        <div className="grid h-20 w-20 place-items-center rounded-xl bg-muted text-xs text-muted-foreground">
+                          Vacío
+                        </div>
+                      )}
+                    </div>
+                    <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-muted">
+                      <Upload className="h-4 w-4" />
+                      {uploadingKey === f.key ? "Subiendo…" : "Subir fotos"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files ?? []);
+                          if (files.length) uploadImages(f.key, files);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
+                )}
               </div>
             </div>
           );
