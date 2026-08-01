@@ -14,7 +14,7 @@ type Row = { key: string; value: string };
 type FieldDef = {
   key: string;
   label: string;
-  type: "text" | "textarea" | "image";
+  type: "text" | "textarea" | "image" | "images";
   help?: string;
   section?: string;
 };
@@ -31,6 +31,10 @@ const FIELDS: FieldDef[] = [
   { key: "hero_stat_2_v", label: "Estadística 2 · descripción", type: "text", section: "Home · Hero" },
   { key: "hero_stat_3_k", label: "Estadística 3 · valor", type: "text", section: "Home · Hero" },
   { key: "hero_stat_3_v", label: "Estadística 3 · descripción", type: "text", section: "Home · Hero" },
+
+  // Portafolio
+  { key: "portfolio_images", label: "Fotos de portafolio", type: "images", help: "Se muestran en la sección de portafolio del inicio y en /galeria mientras no haya widget de Instagram. Puedes subir varias.", section: "Portafolio (Instagram)" },
+  { key: "elfsight_instagram_id", label: "ID del widget de Instagram (Elfsight)", type: "text", help: "Cuando lo tengas, pega aquí el ID del widget (el texto después de 'elfsight-app-'). Si está lleno, reemplaza la galería de fotos por el feed automático.", section: "Portafolio (Instagram)" },
 
   // Nosotros
   { key: "about_short", label: "Descripción corta 'Nosotros'", type: "textarea", section: "Página Nosotros" },
