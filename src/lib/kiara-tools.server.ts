@@ -8,15 +8,6 @@ export const KIARA_TOOLS = [
   {
     type: "function" as const,
     function: {
-      name: "list_quoter_services",
-      description:
-        "Lista los servicios cotizables de Will Design 3D con sus preguntas, unidades y opciones, tal como están configurados en el panel. Úsala antes de cotizar si no sabes qué servicio o qué datos pedir.",
-      parameters: { type: "object", properties: {}, required: [] },
-    },
-  },
-  {
-    type: "function" as const,
-    function: {
       name: "quote_service",
       description:
         "Calcula el precio oficial de cualquier servicio del cotizador (impresión FDM o resina, gran formato, diseño, escaneo, post-procesado, cursos, insumos) usando las reglas configuradas en el panel. Es la única forma válida de dar precios: nunca los inventes.",
@@ -26,7 +17,7 @@ export const KIARA_TOOLS = [
           service_slug: {
             type: "string",
             description:
-              "Slug o nombre del servicio, tal como lo devuelve list_quoter_services (por ejemplo impresion-fdm).",
+              "Slug o nombre del servicio del cotizador, por ejemplo impresion-fdm o diseno-3d.",
           },
           answers: {
             type: "object",
