@@ -29,6 +29,7 @@ import { Route as PanelPedidosRouteImport } from './routes/panel.pedidos'
 import { Route as PanelNotificacionesRouteImport } from './routes/panel.notificaciones'
 import { Route as PanelMenuRouteImport } from './routes/panel.menu'
 import { Route as PanelLlmRouteImport } from './routes/panel.llm'
+import { Route as PanelCotizadorRouteImport } from './routes/panel.cotizador'
 import { Route as PanelCotizacionesRouteImport } from './routes/panel.cotizaciones'
 import { Route as PanelContenidoRouteImport } from './routes/panel.contenido'
 import { Route as PanelConocimientoRouteImport } from './routes/panel.conocimiento'
@@ -141,6 +142,11 @@ const PanelLlmRoute = PanelLlmRouteImport.update({
   path: '/llm',
   getParentRoute: () => PanelRoute,
 } as any)
+const PanelCotizadorRoute = PanelCotizadorRouteImport.update({
+  id: '/cotizador',
+  path: '/cotizador',
+  getParentRoute: () => PanelRoute,
+} as any)
 const PanelCotizacionesRoute = PanelCotizacionesRouteImport.update({
   id: '/cotizaciones',
   path: '/cotizaciones',
@@ -219,6 +225,7 @@ export interface FileRoutesByFullPath {
   '/panel/conocimiento': typeof PanelConocimientoRoute
   '/panel/contenido': typeof PanelContenidoRoute
   '/panel/cotizaciones': typeof PanelCotizacionesRoute
+  '/panel/cotizador': typeof PanelCotizadorRoute
   '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/notificaciones': typeof PanelNotificacionesRoute
@@ -249,6 +256,7 @@ export interface FileRoutesByTo {
   '/panel/conocimiento': typeof PanelConocimientoRoute
   '/panel/contenido': typeof PanelContenidoRoute
   '/panel/cotizaciones': typeof PanelCotizacionesRoute
+  '/panel/cotizador': typeof PanelCotizadorRoute
   '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/notificaciones': typeof PanelNotificacionesRoute
@@ -283,6 +291,7 @@ export interface FileRoutesById {
   '/panel/conocimiento': typeof PanelConocimientoRoute
   '/panel/contenido': typeof PanelContenidoRoute
   '/panel/cotizaciones': typeof PanelCotizacionesRoute
+  '/panel/cotizador': typeof PanelCotizadorRoute
   '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/notificaciones': typeof PanelNotificacionesRoute
@@ -318,6 +327,7 @@ export interface FileRouteTypes {
     | '/panel/conocimiento'
     | '/panel/contenido'
     | '/panel/cotizaciones'
+    | '/panel/cotizador'
     | '/panel/llm'
     | '/panel/menu'
     | '/panel/notificaciones'
@@ -348,6 +358,7 @@ export interface FileRouteTypes {
     | '/panel/conocimiento'
     | '/panel/contenido'
     | '/panel/cotizaciones'
+    | '/panel/cotizador'
     | '/panel/llm'
     | '/panel/menu'
     | '/panel/notificaciones'
@@ -381,6 +392,7 @@ export interface FileRouteTypes {
     | '/panel/conocimiento'
     | '/panel/contenido'
     | '/panel/cotizaciones'
+    | '/panel/cotizador'
     | '/panel/llm'
     | '/panel/menu'
     | '/panel/notificaciones'
@@ -552,6 +564,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelLlmRouteImport
       parentRoute: typeof PanelRoute
     }
+    '/panel/cotizador': {
+      id: '/panel/cotizador'
+      path: '/cotizador'
+      fullPath: '/panel/cotizador'
+      preLoaderRoute: typeof PanelCotizadorRouteImport
+      parentRoute: typeof PanelRoute
+    }
     '/panel/cotizaciones': {
       id: '/panel/cotizaciones'
       path: '/cotizaciones'
@@ -656,6 +675,7 @@ interface PanelRouteChildren {
   PanelConocimientoRoute: typeof PanelConocimientoRoute
   PanelContenidoRoute: typeof PanelContenidoRoute
   PanelCotizacionesRoute: typeof PanelCotizacionesRoute
+  PanelCotizadorRoute: typeof PanelCotizadorRoute
   PanelLlmRoute: typeof PanelLlmRoute
   PanelMenuRoute: typeof PanelMenuRoute
   PanelNotificacionesRoute: typeof PanelNotificacionesRoute
@@ -669,6 +689,7 @@ const PanelRouteChildren: PanelRouteChildren = {
   PanelConocimientoRoute: PanelConocimientoRoute,
   PanelContenidoRoute: PanelContenidoRoute,
   PanelCotizacionesRoute: PanelCotizacionesRoute,
+  PanelCotizadorRoute: PanelCotizadorRoute,
   PanelLlmRoute: PanelLlmRoute,
   PanelMenuRoute: PanelMenuRoute,
   PanelNotificacionesRoute: PanelNotificacionesRoute,
