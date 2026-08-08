@@ -253,6 +253,14 @@ function ProductPage() {
               <MessageCircle className="h-4 w-4" />
               Consultar por WhatsApp
             </a>
+            <Link
+              to="/cotizador"
+              search={{ servicio: "impresion-fdm" }}
+              className="btn-outline"
+            >
+              <Calculator className="h-4 w-4" />
+              Cotizar una impresión
+            </Link>
           </div>
 
           <ul className="mt-6 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
