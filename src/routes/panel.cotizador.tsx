@@ -285,6 +285,14 @@ function ServiceCard({
                   ))}
                 </select>
               </L>
+              <L label="Ancla en /servicios (ej: impresion-3d)">
+                <input
+                  value={draft.site_anchor}
+                  onChange={(e) => set("site_anchor", e.target.value)}
+                  placeholder="impresion-3d"
+                  className={inputCls}
+                />
+              </L>
               <L label="Orden en la web">
                 <input
                   type="number"
