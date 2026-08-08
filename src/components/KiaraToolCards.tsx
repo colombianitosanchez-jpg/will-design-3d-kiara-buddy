@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, Loader2, Receipt } from "lucide-react";
-import type { KiaraOrderData, KiaraQuoteData } from "@/lib/kiara-chat";
+import type { KiaraOrderData, KiaraServiceQuoteData } from "@/lib/kiara-chat";
 import { confirmQuoteOrder } from "@/lib/kiara-orders.functions";
 
 const cop = (n: number) =>
