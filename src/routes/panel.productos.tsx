@@ -2,6 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Pencil, Trash2, Loader2, X, Upload } from "lucide-react";
+import { RichTextEditor } from "@/components/RichTextEditor";
+import { ImageDropzone } from "@/components/ImageDropzone";
+
 
 export const Route = createFileRoute("/panel/productos")({
   ssr: false,
