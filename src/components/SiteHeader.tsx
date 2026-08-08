@@ -139,11 +139,22 @@ function MobileNode({
         </button>
         {expanded && (
           <div className="flex flex-col gap-1">
+            {href && (
+              <a
+                href={href}
+                onClick={onNavigate}
+                style={{ paddingLeft: `${12 + (depth + 1) * 14}px` }}
+                className="block rounded-lg py-2 pr-3 text-sm font-semibold hover:bg-muted"
+              >
+                Ver todo: {node.label}
+              </a>
+            )}
             {node.children.map((child) => (
               <MobileNode key={child.id} node={child} depth={depth + 1} onNavigate={onNavigate} />
             ))}
           </div>
         )}
+
       </div>
     );
   }
