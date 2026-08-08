@@ -395,12 +395,31 @@ function ProductModal({
       };
       if (!payload.name || !payload.slug) throw new Error("Nombre y slug son obligatorios");
 
-      const q = form.id
-        ? supabase.from("products").update(payload).eq("id", form.id)
-        : supabase.from("products").insert(payload);
-      const { error } = await q;
-      if (error) throw error;
+      let id = form.id;
+      if (id) {
+        const { error } = await supabase.from("products").update(payload).eq("id", id);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase.from("products").insert(payload).select("id").single();
+        if (error) throw error;
+        id = data.id;
+      }
+
+      // Atributos del producto (Material, Color…): se reescriben en cada guardado.
+      await supabase.from("product_attribute_values").delete().eq("product_id", id!);
+      const rows = Object.entries(attrSel)
+        .filter(([, valueId]) => !!valueId)
+        .map(([attribute_id, attribute_value_id]) => ({
+          product_id: id!,
+          attribute_id,
+          attribute_value_id,
+        }));
+      if (rows.length) {
+        const { error } = await supabase.from("product_attribute_values").insert(rows);
+        if (error) throw error;
+      }
       onSaved();
+
     } catch (e) {
       alert((e as Error).message);
     } finally {
@@ -475,12 +494,26 @@ function ProductModal({
               className={inputCls}
             >
               <option value="">— Selecciona —</option>
-              {categories.map((c) => (
+              {categoryOptions.map(({ category: c, depth }) => (
                 <option key={c.id} value={c.id}>
+                  {"— ".repeat(depth)}
                   {c.name}
+                  {c.is_active ? "" : " (oculta)"}
                 </option>
               ))}
             </select>
+            <div className="mt-1 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={quickCreateCategory}
+                className="text-xs font-semibold text-[var(--brand-orange)] hover:underline"
+              >
+                + Crear categoría o subcategoría
+              </button>
+              <Link to="/panel/taxonomia" className="text-xs text-muted-foreground hover:underline">
+                Gestionar todo
+              </Link>
+            </div>
           </Field>
           <Field label="Marca">
             <select
@@ -495,8 +528,47 @@ function ProductModal({
                 </option>
               ))}
             </select>
+            <button
+              type="button"
+              onClick={quickCreateBrand}
+              className="mt-1 text-xs font-semibold text-[var(--brand-orange)] hover:underline"
+            >
+              + Crear marca
+            </button>
           </Field>
+          {applicableAttributes.map((a) => (
+            <Field key={a.id} label={a.name}>
+              <select
+                value={attrSel[a.id] ?? ""}
+                onChange={(e) =>
+                  setAttrSel((s) => {
+                    const next = { ...s };
+                    if (e.target.value) next[a.id] = e.target.value;
+                    else delete next[a.id];
+                    return next;
+                  })
+                }
+                className={inputCls}
+              >
+                <option value="">— Sin especificar —</option>
+                {a.values.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          ))}
         </div>
+        {form.category_id && applicableAttributes.length === 0 && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Esta categoría no tiene atributos asignados.{" "}
+            <Link to="/panel/taxonomia" className="underline">
+              Asígnale Color, Material, etc.
+            </Link>
+          </p>
+        )}
+
 
         <Field label="Descripción corta">
           <textarea
