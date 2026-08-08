@@ -36,7 +36,7 @@ export const Route = createFileRoute("/tienda/$slug")({
     }
     const p = loaderData.product;
     const url = `https://will-design-3d.lovable.app/tienda/${params.slug}`;
-    const base = (p.short || p.description || "").trim();
+    const base = (p.short || p.description || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
     const description = (
       base.length >= 50
         ? base
@@ -196,7 +196,16 @@ function ProductPage() {
             </p>
           )}
           <h1 className="mt-1 text-3xl font-black sm:text-4xl">{product.name}</h1>
-          <p className="mt-3 text-muted-foreground">{product.description}</p>
+          {/<[a-z][\s\S]*>/i.test(product.description ?? "") ? (
+            <div
+              className="rich-text mt-3 text-muted-foreground"
+              // Contenido creado por el equipo en el editor visual del Panel.
+              dangerouslySetInnerHTML={{ __html: product.description }}
+            />
+          ) : (
+            <p className="mt-3 text-muted-foreground">{product.description}</p>
+          )}
+
 
           <div className="mt-4 flex flex-wrap gap-2 text-xs">
             {product.category?.name && (

@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { createMessage, sendChat, type ChatMessage } from "@/lib/kiara-chat";
+import { createMessage, sendChat, type ChatMessage, type KiaraTool } from "@/lib/kiara-chat";
 
 export function useKiaraChat(initialGreeting: string) {
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
@@ -21,22 +21,32 @@ export function useKiaraChat(initialGreeting: string) {
       const replyId = createMessage("assistant", "").id;
       let started = false;
 
+      const ensureReply = () => {
+        if (started) return;
+        started = true;
+        setMessages((prev) => [
+          ...prev,
+          { id: replyId, role: "assistant", content: "", createdAt: Date.now() },
+        ]);
+        setSending(false);
+      };
+
       try {
-        await sendChat(next, (chunk) => {
-          if (!started) {
-            started = true;
-            setMessages((prev) => [
-              ...prev,
-              { id: replyId, role: "assistant", content: chunk, createdAt: Date.now() },
-            ]);
-            setSending(false);
-            return;
-          }
-          setMessages((prev) =>
-            prev.map((m) => (m.id === replyId ? { ...m, content: m.content + chunk } : m)),
-          );
-        });
+        await sendChat(
+          next,
+          (chunk) => {
+            ensureReply();
+            setMessages((prev) =>
+              prev.map((m) => (m.id === replyId ? { ...m, content: m.content + chunk } : m)),
+            );
+          },
+          (tool: KiaraTool) => {
+            ensureReply();
+            setMessages((prev) => prev.map((m) => (m.id === replyId ? { ...m, tool } : m)));
+          },
+        );
       } catch (e) {
+
         setError((e as Error).message);
         setMessages((prev) => [
           ...prev.filter((m) => m.id !== replyId || m.content.trim()),

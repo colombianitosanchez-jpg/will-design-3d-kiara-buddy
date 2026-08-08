@@ -56,10 +56,17 @@ export const Route = createFileRoute("/api/kiara")({
         (contentRows ?? []).forEach((r) => (content[r.key] = r.value));
 
         // Dos caminos aislados: el modo público nunca consulta pedidos, clientes ni costos.
-        const systemPrompt = await buildKiaraSystemPrompt(isInternalTeam, {
+        const { KIARA_TOOLS, TOOL_INSTRUCTIONS, interceptToolStream } = await import(
+          "@/lib/kiara-tools.server"
+        );
+
+        // Dos caminos aislados: el modo público nunca consulta pedidos, clientes ni costos.
+        const basePrompt = await buildKiaraSystemPrompt(isInternalTeam, {
           publicPrompt: content.kiara_prompt_public,
           internalPrompt: content.kiara_prompt_internal,
         });
+        const systemPrompt = basePrompt + TOOL_INSTRUCTIONS;
+
 
 
 
@@ -104,6 +111,8 @@ export const Route = createFileRoute("/api/kiara")({
                   messages: payloadMessages,
                   stream: true,
                   temperature: 0.7,
+                  tools: KIARA_TOOLS,
+                  tool_choice: "auto",
                 }),
               },
             );
@@ -117,14 +126,10 @@ export const Route = createFileRoute("/api/kiara")({
               continue;
             }
 
-            // El primero que responde gana: se reenvía su stream tal cual.
-            const stream = upstream.body.pipeThrough(
-              new TransformStream({
-                flush() {
-                  clearTimeout(timer);
-                },
-              }),
-            );
+            // El primero que responde gana: se reenvía su stream y se ejecutan
+            // las herramientas que pida (cotizar, crear pedido).
+            const stream = interceptToolStream(upstream.body, () => clearTimeout(timer));
+
 
             return new Response(stream, {
               status: 200,

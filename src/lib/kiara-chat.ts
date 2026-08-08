@@ -4,11 +4,36 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export type ChatRole = "user" | "assistant";
+export type KiaraQuoteData = {
+  project_name: string;
+  material: string;
+  finish: string;
+  quantity: number;
+  grams: number;
+  hours: number;
+  material_cost_cop: number;
+  machine_cost_cop: number;
+  setup_fee_cop: number;
+  margin_cop: number;
+  unit_price_cop: number;
+  total_cop: number;
+};
+export type KiaraOrderData = {
+  order_id: string;
+  total_cop: number;
+  customer_name?: string;
+  items: { product_name: string; quantity: number; unit_price_cop: number }[];
+};
+export type KiaraTool =
+  | { name: "generate_quote"; data: KiaraQuoteData }
+  | { name: "create_order"; data: KiaraOrderData };
+
 export type ChatMessage = {
   id: string;
   role: ChatRole;
   content: string;
   createdAt: number;
+  tool?: KiaraTool;
 };
 
 function uid() {
@@ -26,7 +51,9 @@ export function createMessage(role: ChatRole, content: string): ChatMessage {
 export async function sendChat(
   messages: ChatMessage[],
   onDelta?: (chunk: string) => void,
+  onTool?: (tool: KiaraTool) => void,
 ): Promise<string> {
+
   const { data: sessionData } = await supabase.auth.getSession();
   const token = sessionData.session?.access_token;
 
@@ -49,6 +76,8 @@ export async function sendChat(
   const decoder = new TextDecoder();
   let buffer = "";
   let full = "";
+  let sawTool = false;
+
 
   while (true) {
     const { done, value } = await reader.read();
@@ -65,8 +94,14 @@ export async function sendChat(
       if (!payload || payload === "[DONE]") continue;
       try {
         const json = JSON.parse(payload) as {
+          kiara_tool?: KiaraTool;
           choices?: { delta?: { content?: string }; message?: { content?: string } }[];
         };
+        if (json.kiara_tool) {
+          sawTool = true;
+          onTool?.(json.kiara_tool);
+          continue;
+        }
         const piece =
           json.choices?.[0]?.delta?.content ?? json.choices?.[0]?.message?.content ?? "";
         if (piece) {
@@ -79,6 +114,7 @@ export async function sendChat(
     }
   }
 
-  if (!full.trim()) throw new Error("Respuesta vacía del proveedor");
+  if (!full.trim() && !sawTool) throw new Error("Respuesta vacía del proveedor");
   return full;
+
 }
