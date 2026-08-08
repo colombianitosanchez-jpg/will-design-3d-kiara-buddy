@@ -332,6 +332,10 @@ export function Quoter() {
             </div>
           </fieldset>
 
+          <LiveEstimate size={size} material={material} finish={finish} />
+
+
+
           {/* Archivo */}
           <div className="grid gap-2 text-sm">
             <span className="font-bold">Archivo 3D o imagen de referencia</span>
