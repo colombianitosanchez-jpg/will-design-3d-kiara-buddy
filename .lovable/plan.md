@@ -1,104 +1,54 @@
-# Fase 2 — Panel de Administración privado
+# Kiara con enrutador de IA multi-proveedor (cascada anti-cuota)
 
-Esto activa **Lovable Cloud** (backend gestionado: base de datos, autenticación, almacenamiento de archivos). Sin él no hay login real, ni inventario persistente, ni subida de imágenes desde el navegador.
+Objetivo: Kiara responde con IA real usando varios proveedores compatibles con OpenAI, configurables desde el Panel. Si el proveedor 1 falla por cuota o error de servidor, el sistema salta al 2, al 3, etc., sin que el visitante lo note. La UI actual del widget, el cotizador, WhatsApp y el resto del sitio no cambian.
 
-## 1. Activar Lovable Cloud
-- Crea automáticamente base de datos, auth y storage.
-- Sin cuentas externas ni configuración manual.
+## 1. Nueva sección del Panel: "Configuración de LLM"
 
-## 2. Autenticación
-- Login con **email + contraseña** en `/auth` (público).
-- Todo `/admin/*` protegido: solo usuarios con rol `admin` entran; el resto se redirige.
-- Tabla `user_roles` separada (`admin` / `staff`) + función `has_role` (seguridad estándar, sin escalada de privilegios).
-- **Primer admin**: te creas la cuenta en `/auth`, y yo te doy un botón "hacerme admin" que solo funciona si aún no hay ningún admin (bootstrap seguro). Después ese botón deja de funcionar.
+Nueva entrada en el menú lateral del Panel (`/panel/llm`), solo para administradores.
 
-## 3. Base de datos (tablas nuevas)
-- `categories` (id, nombre, slug)
-- `brands` (id, nombre)
-- `products` (id, nombre, slug, precio COP, categoria_id, brand_id, descripcion corta/larga, specs JSON, kiara_tip, imagen_url, destacado, activo, stock)
-- `orders` (id, cliente nombre/email/tel, dirección envío, total, estado: `pendiente|empacando|enviado|entregado|cancelado`, fecha)
-- `order_items` (id, order_id, product_id, cantidad, precio unitario)
-- `site_content` (clave, valor) — para textos editables (hero título, hero subtítulo, mensaje Kiara, etc.) y URL de la foto de Kiara.
-- Bucket de Storage **público** `product-images` para fotos de productos y mascota.
-- RLS estricto: lectura pública solo de `products/categories/brands/site_content` activos; escritura solo admin; `orders` solo admin lee/edita, clientes pueden insertar la suya.
+Tabla de proveedores con: Nombre, URL base de la API, Modelo, Prioridad (1 = primero), Activo, y estado de la clave ("Guardada" / "Sin clave").
 
-## 4. Panel `/admin` (layout con sidebar)
+- Crear, editar, activar/desactivar y eliminar proveedores.
+- Reordenar con flechas arriba/abajo (actualiza la prioridad).
+- La clave API se escribe una vez y nunca se vuelve a mostrar: el formulario muestra "•••• guardada" y solo la reemplaza si escribes una nueva. Esto evita que una clave pueda leerse desde el navegador.
+- Botón "Probar" por proveedor: envía un mensaje mínimo y muestra si respondió, tardó o falló, con el código de error.
+- Además: campos para los dos prompts de sistema (persona pública "Atención al cliente" y persona interna "Técnico"), editables desde la misma página.
 
-```text
-┌──────────────┬──────────────────────────────┐
-│  Will Design │  [Dashboard actual]          │
-│  ─────────   │                              │
-│  📦 Productos│                              │
-│  🛒 Pedidos  │                              │
-│  ✏️  Contenido│                              │
-│  📡 Live     │                              │
-│  🚪 Salir    │                              │
-└──────────────┴──────────────────────────────┘
-```
+Mismo estilo visual que las secciones existentes del Panel.
 
-### 4.1 `/admin` (home) — Resumen
-Tarjetas: nº productos activos, pedidos pendientes, pedidos del mes, estado Live.
+## 2. Base de datos
 
-### 4.2 `/admin/productos` — Gestor de productos
-- Tabla con: miniatura, nombre, categoría, marca, precio, stock, activo (switch), acciones (editar/eliminar).
-- Buscador + filtro por categoría.
-- Botón grande naranja **"+ Añadir Producto"** arriba a la derecha.
+Nueva tabla `llm_providers`: nombre, URL base, modelo, prioridad, activo, fechas. La clave API se guarda en una columna aparte que **nunca** se expone al navegador (solo la lee el servidor); el cliente ve únicamente si existe o no.
 
-### 4.3 `/admin/productos/nuevo` y `/admin/productos/$id/editar`
-Formulario visual (labels claros, sin jerga técnica):
-- Nombre, Precio (COP), Descripción corta, Descripción larga
-- Categoría (dropdown, con botón "+ nueva categoría")
-- Marca (dropdown, con botón "+ nueva marca")
-- Specs (lista dinámica label/valor, botón "+ agregar spec")
-- Consejo de Kiara (textarea corto)
-- Destacado (checkbox), Activo (checkbox), Stock (número)
-- **Imagen**: botón "Subir imagen" (input file estándar) → sube a Storage → preview inmediato.
-- Botón **Guardar** grande → actualiza y vuelve a la tabla. La tienda pública se actualiza al instante (los productos se leen de la BD, no del archivo estático).
+Reglas de acceso: solo administradores autenticados pueden ver la lista y editarla; nadie anónimo. Los prompts de sistema se guardan en la tabla de contenido del sitio que ya existe.
 
-### 4.4 `/admin/pedidos` — Gestor de pedidos
-- Tabla: fecha, cliente, total, estado (badge de color), acciones.
-- Click en fila → panel lateral con detalle: items comprados, dirección de envío, teléfono, email, notas.
-- Dropdown grande para cambiar estado: **Pendiente → Empacando → Enviado → Entregado**. Guarda al instante.
-- Filtro por estado + búsqueda por cliente.
-- (En Fase 3 se conectará con la pasarela de pago para que los pedidos entren solos; por ahora podrás crear pedidos de prueba manualmente y ver la interfaz completa.)
+## 3. Lógica de cascada (backend)
 
-### 4.5 `/admin/contenido` — Textos e imágenes del sitio
-Formulario con campos editables clave por clave:
-- Título del hero
-- Subtítulo del hero
-- Mensaje de bienvenida de Kiara
-- Texto "Nosotros" corto
-- **Foto de Kiara**: botón subir imagen → preview → guardar.
-- Botón Guardar por sección. Los cambios se reflejan en la web pública inmediatamente (la home leerá de `site_content` con fallback a los textos actuales).
+Este proyecto no usa Edge Functions: el chat vive en una ruta de servidor del propio sitio (`/api/kiara`), que es el equivalente y mejor opción aquí (misma URL, sin CORS, con streaming nativo).
 
-### 4.6 `/admin/live`
-El actual (toggle live) migrado a la BD para que persista entre dispositivos (hoy es solo localStorage). Mismo UI.
+Flujo:
+1. Lee los proveedores activos ordenados por prioridad.
+2. Arma el payload estándar `POST {base_url}/chat/completions` con `model`, `messages` (prompt de sistema + historial) y `stream: true` — formato OpenAI puro, así que funciona con OpenRouter, proxies, o un host local.
+3. Intenta el proveedor 1. Si responde 429, 5xx, timeout o error de red, pasa silenciosamente al siguiente. Un 401/400 también avanza al siguiente y queda registrado como configuración inválida.
+4. El primero que responde gana; su stream se reenvía tal cual al widget para que el texto aparezca token por token.
+5. Si todos fallan, Kiara responde con el mensaje amable de siempre invitando a WhatsApp (comportamiento actual, sin pantalla de error).
 
-## 5. Migración del catálogo estático
-- El array de `src/data/products.ts` se **importa una vez** a la BD como seed inicial (para que veas la tienda igual el primer día).
-- La tienda pública (`/tienda`, `/tienda/$slug`, home) pasa a leer de la BD.
+## 4. Doble persona
 
-## 6. Seguridad
-- RLS activo en todas las tablas.
-- Roles en tabla separada + `has_role` (nunca en `profiles`).
-- Storage con políticas: lectura pública, escritura solo admin.
-- Validación Zod en cliente y servidor (server functions con `requireSupabaseAuth` + chequeo `admin`).
-- El PIN `kiara2024` del panel live actual se elimina (reemplazado por login real).
+El widget indica si hay sesión de equipo o no; el servidor verifica esa sesión (no confía en el cliente) y elige el prompt de sistema: público → atención al cliente, con catálogo/servicios/contacto; equipo → técnico interno. El prompt elegido viaja en el mismo payload, así que se aplica igual sea cual sea el proveedor que gane la cascada.
 
-## Detalles técnicos (para referencia)
-- Server functions TanStack con `requireSupabaseAuth` para escrituras admin.
-- Uploads: `supabase.storage.from('product-images').upload(...)` desde el cliente admin.
-- Reads públicos: cliente publishable + políticas `TO anon` de solo lectura en columnas seguras.
-- Migraciones SQL con `GRANT`s explícitos + `ENABLE RLS` + policies en el mismo archivo.
+## 5. Frontend
 
-## Lo que NO incluye esta fase
-- Carrito de compra público y checkout (Fase 3, con pasarela).
-- Emails automáticos (Fase 3).
-- Multi-imagen por producto (esta fase: 1 imagen principal; ampliable después sin romper nada).
+`useKiaraChat` pasa a leer el stream de `/api/kiara` y a mostrar el texto progresivamente. No se modifica el diseño del widget ni sus estados (burbuja, "escribiendo…", botón de WhatsApp). Se elimina la respuesta simulada y la dependencia de `VITE_KIARA_CHAT_ENDPOINT`.
 
-## Preguntas antes de construir
-1. **Email del primer admin**: ¿qué email vas a usar para tu cuenta? (lo mencionamos en el mensaje de bienvenida del bootstrap).
-2. ¿Confirmas que el catálogo actual (11 productos demo) sirve como semilla inicial, o prefieres empezar con la tabla vacía?
-3. ¿Quieres que los empleados de ventas tengan un rol `staff` con permisos limitados (ver pedidos, cambiar estados, pero no borrar productos), o por ahora todos son `admin` completo?
+## Detalles técnicos
 
-¿Apruebas la Fase 2 así?
+- Migración: `public.llm_providers` con GRANT a `authenticated`/`service_role`, RLS con `has_role(auth.uid(),'admin')` para lectura y escritura; columna de clave excluida de las lecturas del cliente mediante una vista/selección explícita de columnas.
+- `src/routes/api/kiara.ts`: `createFileRoute` con handler POST; lee proveedores con el cliente admin dentro del handler; bucle de fallback con `AbortController` (timeout ~20s por proveedor); reenvía el `ReadableStream` upstream.
+- `src/lib/llm-providers.functions.ts`: server functions con `requireSupabaseAuth` + verificación de rol admin para CRUD, reordenar y probar proveedor.
+- `src/routes/panel.llm.tsx` + enlace en `src/routes/panel.tsx`.
+- `src/lib/kiara-chat.ts` / `src/hooks/use-kiara-chat.ts`: lectura de stream SSE, sin cambios de UI.
+
+## Verificación
+
+Se probará en vivo: crear dos proveedores, forzar el fallo del primero y comprobar que la respuesta llega desde el segundo sin error visible, que el texto llega en streaming, y que la clave API nunca aparece en las respuestas del navegador.
