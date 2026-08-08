@@ -23,6 +23,7 @@ import { Route as TiendaIndexRouteImport } from './routes/tienda.index'
 import { Route as PanelIndexRouteImport } from './routes/panel.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TiendaSlugRouteImport } from './routes/tienda.$slug'
+import { Route as PanelTaxonomiaRouteImport } from './routes/panel.taxonomia'
 import { Route as PanelProductosRouteImport } from './routes/panel.productos'
 import { Route as PanelPedidosRouteImport } from './routes/panel.pedidos'
 import { Route as PanelNotificacionesRouteImport } from './routes/panel.notificaciones'
@@ -109,6 +110,11 @@ const TiendaSlugRoute = TiendaSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
   getParentRoute: () => TiendaRoute,
+} as any)
+const PanelTaxonomiaRoute = PanelTaxonomiaRouteImport.update({
+  id: '/taxonomia',
+  path: '/taxonomia',
+  getParentRoute: () => PanelRoute,
 } as any)
 const PanelProductosRoute = PanelProductosRouteImport.update({
   id: '/productos',
@@ -218,6 +224,7 @@ export interface FileRoutesByFullPath {
   '/panel/notificaciones': typeof PanelNotificacionesRoute
   '/panel/pedidos': typeof PanelPedidosRoute
   '/panel/productos': typeof PanelProductosRoute
+  '/panel/taxonomia': typeof PanelTaxonomiaRoute
   '/tienda/$slug': typeof TiendaSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/panel/': typeof PanelIndexRoute
@@ -247,6 +254,7 @@ export interface FileRoutesByTo {
   '/panel/notificaciones': typeof PanelNotificacionesRoute
   '/panel/pedidos': typeof PanelPedidosRoute
   '/panel/productos': typeof PanelProductosRoute
+  '/panel/taxonomia': typeof PanelTaxonomiaRoute
   '/tienda/$slug': typeof TiendaSlugRoute
   '/admin': typeof AdminIndexRoute
   '/panel': typeof PanelIndexRoute
@@ -280,6 +288,7 @@ export interface FileRoutesById {
   '/panel/notificaciones': typeof PanelNotificacionesRoute
   '/panel/pedidos': typeof PanelPedidosRoute
   '/panel/productos': typeof PanelProductosRoute
+  '/panel/taxonomia': typeof PanelTaxonomiaRoute
   '/tienda/$slug': typeof TiendaSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/panel/': typeof PanelIndexRoute
@@ -314,6 +323,7 @@ export interface FileRouteTypes {
     | '/panel/notificaciones'
     | '/panel/pedidos'
     | '/panel/productos'
+    | '/panel/taxonomia'
     | '/tienda/$slug'
     | '/admin/'
     | '/panel/'
@@ -343,6 +353,7 @@ export interface FileRouteTypes {
     | '/panel/notificaciones'
     | '/panel/pedidos'
     | '/panel/productos'
+    | '/panel/taxonomia'
     | '/tienda/$slug'
     | '/admin'
     | '/panel'
@@ -375,6 +386,7 @@ export interface FileRouteTypes {
     | '/panel/notificaciones'
     | '/panel/pedidos'
     | '/panel/productos'
+    | '/panel/taxonomia'
     | '/tienda/$slug'
     | '/admin/'
     | '/panel/'
@@ -497,6 +509,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/tienda/$slug'
       preLoaderRoute: typeof TiendaSlugRouteImport
       parentRoute: typeof TiendaRoute
+    }
+    '/panel/taxonomia': {
+      id: '/panel/taxonomia'
+      path: '/taxonomia'
+      fullPath: '/panel/taxonomia'
+      preLoaderRoute: typeof PanelTaxonomiaRouteImport
+      parentRoute: typeof PanelRoute
     }
     '/panel/productos': {
       id: '/panel/productos'
@@ -642,6 +661,7 @@ interface PanelRouteChildren {
   PanelNotificacionesRoute: typeof PanelNotificacionesRoute
   PanelPedidosRoute: typeof PanelPedidosRoute
   PanelProductosRoute: typeof PanelProductosRoute
+  PanelTaxonomiaRoute: typeof PanelTaxonomiaRoute
   PanelIndexRoute: typeof PanelIndexRoute
 }
 
@@ -654,6 +674,7 @@ const PanelRouteChildren: PanelRouteChildren = {
   PanelNotificacionesRoute: PanelNotificacionesRoute,
   PanelPedidosRoute: PanelPedidosRoute,
   PanelProductosRoute: PanelProductosRoute,
+  PanelTaxonomiaRoute: PanelTaxonomiaRoute,
   PanelIndexRoute: PanelIndexRoute,
 }
 
@@ -691,13 +712,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

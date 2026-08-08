@@ -213,12 +213,27 @@ function ProductPage() {
                 {product.category.name}
               </span>
             )}
+            {product.attributes.map((a) => (
+              <span
+                key={a.attribute_slug + a.value_label}
+                className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 font-semibold text-muted-foreground"
+              >
+                {a.color_hex && (
+                  <span
+                    className="inline-block h-2.5 w-2.5 rounded-full border border-black/10"
+                    style={{ background: a.color_hex }}
+                  />
+                )}
+                {a.attribute_name}: {a.value_label}
+              </span>
+            ))}
             {product.sku && (
               <span className="rounded-full bg-muted px-3 py-1 font-semibold text-muted-foreground">
                 SKU: {product.sku}
               </span>
             )}
           </div>
+
 
           <p className="mt-6 text-4xl font-black text-[var(--brand-wine)]">
             {formatCOP(product.price_cop)}

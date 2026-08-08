@@ -1,18 +1,27 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Pencil, Trash2, Loader2, X, Upload } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, X } from "lucide-react";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { ImageDropzone } from "@/components/ImageDropzone";
-
+import {
+  buildCategoryTree,
+  categoryPath,
+  flattenCategoryTree,
+  slugify as slugifyValue,
+  type Attribute,
+  type Brand,
+  type Category,
+  type CategoryAttribute,
+} from "@/lib/catalog";
 
 export const Route = createFileRoute("/panel/productos")({
   ssr: false,
   component: ProductosAdmin,
 });
 
-type Category = { id: string; name: string; slug: string };
-type Brand = { id: string; name: string };
+type ProductAttrRow = { product_id: string; attribute_id: string; attribute_value_id: string | null };
+
 type Product = {
   id: string;
   slug: string;
@@ -67,15 +76,29 @@ function ProductosAdmin() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [attributes, setAttributes] = useState<Attribute[]>([]);
+  const [catAttrs, setCatAttrs] = useState<CategoryAttribute[]>([]);
+  const [attrRows, setAttrRows] = useState<ProductAttrRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Product> | null>(null);
 
   async function load() {
     setLoading(true);
-    const [p, c, b] = await Promise.all([
+    const [p, c, b, a, ca, pav] = await Promise.all([
       supabase.from("products").select("*").order("created_at", { ascending: false }),
-      supabase.from("categories").select("id,name,slug").order("sort_order"),
-      supabase.from("brands").select("id,name").order("name"),
+      supabase
+        .from("categories")
+        .select("id,name,slug,sort_order,parent_id,is_active,image_url")
+        .order("sort_order"),
+      supabase.from("brands").select("id,name,slug,logo_url,is_active,sort_order").order("sort_order"),
+      supabase
+        .from("attributes")
+        .select(
+          "id,slug,name,input_type,is_filterable,sort_order,values:attribute_values(id,attribute_id,slug,label,color_hex,sort_order)",
+        )
+        .order("sort_order"),
+      supabase.from("category_attributes").select("id,category_id,attribute_id,is_required,sort_order"),
+      supabase.from("product_attribute_values").select("product_id,attribute_id,attribute_value_id"),
     ]);
     setProducts(
       ((p.data as any[]) ?? []).map((r) => ({
@@ -86,8 +109,12 @@ function ProductosAdmin() {
     );
     setCategories((c.data as Category[]) ?? []);
     setBrands((b.data as Brand[]) ?? []);
+    setAttributes((a.data as unknown as Attribute[]) ?? []);
+    setCatAttrs((ca.data as CategoryAttribute[]) ?? []);
+    setAttrRows((pav.data as ProductAttrRow[]) ?? []);
     setLoading(false);
   }
+
 
   useEffect(() => {
     load();
@@ -143,8 +170,11 @@ function ProductosAdmin() {
               </thead>
               <tbody>
                 {products.map((p) => {
-                  const cat = categories.find((c) => c.id === p.category_id)?.name ?? "—";
+                  const cat = p.category_id
+                    ? (categoryPath(categories.find((c) => c.id === p.category_id)?.slug, categories) || "—")
+                    : "—";
                   const br = brands.find((b) => b.id === p.brand_id)?.name ?? "—";
+
                   return (
                     <tr key={p.id} className="border-t border-border">
                       <td className="px-4 py-3">
@@ -196,6 +226,13 @@ function ProductosAdmin() {
           product={editing}
           categories={categories}
           brands={brands}
+          attributes={attributes}
+          catAttrs={catAttrs}
+          initialAttrs={Object.fromEntries(
+            attrRows
+              .filter((r) => r.product_id === editing.id && r.attribute_value_id)
+              .map((r) => [r.attribute_id, r.attribute_value_id!]),
+          )}
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null);
@@ -203,6 +240,7 @@ function ProductosAdmin() {
           }}
         />
       )}
+
     </>
   );
 }
@@ -211,22 +249,81 @@ function ProductModal({
   product,
   categories,
   brands,
+  attributes,
+  catAttrs,
+  initialAttrs,
   onClose,
   onSaved,
 }: {
   product: Partial<Product>;
   categories: Category[];
   brands: Brand[];
+  attributes: Attribute[];
+  catAttrs: CategoryAttribute[];
+  initialAttrs: Record<string, string>;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const [form, setForm] = useState<Partial<Product>>(product);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [attrSel, setAttrSel] = useState<Record<string, string>>(initialAttrs);
+
+  const categoryOptions = useMemo(
+    () => flattenCategoryTree(buildCategoryTree(categories)),
+    [categories],
+  );
+
+  /** Atributos de la categoría elegida y de sus categorías padre. */
+  const applicableAttributes = useMemo(() => {
+    if (!form.category_id) return [];
+    const ids = new Set<string>();
+    let cur = categories.find((c) => c.id === form.category_id) ?? null;
+    let guard = 0;
+    while (cur && guard++ < 20) {
+      ids.add(cur.id);
+      cur = cur.parent_id ? (categories.find((c) => c.id === cur!.parent_id) ?? null) : null;
+    }
+    const allowed = new Set(
+      catAttrs.filter((ca) => ids.has(ca.category_id)).map((ca) => ca.attribute_id),
+    );
+    return attributes.filter((a) => allowed.has(a.id));
+  }, [attributes, catAttrs, categories, form.category_id]);
 
   function set<K extends keyof Product>(k: K, v: Product[K]) {
     setForm((f) => ({ ...f, [k]: v }));
   }
+
+  async function quickCreateCategory() {
+    const name = prompt("Nombre de la nueva categoría o subcategoría:")?.trim();
+    if (!name) return;
+    const parentName = form.category_id
+      ? categories.find((c) => c.id === form.category_id)?.name
+      : null;
+    const asChild =
+      parentName && confirm(`¿Crear “${name}” como subcategoría de “${parentName}”?`) ? form.category_id : null;
+    const { data, error } = await supabase
+      .from("categories")
+      .insert({ name, slug: slugifyValue(name), parent_id: asChild })
+      .select("id")
+      .single();
+    if (error) return alert(error.message);
+    set("category_id", data.id);
+    alert("Categoría creada. Se verá en toda la tienda al guardar el producto.");
+  }
+
+  async function quickCreateBrand() {
+    const name = prompt("Nombre de la nueva marca:")?.trim();
+    if (!name) return;
+    const { data, error } = await supabase
+      .from("brands")
+      .insert({ name, slug: slugifyValue(name) })
+      .select("id")
+      .single();
+    if (error) return alert(error.message);
+    set("brand_id", data.id);
+  }
+
 
   async function uploadToStorage(file: File): Promise<string> {
       const path = `${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
@@ -298,12 +395,31 @@ function ProductModal({
       };
       if (!payload.name || !payload.slug) throw new Error("Nombre y slug son obligatorios");
 
-      const q = form.id
-        ? supabase.from("products").update(payload).eq("id", form.id)
-        : supabase.from("products").insert(payload);
-      const { error } = await q;
-      if (error) throw error;
+      let id = form.id;
+      if (id) {
+        const { error } = await supabase.from("products").update(payload).eq("id", id);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase.from("products").insert(payload).select("id").single();
+        if (error) throw error;
+        id = data.id;
+      }
+
+      // Atributos del producto (Material, Color…): se reescriben en cada guardado.
+      await supabase.from("product_attribute_values").delete().eq("product_id", id!);
+      const rows = Object.entries(attrSel)
+        .filter(([, valueId]) => !!valueId)
+        .map(([attribute_id, attribute_value_id]) => ({
+          product_id: id!,
+          attribute_id,
+          attribute_value_id,
+        }));
+      if (rows.length) {
+        const { error } = await supabase.from("product_attribute_values").insert(rows);
+        if (error) throw error;
+      }
       onSaved();
+
     } catch (e) {
       alert((e as Error).message);
     } finally {
@@ -378,12 +494,26 @@ function ProductModal({
               className={inputCls}
             >
               <option value="">— Selecciona —</option>
-              {categories.map((c) => (
+              {categoryOptions.map(({ category: c, depth }) => (
                 <option key={c.id} value={c.id}>
+                  {"— ".repeat(depth)}
                   {c.name}
+                  {c.is_active ? "" : " (oculta)"}
                 </option>
               ))}
             </select>
+            <div className="mt-1 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={quickCreateCategory}
+                className="text-xs font-semibold text-[var(--brand-orange)] hover:underline"
+              >
+                + Crear categoría o subcategoría
+              </button>
+              <Link to="/panel/taxonomia" className="text-xs text-muted-foreground hover:underline">
+                Gestionar todo
+              </Link>
+            </div>
           </Field>
           <Field label="Marca">
             <select
@@ -398,8 +528,47 @@ function ProductModal({
                 </option>
               ))}
             </select>
+            <button
+              type="button"
+              onClick={quickCreateBrand}
+              className="mt-1 text-xs font-semibold text-[var(--brand-orange)] hover:underline"
+            >
+              + Crear marca
+            </button>
           </Field>
+          {applicableAttributes.map((a) => (
+            <Field key={a.id} label={a.name}>
+              <select
+                value={attrSel[a.id] ?? ""}
+                onChange={(e) =>
+                  setAttrSel((s) => {
+                    const next = { ...s };
+                    if (e.target.value) next[a.id] = e.target.value;
+                    else delete next[a.id];
+                    return next;
+                  })
+                }
+                className={inputCls}
+              >
+                <option value="">— Sin especificar —</option>
+                {a.values.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          ))}
         </div>
+        {form.category_id && applicableAttributes.length === 0 && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Esta categoría no tiene atributos asignados.{" "}
+            <Link to="/panel/taxonomia" className="underline">
+              Asígnale Color, Material, etc.
+            </Link>
+          </p>
+        )}
+
 
         <Field label="Descripción corta">
           <textarea

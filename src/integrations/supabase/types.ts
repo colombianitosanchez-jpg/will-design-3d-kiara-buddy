@@ -14,24 +14,104 @@ export type Database = {
   }
   public: {
     Tables: {
-      brands: {
+      attribute_values: {
+        Row: {
+          attribute_id: string
+          color_hex: string | null
+          created_at: string
+          id: string
+          label: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          attribute_id: string
+          color_hex?: string | null
+          created_at?: string
+          id?: string
+          label: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          attribute_id?: string
+          color_hex?: string | null
+          created_at?: string
+          id?: string
+          label?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attribute_values_attribute_id_fkey"
+            columns: ["attribute_id"]
+            isOneToOne: false
+            referencedRelation: "attributes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attributes: {
         Row: {
           created_at: string
           id: string
+          input_type: string
+          is_filterable: boolean
           name: string
-          slug: string | null
+          slug: string
+          sort_order: number
+          updated_at: string
         }
         Insert: {
           created_at?: string
           id?: string
+          input_type?: string
+          is_filterable?: boolean
           name: string
-          slug?: string | null
+          slug: string
+          sort_order?: number
+          updated_at?: string
         }
         Update: {
           created_at?: string
           id?: string
+          input_type?: string
+          is_filterable?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      brands: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          name: string
+          slug: string | null
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name: string
+          slug?: string | null
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
           name?: string
           slug?: string | null
+          sort_order?: number
         }
         Relationships: []
       }
@@ -39,25 +119,81 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          image_url: string | null
+          is_active: boolean
           name: string
+          parent_id: string | null
           slug: string
           sort_order: number
         }
         Insert: {
           created_at?: string
           id?: string
+          image_url?: string | null
+          is_active?: boolean
           name: string
+          parent_id?: string | null
           slug: string
           sort_order?: number
         }
         Update: {
           created_at?: string
           id?: string
+          image_url?: string | null
+          is_active?: boolean
           name?: string
+          parent_id?: string | null
           slug?: string
           sort_order?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      category_attributes: {
+        Row: {
+          attribute_id: string
+          category_id: string
+          id: string
+          is_required: boolean
+          sort_order: number
+        }
+        Insert: {
+          attribute_id: string
+          category_id: string
+          id?: string
+          is_required?: boolean
+          sort_order?: number
+        }
+        Update: {
+          attribute_id?: string
+          category_id?: string
+          id?: string
+          is_required?: boolean
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_attributes_attribute_id_fkey"
+            columns: ["attribute_id"]
+            isOneToOne: false
+            referencedRelation: "attributes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "category_attributes_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       knowledge_base: {
         Row: {
@@ -127,7 +263,11 @@ export type Database = {
       }
       menu_items: {
         Row: {
+          attribute_value_id: string | null
+          brand_id: string | null
+          category_id: string | null
           created_at: string
+          custom_url: string | null
           display_order: number
           id: string
           is_active: boolean
@@ -135,10 +275,17 @@ export type Database = {
           link_type: string | null
           link_value: string | null
           parent_id: string | null
+          service_anchor: string | null
+          site_page: string | null
           slug: string
+          target_kind: string | null
         }
         Insert: {
+          attribute_value_id?: string | null
+          brand_id?: string | null
+          category_id?: string | null
           created_at?: string
+          custom_url?: string | null
           display_order?: number
           id?: string
           is_active?: boolean
@@ -146,10 +293,17 @@ export type Database = {
           link_type?: string | null
           link_value?: string | null
           parent_id?: string | null
+          service_anchor?: string | null
+          site_page?: string | null
           slug: string
+          target_kind?: string | null
         }
         Update: {
+          attribute_value_id?: string | null
+          brand_id?: string | null
+          category_id?: string | null
           created_at?: string
+          custom_url?: string | null
           display_order?: number
           id?: string
           is_active?: boolean
@@ -157,9 +311,33 @@ export type Database = {
           link_type?: string | null
           link_value?: string | null
           parent_id?: string | null
+          service_anchor?: string | null
+          site_page?: string | null
           slug?: string
+          target_kind?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "menu_items_attribute_value_id_fkey"
+            columns: ["attribute_value_id"]
+            isOneToOne: false
+            referencedRelation: "attribute_values"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_items_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "menu_items_parent_id_fkey"
             columns: ["parent_id"]
@@ -390,6 +568,55 @@ export type Database = {
         }
         Relationships: []
       }
+      product_attribute_values: {
+        Row: {
+          attribute_id: string
+          attribute_value_id: string | null
+          created_at: string
+          id: string
+          product_id: string
+          text_value: string | null
+        }
+        Insert: {
+          attribute_id: string
+          attribute_value_id?: string | null
+          created_at?: string
+          id?: string
+          product_id: string
+          text_value?: string | null
+        }
+        Update: {
+          attribute_id?: string
+          attribute_value_id?: string | null
+          created_at?: string
+          id?: string
+          product_id?: string
+          text_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_attribute_values_attribute_id_fkey"
+            columns: ["attribute_id"]
+            isOneToOne: false
+            referencedRelation: "attributes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_attribute_values_attribute_value_id_fkey"
+            columns: ["attribute_value_id"]
+            isOneToOne: false
+            referencedRelation: "attribute_values"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_attribute_values_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           active: boolean
@@ -572,6 +799,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      category_descendants: {
+        Args: { _slug: string }
+        Returns: {
+          id: string
+          slug: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
