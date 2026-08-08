@@ -39,24 +39,14 @@ export const Route = createFileRoute("/api/kiara")({
         }
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { resolveAuthBoundary, buildKiaraSystemPrompt } = await import(
+          "@/lib/kiara-context.server"
+        );
 
-        // ¿La petición viene de un miembro del equipo autenticado? (no se confía en el cliente)
-        let isTeam = false;
-        const authHeader = request.headers.get("authorization");
-        const token = authHeader?.toLowerCase().startsWith("bearer ")
-          ? authHeader.slice(7).trim()
-          : "";
-        if (token) {
-          const { data: userData } = await supabaseAdmin.auth.getUser(token);
-          const userId = userData?.user?.id;
-          if (userId) {
-            const { data: roles } = await supabaseAdmin
-              .from("user_roles")
-              .select("role")
-              .eq("user_id", userId);
-            isTeam = Boolean(roles && roles.length > 0);
-          }
-        }
+        // ── Firewall: solo un JWT válido con rol admin/staff activa el modo interno ──
+        const { isInternalTeam } = await resolveAuthBoundary(
+          request.headers.get("authorization"),
+        );
 
         const { data: contentRows } = await supabaseAdmin
           .from("site_content")
@@ -65,44 +55,13 @@ export const Route = createFileRoute("/api/kiara")({
         const content: Record<string, string> = {};
         (contentRows ?? []).forEach((r) => (content[r.key] = r.value));
 
-        const basePrompt = isTeam
-          ? content.kiara_prompt_internal?.trim() || DEFAULT_INTERNAL_PROMPT
-          : content.kiara_prompt_public?.trim() || DEFAULT_PUBLIC_PROMPT;
+        // Dos caminos aislados: el modo público nunca consulta pedidos, clientes ni costos.
+        const systemPrompt = await buildKiaraSystemPrompt(isInternalTeam, {
+          publicPrompt: content.kiara_prompt_public,
+          internalPrompt: content.kiara_prompt_internal,
+        });
 
-        // ── RAG: base de conocimiento según el origen de la conversación ──
-        const allowedCategories = isTeam
-          ? ["internal_team", "all"]
-          : ["public_web", "all"];
-        const { data: kbRows } = await supabaseAdmin
-          .from("knowledge_base")
-          .select("title, content, category")
-          .eq("is_active", true)
-          .in("category", allowedCategories)
-          .order("updated_at", { ascending: false })
-          .limit(60);
 
-        let knowledgeBlock = "";
-        if (kbRows && kbRows.length > 0) {
-          let used = 0;
-          const parts: string[] = [];
-          for (const r of kbRows) {
-            const doc = `### ${r.title}\n${String(r.content ?? "").trim()}`;
-            if (used + doc.length > 24_000) break;
-            used += doc.length;
-            parts.push(doc);
-          }
-          knowledgeBlock =
-            `\n\n[INFORMACIÓN INTERNA DE WILL DESIGN 3D]\n${parts.join("\n\n")}\n[FIN DE LA INFORMACIÓN INTERNA]`;
-        }
-
-        const RAG_RULES = `\n\nREGLAS DE USO DEL CONTEXTO:
-- Para preguntas técnicas, de inventario, precios internos o procedimientos, usa ÚNICAMENTE la información interna entregada arriba.
-- Si la respuesta no está en ese contexto, dilo claramente: "Todavía no tengo ese registro interno" e invita a registrarlo en la Base de Conocimiento del Panel (o a escribir por WhatsApp si es un visitante).
-- No inventes datos, precios, plazos ni stock que no aparezcan en el contexto.`;
-
-        const systemPrompt = knowledgeBlock
-          ? `${basePrompt}${knowledgeBlock}${RAG_RULES}`
-          : `${basePrompt}${RAG_RULES}`;
 
 
         const { data: providers } = await supabaseAdmin
