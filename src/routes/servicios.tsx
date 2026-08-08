@@ -235,10 +235,31 @@ function ServiciosPage() {
                     </li>
                   ))}
                 </ul>
-                <Link to="/contacto" className="btn-primary mt-6 text-sm">
-                  Cotizar este servicio
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
+                {(() => {
+                  const q = quoterFor(s.id);
+                  return q ? (
+                    <div className="mt-6 flex flex-wrap items-center gap-3">
+                      <Link
+                        to="/cotizador"
+                        search={{ servicio: q.slug }}
+                        className="btn-primary text-sm"
+                      >
+                        Cotizar en línea
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                      {q.min_price_cop > 0 && (
+                        <span className="text-xs font-semibold text-muted-foreground">
+                          Desde {formatCOP(q.min_price_cop)}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <Link to="/contacto" className="btn-primary mt-6 text-sm">
+                      Cotizar este servicio
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  );
+                })()}
               </div>
               <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
                 <div
