@@ -67,7 +67,7 @@ export const KIARA_TOOLS = [
 ];
 
 export const TOOL_INSTRUCTIONS = `\n\nHERRAMIENTAS:
-- Para cualquier precio o cotización usa quote_service (si no conoces el servicio o sus preguntas, llama primero a list_quoter_services). Nunca calcules ni inventes precios por tu cuenta.
+- Para cualquier precio o cotización usa quote_service con el servicio más parecido a lo que pide el usuario. Nunca calcules ni inventes precios por tu cuenta.
 - Llama a create_order solo cuando tengas nombre, correo, dirección y el detalle del pedido confirmado por el usuario.
 - Después de una herramienta, comenta el resultado en 1-2 frases cálidas; la tarjeta con el detalle se muestra automáticamente.`;
 
