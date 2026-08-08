@@ -695,13 +695,143 @@ export type Database = {
           },
         ]
       }
+      quoter_fields: {
+        Row: {
+          created_at: string
+          default_value: string
+          help: string
+          id: string
+          input_type: string
+          is_active: boolean
+          is_required: boolean
+          key: string
+          label: string
+          max_value: number
+          min_value: number
+          multiplier: number
+          options: Json
+          price_per_unit_cop: number
+          service_id: string
+          sort_order: number
+          step_value: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_value?: string
+          help?: string
+          id?: string
+          input_type?: string
+          is_active?: boolean
+          is_required?: boolean
+          key: string
+          label: string
+          max_value?: number
+          min_value?: number
+          multiplier?: number
+          options?: Json
+          price_per_unit_cop?: number
+          service_id: string
+          sort_order?: number
+          step_value?: number
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_value?: string
+          help?: string
+          id?: string
+          input_type?: string
+          is_active?: boolean
+          is_required?: boolean
+          key?: string
+          label?: string
+          max_value?: number
+          min_value?: number
+          multiplier?: number
+          options?: Json
+          price_per_unit_cop?: number
+          service_id?: string
+          sort_order?: number
+          step_value?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quoter_fields_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "quoter_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quoter_services: {
+        Row: {
+          allow_file: boolean
+          allow_quantity: boolean
+          base_price_cop: number
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          is_active: boolean
+          margin_percent: number
+          min_price_cop: number
+          name: string
+          slug: string
+          sort_order: number
+          tagline: string
+          updated_at: string
+        }
+        Insert: {
+          allow_file?: boolean
+          allow_quantity?: boolean
+          base_price_cop?: number
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          margin_percent?: number
+          min_price_cop?: number
+          name: string
+          slug: string
+          sort_order?: number
+          tagline?: string
+          updated_at?: string
+        }
+        Update: {
+          allow_file?: boolean
+          allow_quantity?: boolean
+          base_price_cop?: number
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          margin_percent?: number
+          min_price_cop?: number
+          name?: string
+          slug?: string
+          sort_order?: number
+          tagline?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       quotes: {
         Row: {
+          answers: Json
           created_at: string
           customer_email: string
           customer_name: string
           customer_phone: string | null
           design_state: string
+          estimated_total_cop: number
           file_name: string | null
           file_path: string | null
           finish: string
@@ -710,17 +840,22 @@ export type Database = {
           length_cm: number | null
           material: string
           notes: string
+          quantity: number
+          service_id: string | null
+          service_name: string
           size_label: string
           status: string
           updated_at: string
           width_cm: number | null
         }
         Insert: {
+          answers?: Json
           created_at?: string
           customer_email: string
           customer_name: string
           customer_phone?: string | null
           design_state?: string
+          estimated_total_cop?: number
           file_name?: string | null
           file_path?: string | null
           finish?: string
@@ -729,17 +864,22 @@ export type Database = {
           length_cm?: number | null
           material?: string
           notes?: string
+          quantity?: number
+          service_id?: string | null
+          service_name?: string
           size_label?: string
           status?: string
           updated_at?: string
           width_cm?: number | null
         }
         Update: {
+          answers?: Json
           created_at?: string
           customer_email?: string
           customer_name?: string
           customer_phone?: string | null
           design_state?: string
+          estimated_total_cop?: number
           file_name?: string | null
           file_path?: string | null
           finish?: string
@@ -748,12 +888,23 @@ export type Database = {
           length_cm?: number | null
           material?: string
           notes?: string
+          quantity?: number
+          service_id?: string | null
+          service_name?: string
           size_label?: string
           status?: string
           updated_at?: string
           width_cm?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "quotes_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "quoter_services"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       site_content: {
         Row: {
