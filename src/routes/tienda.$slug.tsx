@@ -36,7 +36,7 @@ export const Route = createFileRoute("/tienda/$slug")({
     }
     const p = loaderData.product;
     const url = `https://will-design-3d.lovable.app/tienda/${params.slug}`;
-    const base = (p.short || p.description || "").trim();
+    const base = (p.short || p.description || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
     const description = (
       base.length >= 50
         ? base
