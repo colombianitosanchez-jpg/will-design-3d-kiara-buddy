@@ -74,9 +74,45 @@ export const Route = createFileRoute("/api/kiara")({
         const content: Record<string, string> = {};
         (contentRows ?? []).forEach((r) => (content[r.key] = r.value));
 
-        const systemPrompt = isTeam
+        const basePrompt = isTeam
           ? content.kiara_prompt_internal?.trim() || DEFAULT_INTERNAL_PROMPT
           : content.kiara_prompt_public?.trim() || DEFAULT_PUBLIC_PROMPT;
+
+        // ── RAG: base de conocimiento según el origen de la conversación ──
+        const allowedCategories = isTeam
+          ? ["internal_team", "all"]
+          : ["public_web", "all"];
+        const { data: kbRows } = await supabaseAdmin
+          .from("knowledge_base")
+          .select("title, content, category")
+          .eq("is_active", true)
+          .in("category", allowedCategories)
+          .order("updated_at", { ascending: false })
+          .limit(60);
+
+        let knowledgeBlock = "";
+        if (kbRows && kbRows.length > 0) {
+          let used = 0;
+          const parts: string[] = [];
+          for (const r of kbRows) {
+            const doc = `### ${r.title}\n${String(r.content ?? "").trim()}`;
+            if (used + doc.length > 24_000) break;
+            used += doc.length;
+            parts.push(doc);
+          }
+          knowledgeBlock =
+            `\n\n[INFORMACIÓN INTERNA DE WILL DESIGN 3D]\n${parts.join("\n\n")}\n[FIN DE LA INFORMACIÓN INTERNA]`;
+        }
+
+        const RAG_RULES = `\n\nREGLAS DE USO DEL CONTEXTO:
+- Para preguntas técnicas, de inventario, precios internos o procedimientos, usa ÚNICAMENTE la información interna entregada arriba.
+- Si la respuesta no está en ese contexto, dilo claramente: "Todavía no tengo ese registro interno" e invita a registrarlo en la Base de Conocimiento del Panel (o a escribir por WhatsApp si es un visitante).
+- No inventes datos, precios, plazos ni stock que no aparezcan en el contexto.`;
+
+        const systemPrompt = knowledgeBlock
+          ? `${basePrompt}${knowledgeBlock}${RAG_RULES}`
+          : `${basePrompt}${RAG_RULES}`;
+
 
         const { data: providers } = await supabaseAdmin
           .from("llm_providers")
