@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import {
   Boxes,
   Wrench,
@@ -12,6 +13,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { KiaraTip } from "@/components/KiaraTip";
+import { quoterServicesQuery, formatCOP } from "@/lib/quoter";
 
 export const Route = createFileRoute("/servicios")({
   head: () => ({
