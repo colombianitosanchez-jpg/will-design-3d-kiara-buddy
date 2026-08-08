@@ -247,7 +247,10 @@ export function interceptToolStream(
           if (result.text) {
             emit({ choices: [{ delta: { content: (sawContent ? "\n\n" : "") + result.text } }] });
           }
-          if (result.data) emit({ kiara_tool: { name: toolName, data: result.data } });
+          if (result.data) {
+            const cardName = toolName === "generate_quote" ? "quote_service" : toolName;
+            emit({ kiara_tool: { name: cardName, data: result.data } });
+          }
         }
 
         controller.enqueue(enc.encode("data: [DONE]\n\n"));
