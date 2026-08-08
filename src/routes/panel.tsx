@@ -21,6 +21,16 @@ import {
 
 export const Route = createFileRoute("/panel")({
   ssr: false,
+  head: () => ({
+    meta: [
+      { title: "Panel del equipo · Will Design 3D" },
+      { name: "description", content: "Panel privado para gestionar productos, pedidos, contenido y menú del sitio." },
+      { name: "robots", content: "noindex, nofollow" },
+      { property: "og:title", content: "Panel del equipo · Will Design 3D" },
+      { property: "og:description", content: "Panel privado de gestión del sitio. Acceso restringido al equipo." },
+    ],
+  }),
+
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/auth" });

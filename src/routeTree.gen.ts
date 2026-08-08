@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TiendaRouteImport } from './routes/tienda'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ServiciosRouteImport } from './routes/servicios'
 import { Route as PanelRouteImport } from './routes/panel'
 import { Route as NosotrosRouteImport } from './routes/nosotros'
@@ -35,6 +36,11 @@ import { Route as AdminClientesRouteImport } from './routes/admin.clientes'
 const TiendaRoute = TiendaRouteImport.update({
   id: '/tienda',
   path: '/tienda',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ServiciosRoute = ServiciosRouteImport.update({
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/nosotros': typeof NosotrosRoute
   '/panel': typeof PanelRouteWithChildren
   '/servicios': typeof ServiciosRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tienda': typeof TiendaRouteWithChildren
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/inventario': typeof AdminInventarioRoute
@@ -174,6 +181,7 @@ export interface FileRoutesByTo {
   '/galeria': typeof GaleriaRoute
   '/nosotros': typeof NosotrosRoute
   '/servicios': typeof ServiciosRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/inventario': typeof AdminInventarioRoute
   '/admin/live': typeof AdminLiveRoute
@@ -198,6 +206,7 @@ export interface FileRoutesById {
   '/nosotros': typeof NosotrosRoute
   '/panel': typeof PanelRouteWithChildren
   '/servicios': typeof ServiciosRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tienda': typeof TiendaRouteWithChildren
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/inventario': typeof AdminInventarioRoute
@@ -224,6 +233,7 @@ export interface FileRouteTypes {
     | '/nosotros'
     | '/panel'
     | '/servicios'
+    | '/sitemap.xml'
     | '/tienda'
     | '/admin/clientes'
     | '/admin/inventario'
@@ -246,6 +256,7 @@ export interface FileRouteTypes {
     | '/galeria'
     | '/nosotros'
     | '/servicios'
+    | '/sitemap.xml'
     | '/admin/clientes'
     | '/admin/inventario'
     | '/admin/live'
@@ -269,6 +280,7 @@ export interface FileRouteTypes {
     | '/nosotros'
     | '/panel'
     | '/servicios'
+    | '/sitemap.xml'
     | '/tienda'
     | '/admin/clientes'
     | '/admin/inventario'
@@ -294,6 +306,7 @@ export interface RootRouteChildren {
   NosotrosRoute: typeof NosotrosRoute
   PanelRoute: typeof PanelRouteWithChildren
   ServiciosRoute: typeof ServiciosRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TiendaRoute: typeof TiendaRouteWithChildren
 }
 
@@ -304,6 +317,13 @@ declare module '@tanstack/react-router' {
       path: '/tienda'
       fullPath: '/tienda'
       preLoaderRoute: typeof TiendaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/servicios': {
@@ -516,6 +536,7 @@ const rootRouteChildren: RootRouteChildren = {
   NosotrosRoute: NosotrosRoute,
   PanelRoute: PanelRouteWithChildren,
   ServiciosRoute: ServiciosRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   TiendaRoute: TiendaRouteWithChildren,
 }
 export const routeTree = rootRouteImport
