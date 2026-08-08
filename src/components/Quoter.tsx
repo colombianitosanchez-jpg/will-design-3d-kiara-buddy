@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -194,7 +194,7 @@ function FieldControl({
 
 /* --------------------------------- Cotizador -------------------------------- */
 
-export function Quoter() {
+export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } = {}) {
   const { data: services, isLoading } = useQuery(quoterServicesQuery());
   const { data: content } = useQuery(siteContentQuery());
   const contact = getContactInfo(content);
