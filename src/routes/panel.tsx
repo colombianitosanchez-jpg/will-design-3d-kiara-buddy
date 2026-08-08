@@ -15,6 +15,8 @@ import {
   FileText,
   ListTree,
   Bot,
+  BookOpen,
+
 
   LogOut,
   ShieldCheck,
