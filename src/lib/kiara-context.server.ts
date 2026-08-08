@@ -155,6 +155,7 @@ async function buildInternalContext(): Promise<string> {
     { data: orders },
     { data: quotes },
     kb,
+    quoter,
   ] = await Promise.all([
     supabaseAdmin
       .from("products")
