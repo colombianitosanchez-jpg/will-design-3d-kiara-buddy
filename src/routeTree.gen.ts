@@ -27,6 +27,7 @@ import { Route as PanelProductosRouteImport } from './routes/panel.productos'
 import { Route as PanelPedidosRouteImport } from './routes/panel.pedidos'
 import { Route as PanelMenuRouteImport } from './routes/panel.menu'
 import { Route as PanelContenidoRouteImport } from './routes/panel.contenido'
+import { Route as ApiKiaraRouteImport } from './routes/api/kiara'
 import { Route as AdminServiciosRouteImport } from './routes/admin.servicios'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminLiveRouteImport } from './routes/admin.live'
@@ -123,6 +124,11 @@ const PanelContenidoRoute = PanelContenidoRouteImport.update({
   path: '/contenido',
   getParentRoute: () => PanelRoute,
 } as any)
+const ApiKiaraRoute = ApiKiaraRouteImport.update({
+  id: '/api/kiara',
+  path: '/api/kiara',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminServiciosRoute = AdminServiciosRouteImport.update({
   id: '/servicios',
   path: '/servicios',
@@ -165,6 +171,7 @@ export interface FileRoutesByFullPath {
   '/admin/live': typeof AdminLiveRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/servicios': typeof AdminServiciosRoute
+  '/api/kiara': typeof ApiKiaraRoute
   '/panel/contenido': typeof PanelContenidoRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/pedidos': typeof PanelPedidosRoute
@@ -187,6 +194,7 @@ export interface FileRoutesByTo {
   '/admin/live': typeof AdminLiveRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/servicios': typeof AdminServiciosRoute
+  '/api/kiara': typeof ApiKiaraRoute
   '/panel/contenido': typeof PanelContenidoRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/pedidos': typeof PanelPedidosRoute
@@ -213,6 +221,7 @@ export interface FileRoutesById {
   '/admin/live': typeof AdminLiveRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/servicios': typeof AdminServiciosRoute
+  '/api/kiara': typeof ApiKiaraRoute
   '/panel/contenido': typeof PanelContenidoRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/pedidos': typeof PanelPedidosRoute
@@ -240,6 +249,7 @@ export interface FileRouteTypes {
     | '/admin/live'
     | '/admin/pedidos'
     | '/admin/servicios'
+    | '/api/kiara'
     | '/panel/contenido'
     | '/panel/menu'
     | '/panel/pedidos'
@@ -262,6 +272,7 @@ export interface FileRouteTypes {
     | '/admin/live'
     | '/admin/pedidos'
     | '/admin/servicios'
+    | '/api/kiara'
     | '/panel/contenido'
     | '/panel/menu'
     | '/panel/pedidos'
@@ -287,6 +298,7 @@ export interface FileRouteTypes {
     | '/admin/live'
     | '/admin/pedidos'
     | '/admin/servicios'
+    | '/api/kiara'
     | '/panel/contenido'
     | '/panel/menu'
     | '/panel/pedidos'
@@ -308,6 +320,7 @@ export interface RootRouteChildren {
   ServiciosRoute: typeof ServiciosRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TiendaRoute: typeof TiendaRouteWithChildren
+  ApiKiaraRoute: typeof ApiKiaraRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -438,6 +451,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelContenidoRouteImport
       parentRoute: typeof PanelRoute
     }
+    '/api/kiara': {
+      id: '/api/kiara'
+      path: '/api/kiara'
+      fullPath: '/api/kiara'
+      preLoaderRoute: typeof ApiKiaraRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/servicios': {
       id: '/admin/servicios'
       path: '/servicios'
@@ -538,6 +558,7 @@ const rootRouteChildren: RootRouteChildren = {
   ServiciosRoute: ServiciosRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TiendaRoute: TiendaRouteWithChildren,
+  ApiKiaraRoute: ApiKiaraRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
