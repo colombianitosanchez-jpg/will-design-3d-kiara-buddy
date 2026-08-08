@@ -407,11 +407,10 @@ function ProductModal({
           />
         </Field>
         <Field label="Descripción completa">
-          <textarea
-            rows={4}
+          <RichTextEditor
             value={form.description ?? ""}
-            onChange={(e) => set("description", e.target.value)}
-            className={inputCls}
+            onChange={(html) => set("description", html)}
+            placeholder="Escribe la descripción con negritas, listas y subtítulos…"
           />
         </Field>
         <Field label="Consejo de Kiara 🐾">
@@ -422,65 +421,25 @@ function ProductModal({
           />
         </Field>
 
-        <Field label="Imagen del producto">
-          <div className="flex items-center gap-4">
-            {form.image_url ? (
-              <img src={form.image_url} alt="" className="h-20 w-20 rounded-lg object-cover" />
-            ) : (
-              <div className="h-20 w-20 rounded-lg bg-muted" />
-            )}
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold hover:bg-muted">
-              <Upload className="h-4 w-4" />
-              {uploading ? "Subiendo…" : "Subir imagen"}
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => e.target.files?.[0] && uploadImage(e.target.files[0])}
-              />
-            </label>
-            {form.image_url && (
-              <button
-                type="button"
-                onClick={() => set("image_url", null)}
-                className="text-xs text-muted-foreground underline"
-              >
-                Quitar
-              </button>
-            )}
-          </div>
+        <Field label="Imágenes del producto (la primera o la marcada con ★ es la portada)">
+          <ImageDropzone
+            images={[
+              ...(form.image_url ? [form.image_url] : []),
+              ...(form.images ?? []).filter((u) => u !== form.image_url),
+            ]}
+            coverIndex={0}
+            onSetCover={(url) => set("image_url", url)}
+            onChange={(urls) => {
+              const cover = urls.includes(form.image_url ?? "") ? form.image_url : (urls[0] ?? null);
+              setForm((fm) => ({
+                ...fm,
+                image_url: cover ?? null,
+                images: urls.filter((u) => u !== cover),
+              }));
+            }}
+          />
         </Field>
 
-        <Field label="Galería de imágenes (opcional)">
-          <div className="flex flex-wrap items-center gap-3">
-            {(form.images ?? []).map((url, i) => (
-              <div key={url + i} className="relative">
-                <img src={url} alt="" className="h-20 w-20 rounded-lg object-cover" />
-                <button
-                  type="button"
-                  onClick={() =>
-                    setForm((fm) => ({ ...fm, images: (fm.images ?? []).filter((_, j) => j !== i) }))
-                  }
-                  className="absolute -right-2 -top-2 rounded-full bg-red-600 p-1 text-white"
-                  aria-label="Quitar imagen"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold hover:bg-muted">
-              <Upload className="h-4 w-4" />
-              {uploading ? "Subiendo…" : "Añadir imágenes"}
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={(e) => e.target.files?.length && uploadGallery(e.target.files)}
-              />
-            </label>
-          </div>
-        </Field>
 
         <Field label="Especificaciones técnicas (tecnología, volumen, material…)">
           <div className="grid gap-2">
