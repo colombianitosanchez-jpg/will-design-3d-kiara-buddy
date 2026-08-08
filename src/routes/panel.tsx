@@ -14,6 +14,7 @@ import {
   ShoppingCart,
   FileText,
   ListTree,
+  Bot,
 
   LogOut,
   ShieldCheck,
