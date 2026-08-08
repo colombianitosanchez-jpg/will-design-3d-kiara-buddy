@@ -27,6 +27,7 @@ import { Route as PanelProductosRouteImport } from './routes/panel.productos'
 import { Route as PanelPedidosRouteImport } from './routes/panel.pedidos'
 import { Route as PanelMenuRouteImport } from './routes/panel.menu'
 import { Route as PanelLlmRouteImport } from './routes/panel.llm'
+import { Route as PanelCotizacionesRouteImport } from './routes/panel.cotizaciones'
 import { Route as PanelContenidoRouteImport } from './routes/panel.contenido'
 import { Route as PanelConocimientoRouteImport } from './routes/panel.conocimiento'
 import { Route as ApiKiaraRouteImport } from './routes/api/kiara'
@@ -128,6 +129,11 @@ const PanelLlmRoute = PanelLlmRouteImport.update({
   path: '/llm',
   getParentRoute: () => PanelRoute,
 } as any)
+const PanelCotizacionesRoute = PanelCotizacionesRouteImport.update({
+  id: '/cotizaciones',
+  path: '/cotizaciones',
+  getParentRoute: () => PanelRoute,
+} as any)
 const PanelContenidoRoute = PanelContenidoRouteImport.update({
   id: '/contenido',
   path: '/contenido',
@@ -200,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/api/kiara': typeof ApiKiaraRoute
   '/panel/conocimiento': typeof PanelConocimientoRoute
   '/panel/contenido': typeof PanelContenidoRoute
+  '/panel/cotizaciones': typeof PanelCotizacionesRoute
   '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/pedidos': typeof PanelPedidosRoute
@@ -227,6 +234,7 @@ export interface FileRoutesByTo {
   '/api/kiara': typeof ApiKiaraRoute
   '/panel/conocimiento': typeof PanelConocimientoRoute
   '/panel/contenido': typeof PanelContenidoRoute
+  '/panel/cotizaciones': typeof PanelCotizacionesRoute
   '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/pedidos': typeof PanelPedidosRoute
@@ -258,6 +266,7 @@ export interface FileRoutesById {
   '/api/kiara': typeof ApiKiaraRoute
   '/panel/conocimiento': typeof PanelConocimientoRoute
   '/panel/contenido': typeof PanelContenidoRoute
+  '/panel/cotizaciones': typeof PanelCotizacionesRoute
   '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/pedidos': typeof PanelPedidosRoute
@@ -290,6 +299,7 @@ export interface FileRouteTypes {
     | '/api/kiara'
     | '/panel/conocimiento'
     | '/panel/contenido'
+    | '/panel/cotizaciones'
     | '/panel/llm'
     | '/panel/menu'
     | '/panel/pedidos'
@@ -317,6 +327,7 @@ export interface FileRouteTypes {
     | '/api/kiara'
     | '/panel/conocimiento'
     | '/panel/contenido'
+    | '/panel/cotizaciones'
     | '/panel/llm'
     | '/panel/menu'
     | '/panel/pedidos'
@@ -347,6 +358,7 @@ export interface FileRouteTypes {
     | '/api/kiara'
     | '/panel/conocimiento'
     | '/panel/contenido'
+    | '/panel/cotizaciones'
     | '/panel/llm'
     | '/panel/menu'
     | '/panel/pedidos'
@@ -502,6 +514,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelLlmRouteImport
       parentRoute: typeof PanelRoute
     }
+    '/panel/cotizaciones': {
+      id: '/panel/cotizaciones'
+      path: '/cotizaciones'
+      fullPath: '/panel/cotizaciones'
+      preLoaderRoute: typeof PanelCotizacionesRouteImport
+      parentRoute: typeof PanelRoute
+    }
     '/panel/contenido': {
       id: '/panel/contenido'
       path: '/contenido'
@@ -598,6 +617,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 interface PanelRouteChildren {
   PanelConocimientoRoute: typeof PanelConocimientoRoute
   PanelContenidoRoute: typeof PanelContenidoRoute
+  PanelCotizacionesRoute: typeof PanelCotizacionesRoute
   PanelLlmRoute: typeof PanelLlmRoute
   PanelMenuRoute: typeof PanelMenuRoute
   PanelPedidosRoute: typeof PanelPedidosRoute
@@ -608,6 +628,7 @@ interface PanelRouteChildren {
 const PanelRouteChildren: PanelRouteChildren = {
   PanelConocimientoRoute: PanelConocimientoRoute,
   PanelContenidoRoute: PanelContenidoRoute,
+  PanelCotizacionesRoute: PanelCotizacionesRoute,
   PanelLlmRoute: PanelLlmRoute,
   PanelMenuRoute: PanelMenuRoute,
   PanelPedidosRoute: PanelPedidosRoute,
