@@ -25,6 +25,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TiendaSlugRouteImport } from './routes/tienda.$slug'
 import { Route as PanelProductosRouteImport } from './routes/panel.productos'
 import { Route as PanelPedidosRouteImport } from './routes/panel.pedidos'
+import { Route as PanelNotificacionesRouteImport } from './routes/panel.notificaciones'
 import { Route as PanelMenuRouteImport } from './routes/panel.menu'
 import { Route as PanelLlmRouteImport } from './routes/panel.llm'
 import { Route as PanelCotizacionesRouteImport } from './routes/panel.cotizaciones'
@@ -119,6 +120,11 @@ const PanelPedidosRoute = PanelPedidosRouteImport.update({
   path: '/pedidos',
   getParentRoute: () => PanelRoute,
 } as any)
+const PanelNotificacionesRoute = PanelNotificacionesRouteImport.update({
+  id: '/notificaciones',
+  path: '/notificaciones',
+  getParentRoute: () => PanelRoute,
+} as any)
 const PanelMenuRoute = PanelMenuRouteImport.update({
   id: '/menu',
   path: '/menu',
@@ -209,6 +215,7 @@ export interface FileRoutesByFullPath {
   '/panel/cotizaciones': typeof PanelCotizacionesRoute
   '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
+  '/panel/notificaciones': typeof PanelNotificacionesRoute
   '/panel/pedidos': typeof PanelPedidosRoute
   '/panel/productos': typeof PanelProductosRoute
   '/tienda/$slug': typeof TiendaSlugRoute
@@ -237,6 +244,7 @@ export interface FileRoutesByTo {
   '/panel/cotizaciones': typeof PanelCotizacionesRoute
   '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
+  '/panel/notificaciones': typeof PanelNotificacionesRoute
   '/panel/pedidos': typeof PanelPedidosRoute
   '/panel/productos': typeof PanelProductosRoute
   '/tienda/$slug': typeof TiendaSlugRoute
@@ -269,6 +277,7 @@ export interface FileRoutesById {
   '/panel/cotizaciones': typeof PanelCotizacionesRoute
   '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
+  '/panel/notificaciones': typeof PanelNotificacionesRoute
   '/panel/pedidos': typeof PanelPedidosRoute
   '/panel/productos': typeof PanelProductosRoute
   '/tienda/$slug': typeof TiendaSlugRoute
@@ -302,6 +311,7 @@ export interface FileRouteTypes {
     | '/panel/cotizaciones'
     | '/panel/llm'
     | '/panel/menu'
+    | '/panel/notificaciones'
     | '/panel/pedidos'
     | '/panel/productos'
     | '/tienda/$slug'
@@ -330,6 +340,7 @@ export interface FileRouteTypes {
     | '/panel/cotizaciones'
     | '/panel/llm'
     | '/panel/menu'
+    | '/panel/notificaciones'
     | '/panel/pedidos'
     | '/panel/productos'
     | '/tienda/$slug'
@@ -361,6 +372,7 @@ export interface FileRouteTypes {
     | '/panel/cotizaciones'
     | '/panel/llm'
     | '/panel/menu'
+    | '/panel/notificaciones'
     | '/panel/pedidos'
     | '/panel/productos'
     | '/tienda/$slug'
@@ -500,6 +512,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelPedidosRouteImport
       parentRoute: typeof PanelRoute
     }
+    '/panel/notificaciones': {
+      id: '/panel/notificaciones'
+      path: '/notificaciones'
+      fullPath: '/panel/notificaciones'
+      preLoaderRoute: typeof PanelNotificacionesRouteImport
+      parentRoute: typeof PanelRoute
+    }
     '/panel/menu': {
       id: '/panel/menu'
       path: '/menu'
@@ -620,6 +639,7 @@ interface PanelRouteChildren {
   PanelCotizacionesRoute: typeof PanelCotizacionesRoute
   PanelLlmRoute: typeof PanelLlmRoute
   PanelMenuRoute: typeof PanelMenuRoute
+  PanelNotificacionesRoute: typeof PanelNotificacionesRoute
   PanelPedidosRoute: typeof PanelPedidosRoute
   PanelProductosRoute: typeof PanelProductosRoute
   PanelIndexRoute: typeof PanelIndexRoute
@@ -631,6 +651,7 @@ const PanelRouteChildren: PanelRouteChildren = {
   PanelCotizacionesRoute: PanelCotizacionesRoute,
   PanelLlmRoute: PanelLlmRoute,
   PanelMenuRoute: PanelMenuRoute,
+  PanelNotificacionesRoute: PanelNotificacionesRoute,
   PanelPedidosRoute: PanelPedidosRoute,
   PanelProductosRoute: PanelProductosRoute,
   PanelIndexRoute: PanelIndexRoute,

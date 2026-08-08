@@ -101,7 +101,7 @@ function NotificationsPage() {
         working_days: cfg.working_days,
         work_start_hour: cfg.work_start_hour,
         work_end_hour: cfg.work_end_hour,
-        whatsapp_api_url: cfg.whatsapp_api_url.trim() || null,
+        whatsapp_api_url: cfg.whatsapp_api_url.trim() || undefined,
         events: cfg.events,
         templates: cfg.templates,
       })
