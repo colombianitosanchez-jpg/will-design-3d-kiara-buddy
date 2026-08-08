@@ -79,6 +79,47 @@ async function knowledge(categories: string[]) {
 
 const cop = (n: number) => `$${Number(n ?? 0).toLocaleString("es-CO")} COP`;
 
+/**
+ * Servicios cotizables tal como están configurados en Panel → Cotizador, con
+ * sus preguntas y opciones, para que Kiara pueda llamar a quote_service.
+ */
+async function quoterBlock(): Promise<string> {
+  const [{ data: services }, { data: fields }] = await Promise.all([
+    supabaseAdmin
+      .from("quoter_services")
+      .select("id, slug, name, description, min_price_cop, allow_quantity")
+      .eq("is_active", true)
+      .order("sort_order"),
+    supabaseAdmin
+      .from("quoter_fields")
+      .select("service_id, key, label, input_type, unit, min_value, max_value, options")
+      .eq("is_active", true)
+      .order("sort_order"),
+  ]);
+  if (!services?.length) return "";
+
+  const lines = services.map((s) => {
+    const own = (fields ?? []).filter((f) => f.service_id === s.id);
+    const qs = own.map((f) => {
+      const opts = Array.isArray(f.options)
+        ? (f.options as { value?: string }[]).map((o) => String(o?.value ?? "")).filter(Boolean)
+        : [];
+      const range =
+        f.input_type === "slider" || f.input_type === "number"
+          ? ` (${f.min_value}–${f.max_value}${f.unit ? ` ${f.unit}` : ""})`
+          : opts.length
+            ? ` (${opts.join(" | ")})`
+            : "";
+      return `    · ${f.key}: ${f.label}${range}`;
+    });
+    return `- slug: ${s.slug} — ${s.name} — desde ${cop(Number(s.min_price_cop))}${
+      s.allow_quantity ? " — admite cantidad" : ""
+    }\n  ${s.description ?? ""}${qs.length ? `\n  Datos que necesitas:\n${qs.join("\n")}` : ""}`;
+  });
+
+  return `## SERVICIOS COTIZABLES (usa la herramienta quote_service con estos slugs)\n${lines.join("\n")}`;
+}
+
 /** MODO PÚBLICO: solo catálogo activo + conocimiento público. Nada de pedidos/clientes/costos. */
 async function buildPublicContext(): Promise<string> {
   const [{ data: products }, kb] = await Promise.all([
