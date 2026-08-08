@@ -76,13 +76,14 @@ function PanelLayout() {
     { to: "/panel", label: "Inicio", icon: LayoutDashboard, exact: true },
     { to: "/panel/productos", label: "Productos", icon: Package },
     { to: "/panel/pedidos", label: "Pedidos", icon: ShoppingCart },
+    { to: "/panel/cotizaciones", label: "Reglas de precios", icon: Calculator },
+    { to: "/panel/notificaciones", label: "Notificaciones", icon: BellRing },
     { to: "/panel/menu", label: "Menú de navegación", icon: ListTree },
     { to: "/panel/contenido", label: "Contenido", icon: FileText },
     { to: "/panel/conocimiento", label: "Base de Conocimiento", icon: BookOpen },
     { to: "/panel/llm", label: "Configuración de LLM", icon: Bot },
-
-
   ];
+
 
   if (isAdmin === false) {
     return (
