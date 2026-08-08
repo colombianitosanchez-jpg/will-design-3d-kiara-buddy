@@ -169,6 +169,98 @@ export type Database = {
           },
         ]
       }
+      notification_settings: {
+        Row: {
+          created_at: string
+          events: Json
+          id: string
+          is_enabled: boolean
+          templates: Json
+          timezone: string
+          updated_at: string
+          whatsapp_api_url: string
+          work_end_hour: number
+          work_start_hour: number
+          working_days: number[]
+        }
+        Insert: {
+          created_at?: string
+          events?: Json
+          id?: string
+          is_enabled?: boolean
+          templates?: Json
+          timezone?: string
+          updated_at?: string
+          whatsapp_api_url?: string
+          work_end_hour?: number
+          work_start_hour?: number
+          working_days?: number[]
+        }
+        Update: {
+          created_at?: string
+          events?: Json
+          id?: string
+          is_enabled?: boolean
+          templates?: Json
+          timezone?: string
+          updated_at?: string
+          whatsapp_api_url?: string
+          work_end_hour?: number
+          work_start_hour?: number
+          working_days?: number[]
+        }
+        Relationships: []
+      }
+      notifications_queue: {
+        Row: {
+          created_at: string
+          customer_phone: string
+          error: string | null
+          event: string
+          id: string
+          message: string
+          order_id: string | null
+          scheduled_for: string
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_phone?: string
+          error?: string | null
+          event?: string
+          id?: string
+          message?: string
+          order_id?: string | null
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_phone?: string
+          error?: string | null
+          event?: string
+          id?: string
+          message?: string
+          order_id?: string | null
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_queue_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           id: string
@@ -249,6 +341,51 @@ export type Database = {
           shipping_city?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           total_cop?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pricing_rules: {
+        Row: {
+          base_price_per_gram_cop: number
+          created_at: string
+          finish_multipliers: Json
+          id: string
+          is_active: boolean
+          machine_hour_cop: number
+          margin_percent: number
+          material_multipliers: Json
+          min_price_cop: number
+          name: string
+          setup_fee_cop: number
+          updated_at: string
+        }
+        Insert: {
+          base_price_per_gram_cop?: number
+          created_at?: string
+          finish_multipliers?: Json
+          id?: string
+          is_active?: boolean
+          machine_hour_cop?: number
+          margin_percent?: number
+          material_multipliers?: Json
+          min_price_cop?: number
+          name?: string
+          setup_fee_cop?: number
+          updated_at?: string
+        }
+        Update: {
+          base_price_per_gram_cop?: number
+          created_at?: string
+          finish_multipliers?: Json
+          id?: string
+          is_active?: boolean
+          machine_hour_cop?: number
+          margin_percent?: number
+          material_multipliers?: Json
+          min_price_cop?: number
+          name?: string
+          setup_fee_cop?: number
           updated_at?: string
         }
         Relationships: []
@@ -441,6 +578,16 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      next_working_slot: {
+        Args: {
+          _days: number[]
+          _end_hour: number
+          _from: string
+          _start_hour: number
+          _tz: string
+        }
+        Returns: string
       }
     }
     Enums: {

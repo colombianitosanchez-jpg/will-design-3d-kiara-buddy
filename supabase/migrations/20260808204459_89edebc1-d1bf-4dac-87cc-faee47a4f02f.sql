@@ -1,0 +1,2 @@
+REVOKE ALL ON FUNCTION public.enqueue_order_notification() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.next_working_slot(timestamptz, smallint[], smallint, smallint, text) FROM PUBLIC, anon, authenticated;

@@ -5,6 +5,8 @@ import kiaraAsset from "@/assets/kiara.asset.json";
 import { useLive } from "@/lib/live-store";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 import { useKiaraChat } from "@/hooks/use-kiara-chat";
+import { KiaraQuoteCard, KiaraOrderCard } from "@/components/KiaraToolCards";
+
 
 
 export function KiaraWidget() {
@@ -97,19 +99,24 @@ export function KiaraWidget() {
             {messages.map((m) => (
               <div
                 key={m.id}
-                className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
+                className={`flex flex-col ${m.role === "user" ? "items-end" : "items-start"}`}
               >
-                <div
-                  className={`max-w-[85%] whitespace-pre-line rounded-2xl px-3 py-2 text-sm ${
-                    m.role === "user"
-                      ? "rounded-br-sm bg-[var(--brand-wine)] text-white"
-                      : "rounded-bl-sm bg-muted text-foreground"
-                  }`}
-                >
-                  {m.content}
-                </div>
+                {m.content && (
+                  <div
+                    className={`max-w-[85%] whitespace-pre-line rounded-2xl px-3 py-2 text-sm ${
+                      m.role === "user"
+                        ? "rounded-br-sm bg-[var(--brand-wine)] text-white"
+                        : "rounded-bl-sm bg-muted text-foreground"
+                    }`}
+                  >
+                    {m.content}
+                  </div>
+                )}
+                {m.tool?.name === "generate_quote" && <KiaraQuoteCard quote={m.tool.data} />}
+                {m.tool?.name === "create_order" && <KiaraOrderCard order={m.tool.data} />}
               </div>
             ))}
+
             {sending && (
               <div className="flex justify-start">
                 <div className="rounded-2xl rounded-bl-sm bg-muted px-3 py-2 text-sm text-muted-foreground">

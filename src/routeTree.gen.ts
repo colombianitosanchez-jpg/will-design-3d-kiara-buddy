@@ -30,11 +30,13 @@ import { Route as PanelLlmRouteImport } from './routes/panel.llm'
 import { Route as PanelContenidoRouteImport } from './routes/panel.contenido'
 import { Route as PanelConocimientoRouteImport } from './routes/panel.conocimiento'
 import { Route as ApiKiaraRouteImport } from './routes/api/kiara'
+import { Route as ApiCalculateQuoteRouteImport } from './routes/api/calculate-quote'
 import { Route as AdminServiciosRouteImport } from './routes/admin.servicios'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminLiveRouteImport } from './routes/admin.live'
 import { Route as AdminInventarioRouteImport } from './routes/admin.inventario'
 import { Route as AdminClientesRouteImport } from './routes/admin.clientes'
+import { Route as ApiPublicHooksProcessNotificationsRouteImport } from './routes/api/public/hooks/process-notifications'
 
 const TiendaRoute = TiendaRouteImport.update({
   id: '/tienda',
@@ -141,6 +143,11 @@ const ApiKiaraRoute = ApiKiaraRouteImport.update({
   path: '/api/kiara',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCalculateQuoteRoute = ApiCalculateQuoteRouteImport.update({
+  id: '/api/calculate-quote',
+  path: '/api/calculate-quote',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminServiciosRoute = AdminServiciosRouteImport.update({
   id: '/servicios',
   path: '/servicios',
@@ -166,6 +173,12 @@ const AdminClientesRoute = AdminClientesRouteImport.update({
   path: '/clientes',
   getParentRoute: () => AdminRoute,
 } as any)
+const ApiPublicHooksProcessNotificationsRoute =
+  ApiPublicHooksProcessNotificationsRouteImport.update({
+    id: '/api/public/hooks/process-notifications',
+    path: '/api/public/hooks/process-notifications',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -183,6 +196,7 @@ export interface FileRoutesByFullPath {
   '/admin/live': typeof AdminLiveRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/servicios': typeof AdminServiciosRoute
+  '/api/calculate-quote': typeof ApiCalculateQuoteRoute
   '/api/kiara': typeof ApiKiaraRoute
   '/panel/conocimiento': typeof PanelConocimientoRoute
   '/panel/contenido': typeof PanelContenidoRoute
@@ -194,6 +208,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/panel/': typeof PanelIndexRoute
   '/tienda/': typeof TiendaIndexRoute
+  '/api/public/hooks/process-notifications': typeof ApiPublicHooksProcessNotificationsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -208,6 +223,7 @@ export interface FileRoutesByTo {
   '/admin/live': typeof AdminLiveRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/servicios': typeof AdminServiciosRoute
+  '/api/calculate-quote': typeof ApiCalculateQuoteRoute
   '/api/kiara': typeof ApiKiaraRoute
   '/panel/conocimiento': typeof PanelConocimientoRoute
   '/panel/contenido': typeof PanelContenidoRoute
@@ -219,6 +235,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/panel': typeof PanelIndexRoute
   '/tienda': typeof TiendaIndexRoute
+  '/api/public/hooks/process-notifications': typeof ApiPublicHooksProcessNotificationsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -237,6 +254,7 @@ export interface FileRoutesById {
   '/admin/live': typeof AdminLiveRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/servicios': typeof AdminServiciosRoute
+  '/api/calculate-quote': typeof ApiCalculateQuoteRoute
   '/api/kiara': typeof ApiKiaraRoute
   '/panel/conocimiento': typeof PanelConocimientoRoute
   '/panel/contenido': typeof PanelContenidoRoute
@@ -248,6 +266,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/panel/': typeof PanelIndexRoute
   '/tienda/': typeof TiendaIndexRoute
+  '/api/public/hooks/process-notifications': typeof ApiPublicHooksProcessNotificationsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -267,6 +286,7 @@ export interface FileRouteTypes {
     | '/admin/live'
     | '/admin/pedidos'
     | '/admin/servicios'
+    | '/api/calculate-quote'
     | '/api/kiara'
     | '/panel/conocimiento'
     | '/panel/contenido'
@@ -278,6 +298,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/panel/'
     | '/tienda/'
+    | '/api/public/hooks/process-notifications'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -292,6 +313,7 @@ export interface FileRouteTypes {
     | '/admin/live'
     | '/admin/pedidos'
     | '/admin/servicios'
+    | '/api/calculate-quote'
     | '/api/kiara'
     | '/panel/conocimiento'
     | '/panel/contenido'
@@ -303,6 +325,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/panel'
     | '/tienda'
+    | '/api/public/hooks/process-notifications'
   id:
     | '__root__'
     | '/'
@@ -320,6 +343,7 @@ export interface FileRouteTypes {
     | '/admin/live'
     | '/admin/pedidos'
     | '/admin/servicios'
+    | '/api/calculate-quote'
     | '/api/kiara'
     | '/panel/conocimiento'
     | '/panel/contenido'
@@ -331,6 +355,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/panel/'
     | '/tienda/'
+    | '/api/public/hooks/process-notifications'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -344,7 +369,9 @@ export interface RootRouteChildren {
   ServiciosRoute: typeof ServiciosRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TiendaRoute: typeof TiendaRouteWithChildren
+  ApiCalculateQuoteRoute: typeof ApiCalculateQuoteRoute
   ApiKiaraRoute: typeof ApiKiaraRoute
+  ApiPublicHooksProcessNotificationsRoute: typeof ApiPublicHooksProcessNotificationsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -496,6 +523,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiKiaraRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/calculate-quote': {
+      id: '/api/calculate-quote'
+      path: '/api/calculate-quote'
+      fullPath: '/api/calculate-quote'
+      preLoaderRoute: typeof ApiCalculateQuoteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/servicios': {
       id: '/admin/servicios'
       path: '/servicios'
@@ -530,6 +564,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/clientes'
       preLoaderRoute: typeof AdminClientesRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/api/public/hooks/process-notifications': {
+      id: '/api/public/hooks/process-notifications'
+      path: '/api/public/hooks/process-notifications'
+      fullPath: '/api/public/hooks/process-notifications'
+      preLoaderRoute: typeof ApiPublicHooksProcessNotificationsRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -600,7 +641,10 @@ const rootRouteChildren: RootRouteChildren = {
   ServiciosRoute: ServiciosRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TiendaRoute: TiendaRouteWithChildren,
+  ApiCalculateQuoteRoute: ApiCalculateQuoteRoute,
   ApiKiaraRoute: ApiKiaraRoute,
+  ApiPublicHooksProcessNotificationsRoute:
+    ApiPublicHooksProcessNotificationsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
