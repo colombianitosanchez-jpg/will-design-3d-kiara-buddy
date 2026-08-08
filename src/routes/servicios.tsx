@@ -305,10 +305,24 @@ function ServiciosPage() {
                   </div>
                   <h3 className="mt-4 text-xl font-black">{c.title}</h3>
                   <p className="mt-2 text-sm text-muted-foreground">{c.lead}</p>
-                  <Link to="/contacto" className="btn-primary mt-5 text-sm">
-                    Quiero inscribirme
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
+                  {(() => {
+                    const q = quoterFor("cursos-3d");
+                    return q ? (
+                      <Link
+                        to="/cotizador"
+                        search={{ servicio: q.slug }}
+                        className="btn-primary mt-5 text-sm"
+                      >
+                        Cotizar el curso
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    ) : (
+                      <Link to="/contacto" className="btn-primary mt-5 text-sm">
+                        Quiero inscribirme
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    );
+                  })()}
                 </article>
               );
             })}
