@@ -43,6 +43,83 @@ function validateFile(file: File): string | null {
   return null;
 }
 
+// Estimación aproximada de material/tiempo según el tamaño elegido, para el
+// precio orientativo en vivo (las reglas reales viven en Panel → Reglas de precios).
+const SIZE_ESTIMATES: Record<string, { grams: number; hours: number }> = {
+  "Pequeño (hasta 10x10 cm)": { grams: 60, hours: 3 },
+  "Mediano (hasta 30x30 cm)": { grams: 260, hours: 10 },
+  [LARGE_FORMAT]: { grams: 900, hours: 30 },
+};
+
+function materialKey(label: string) {
+  const l = label.toLowerCase();
+  if (l.includes("resina")) return "Resina";
+  if (l.includes("tpu") || l.includes("flexible")) return "TPU";
+  if (l.includes("petg")) return "PETG";
+  return "PLA";
+}
+
+const FINISH_KEY: Record<Finish, string> = {
+  estandar: "Ninguno",
+  preparado: "Basico",
+  premium: "Premium",
+};
+
+/** Precio orientativo en vivo, calculado con las reglas del Panel. */
+function LiveEstimate({
+  size,
+  material,
+  finish,
+}: {
+  size: string;
+  material: string;
+  finish: Finish;
+}) {
+  const est = SIZE_ESTIMATES[size];
+  const { data, isFetching } = useQuery({
+    queryKey: ["live-estimate", size, materialKey(material), FINISH_KEY[finish]],
+    enabled: Boolean(est && material),
+    queryFn: async () => {
+      const res = await fetch("/api/calculate-quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          grams: est!.grams,
+          hours: est!.hours,
+          material: materialKey(material),
+          finish: FINISH_KEY[finish],
+          quantity: 1,
+        }),
+      });
+      if (!res.ok) throw new Error("No disponible");
+      return (await res.json()) as { quote: { total_cop: number } };
+    },
+  });
+
+  if (!est || !material) return null;
+
+  return (
+    <div className="rounded-2xl border border-[var(--brand-orange)] bg-[color-mix(in_oklab,var(--brand-orange)_8%,white)] p-4">
+      <p className="text-xs font-bold uppercase tracking-wide text-[var(--brand-wine)]">
+        Precio orientativo
+      </p>
+      <p className="mt-1 text-2xl font-black">
+        {isFetching || !data
+          ? "Calculando…"
+          : `Desde ${data.quote.total_cop.toLocaleString("es-CO", {
+              style: "currency",
+              currency: "COP",
+              maximumFractionDigits: 0,
+            })}`}
+      </p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Estimado automático para {size.toLowerCase()} en {materialKey(material)}. El precio final se
+        confirma al revisar tu archivo.
+      </p>
+    </div>
+  );
+
+
 export function Quoter() {
   const [design, setDesign] = useState("archivo");
   const [size, setSize] = useState("");
