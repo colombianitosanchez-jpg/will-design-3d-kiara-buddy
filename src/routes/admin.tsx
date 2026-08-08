@@ -22,6 +22,16 @@ import {
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
+  head: () => ({
+    meta: [
+      { title: "Administración interna · Will Design 3D" },
+      { name: "description", content: "Área privada de administración del taller. Acceso restringido al equipo." },
+      { name: "robots", content: "noindex, nofollow" },
+      { property: "og:title", content: "Administración interna · Will Design 3D" },
+      { property: "og:description", content: "Área privada de administración. Acceso restringido al equipo." },
+    ],
+  }),
+
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/auth" });
