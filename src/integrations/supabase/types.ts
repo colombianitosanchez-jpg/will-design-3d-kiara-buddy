@@ -59,6 +59,42 @@ export type Database = {
         }
         Relationships: []
       }
+      llm_providers: {
+        Row: {
+          api_key: string | null
+          base_url: string
+          created_at: string
+          id: string
+          is_active: boolean
+          model: string
+          name: string
+          priority: number
+          updated_at: string
+        }
+        Insert: {
+          api_key?: string | null
+          base_url: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          model: string
+          name: string
+          priority?: number
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string | null
+          base_url?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          model?: string
+          name?: string
+          priority?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       menu_items: {
         Row: {
           created_at: string

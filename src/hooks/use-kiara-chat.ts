@@ -17,13 +17,29 @@ export function useKiaraChat(initialGreeting: string) {
       setMessages(next);
       setSending(true);
       setError(null);
+
+      const replyId = createMessage("assistant", "").id;
+      let started = false;
+
       try {
-        const reply = await sendChat(next);
-        setMessages((prev) => [...prev, createMessage("assistant", reply)]);
+        await sendChat(next, (chunk) => {
+          if (!started) {
+            started = true;
+            setMessages((prev) => [
+              ...prev,
+              { id: replyId, role: "assistant", content: chunk, createdAt: Date.now() },
+            ]);
+            setSending(false);
+            return;
+          }
+          setMessages((prev) =>
+            prev.map((m) => (m.id === replyId ? { ...m, content: m.content + chunk } : m)),
+          );
+        });
       } catch (e) {
         setError((e as Error).message);
         setMessages((prev) => [
-          ...prev,
+          ...prev.filter((m) => m.id !== replyId || m.content.trim()),
           createMessage(
             "assistant",
             "Ups, mi conexión falló. Escríbenos por WhatsApp mientras me recompongo 🐾",
