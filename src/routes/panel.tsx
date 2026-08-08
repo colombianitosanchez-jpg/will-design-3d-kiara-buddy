@@ -19,6 +19,7 @@ import {
   Bot,
   BookOpen,
   Calculator,
+  SlidersHorizontal,
   BellRing,
 
 
