@@ -230,6 +230,14 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
     setSendError(null);
   }
 
+  // Preselección desde la URL (/cotizador?servicio=slug) o desde otra página.
+  useEffect(() => {
+    if (!initialServiceSlug || serviceId) return;
+    const match = (services ?? []).find((s) => s.slug === initialServiceSlug);
+    if (match) pick(match);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialServiceSlug, services, serviceId]);
+
   function pickFile(list: FileList | null) {
     const f = list?.[0] ?? null;
     if (!f) return;
