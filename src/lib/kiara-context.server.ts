@@ -177,6 +177,7 @@ async function buildInternalContext(): Promise<string> {
       .order("created_at", { ascending: false })
       .limit(20),
     knowledge(["internal_team", "all"]),
+    quoterBlock(),
   ]);
 
   const inventory = (products ?? []).map((p) => {
