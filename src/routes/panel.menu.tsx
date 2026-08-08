@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Plus,
@@ -10,8 +10,28 @@ import {
   ChevronUp,
   ChevronDown,
   CornerDownRight,
+  Sparkles,
+  AlertTriangle,
 } from "lucide-react";
-import { buildTree, menuHref, type MenuItemRow, type MenuNodeData } from "@/lib/menu";
+import {
+  buildTree,
+  menuHref,
+  menuTargetLabel,
+  MENU_SELECT,
+  SERVICE_ANCHORS,
+  SITE_PAGES,
+  type MenuItemRow,
+  type MenuNodeData,
+  type MenuTargetKind,
+} from "@/lib/menu";
+import {
+  buildCategoryTree,
+  flattenCategoryTree,
+  slugify,
+  type Attribute,
+  type Brand,
+  type Category,
+} from "@/lib/catalog";
 
 export const Route = createFileRoute("/panel/menu")({
   ssr: false,
@@ -21,36 +41,21 @@ export const Route = createFileRoute("/panel/menu")({
 type Row = MenuItemRow & { is_active: boolean };
 type Node = MenuNodeData & { is_active: boolean; children: Node[] };
 
-const LINK_TYPES = [
-  { value: "", label: "— Solo grupo (sin enlace) —" },
-  { value: "tienda_categoria", label: "Categoría de tienda" },
-  { value: "tienda_categoria_marca", label: "Categoría + marca (categoria::marca)" },
-  { value: "servicio_anchor", label: "Ancla en /servicios" },
-  { value: "personalizado", label: "URL personalizada" },
+const TARGETS: { value: MenuTargetKind; label: string }[] = [
+  { value: "group", label: "Solo grupo (sin enlace)" },
+  { value: "category", label: "Categoría del catálogo" },
+  { value: "category_brand", label: "Categoría + marca" },
+  { value: "attribute", label: "Atributo (color, material…)" },
+  { value: "service", label: "Servicio de /servicios" },
+  { value: "page", label: "Página del sitio" },
+  { value: "url", label: "URL personalizada" },
 ];
-
-const HELP: Record<string, string> = {
-  tienda_categoria: "Ej: filamentos → /tienda?categoria=filamentos",
-  tienda_categoria_marca: "Ej: impresoras-filamento::creality",
-  servicio_anchor: "Ej: cursos-3d-modelado → /servicios#cursos-3d-modelado",
-  personalizado: "Ej: /galeria o https://…",
-};
-
-function slugify(s: string) {
-  return s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
 
 const empty: Partial<Row> = {
   label: "",
   slug: "",
   parent_id: null,
-  link_type: null,
-  link_value: "",
+  target_kind: "group",
   display_order: 0,
   is_active: true,
 };
@@ -61,18 +66,45 @@ function flatten(nodes: Node[], depth = 0): { node: Node; depth: number }[] {
 
 function MenuAdmin() {
   const [rows, setRows] = useState<Row[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [attributes, setAttributes] = useState<Attribute[]>([]);
+  const [productCounts, setProductCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Row> | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
 
   async function load() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("menu_items")
-      .select("id,parent_id,label,slug,link_type,link_value,display_order,is_active")
-      .order("display_order", { ascending: true });
-    if (error) alert(error.message);
-    setRows((data as Row[]) ?? []);
+    const [m, c, b, a, p] = await Promise.all([
+      supabase
+        .from("menu_items")
+        .select(`${MENU_SELECT},is_active`)
+        .order("display_order", { ascending: true }),
+      supabase
+        .from("categories")
+        .select("id,slug,name,sort_order,parent_id,is_active,image_url")
+        .order("sort_order"),
+      supabase.from("brands").select("id,name,slug,logo_url,is_active,sort_order").order("sort_order"),
+      supabase
+        .from("attributes")
+        .select(
+          "id,slug,name,input_type,is_filterable,sort_order,values:attribute_values(id,attribute_id,slug,label,color_hex,sort_order)",
+        )
+        .order("sort_order"),
+      supabase.from("products").select("category_id,brand_id").eq("active", true),
+    ]);
+    if (m.error) alert(m.error.message);
+    setRows((m.data as unknown as Row[]) ?? []);
+    setCategories((c.data as Category[]) ?? []);
+    setBrands((b.data as Brand[]) ?? []);
+    setAttributes((a.data as unknown as Attribute[]) ?? []);
+    const counts: Record<string, number> = {};
+    ((p.data as any[]) ?? []).forEach((r) => {
+      if (r.category_id) counts[r.category_id] = (counts[r.category_id] ?? 0) + 1;
+    });
+    setProductCounts(counts);
     setLoading(false);
   }
 
@@ -127,13 +159,56 @@ function MenuAdmin() {
       : `¿Eliminar “${row.label}” del menú?`;
     if (!confirm(msg)) return;
     setBusy(row.id);
-    const { error } = await supabase
-      .from("menu_items")
-      .delete()
-      .in("id", [...kids, row.id]);
+    const { error } = await supabase.from("menu_items").delete().in("id", [...kids, row.id]);
     setBusy(null);
     if (error) return alert(error.message);
     load();
+  }
+
+  /** Crea/completa la rama del menú a partir del árbol de categorías, sin tocar los ítems manuales. */
+  async function generateFromCatalog() {
+    if (
+      !confirm(
+        "Se añadirán al menú las categorías que aún no estén enlazadas (no se borra ni se modifica nada de lo que ya creaste). ¿Continuar?",
+      )
+    )
+      return;
+    setGenerating(true);
+    try {
+      const existing = new Set(rows.map((r) => r.category_id).filter(Boolean) as string[]);
+      const nodes = flattenCategoryTree(buildCategoryTree(categories.filter((c) => c.is_active)));
+      /** category_id → menu_item id, para colgar las hijas del padre correcto. */
+      const menuByCategory = new Map<string, string>();
+      rows.forEach((r) => r.category_id && menuByCategory.set(r.category_id, r.id));
+      let created = 0;
+      for (const { category } of nodes) {
+        if (existing.has(category.id)) continue;
+        const parentMenuId = category.parent_id ? (menuByCategory.get(category.parent_id) ?? null) : null;
+        const siblings = rows.filter((r) => (r.parent_id ?? null) === parentMenuId);
+        const { data, error } = await supabase
+          .from("menu_items")
+          .insert({
+            label: category.name,
+            slug: slugify(`${category.slug}`),
+            parent_id: parentMenuId,
+            target_kind: "category",
+            category_id: category.id,
+            display_order: siblings.length + created + 1,
+            is_active: true,
+          })
+          .select("id")
+          .single();
+        if (error) throw error;
+        menuByCategory.set(category.id, data.id);
+        created++;
+      }
+      alert(created ? `Se añadieron ${created} ítem(s) al menú.` : "El menú ya cubre todas las categorías.");
+      load();
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setGenerating(false);
+    }
   }
 
   return (
@@ -142,16 +217,26 @@ function MenuAdmin() {
         <div>
           <h1 className="text-3xl font-black">Menú de navegación</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {rows.length} ítem{rows.length === 1 ? "" : "s"}. Organiza el menú público sin tocar
-            código.
+            {rows.length} ítem{rows.length === 1 ? "" : "s"}. Cada ítem apunta a algo real del
+            catálogo, así que los enlaces nunca se rompen.
           </p>
         </div>
-        <button
-          onClick={() => setEditing({ ...empty })}
-          className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-orange)] px-5 py-2.5 text-sm font-bold text-white hover:opacity-90"
-        >
-          <Plus className="h-4 w-4" /> Añadir ítem
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={generateFromCatalog}
+            disabled={generating}
+            className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2.5 text-sm font-bold hover:bg-muted disabled:opacity-60"
+          >
+            {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            Generar desde catálogo
+          </button>
+          <button
+            onClick={() => setEditing({ ...empty })}
+            className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-orange)] px-5 py-2.5 text-sm font-bold text-white hover:opacity-90"
+          >
+            <Plus className="h-4 w-4" /> Añadir ítem
+          </button>
+        </div>
       </div>
 
       <div className="mt-6 overflow-hidden rounded-3xl border border-border bg-card">
@@ -161,7 +246,7 @@ function MenuAdmin() {
           </div>
         ) : items.length === 0 ? (
           <div className="py-16 text-center text-sm text-muted-foreground">
-            Aún no hay ítems. Haz clic en <b>Añadir ítem</b>.
+            Aún no hay ítems. Haz clic en <b>Añadir ítem</b> o en <b>Generar desde catálogo</b>.
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -169,8 +254,8 @@ function MenuAdmin() {
               <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3">Ítem</th>
-                  <th className="px-4 py-3">Enlace</th>
-                  <th className="px-4 py-3">Nivel</th>
+                  <th className="px-4 py-3">Destino</th>
+                  <th className="px-4 py-3">Enlace final</th>
                   <th className="px-4 py-3">Visible</th>
                   <th className="px-4 py-3">Orden</th>
                   <th className="px-4 py-3"></th>
@@ -179,25 +264,27 @@ function MenuAdmin() {
               <tbody>
                 {items.map(({ node, depth }) => {
                   const href = menuHref(node);
+                  const emptyBranch =
+                    node.target_kind === "category" &&
+                    node.category_id &&
+                    !hasProductsInBranch(node.category_id, categories, productCounts);
                   return (
                     <tr key={node.id} className="border-t border-border">
                       <td className="px-4 py-3">
-                        <div
-                          className="flex items-center gap-2"
-                          style={{ paddingLeft: `${depth * 18}px` }}
-                        >
-                          {depth > 0 && (
-                            <CornerDownRight className="h-3.5 w-3.5 text-muted-foreground" />
-                          )}
-                          <span className={depth === 0 ? "font-bold" : "font-semibold"}>
-                            {node.label}
-                          </span>
+                        <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 18}px` }}>
+                          {depth > 0 && <CornerDownRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                          <span className={depth === 0 ? "font-bold" : "font-semibold"}>{node.label}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">
-                        {href ?? "— grupo —"}
+                      <td className="px-4 py-3 text-xs">
+                        {menuTargetLabel(node)}
+                        {emptyBranch && (
+                          <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                            <AlertTriangle className="h-3 w-3" /> sin productos
+                          </span>
+                        )}
                       </td>
-                      <td className="px-4 py-3 text-xs">{depth + 1}</td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">{href ?? "— grupo —"}</td>
                       <td className="px-4 py-3">
                         <button
                           onClick={() => toggleActive(node)}
@@ -263,6 +350,9 @@ function MenuAdmin() {
         <MenuModal
           item={editing}
           items={items}
+          categories={categories}
+          brands={brands}
+          attributes={attributes}
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null);
@@ -274,18 +364,39 @@ function MenuAdmin() {
   );
 }
 
+function hasProductsInBranch(
+  categoryId: string,
+  categories: Category[],
+  counts: Record<string, number>,
+): boolean {
+  const walk = (id: string, depth = 0): number => {
+    if (depth > 20) return 0;
+    return (
+      (counts[id] ?? 0) +
+      categories.filter((c) => c.parent_id === id).reduce((sum, c) => sum + walk(c.id, depth + 1), 0)
+    );
+  };
+  return walk(categoryId) > 0;
+}
+
 function MenuModal({
   item,
   items,
+  categories,
+  brands,
+  attributes,
   onClose,
   onSaved,
 }: {
   item: Partial<Row>;
   items: { node: Node; depth: number }[];
+  categories: Category[];
+  brands: Brand[];
+  attributes: Attribute[];
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [form, setForm] = useState<Partial<Row>>(item);
+  const [form, setForm] = useState<Partial<Row>>({ target_kind: "group", ...item });
   const [saving, setSaving] = useState(false);
 
   function set<K extends keyof Row>(k: K, v: Row[K]) {
@@ -293,7 +404,6 @@ function MenuModal({
   }
 
   // No permitir elegir como padre a sí mismo ni a un descendiente (evita ciclos).
-  // Cualquier otro ítem puede ser padre, sin límite de niveles.
   const blocked = new Set<string>();
   if (form.id) {
     const collect = (id: string) => {
@@ -303,7 +413,14 @@ function MenuModal({
     collect(form.id);
   }
   const parentOptions = items.filter(({ node }) => !blocked.has(node.id));
-
+  const categoryOptions = useMemo(
+    () => flattenCategoryTree(buildCategoryTree(categories)),
+    [categories],
+  );
+  const kind = (form.target_kind ?? "group") as MenuTargetKind;
+  const attributeValueOptions = attributes.flatMap((a) =>
+    a.values.map((v) => ({ id: v.id, label: `${a.name}: ${v.label}` })),
+  );
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -313,13 +430,30 @@ function MenuModal({
         label: (form.label ?? "").trim(),
         slug: (form.slug || slugify(form.label || "")).slice(0, 80),
         parent_id: form.parent_id || null,
-        link_type: form.link_type || null,
-        link_value: form.link_value?.trim() || null,
         display_order: Number(form.display_order) || 0,
         is_active: form.is_active ?? true,
+        target_kind: kind,
+        category_id: kind === "category" || kind === "category_brand" || kind === "attribute" ? form.category_id || null : null,
+        brand_id: kind === "category_brand" ? form.brand_id || null : null,
+        attribute_value_id: kind === "attribute" ? form.attribute_value_id || null : null,
+        service_anchor: kind === "service" ? form.service_anchor || null : null,
+        site_page: kind === "page" ? form.site_page || null : null,
+        custom_url: kind === "url" ? form.custom_url?.trim() || null : null,
+        // el formato antiguo queda limpio una vez migrado el ítem
+        link_type: null,
+        link_value: null,
       };
       if (!payload.label) throw new Error("El texto del ítem es obligatorio");
       if (!payload.slug) throw new Error("El slug es obligatorio");
+      if (kind === "category" && !payload.category_id)
+        throw new Error("Elige la categoría a la que apunta este ítem");
+      if (kind === "category_brand" && !payload.brand_id) throw new Error("Elige la marca");
+      if (kind === "attribute" && !payload.attribute_value_id)
+        throw new Error("Elige el atributo y su opción");
+      if (kind === "service" && !payload.service_anchor) throw new Error("Elige el servicio");
+      if (kind === "page" && !payload.site_page) throw new Error("Elige la página");
+      if (kind === "url" && !payload.custom_url) throw new Error("Escribe la URL");
+
       const q = form.id
         ? supabase.from("menu_items").update(payload).eq("id", form.id)
         : supabase.from("menu_items").insert(payload);
@@ -332,6 +466,29 @@ function MenuModal({
       setSaving(false);
     }
   }
+
+  const preview = menuHref({
+    ...(form as MenuItemRow),
+    category: categories.find((c) => c.id === form.category_id)
+      ? {
+          slug: categories.find((c) => c.id === form.category_id)!.slug,
+          name: categories.find((c) => c.id === form.category_id)!.name,
+        }
+      : null,
+    brand: brands.find((b) => b.id === form.brand_id)
+      ? {
+          slug: brands.find((b) => b.id === form.brand_id)!.slug,
+          name: brands.find((b) => b.id === form.brand_id)!.name,
+        }
+      : null,
+    value: (() => {
+      for (const a of attributes) {
+        const v = a.values.find((x) => x.id === form.attribute_value_id);
+        if (v) return { slug: v.slug, label: v.label, attribute: { slug: a.slug, name: a.name } };
+      }
+      return null;
+    })(),
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4">
@@ -376,7 +533,6 @@ function MenuModal({
                   {node.label} (nivel {depth + 1})
                 </option>
               ))}
-
             </select>
           </Field>
           <Field label="Orden">
@@ -387,32 +543,122 @@ function MenuModal({
               className={inputCls}
             />
           </Field>
-          <Field label="Tipo de enlace">
+        </div>
+
+        <Field label="¿A dónde lleva este ítem?" required>
+          <select
+            value={kind}
+            onChange={(e) => set("target_kind", e.target.value)}
+            className={inputCls}
+          >
+            {TARGETS.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        {(kind === "category" || kind === "category_brand" || kind === "attribute") && (
+          <Field label={kind === "attribute" ? "Categoría (opcional)" : "Categoría"} required={kind !== "attribute"}>
             <select
-              value={form.link_type ?? ""}
-              onChange={(e) => set("link_type", e.target.value || null)}
+              value={form.category_id ?? ""}
+              onChange={(e) => set("category_id", e.target.value || null)}
               className={inputCls}
             >
-              {LINK_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
+              <option value="">— {kind === "attribute" ? "Todo el catálogo" : "Selecciona"} —</option>
+              {categoryOptions.map(({ category: c, depth }) => (
+                <option key={c.id} value={c.id}>
+                  {"— ".repeat(depth)}
+                  {c.name}
                 </option>
               ))}
             </select>
           </Field>
-          <Field label="Valor del enlace">
-            <input
-              value={form.link_value ?? ""}
-              onChange={(e) => set("link_value", e.target.value)}
+        )}
+
+        {kind === "category_brand" && (
+          <Field label="Marca" required>
+            <select
+              value={form.brand_id ?? ""}
+              onChange={(e) => set("brand_id", e.target.value || null)}
               className={inputCls}
-              placeholder={HELP[form.link_type ?? ""] ?? "Déjalo vacío si es solo un grupo"}
+            >
+              <option value="">— Selecciona —</option>
+              {brands.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
+
+        {kind === "attribute" && (
+          <Field label="Atributo y opción" required>
+            <select
+              value={form.attribute_value_id ?? ""}
+              onChange={(e) => set("attribute_value_id", e.target.value || null)}
+              className={inputCls}
+            >
+              <option value="">— Selecciona —</option>
+              {attributeValueOptions.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
+
+        {kind === "service" && (
+          <Field label="Servicio" required>
+            <select
+              value={form.service_anchor ?? ""}
+              onChange={(e) => set("service_anchor", e.target.value || null)}
+              className={inputCls}
+            >
+              <option value="">— Selecciona —</option>
+              {SERVICE_ANCHORS.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
+
+        {kind === "page" && (
+          <Field label="Página del sitio" required>
+            <select
+              value={form.site_page ?? ""}
+              onChange={(e) => set("site_page", e.target.value || null)}
+              className={inputCls}
+            >
+              <option value="">— Selecciona —</option>
+              {SITE_PAGES.map((p) => (
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
+
+        {kind === "url" && (
+          <Field label="URL" required>
+            <input
+              value={form.custom_url ?? ""}
+              onChange={(e) => set("custom_url", e.target.value)}
+              className={inputCls}
+              placeholder="https://… o /galeria"
             />
           </Field>
-        </div>
-
-        {form.link_type && HELP[form.link_type] && (
-          <p className="mt-2 text-xs text-muted-foreground">{HELP[form.link_type]}</p>
         )}
+
+        <p className="mt-3 rounded-xl bg-muted px-3 py-2 text-xs text-muted-foreground">
+          Enlace final: <span className="font-mono">{preview ?? "— grupo, no navega —"}</span>
+        </p>
 
         <label className="mt-4 flex items-center gap-3 text-sm font-semibold">
           <input
