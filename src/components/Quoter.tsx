@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -194,7 +194,7 @@ function FieldControl({
 
 /* --------------------------------- Cotizador -------------------------------- */
 
-export function Quoter() {
+export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } = {}) {
   const { data: services, isLoading } = useQuery(quoterServicesQuery());
   const { data: content } = useQuery(siteContentQuery());
   const contact = getContactInfo(content);
@@ -229,6 +229,14 @@ export function Quoter() {
     setSent(false);
     setSendError(null);
   }
+
+  // Preselección desde la URL (/cotizador?servicio=slug) o desde otra página.
+  useEffect(() => {
+    if (!initialServiceSlug || serviceId) return;
+    const match = (services ?? []).find((s) => s.slug === initialServiceSlug);
+    if (match) pick(match);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialServiceSlug, services, serviceId]);
 
   function pickFile(list: FileList | null) {
     const f = list?.[0] ?? null;

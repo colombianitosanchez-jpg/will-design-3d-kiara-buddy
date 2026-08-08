@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import {
   Boxes,
   Wrench,
@@ -12,6 +13,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { KiaraTip } from "@/components/KiaraTip";
+import { quoterServicesQuery, formatCOP } from "@/lib/quoter";
 
 export const Route = createFileRoute("/servicios")({
   head: () => ({
@@ -177,6 +179,11 @@ const colorFor = (a: string) =>
       : "var(--brand-wine)";
 
 function ServiciosPage() {
+  const { data: quoterServices } = useQuery(quoterServicesQuery());
+  /** Servicio del cotizador vinculado a esta sección (Panel → Cotizador → Ancla). */
+  const quoterFor = (anchor: string) =>
+    (quoterServices ?? []).find((s) => s.site_anchor === anchor) ?? null;
+
   return (
     <>
       <section className="border-b border-border bg-muted/30">
@@ -228,10 +235,31 @@ function ServiciosPage() {
                     </li>
                   ))}
                 </ul>
-                <Link to="/contacto" className="btn-primary mt-6 text-sm">
-                  Cotizar este servicio
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
+                {(() => {
+                  const q = quoterFor(s.id);
+                  return q ? (
+                    <div className="mt-6 flex flex-wrap items-center gap-3">
+                      <Link
+                        to="/cotizador"
+                        search={{ servicio: q.slug }}
+                        className="btn-primary text-sm"
+                      >
+                        Cotizar en línea
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                      {q.min_price_cop > 0 && (
+                        <span className="text-xs font-semibold text-muted-foreground">
+                          Desde {formatCOP(q.min_price_cop)}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <Link to="/contacto" className="btn-primary mt-6 text-sm">
+                      Cotizar este servicio
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  );
+                })()}
               </div>
               <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
                 <div
@@ -277,10 +305,24 @@ function ServiciosPage() {
                   </div>
                   <h3 className="mt-4 text-xl font-black">{c.title}</h3>
                   <p className="mt-2 text-sm text-muted-foreground">{c.lead}</p>
-                  <Link to="/contacto" className="btn-primary mt-5 text-sm">
-                    Quiero inscribirme
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
+                  {(() => {
+                    const q = quoterFor("cursos-3d");
+                    return q ? (
+                      <Link
+                        to="/cotizador"
+                        search={{ servicio: q.slug }}
+                        className="btn-primary mt-5 text-sm"
+                      >
+                        Cotizar el curso
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    ) : (
+                      <Link to="/contacto" className="btn-primary mt-5 text-sm">
+                        Quiero inscribirme
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    );
+                  })()}
                 </article>
               );
             })}

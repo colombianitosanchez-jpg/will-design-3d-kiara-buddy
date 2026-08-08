@@ -4,19 +4,15 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export type ChatRole = "user" | "assistant";
-export type KiaraQuoteData = {
+export type KiaraServiceQuoteData = {
+  service_slug: string;
   project_name: string;
-  material: string;
-  finish: string;
+  answers: { label: string; value: string }[];
+  lines: { label: string; detail: string; amount: number }[];
   quantity: number;
-  grams: number;
-  hours: number;
-  material_cost_cop: number;
-  machine_cost_cop: number;
-  setup_fee_cop: number;
-  margin_cop: number;
   unit_price_cop: number;
   total_cop: number;
+  total_formatted: string;
 };
 export type KiaraOrderData = {
   order_id: string;
@@ -25,7 +21,7 @@ export type KiaraOrderData = {
   items: { product_name: string; quantity: number; unit_price_cop: number }[];
 };
 export type KiaraTool =
-  | { name: "generate_quote"; data: KiaraQuoteData }
+  | { name: "quote_service"; data: KiaraServiceQuoteData }
   | { name: "create_order"; data: KiaraOrderData };
 
 export type ChatMessage = {

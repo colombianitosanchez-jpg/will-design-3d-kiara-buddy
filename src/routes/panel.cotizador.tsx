@@ -182,6 +182,7 @@ function ServiceCard({
         allow_file: draft.allow_file,
         is_active: draft.is_active,
         sort_order: draft.sort_order,
+        site_anchor: draft.site_anchor.trim(),
       })
       .eq("id", draft.id);
     setSaving(false);
@@ -284,6 +285,14 @@ function ServiceCard({
                     </option>
                   ))}
                 </select>
+              </L>
+              <L label="Ancla en /servicios (ej: impresion-3d)">
+                <input
+                  value={draft.site_anchor}
+                  onChange={(e) => set("site_anchor", e.target.value)}
+                  placeholder="impresion-3d"
+                  className={inputCls}
+                />
               </L>
               <L label="Orden en la web">
                 <input

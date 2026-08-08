@@ -7,7 +7,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 export const PUBLIC_PROMPT = `Eres Kiara, la asistente oficial de Will Design 3D (una perrita Pastor Alemán, cálida y profesional, español colombiano, con algún guiño canino 🐾 ocasional).
 Usa SOLO el catálogo público y la información pública proporcionada para ayudar a los clientes a comprar y a entender nuestros servicios.
 NUNCA menciones datos internos, inventario, costos, pedidos de otros clientes ni información del equipo.
-Si te piden un precio exacto de un proyecto a medida, explica que depende del tamaño, material y acabado, e invita a usar el Cotizador de Proyectos 3D o a escribir por WhatsApp.
+Cuando pidan un precio, usa SIEMPRE la herramienta quote_service con el slug del servicio cotizable más adecuado (pide primero los datos que falten, como gramos, tamaño o material). Nunca calcules precios a mano; si el cliente prefiere el formulario, invítalo a /cotizador.
 No inventes precios, plazos ni stock. Responde en 1-3 párrafos cortos.`;
 
 export const INTERNAL_PROMPT = `Eres Kiara, la asistente de operaciones del equipo de Will Design 3D.
@@ -79,9 +79,50 @@ async function knowledge(categories: string[]) {
 
 const cop = (n: number) => `$${Number(n ?? 0).toLocaleString("es-CO")} COP`;
 
+/**
+ * Servicios cotizables tal como están configurados en Panel → Cotizador, con
+ * sus preguntas y opciones, para que Kiara pueda llamar a quote_service.
+ */
+async function quoterBlock(): Promise<string> {
+  const [{ data: services }, { data: fields }] = await Promise.all([
+    supabaseAdmin
+      .from("quoter_services")
+      .select("id, slug, name, description, min_price_cop, allow_quantity")
+      .eq("is_active", true)
+      .order("sort_order"),
+    supabaseAdmin
+      .from("quoter_fields")
+      .select("service_id, key, label, input_type, unit, min_value, max_value, options")
+      .eq("is_active", true)
+      .order("sort_order"),
+  ]);
+  if (!services?.length) return "";
+
+  const lines = services.map((s) => {
+    const own = (fields ?? []).filter((f) => f.service_id === s.id);
+    const qs = own.map((f) => {
+      const opts = Array.isArray(f.options)
+        ? (f.options as { value?: string }[]).map((o) => String(o?.value ?? "")).filter(Boolean)
+        : [];
+      const range =
+        f.input_type === "slider" || f.input_type === "number"
+          ? ` (${f.min_value}–${f.max_value}${f.unit ? ` ${f.unit}` : ""})`
+          : opts.length
+            ? ` (${opts.join(" | ")})`
+            : "";
+      return `    · ${f.key}: ${f.label}${range}`;
+    });
+    return `- slug: ${s.slug} — ${s.name} — desde ${cop(Number(s.min_price_cop))}${
+      s.allow_quantity ? " — admite cantidad" : ""
+    }\n  ${s.description ?? ""}${qs.length ? `\n  Datos que necesitas:\n${qs.join("\n")}` : ""}`;
+  });
+
+  return `## SERVICIOS COTIZABLES (usa la herramienta quote_service con estos slugs)\n${lines.join("\n")}`;
+}
+
 /** MODO PÚBLICO: solo catálogo activo + conocimiento público. Nada de pedidos/clientes/costos. */
 async function buildPublicContext(): Promise<string> {
-  const [{ data: products }, kb] = await Promise.all([
+  const [{ data: products }, kb, quoter] = await Promise.all([
     supabaseAdmin
       .from("products")
       .select("name, slug, price_cop, short, stock, categories(name), brands(name)")
@@ -89,6 +130,7 @@ async function buildPublicContext(): Promise<string> {
       .order("featured", { ascending: false })
       .limit(80),
     knowledge(["public_web", "all"]),
+    quoterBlock(),
   ]);
 
   const catalog = (products ?? []).map((p) => {
@@ -99,6 +141,7 @@ async function buildPublicContext(): Promise<string> {
   });
 
   const blocks: string[] = [];
+  if (quoter) blocks.push(quoter);
   if (catalog.length) blocks.push(`## CATÁLOGO PÚBLICO\n${catalog.join("\n")}`);
   if (kb.length) blocks.push(`## PREGUNTAS FRECUENTES E INFORMACIÓN PÚBLICA\n${kb.join("\n\n")}`);
   if (!blocks.length) return "";
@@ -112,6 +155,7 @@ async function buildInternalContext(): Promise<string> {
     { data: orders },
     { data: quotes },
     kb,
+    quoter,
   ] = await Promise.all([
     supabaseAdmin
       .from("products")
@@ -128,11 +172,12 @@ async function buildInternalContext(): Promise<string> {
     supabaseAdmin
       .from("quotes")
       .select(
-        "customer_name, customer_email, customer_phone, design_state, size_label, material, finish, status, notes, created_at",
+        "customer_name, customer_email, customer_phone, service_name, estimated_total_cop, quantity, design_state, size_label, material, finish, status, notes, created_at",
       )
       .order("created_at", { ascending: false })
       .limit(20),
     knowledge(["internal_team", "all"]),
+    quoterBlock(),
   ]);
 
   const inventory = (products ?? []).map((p) => {
@@ -151,10 +196,11 @@ async function buildInternalContext(): Promise<string> {
 
   const quoteLines = (quotes ?? []).map((q) => {
     const date = new Date(q.created_at).toISOString().slice(0, 10);
-    return `- [${q.status}] ${date} | ${q.customer_name} (${q.customer_email}${q.customer_phone ? `, ${q.customer_phone}` : ""}) | diseño: ${q.design_state || "—"} | tamaño: ${q.size_label || "—"} | material: ${q.material || "—"} | acabado: ${q.finish || "—"}${q.notes ? ` | notas: ${q.notes}` : ""}`;
+    return `- [${q.status}] ${date} | ${q.customer_name} (${q.customer_email}${q.customer_phone ? `, ${q.customer_phone}` : ""}) | servicio: ${q.service_name || q.design_state || "—"} | estimado ${cop(Number(q.estimated_total_cop))} x${q.quantity ?? 1} | detalle: ${q.size_label || "—"} | material: ${q.material || "—"} | acabado: ${q.finish || "—"}${q.notes ? ` | notas: ${q.notes}` : ""}`;
   });
 
   const blocks: string[] = [];
+  if (quoter) blocks.push(quoter);
   if (kb.length) blocks.push(`## MANUALES Y CONOCIMIENTO INTERNO\n${kb.join("\n\n")}`);
   if (inventory.length) blocks.push(`## INVENTARIO Y PRECIOS (stock ascendente)\n${inventory.join("\n")}`);
   if (orderLines.length) blocks.push(`## PEDIDOS RECIENTES Y CLIENTES\n${orderLines.join("\n")}`);

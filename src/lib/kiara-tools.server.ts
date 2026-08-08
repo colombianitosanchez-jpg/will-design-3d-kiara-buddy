@@ -1,33 +1,36 @@
 // Kiara agéntica — definición y ejecución de herramientas (function calling).
 // Server-only: nunca llega al bundle del cliente.
 
-import { calcQuote } from "@/lib/pricing";
-import { getActivePricingRules } from "@/lib/pricing.server";
+import { computeQuote, coerceAnswers, formatCOP } from "@/lib/quoter-core";
+import { getQuoterServices } from "@/lib/quoter.server";
 
 export const KIARA_TOOLS = [
   {
     type: "function" as const,
     function: {
-      name: "generate_quote",
+      name: "quote_service",
       description:
-        "Calcula el precio de una impresión 3D con las reglas de precios oficiales de Will Design 3D. Úsala en cuanto el usuario pida una cotización o un precio de un proyecto e infiere gramos y horas si el usuario describe el tamaño.",
+        "Calcula el precio oficial de cualquier servicio del cotizador (impresión FDM o resina, gran formato, diseño, escaneo, post-procesado, cursos, insumos) usando las reglas configuradas en el panel. Es la única forma válida de dar precios: nunca los inventes.",
       parameters: {
         type: "object",
         properties: {
-          material: {
+          service_slug: {
             type: "string",
-            description: "Material: PLA, PETG, ABS, TPU o Resina",
+            description:
+              "Slug o nombre del servicio del cotizador, por ejemplo impresion-fdm o diseno-3d.",
           },
-          estimated_grams: { type: "number", description: "Gramos estimados de material" },
-          print_time: { type: "number", description: "Horas estimadas de impresión" },
-          finish: { type: "string", description: "Acabado: Ninguno, Basico o Premium" },
+          answers: {
+            type: "object",
+            description:
+              "Respuestas por clave o etiqueta de la pregunta, por ejemplo {\"peso_gramos\": 120, \"material\": \"PETG\", \"urgente\": \"si\"}.",
+          },
           quantity: { type: "number", description: "Cantidad de unidades" },
-          project_name: { type: "string", description: "Nombre corto del proyecto" },
         },
-        required: ["material", "estimated_grams", "print_time"],
+        required: ["service_slug"],
       },
     },
   },
+
   {
     type: "function" as const,
     function: {
@@ -64,7 +67,7 @@ export const KIARA_TOOLS = [
 ];
 
 export const TOOL_INSTRUCTIONS = `\n\nHERRAMIENTAS:
-- Si el usuario pide un precio o cotización de una impresión, llama a generate_quote (estima gramos y horas a partir de su descripción si no los da). No inventes precios manualmente.
+- Para cualquier precio o cotización usa quote_service con el servicio más parecido a lo que pide el usuario. Nunca calcules ni inventes precios por tu cuenta.
 - Llama a create_order solo cuando tengas nombre, correo, dirección y el detalle del pedido confirmado por el usuario.
 - Después de una herramienta, comenta el resultado en 1-2 frases cálidas; la tarjeta con el detalle se muestra automáticamente.`;
 
@@ -78,6 +81,14 @@ function money(n: number) {
   });
 }
 
+const slugify = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+
 export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolOutcome> {
   let args: Record<string, unknown> = {};
   try {
@@ -86,25 +97,43 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
     args = {};
   }
 
-  if (name === "generate_quote") {
-    const rules = await getActivePricingRules();
-    const quote = calcQuote(rules, {
-      grams: Number(args.estimated_grams) || 0,
-      hours: Number(args.print_time) || 0,
-      material: typeof args.material === "string" ? args.material : "PLA",
-      finish: typeof args.finish === "string" ? args.finish : "Ninguno",
-      quantity: Number(args.quantity) || 1,
-    });
-    const projectName =
-      typeof args.project_name === "string" && args.project_name.trim()
-        ? args.project_name.trim()
-        : "Tu proyecto 3D";
+
+
+
+  if (name === "quote_service" || name === "generate_quote") {
+    const services = await getQuoterServices();
+    if (services.length === 0)
+      return { text: "Aún no tengo servicios configurados para cotizar.", data: null };
+
+    const wanted = slugify(String(args.service_slug ?? args.material ?? ""));
+    const service =
+      services.find((s) => s.slug === wanted) ??
+      services.find((s) => slugify(s.name) === wanted) ??
+      services.find((s) => wanted && (s.slug.includes(wanted) || slugify(s.name).includes(wanted))) ??
+      services[0]!;
+
+    const rawAnswers =
+      args.answers && typeof args.answers === "object"
+        ? (args.answers as Record<string, unknown>)
+        : (args as Record<string, unknown>);
+    const values = coerceAnswers(service, rawAnswers);
+    const quote = computeQuote(service, values, Number(args.quantity) || 1);
 
     return {
-      text: `Listo 🐾 Te preparé una cotización estimada de ${money(quote.total_cop)}.`,
-      data: { ...quote, project_name: projectName },
+      text: `Listo 🐾 ${service.name}: cotización estimada de ${money(quote.total_cop)}.`,
+      data: {
+        service_slug: service.slug,
+        project_name: service.name,
+        answers: quote.answers,
+        lines: quote.lines,
+        quantity: quote.quantity,
+        unit_price_cop: quote.unit_price_cop,
+        total_cop: quote.total_cop,
+        total_formatted: formatCOP(quote.total_cop),
+      },
     };
   }
+
 
   if (name === "create_order") {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -218,7 +247,10 @@ export function interceptToolStream(
           if (result.text) {
             emit({ choices: [{ delta: { content: (sawContent ? "\n\n" : "") + result.text } }] });
           }
-          if (result.data) emit({ kiara_tool: { name: toolName, data: result.data } });
+          if (result.data) {
+            const cardName = toolName === "generate_quote" ? "quote_service" : toolName;
+            emit({ kiara_tool: { name: cardName, data: result.data } });
+          }
         }
 
         controller.enqueue(enc.encode("data: [DONE]\n\n"));

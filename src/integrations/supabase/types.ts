@@ -782,6 +782,7 @@ export type Database = {
           margin_percent: number
           min_price_cop: number
           name: string
+          site_anchor: string
           slug: string
           sort_order: number
           tagline: string
@@ -799,6 +800,7 @@ export type Database = {
           margin_percent?: number
           min_price_cop?: number
           name: string
+          site_anchor?: string
           slug: string
           sort_order?: number
           tagline?: string
@@ -816,6 +818,7 @@ export type Database = {
           margin_percent?: number
           min_price_cop?: number
           name?: string
+          site_anchor?: string
           slug?: string
           sort_order?: number
           tagline?: string

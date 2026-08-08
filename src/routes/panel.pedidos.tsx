@@ -65,11 +65,17 @@ function PedidosAdmin() {
   );
 }
 
+type QuoteAnswer = { label: string; value: string };
+
 type Quote = {
   id: string;
   customer_name: string;
   customer_email: string;
   customer_phone: string | null;
+  service_name: string;
+  answers: QuoteAnswer[] | null;
+  quantity: number;
+  estimated_total_cop: number;
   design_state: string;
   size_label: string;
   length_cm: number | null;
@@ -84,10 +90,20 @@ type Quote = {
   created_at: string;
 };
 
+const QUOTE_STATUSES = ["nueva", "cotizada", "aprobada", "rechazada"] as const;
+
+const quoteStatusColors: Record<string, string> = {
+  nueva: "bg-yellow-100 text-yellow-800",
+  cotizada: "bg-blue-100 text-blue-800",
+  aprobada: "bg-green-100 text-green-800",
+  rechazada: "bg-red-100 text-red-800",
+};
+
 function QuotesTab() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState<Record<string, boolean>>({});
+  const [filter, setFilter] = useState<"todos" | (typeof QUOTE_STATUSES)[number]>("todos");
 
   useEffect(() => {
     (async () => {
@@ -100,6 +116,12 @@ function QuotesTab() {
     })();
   }, []);
 
+  async function updateStatus(id: string, status: string) {
+    const { error } = await supabase.from("quotes").update({ status }).eq("id", id);
+    if (error) return alert(error.message);
+    setQuotes((qs) => qs.map((q) => (q.id === id ? { ...q, status } : q)));
+  }
+
   async function download(q: Quote) {
     if (!q.file_path) return;
     const { data, error } = await supabase.storage
@@ -109,33 +131,54 @@ function QuotesTab() {
     window.open(data.signedUrl, "_blank");
   }
 
+  const filtered = filter === "todos" ? quotes : quotes.filter((q) => q.status === filter);
+  const pipeline = filtered.reduce((s, q) => s + (Number(q.estimated_total_cop) || 0), 0);
+
   return (
     <>
-      <h1 className="text-3xl font-black">Cotizaciones 3D</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        {quotes.length} cotización{quotes.length === 1 ? "" : "es"} enviada
-        {quotes.length === 1 ? "" : "s"} desde el Cotizador de Proyectos 3D.
-      </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-black">Cotizaciones 3D</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {filtered.length} cotización{filtered.length === 1 ? "" : "es"} · valor estimado{" "}
+            <strong>{formatCOP(pipeline)}</strong>
+          </p>
+        </div>
+        <select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value as typeof filter)}
+          className="rounded-full border border-input bg-background px-4 py-2 text-sm"
+        >
+          <option value="todos">Todos los estados</option>
+          {QUOTE_STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <div className="mt-6 rounded-3xl border border-border bg-card">
         {loading ? (
           <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Cargando…
           </div>
-        ) : quotes.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="py-16 text-center text-sm text-muted-foreground">
             Todavía no hay cotizaciones.
           </div>
         ) : (
           <ul className="divide-y divide-border">
-            {quotes.map((q) => {
+            {filtered.map((q) => {
               const isOpen = !!open[q.id];
+              const answers = Array.isArray(q.answers) ? q.answers : [];
               return (
                 <li key={q.id} className="p-4 sm:p-5">
                   <div className="flex flex-wrap items-center gap-3">
                     <button
                       onClick={() => setOpen((s) => ({ ...s, [q.id]: !s[q.id] }))}
                       className="rounded-lg p-1 hover:bg-muted"
+                      aria-label="Ver detalle"
                     >
                       {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                     </button>
@@ -146,8 +189,27 @@ function QuotesTab() {
                       </p>
                     </div>
                     <span className="rounded-full bg-muted px-3 py-1 text-xs font-semibold">
-                      {q.size_label || "—"}
+                      {q.service_name || q.size_label || "—"}
                     </span>
+                    <p className="font-bold">{formatCOP(Number(q.estimated_total_cop) || 0)}</p>
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        quoteStatusColors[q.status] ?? "bg-muted"
+                      }`}
+                    >
+                      {q.status}
+                    </span>
+                    <select
+                      value={q.status}
+                      onChange={(e) => updateStatus(q.id, e.target.value)}
+                      className="rounded-full border border-input bg-background px-3 py-1.5 text-xs font-semibold"
+                    >
+                      {QUOTE_STATUSES.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
                     {q.file_path && (
                       <button
                         onClick={() => download(q)}
@@ -160,27 +222,54 @@ function QuotesTab() {
 
                   {isOpen && (
                     <div className="mt-4 grid gap-4 rounded-2xl bg-muted/40 p-4 md:grid-cols-2">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Configuración elegida
+                        </p>
+                        <ul className="mt-2 space-y-1 text-sm">
+                          {answers.length === 0 ? (
+                            <li className="text-muted-foreground">
+                              {q.size_label || q.design_state || "—"}
+                            </li>
+                          ) : (
+                            answers.map((a, i) => (
+                              <li key={`${a.label}-${i}`} className="flex justify-between gap-3">
+                                <span className="text-muted-foreground">{a.label}</span>
+                                <span className="font-semibold">{a.value}</span>
+                              </li>
+                            ))
+                          )}
+                          <li className="flex justify-between gap-3 border-t border-dashed border-border pt-1">
+                            <span className="text-muted-foreground">Cantidad</span>
+                            <span className="font-semibold">{q.quantity || 1}</span>
+                          </li>
+                        </ul>
+                      </div>
                       <div className="space-y-1 text-sm">
-                        <p><strong>Diseño:</strong> {q.design_state || "—"}</p>
-                        <p><strong>Tamaño:</strong> {q.size_label || "—"}</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Cliente y archivo
+                        </p>
+                        {q.customer_phone && (
+                          <p>
+                            <strong>WhatsApp:</strong> {q.customer_phone}
+                          </p>
+                        )}
+                        {(q.material || q.finish) && (
+                          <p>
+                            <strong>Material / acabado:</strong> {q.material || "—"} ·{" "}
+                            {q.finish || "—"}
+                          </p>
+                        )}
                         {(q.length_cm || q.width_cm || q.height_cm) && (
                           <p>
                             <strong>Medidas:</strong> {q.length_cm ?? "?"} × {q.width_cm ?? "?"} ×{" "}
                             {q.height_cm ?? "?"} cm
                           </p>
                         )}
-                        <p><strong>Material:</strong> {q.material || "—"}</p>
-                        <p><strong>Acabado:</strong> {q.finish || "—"}</p>
-                      </div>
-                      <div className="space-y-1 text-sm">
-                        {q.customer_phone && <p><strong>Tel:</strong> {q.customer_phone}</p>}
                         <p>
-                          <strong>Archivo:</strong>{" "}
-                          {q.file_name ? q.file_name : "sin archivo adjunto"}
+                          <strong>Archivo:</strong> {q.file_name ? q.file_name : "sin adjunto"}
                         </p>
-                        {q.notes && (
-                          <p className="italic text-muted-foreground">Notas: {q.notes}</p>
-                        )}
+                        {q.notes && <p className="italic text-muted-foreground">Notas: {q.notes}</p>}
                       </div>
                     </div>
                   )}

@@ -15,6 +15,7 @@ import { Route as ServiciosRouteImport } from './routes/servicios'
 import { Route as PanelRouteImport } from './routes/panel'
 import { Route as NosotrosRouteImport } from './routes/nosotros'
 import { Route as GaleriaRouteImport } from './routes/galeria'
+import { Route as CotizadorRouteImport } from './routes/cotizador'
 import { Route as ContactoRouteImport } from './routes/contacto'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -70,6 +71,11 @@ const NosotrosRoute = NosotrosRouteImport.update({
 const GaleriaRoute = GaleriaRouteImport.update({
   id: '/galeria',
   path: '/galeria',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CotizadorRoute = CotizadorRouteImport.update({
+  id: '/cotizador',
+  path: '/cotizador',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactoRoute = ContactoRouteImport.update({
@@ -209,6 +215,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/contacto': typeof ContactoRoute
+  '/cotizador': typeof CotizadorRoute
   '/galeria': typeof GaleriaRoute
   '/nosotros': typeof NosotrosRoute
   '/panel': typeof PanelRouteWithChildren
@@ -242,6 +249,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/contacto': typeof ContactoRoute
+  '/cotizador': typeof CotizadorRoute
   '/galeria': typeof GaleriaRoute
   '/nosotros': typeof NosotrosRoute
   '/servicios': typeof ServiciosRoute
@@ -275,6 +283,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/contacto': typeof ContactoRoute
+  '/cotizador': typeof CotizadorRoute
   '/galeria': typeof GaleriaRoute
   '/nosotros': typeof NosotrosRoute
   '/panel': typeof PanelRouteWithChildren
@@ -311,6 +320,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/contacto'
+    | '/cotizador'
     | '/galeria'
     | '/nosotros'
     | '/panel'
@@ -344,6 +354,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/contacto'
+    | '/cotizador'
     | '/galeria'
     | '/nosotros'
     | '/servicios'
@@ -376,6 +387,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/contacto'
+    | '/cotizador'
     | '/galeria'
     | '/nosotros'
     | '/panel'
@@ -411,6 +423,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
   ContactoRoute: typeof ContactoRoute
+  CotizadorRoute: typeof CotizadorRoute
   GaleriaRoute: typeof GaleriaRoute
   NosotrosRoute: typeof NosotrosRoute
   PanelRoute: typeof PanelRouteWithChildren
@@ -464,6 +477,13 @@ declare module '@tanstack/react-router' {
       path: '/galeria'
       fullPath: '/galeria'
       preLoaderRoute: typeof GaleriaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cotizador': {
+      id: '/cotizador'
+      path: '/cotizador'
+      fullPath: '/cotizador'
+      preLoaderRoute: typeof CotizadorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contacto': {
@@ -719,6 +739,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
   ContactoRoute: ContactoRoute,
+  CotizadorRoute: CotizadorRoute,
   GaleriaRoute: GaleriaRoute,
   NosotrosRoute: NosotrosRoute,
   PanelRoute: PanelRouteWithChildren,
@@ -733,13 +754,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

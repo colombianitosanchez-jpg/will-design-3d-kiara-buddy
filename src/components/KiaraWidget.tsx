@@ -112,7 +112,7 @@ export function KiaraWidget() {
                     {m.content}
                   </div>
                 )}
-                {m.tool?.name === "generate_quote" && <KiaraQuoteCard quote={m.tool.data} />}
+                {m.tool?.name === "quote_service" && <KiaraQuoteCard quote={m.tool.data} />}
                 {m.tool?.name === "create_order" && <KiaraOrderCard order={m.tool.data} />}
               </div>
             ))}
