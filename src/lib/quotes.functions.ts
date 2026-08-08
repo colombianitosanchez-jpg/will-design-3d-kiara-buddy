@@ -1,10 +1,20 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
+const answerSchema = z.object({
+  label: z.string().trim().max(160),
+  value: z.string().trim().max(300),
+});
+
 const schema = z.object({
   customer_name: z.string().trim().min(2).max(120),
   customer_email: z.string().trim().email().max(160),
   customer_phone: z.string().trim().max(40).optional().default(""),
+  service_id: z.string().uuid().nullable().optional().default(null),
+  service_name: z.string().trim().max(160).optional().default(""),
+  answers: z.array(answerSchema).max(60).optional().default([]),
+  quantity: z.number().int().min(1).max(10000).optional().default(1),
+  estimated_total_cop: z.number().min(0).max(1_000_000_000).optional().default(0),
   design_state: z.string().trim().max(160).default(""),
   size_label: z.string().trim().max(160).default(""),
   length_cm: z.number().positive().max(10000).nullable().optional().default(null),
@@ -29,6 +39,11 @@ export const createQuoteRequest = createServerFn({ method: "POST" })
         customer_name: data.customer_name,
         customer_email: data.customer_email,
         customer_phone: data.customer_phone || null,
+        service_id: data.service_id,
+        service_name: data.service_name,
+        answers: data.answers,
+        quantity: data.quantity,
+        estimated_total_cop: data.estimated_total_cop,
         design_state: data.design_state,
         size_label: data.size_label,
         length_cm: data.length_cm,
