@@ -157,3 +157,32 @@
   .reveal { opacity: 1; transform: none; transition: none; }
 }
 
+
+/* Contenido enriquecido creado en el editor visual del Panel */
+.rich-text, .prose-editor {
+  line-height: 1.65;
+}
+.rich-text h2, .prose-editor h2 {
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin: 1.1em 0 0.4em;
+  color: var(--foreground);
+}
+.rich-text h3, .prose-editor h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 1em 0 0.35em;
+  color: var(--foreground);
+}
+.rich-text p, .prose-editor p { margin: 0.55em 0; }
+.rich-text strong, .prose-editor strong { font-weight: 700; color: var(--foreground); }
+.rich-text ul, .prose-editor ul { list-style: disc; padding-left: 1.35rem; margin: 0.55em 0; }
+.rich-text ol, .prose-editor ol { list-style: decimal; padding-left: 1.35rem; margin: 0.55em 0; }
+.rich-text li, .prose-editor li { margin: 0.2em 0; }
+.rich-text blockquote, .prose-editor blockquote {
+  border-left: 3px solid var(--brand-orange);
+  padding-left: 0.85rem;
+  font-style: italic;
+  margin: 0.7em 0;
+}
+.rich-text a { color: var(--brand-teal-deep); text-decoration: underline; }
