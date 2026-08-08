@@ -122,13 +122,14 @@ function LlmAdmin() {
 
     setBusy(true);
     setMsg(null);
-
+    try {
       await save({
         data: {
           id: draft.id,
-          name: draft.name,
-          base_url: draft.base_url,
-          model: draft.model,
+          name,
+          base_url,
+          model,
+
           api_key: draft.api_key || null,
           priority: draft.priority,
           is_active: draft.is_active,
