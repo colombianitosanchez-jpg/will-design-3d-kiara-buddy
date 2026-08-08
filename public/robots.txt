@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /panel
+Disallow: /auth
+
+Sitemap: https://will-design-3d.lovable.app/sitemap.xml

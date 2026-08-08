@@ -19,14 +19,23 @@ import { productsQuery, siteContentQuery } from "@/lib/catalog";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Will Design 3D — Impresión 3D de gran formato en Bogotá" },
+      { title: "Impresión 3D de gran formato en Bogotá | Will Design 3D" },
       {
         name: "description",
         content:
-          "Especialistas en impresión 3D de gran formato en Bogotá. Diseño, post-procesado, venta de equipos e insumos, mantenimiento técnico. Supervisado por Kiara 🐾.",
+          "Taller de impresión 3D de gran formato en Bogotá: piezas a pedido, diseño, post-procesado, venta de equipos e insumos y mantenimiento técnico.",
       },
+      { property: "og:title", content: "Impresión 3D de gran formato en Bogotá | Will Design 3D" },
+      {
+        property: "og:description",
+        content:
+          "Piezas 3D de gran formato, diseño, post-procesado, equipos e insumos y mantenimiento técnico en Bogotá.",
+      },
+      { property: "og:url", content: "https://will-design-3d.lovable.app/" },
     ],
+    links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/" }],
   }),
+
   loader: ({ context }) => {
     context.queryClient.prefetchQuery(productsQuery());
     context.queryClient.prefetchQuery(siteContentQuery());

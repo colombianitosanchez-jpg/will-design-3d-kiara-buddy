@@ -23,7 +23,7 @@ export const Route = createFileRoute("/tienda/")({
   }),
   head: () => ({
     meta: [
-      { title: "Tienda 3D — Impresoras, filamentos y accesorios | Will Design 3D" },
+      { title: "Tienda 3D — Impresoras, filamentos y accesorios" },
       {
         name: "description",
         content:
@@ -31,8 +31,11 @@ export const Route = createFileRoute("/tienda/")({
       },
       { property: "og:title", content: "Tienda 3D — Will Design 3D" },
       { property: "og:description", content: "Impresoras, filamentos, resinas, repuestos y accesorios 3D con asesoría técnica en Bogotá." },
+      { property: "og:url", content: "https://will-design-3d.lovable.app/tienda" },
     ],
+    links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/tienda" }],
   }),
+
   loader: ({ context }) => {
     context.queryClient.prefetchQuery(productsQuery());
     context.queryClient.prefetchQuery(categoriesQuery());
