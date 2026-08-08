@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { ArrowLeft, MessageCircle, ShieldCheck, Truck, Loader2, ShoppingBag, X, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Calculator, MessageCircle, ShieldCheck, Truck, Loader2, ShoppingBag, X, CheckCircle2 } from "lucide-react";
 import { createOrderRequest } from "@/lib/orders.functions";
 import {
   formatCOP,
