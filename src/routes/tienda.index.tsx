@@ -17,9 +17,11 @@ import {
 import { ProductCard } from "@/components/ProductCard";
 
 export const Route = createFileRoute("/tienda/")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    categoria: typeof search.categoria === "string" ? search.categoria : undefined,
-    marca: typeof search.marca === "string" ? search.marca : undefined,
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { categoria?: string; marca?: string } => ({
+    ...(typeof search.categoria === "string" ? { categoria: search.categoria } : {}),
+    ...(typeof search.marca === "string" ? { marca: search.marca } : {}),
   }),
   head: () => ({
     meta: [
