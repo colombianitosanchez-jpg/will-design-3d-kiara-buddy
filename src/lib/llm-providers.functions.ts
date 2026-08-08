@@ -72,8 +72,7 @@ export const saveLlmProvider = createServerFn({ method: "POST" })
     };
 
     if (data.id) {
-      const patch: Record<string, unknown> = { ...base };
-      if (data.api_key) patch.api_key = data.api_key;
+      const patch = { ...base, ...(data.api_key ? { api_key: data.api_key } : {}) };
       const { error } = await supabaseAdmin.from("llm_providers").update(patch).eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true, id: data.id };
