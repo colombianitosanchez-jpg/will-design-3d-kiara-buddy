@@ -1,33 +1,45 @@
 // Kiara agéntica — definición y ejecución de herramientas (function calling).
 // Server-only: nunca llega al bundle del cliente.
 
-import { calcQuote } from "@/lib/pricing";
-import { getActivePricingRules } from "@/lib/pricing.server";
+import { computeQuote, coerceAnswers, formatCOP } from "@/lib/quoter-core";
+import { getQuoterServices } from "@/lib/quoter.server";
 
 export const KIARA_TOOLS = [
   {
     type: "function" as const,
     function: {
-      name: "generate_quote",
+      name: "list_quoter_services",
       description:
-        "Calcula el precio de una impresión 3D con las reglas de precios oficiales de Will Design 3D. Úsala en cuanto el usuario pida una cotización o un precio de un proyecto e infiere gramos y horas si el usuario describe el tamaño.",
+        "Lista los servicios cotizables de Will Design 3D con sus preguntas, unidades y opciones, tal como están configurados en el panel. Úsala antes de cotizar si no sabes qué servicio o qué datos pedir.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "quote_service",
+      description:
+        "Calcula el precio oficial de cualquier servicio del cotizador (impresión FDM o resina, gran formato, diseño, escaneo, post-procesado, cursos, insumos) usando las reglas configuradas en el panel. Es la única forma válida de dar precios: nunca los inventes.",
       parameters: {
         type: "object",
         properties: {
-          material: {
+          service_slug: {
             type: "string",
-            description: "Material: PLA, PETG, ABS, TPU o Resina",
+            description:
+              "Slug o nombre del servicio, tal como lo devuelve list_quoter_services (por ejemplo impresion-fdm).",
           },
-          estimated_grams: { type: "number", description: "Gramos estimados de material" },
-          print_time: { type: "number", description: "Horas estimadas de impresión" },
-          finish: { type: "string", description: "Acabado: Ninguno, Basico o Premium" },
+          answers: {
+            type: "object",
+            description:
+              "Respuestas por clave o etiqueta de la pregunta, por ejemplo {\"peso_gramos\": 120, \"material\": \"PETG\", \"urgente\": \"si\"}.",
+          },
           quantity: { type: "number", description: "Cantidad de unidades" },
-          project_name: { type: "string", description: "Nombre corto del proyecto" },
         },
-        required: ["material", "estimated_grams", "print_time"],
+        required: ["service_slug"],
       },
     },
   },
+
   {
     type: "function" as const,
     function: {
