@@ -95,9 +95,34 @@ function LlmAdmin() {
 
   async function submitDraft() {
     if (!draft) return;
+
+    const name = draft.name.trim();
+    const base_url = draft.base_url.trim();
+    const model = draft.model.trim();
+
+    if (name.length < 2) {
+      setMsg("Error: el nombre debe tener al menos 2 caracteres.");
+      return;
+    }
+    let validUrl = false;
+    try {
+      const u = new URL(base_url);
+      validUrl = u.protocol === "http:" || u.protocol === "https:";
+    } catch {
+      validUrl = false;
+    }
+    if (!validUrl) {
+      setMsg("Error: la URL base debe ser completa, ej: https://openrouter.ai/api/v1");
+      return;
+    }
+    if (!model) {
+      setMsg("Error: escribe el nombre del modelo (ej: gpt-4o-mini).");
+      return;
+    }
+
     setBusy(true);
     setMsg(null);
-    try {
+
       await save({
         data: {
           id: draft.id,
