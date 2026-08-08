@@ -182,6 +182,7 @@ function ServiceCard({
         allow_file: draft.allow_file,
         is_active: draft.is_active,
         sort_order: draft.sort_order,
+        site_anchor: draft.site_anchor.trim(),
       })
       .eq("id", draft.id);
     setSaving(false);
