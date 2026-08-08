@@ -37,6 +37,13 @@ function MenuNode({ node, onNavigate }: { node: MenuNodeData; onNavigate?: () =>
           {node.label}
         </DropdownMenuSubTrigger>
         <DropdownMenuSubContent className="min-w-48">
+          {href && (
+            <DropdownMenuItem asChild className="text-sm font-semibold">
+              <a href={href} onClick={onNavigate}>
+                Ver todo: {node.label}
+              </a>
+            </DropdownMenuItem>
+          )}
           {node.children.map((child) => (
             <MenuNode key={child.id} node={child} onNavigate={onNavigate} />
           ))}
@@ -44,6 +51,7 @@ function MenuNode({ node, onNavigate }: { node: MenuNodeData; onNavigate?: () =>
       </DropdownMenuSub>
     );
   }
+
   if (!href) {
     return (
       <DropdownMenuItem disabled className="text-sm">
