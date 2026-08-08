@@ -25,25 +25,65 @@ export const Route = createFileRoute("/tienda/$slug")({
     context.queryClient.prefetchQuery(productsQuery());
     return { product };
   },
-  head: ({ loaderData }) => ({
-    meta: loaderData
-      ? [
-          { title: `${loaderData.product.name} — Will Design 3D` },
-          { name: "description", content: loaderData.product.short },
-          { property: "og:title", content: `${loaderData.product.name} — Will Design 3D` },
-          { property: "og:description", content: loaderData.product.short },
-          ...(loaderData.product.image_url
-            ? [
-                { property: "og:image", content: loaderData.product.image_url },
-                { name: "twitter:image", content: loaderData.product.image_url },
-              ]
-            : []),
-        ]
-      : [
+  head: ({ params, loaderData }) => {
+    if (!loaderData) {
+      return {
+        meta: [
           { title: "Producto no encontrado — Will Design 3D" },
           { name: "robots", content: "noindex" },
         ],
-  }),
+      };
+    }
+    const p = loaderData.product;
+    const url = `https://will-design-3d.lovable.app/tienda/${params.slug}`;
+    const base = (p.short || p.description || "").trim();
+    const description = (
+      base.length >= 50
+        ? base
+        : `${p.name} disponible en Will Design 3D, Bogotá. ${base} Asesoría técnica y envíos a todo el país.`
+    ).slice(0, 160);
+    const image = p.image_url || p.images?.[0] || null;
+    return {
+      meta: [
+        { title: `${p.name} — Will Design 3D` },
+        { name: "description", content: description },
+        { property: "og:title", content: `${p.name} — Will Design 3D` },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "product" },
+        { property: "og:url", content: url },
+        ...(image
+          ? [
+              { property: "og:image", content: image },
+              { name: "twitter:image", content: image },
+            ]
+          : []),
+      ],
+      links: [{ rel: "canonical", href: url }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Product",
+            name: p.name,
+            description,
+            ...(image ? { image: [image] } : {}),
+            ...(p.sku ? { sku: p.sku } : {}),
+            ...(p.brand?.name ? { brand: { "@type": "Brand", name: p.brand.name } } : {}),
+            offers: {
+              "@type": "Offer",
+              url,
+              priceCurrency: "COP",
+              price: p.price_cop,
+              availability:
+                p.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+            },
+          }),
+        },
+      ],
+    };
+  },
+
   notFoundComponent: ProductNotFound,
   errorComponent: ({ error }) => (
     <div className="mx-auto max-w-2xl px-4 py-24 text-center">
