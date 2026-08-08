@@ -37,6 +37,13 @@ function MenuNode({ node, onNavigate }: { node: MenuNodeData; onNavigate?: () =>
           {node.label}
         </DropdownMenuSubTrigger>
         <DropdownMenuSubContent className="min-w-48">
+          {href && (
+            <DropdownMenuItem asChild className="text-sm font-semibold">
+              <a href={href} onClick={onNavigate}>
+                Ver todo: {node.label}
+              </a>
+            </DropdownMenuItem>
+          )}
           {node.children.map((child) => (
             <MenuNode key={child.id} node={child} onNavigate={onNavigate} />
           ))}
@@ -44,6 +51,7 @@ function MenuNode({ node, onNavigate }: { node: MenuNodeData; onNavigate?: () =>
       </DropdownMenuSub>
     );
   }
+
   if (!href) {
     return (
       <DropdownMenuItem disabled className="text-sm">
@@ -62,6 +70,19 @@ function MenuNode({ node, onNavigate }: { node: MenuNodeData; onNavigate?: () =>
 
 function DesktopRoot({ node }: { node: MenuNodeData }) {
   const [open, setOpen] = useState(false);
+  const href = menuHref(node);
+
+  if (node.children.length === 0) {
+    if (!href) {
+      return <span className={`${linkClass} opacity-60`}>{node.label}</span>;
+    }
+    return (
+      <a href={href} className={linkClass}>
+        {node.label}
+      </a>
+    );
+  }
+
   return (
     <div onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
       <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -70,6 +91,13 @@ function DesktopRoot({ node }: { node: MenuNodeData }) {
           <ChevronDown className="h-3.5 w-3.5" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={6} className="min-w-52">
+          {href && (
+            <DropdownMenuItem asChild className="text-sm font-semibold">
+              <a href={href} onClick={() => setOpen(false)}>
+                Ver todo: {node.label}
+              </a>
+            </DropdownMenuItem>
+          )}
           {node.children.map((child) => (
             <MenuNode key={child.id} node={child} onNavigate={() => setOpen(false)} />
           ))}
@@ -78,6 +106,7 @@ function DesktopRoot({ node }: { node: MenuNodeData }) {
     </div>
   );
 }
+
 
 /** Recursive accordion renderer (mobile). */
 function MobileNode({
@@ -110,11 +139,22 @@ function MobileNode({
         </button>
         {expanded && (
           <div className="flex flex-col gap-1">
+            {href && (
+              <a
+                href={href}
+                onClick={onNavigate}
+                style={{ paddingLeft: `${12 + (depth + 1) * 14}px` }}
+                className="block rounded-lg py-2 pr-3 text-sm font-semibold hover:bg-muted"
+              >
+                Ver todo: {node.label}
+              </a>
+            )}
             {node.children.map((child) => (
               <MobileNode key={child.id} node={child} depth={depth + 1} onNavigate={onNavigate} />
             ))}
           </div>
         )}
+
       </div>
     );
   }

@@ -292,7 +292,8 @@ function MenuModal({
     setForm((f) => ({ ...f, [k]: v }));
   }
 
-  // No permitir elegir como padre a sí mismo ni a un descendiente, ni pasar de 3 niveles
+  // No permitir elegir como padre a sí mismo ni a un descendiente (evita ciclos).
+  // Cualquier otro ítem puede ser padre, sin límite de niveles.
   const blocked = new Set<string>();
   if (form.id) {
     const collect = (id: string) => {
@@ -301,7 +302,8 @@ function MenuModal({
     };
     collect(form.id);
   }
-  const parentOptions = items.filter(({ node, depth }) => depth < 2 && !blocked.has(node.id));
+  const parentOptions = items.filter(({ node }) => !blocked.has(node.id));
+
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -371,9 +373,10 @@ function MenuModal({
               {parentOptions.map(({ node, depth }) => (
                 <option key={node.id} value={node.id}>
                   {"— ".repeat(depth)}
-                  {node.label}
+                  {node.label} (nivel {depth + 1})
                 </option>
               ))}
+
             </select>
           </Field>
           <Field label="Orden">

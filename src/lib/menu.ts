@@ -26,21 +26,38 @@ export async function fetchMenuItems(): Promise<MenuNodeData[]> {
 export function buildTree(rows: MenuItemRow[]): MenuNodeData[] {
   const map = new Map<string, MenuNodeData>();
   rows.forEach((r) => map.set(r.id, { ...r, children: [] }));
+
+  /** True si `ancestorId` es alcanzable subiendo desde `id` (detecta ciclos en datos). */
+  const createsCycle = (id: string, parentId: string) => {
+    const seen = new Set<string>([id]);
+    let cur: string | null = parentId;
+    while (cur) {
+      if (seen.has(cur)) return true;
+      seen.add(cur);
+      cur = map.get(cur)?.parent_id ?? null;
+    }
+    return false;
+  };
+
   const roots: MenuNodeData[] = [];
   map.forEach((node) => {
-    if (node.parent_id && map.has(node.parent_id)) {
-      map.get(node.parent_id)!.children.push(node);
-    } else if (!node.parent_id) {
+    const pid = node.parent_id;
+    if (pid && map.has(pid) && !createsCycle(node.id, pid)) {
+      map.get(pid)!.children.push(node);
+    } else {
       roots.push(node);
     }
   });
-  const sort = (list: MenuNodeData[]) => {
+
+  const sort = (list: MenuNodeData[], depth = 0) => {
     list.sort((a, b) => a.display_order - b.display_order);
-    list.forEach((n) => sort(n.children));
+    if (depth > 20) return;
+    list.forEach((n) => sort(n.children, depth + 1));
   };
   sort(roots);
   return roots;
 }
+
 
 /** Builds the final href from link_type + link_value. Returns null for group-only items. */
 export function menuHref(node: MenuNodeData): string | null {
