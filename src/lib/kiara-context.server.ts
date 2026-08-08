@@ -122,7 +122,7 @@ async function quoterBlock(): Promise<string> {
 
 /** MODO PÚBLICO: solo catálogo activo + conocimiento público. Nada de pedidos/clientes/costos. */
 async function buildPublicContext(): Promise<string> {
-  const [{ data: products }, kb] = await Promise.all([
+  const [{ data: products }, kb, quoter] = await Promise.all([
     supabaseAdmin
       .from("products")
       .select("name, slug, price_cop, short, stock, categories(name), brands(name)")
@@ -130,6 +130,7 @@ async function buildPublicContext(): Promise<string> {
       .order("featured", { ascending: false })
       .limit(80),
     knowledge(["public_web", "all"]),
+    quoterBlock(),
   ]);
 
   const catalog = (products ?? []).map((p) => {
@@ -140,6 +141,7 @@ async function buildPublicContext(): Promise<string> {
   });
 
   const blocks: string[] = [];
+  if (quoter) blocks.push(quoter);
   if (catalog.length) blocks.push(`## CATÁLOGO PÚBLICO\n${catalog.join("\n")}`);
   if (kb.length) blocks.push(`## PREGUNTAS FRECUENTES E INFORMACIÓN PÚBLICA\n${kb.join("\n\n")}`);
   if (!blocks.length) return "";
