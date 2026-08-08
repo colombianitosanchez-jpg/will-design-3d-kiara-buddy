@@ -373,9 +373,10 @@ function MenuModal({
               {parentOptions.map(({ node, depth }) => (
                 <option key={node.id} value={node.id}>
                   {"— ".repeat(depth)}
-                  {node.label}
+                  {node.label} (nivel {depth + 1})
                 </option>
               ))}
+
             </select>
           </Field>
           <Field label="Orden">
