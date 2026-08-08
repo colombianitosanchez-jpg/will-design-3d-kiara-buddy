@@ -83,7 +83,8 @@ function PanelLayout() {
     { to: "/panel/taxonomia", label: "Categorías y marcas", icon: Tags },
 
     { to: "/panel/pedidos", label: "Pedidos", icon: ShoppingCart },
-    { to: "/panel/cotizaciones", label: "Reglas de precios", icon: Calculator },
+    { to: "/panel/cotizador", label: "Cotizador", icon: Calculator },
+    { to: "/panel/cotizaciones", label: "Reglas de precios", icon: Sliders },
     { to: "/panel/notificaciones", label: "Notificaciones", icon: BellRing },
     { to: "/panel/menu", label: "Menú de navegación", icon: ListTree },
     { to: "/panel/contenido", label: "Contenido", icon: FileText },
