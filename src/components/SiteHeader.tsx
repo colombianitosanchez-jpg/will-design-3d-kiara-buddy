@@ -62,6 +62,19 @@ function MenuNode({ node, onNavigate }: { node: MenuNodeData; onNavigate?: () =>
 
 function DesktopRoot({ node }: { node: MenuNodeData }) {
   const [open, setOpen] = useState(false);
+  const href = menuHref(node);
+
+  if (node.children.length === 0) {
+    if (!href) {
+      return <span className={`${linkClass} opacity-60`}>{node.label}</span>;
+    }
+    return (
+      <a href={href} className={linkClass}>
+        {node.label}
+      </a>
+    );
+  }
+
   return (
     <div onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
       <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -70,6 +83,13 @@ function DesktopRoot({ node }: { node: MenuNodeData }) {
           <ChevronDown className="h-3.5 w-3.5" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={6} className="min-w-52">
+          {href && (
+            <DropdownMenuItem asChild className="text-sm font-semibold">
+              <a href={href} onClick={() => setOpen(false)}>
+                Ver todo: {node.label}
+              </a>
+            </DropdownMenuItem>
+          )}
           {node.children.map((child) => (
             <MenuNode key={child.id} node={child} onNavigate={() => setOpen(false)} />
           ))}
@@ -78,6 +98,7 @@ function DesktopRoot({ node }: { node: MenuNodeData }) {
     </div>
   );
 }
+
 
 /** Recursive accordion renderer (mobile). */
 function MobileNode({
