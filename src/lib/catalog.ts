@@ -1,9 +1,63 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export type Category = { id: string; slug: string; name: string; sort_order: number };
-export type Brand = { id: string; name: string; slug: string | null };
+export type Category = {
+  id: string;
+  slug: string;
+  name: string;
+  sort_order: number;
+  parent_id: string | null;
+  is_active: boolean;
+  image_url: string | null;
+};
+export type CategoryNode = Category & { children: CategoryNode[] };
+
+export type Brand = {
+  id: string;
+  name: string;
+  slug: string | null;
+  logo_url: string | null;
+  is_active: boolean;
+  sort_order: number;
+};
+
+export type AttributeValue = {
+  id: string;
+  attribute_id: string;
+  slug: string;
+  label: string;
+  color_hex: string | null;
+  sort_order: number;
+};
+
+export type Attribute = {
+  id: string;
+  slug: string;
+  name: string;
+  input_type: string;
+  is_filterable: boolean;
+  sort_order: number;
+  values: AttributeValue[];
+};
+
+export type CategoryAttribute = {
+  id: string;
+  category_id: string;
+  attribute_id: string;
+  is_required: boolean;
+  sort_order: number;
+};
+
 export type ProductSpec = { label: string; value: string };
+
+/** Atributo resuelto de un producto (Material = PLA, Color = Rosado…). */
+export type ProductAttribute = {
+  attribute_slug: string;
+  attribute_name: string;
+  value_slug: string | null;
+  value_label: string;
+  color_hex: string | null;
+};
 
 export type Product = {
   id: string;
@@ -19,13 +73,16 @@ export type Product = {
   active: boolean;
   stock: number;
   sku: string | null;
-  category: { slug: string; name: string } | null;
-  brand: { name: string; slug: string | null } | null;
+  category: { id: string; slug: string; name: string; parent_id: string | null } | null;
+  brand: { id: string; name: string; slug: string | null } | null;
   specs: ProductSpec[];
+  attributes: ProductAttribute[];
 };
 
 const PRODUCT_SELECT =
-  "id,slug,name,price_cop,short,description,kiara_tip,image_url,images,featured,active,stock,sku,specs,category:categories(slug,name),brand:brands(name,slug)";
+  "id,slug,name,price_cop,short,description,kiara_tip,image_url,images,featured,active,stock,sku,specs," +
+  "category:categories(id,slug,name,parent_id),brand:brands(id,name,slug)," +
+  "attribute_links:product_attribute_values(text_value,attribute:attributes(slug,name),value:attribute_values(slug,label,color_hex))";
 
 function normalize(row: any): Product {
   let specs: ProductSpec[] = [];
@@ -42,7 +99,18 @@ function normalize(row: any): Product {
   } catch {
     images = [];
   }
-  return { ...row, specs, images } as Product;
+  const attributes: ProductAttribute[] = (row.attribute_links ?? [])
+    .filter((l: any) => l?.attribute)
+    .map((l: any) => ({
+      attribute_slug: l.attribute.slug,
+      attribute_name: l.attribute.name,
+      value_slug: l.value?.slug ?? null,
+      value_label: l.value?.label ?? l.text_value ?? "",
+      color_hex: l.value?.color_hex ?? null,
+    }))
+    .filter((a: ProductAttribute) => a.value_label);
+  const { attribute_links: _drop, ...rest } = row;
+  return { ...rest, specs, images, attributes } as Product;
 }
 
 export async function fetchProducts(): Promise<Product[]> {
@@ -79,10 +147,45 @@ export async function fetchProductBySlug(slug: string): Promise<Product | null> 
 export async function fetchCategories(): Promise<Category[]> {
   const { data, error } = await supabase
     .from("categories")
-    .select("id,slug,name,sort_order")
+    .select("id,slug,name,sort_order,parent_id,is_active,image_url")
     .order("sort_order");
   if (error) throw error;
   return (data ?? []) as Category[];
+}
+
+export async function fetchBrands(): Promise<Brand[]> {
+  const { data, error } = await supabase
+    .from("brands")
+    .select("id,name,slug,logo_url,is_active,sort_order")
+    .order("sort_order")
+    .order("name");
+  if (error) throw error;
+  return (data ?? []) as Brand[];
+}
+
+export async function fetchAttributes(): Promise<Attribute[]> {
+  const { data, error } = await supabase
+    .from("attributes")
+    .select(
+      "id,slug,name,input_type,is_filterable,sort_order,values:attribute_values(id,attribute_id,slug,label,color_hex,sort_order)",
+    )
+    .order("sort_order");
+  if (error) throw error;
+  return ((data ?? []) as any[]).map((a) => ({
+    ...a,
+    values: (a.values ?? []).sort(
+      (x: AttributeValue, y: AttributeValue) => x.sort_order - y.sort_order,
+    ),
+  })) as Attribute[];
+}
+
+export async function fetchCategoryAttributes(): Promise<CategoryAttribute[]> {
+  const { data, error } = await supabase
+    .from("category_attributes")
+    .select("id,category_id,attribute_id,is_required,sort_order")
+    .order("sort_order");
+  if (error) throw error;
+  return (data ?? []) as CategoryAttribute[];
 }
 
 export async function fetchSiteContent(): Promise<Record<string, string>> {
@@ -102,6 +205,16 @@ export const productBySlugQuery = (slug: string) =>
   queryOptions({ queryKey: ["products", slug], queryFn: () => fetchProductBySlug(slug), staleTime: 30_000 });
 export const categoriesQuery = () =>
   queryOptions({ queryKey: ["categories"], queryFn: fetchCategories, staleTime: 5 * 60_000 });
+export const brandsQuery = () =>
+  queryOptions({ queryKey: ["brands"], queryFn: fetchBrands, staleTime: 5 * 60_000 });
+export const attributesQuery = () =>
+  queryOptions({ queryKey: ["attributes"], queryFn: fetchAttributes, staleTime: 5 * 60_000 });
+export const categoryAttributesQuery = () =>
+  queryOptions({
+    queryKey: ["category_attributes"],
+    queryFn: fetchCategoryAttributes,
+    staleTime: 5 * 60_000,
+  });
 export const siteContentQuery = () =>
   queryOptions({ queryKey: ["site_content"], queryFn: fetchSiteContent, staleTime: 30_000 });
 
@@ -137,7 +250,6 @@ export function waLink(whatsapp: string, text?: string) {
     : `https://wa.me/${num}`;
 }
 
-
 export function formatCOP(value: number): string {
   return value.toLocaleString("es-CO", {
     style: "currency",
@@ -146,24 +258,15 @@ export function formatCOP(value: number): string {
   });
 }
 
-// Gradient fallback by category slug
+// Gradient fallback by category slug (usa la raíz de la rama)
 export function gradientKeyFor(categorySlug: string | null | undefined): "orange" | "teal" | "wine" {
-  switch (categorySlug) {
-    case "impresoras":
-    case "lapices":
-      return "orange";
-    case "filamentos":
-    case "repuestos":
-    case "escaners":
-      return "teal";
-    case "resinas":
-    case "camaras":
-    default:
-      return "wine";
-  }
+  const s = categorySlug ?? "";
+  if (s.startsWith("impresoras") || s.startsWith("lapices")) return "orange";
+  if (s.startsWith("filamentos") || s.startsWith("repuestos") || s.startsWith("escaners"))
+    return "teal";
+  return "wine";
 }
 
-// ---- URL filter helpers (categoria / marca) ----
 export function slugify(value: string): string {
   return value
     .normalize("NFD")
@@ -173,104 +276,65 @@ export function slugify(value: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-/**
- * Alias entre slugs usados en el menú y los slugs reales de `categories`.
- * Solo equivalencias de NOMBRE (misma categoría escrita distinto).
- * Los slugs de tecnología (impresoras-filamento / impresoras-resina) NO van aquí:
- * se resuelven en `resolveStoreFilter` como categoría + tecnología.
- */
-const CATEGORY_ALIASES: Record<string, string> = {
-  "impresoras-3d": "impresoras",
-  "impresora-3d": "impresoras",
-  "filamento": "filamentos",
-  "materiales-3d": "filamentos",
-  "resina": "resinas",
-  "lapices-3d": "lapices",
-  "lapiz-3d": "lapices",
-  "escaner-3d": "escaners",
-  "escaners-3d": "escaners",
-  "escaneres-3d": "escaners",
-  "camaras-3d": "camaras",
-  "camara-3d": "camaras",
-  "repuestos-3d": "repuestos",
-};
+// ---------------- Árbol de categorías ----------------
 
-/** Slugs del menú que significan "impresoras" + una tecnología concreta. */
-const TECH_CATEGORY: Record<string, { category: string; tech: PrinterTech }> = {
-  "impresoras-filamento": { category: "impresoras", tech: "filamento" },
-  "impresoras-fdm": { category: "impresoras", tech: "filamento" },
-  "impresoras-3d-filamento": { category: "impresoras", tech: "filamento" },
-  "impresoras-resina": { category: "impresoras", tech: "resina" },
-  "impresoras-3d-resina": { category: "impresoras", tech: "resina" },
-  "impresoras-sla": { category: "impresoras", tech: "resina" },
-};
+export function buildCategoryTree(categories: Category[]): CategoryNode[] {
+  const map = new Map<string, CategoryNode>();
+  categories.forEach((c) => map.set(c.id, { ...c, children: [] }));
+  const roots: CategoryNode[] = [];
+  map.forEach((node) => {
+    const parent = node.parent_id ? map.get(node.parent_id) : null;
+    if (parent && parent.id !== node.id) parent.children.push(node);
+    else roots.push(node);
+  });
+  const sort = (list: CategoryNode[], depth = 0) => {
+    list.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
+    if (depth > 20) return;
+    list.forEach((n) => sort(n.children, depth + 1));
+  };
+  sort(roots);
+  return roots;
+}
 
-export type PrinterTech = "filamento" | "resina";
+export function flattenCategoryTree(
+  nodes: CategoryNode[],
+  depth = 0,
+): { category: CategoryNode; depth: number }[] {
+  return nodes.flatMap((n) => [
+    { category: n, depth },
+    ...flattenCategoryTree(n.children, depth + 1),
+  ]);
+}
 
-export type StoreFilter = {
-  /** Slug real de la categoría, o null si no hay filtro de categoría. */
-  categorySlug: string | null;
-  /** Tecnología exigida (solo para impresoras), o null. */
-  tech: PrinterTech | null;
-  /** true cuando el parámetro no corresponde a ninguna categoría real. */
-  unknown: boolean;
-};
+/** Slugs de una categoría y de todas sus subcategorías (rama completa). */
+export function categoryBranchSlugs(slug: string | null, categories: Category[]): string[] {
+  if (!slug) return [];
+  const root = categories.find((c) => c.slug === slug);
+  if (!root) return [slug];
+  const out = [root.slug];
+  const walk = (parentId: string, depth = 0) => {
+    if (depth > 20) return;
+    categories
+      .filter((c) => c.parent_id === parentId)
+      .forEach((c) => {
+        out.push(c.slug);
+        walk(c.id, depth + 1);
+      });
+  };
+  walk(root.id);
+  return out;
+}
 
-/**
- * Resuelve el parámetro `categoria` de la URL a un filtro exacto contra la tabla
- * `products`. Nunca hace coincidencias parciales: si el parámetro no existe como
- * categoría real, `unknown = true` y la tienda muestra un estado vacío claro.
- */
-export function resolveStoreFilter(
-  param: string | undefined | null,
-  categories: Category[],
-): StoreFilter {
-  const raw = slugify(param ?? "");
-  if (!raw) return { categorySlug: null, tech: null, unknown: false };
-
-  const exists = (slug: string) => categories.some((c) => c.slug === slug);
-
-  const tech = TECH_CATEGORY[raw];
-  if (tech) {
-    return exists(tech.category)
-      ? { categorySlug: tech.category, tech: tech.tech, unknown: false }
-      : { categorySlug: tech.category, tech: tech.tech, unknown: true };
+/** Ruta legible: "Filamentos › PLA". */
+export function categoryPath(slug: string | null | undefined, categories: Category[]): string {
+  let cur = categories.find((c) => c.slug === slug) ?? null;
+  const parts: string[] = [];
+  let guard = 0;
+  while (cur && guard++ < 20) {
+    parts.unshift(cur.name);
+    cur = cur.parent_id ? (categories.find((c) => c.id === cur!.parent_id) ?? null) : null;
   }
-  if (exists(raw)) return { categorySlug: raw, tech: null, unknown: false };
-
-  const alias = CATEGORY_ALIASES[raw];
-  if (alias && exists(alias)) return { categorySlug: alias, tech: null, unknown: false };
-
-  const byName = categories.find((c) => slugify(c.name) === raw);
-  if (byName) return { categorySlug: byName.slug, tech: null, unknown: false };
-
-  return { categorySlug: raw, tech: null, unknown: true };
-}
-
-/** Compatibilidad: devuelve solo el slug de categoría resuelto. */
-export function resolveCategorySlug(
-  param: string | undefined | null,
-  categories: Category[],
-): string | null {
-  return resolveStoreFilter(param, categories).categorySlug;
-}
-
-const RESIN_RE = /(resina|resin|msla|\bsla\b|\blcd\b|dlp|halot|mars\b|saturn|photon|sonic\s*mighty|mage)/i;
-
-/**
- * Tecnología de una impresora deducida de campos reales y editables desde el
- * Panel (especificaciones técnicas, nombre y descripción).
- */
-export function productTech(product: Product): PrinterTech {
-  const haystack = [
-    product.name,
-    product.short,
-    product.description,
-    ...product.specs.flatMap((s) => [s.label, s.value]),
-  ]
-    .filter(Boolean)
-    .join(" ");
-  return RESIN_RE.test(haystack) ? "resina" : "filamento";
+  return parts.join(" › ");
 }
 
 export function brandSlugOf(brand: { name: string; slug?: string | null } | null | undefined) {
@@ -278,9 +342,85 @@ export function brandSlugOf(brand: { name: string; slug?: string | null } | null
   return brand.slug?.trim() ? brand.slug.trim() : slugify(brand.name);
 }
 
-/** Etiqueta legible para un slug de categoría/tecnología del menú. */
 export function prettySlug(value: string | null | undefined): string {
   if (!value) return "";
   return value.replace(/-/g, " ");
 }
 
+// ---------------- Filtros de tienda ----------------
+
+/** Filtro de atributos serializado en la URL: "color:rosado,material:pla". */
+export type AttrFilter = { attribute: string; value: string };
+
+export function parseAttrParam(param: string | undefined | null): AttrFilter[] {
+  if (!param) return [];
+  return param
+    .split(",")
+    .map((chunk) => chunk.split(":"))
+    .filter((p) => p.length === 2 && p[0] && p[1])
+    .map(([attribute, value]) => ({ attribute: slugify(attribute), value: slugify(value) }));
+}
+
+export function serializeAttrParam(filters: AttrFilter[]): string | undefined {
+  if (!filters.length) return undefined;
+  return filters.map((f) => `${f.attribute}:${f.value}`).join(",");
+}
+
+export type StoreFilter = {
+  /** Slug real de la categoría, o null si no hay filtro. */
+  categorySlug: string | null;
+  /** Slugs de la categoría y todas sus hijas. */
+  branch: string[];
+  /** true cuando el parámetro no corresponde a ninguna categoría real. */
+  unknown: boolean;
+};
+
+export function resolveStoreFilter(
+  param: string | undefined | null,
+  categories: Category[],
+): StoreFilter {
+  const raw = slugify(param ?? "");
+  if (!raw) return { categorySlug: null, branch: [], unknown: false };
+  const exact = categories.find((c) => c.slug === raw);
+  if (exact)
+    return { categorySlug: exact.slug, branch: categoryBranchSlugs(exact.slug, categories), unknown: false };
+  const byName = categories.find((c) => slugify(c.name) === raw);
+  if (byName)
+    return { categorySlug: byName.slug, branch: categoryBranchSlugs(byName.slug, categories), unknown: false };
+  return { categorySlug: raw, branch: [raw], unknown: true };
+}
+
+export function productMatchesAttrs(product: Product, filters: AttrFilter[]): boolean {
+  return filters.every((f) =>
+    product.attributes.some(
+      (a) => a.attribute_slug === f.attribute && (a.value_slug ?? slugify(a.value_label)) === f.value,
+    ),
+  );
+}
+
+/** Filtra el catálogo por rama de categoría, marca, atributos y texto libre. */
+export function filterProducts(
+  products: Product[],
+  opts: {
+    filter: StoreFilter;
+    brandSlug?: string | null;
+    attrs?: AttrFilter[];
+    query?: string;
+  },
+): Product[] {
+  const { filter, brandSlug, attrs = [], query } = opts;
+  if (filter.unknown) return [];
+  const branch = new Set(filter.branch);
+  const q = query?.trim().toLowerCase();
+  return products.filter((p) => {
+    const okCat = !filter.categorySlug || (p.category?.slug ? branch.has(p.category.slug) : false);
+    const okBrand = !brandSlug || brandSlugOf(p.brand) === brandSlug;
+    const okAttrs = productMatchesAttrs(p, attrs);
+    const okQ =
+      !q ||
+      (p.name + " " + (p.brand?.name ?? "") + " " + p.short + " " + p.attributes.map((a) => a.value_label).join(" "))
+        .toLowerCase()
+        .includes(q);
+    return okCat && okBrand && okAttrs && okQ;
+  });
+}
