@@ -196,7 +196,7 @@ async function buildInternalContext(): Promise<string> {
 
   const quoteLines = (quotes ?? []).map((q) => {
     const date = new Date(q.created_at).toISOString().slice(0, 10);
-    return `- [${q.status}] ${date} | ${q.customer_name} (${q.customer_email}${q.customer_phone ? `, ${q.customer_phone}` : ""}) | diseño: ${q.design_state || "—"} | tamaño: ${q.size_label || "—"} | material: ${q.material || "—"} | acabado: ${q.finish || "—"}${q.notes ? ` | notas: ${q.notes}` : ""}`;
+    return `- [${q.status}] ${date} | ${q.customer_name} (${q.customer_email}${q.customer_phone ? `, ${q.customer_phone}` : ""}) | servicio: ${q.service_name || q.design_state || "—"} | estimado ${cop(Number(q.estimated_total_cop))} x${q.quantity ?? 1} | detalle: ${q.size_label || "—"} | material: ${q.material || "—"} | acabado: ${q.finish || "—"}${q.notes ? ` | notas: ${q.notes}` : ""}`;
   });
 
   const blocks: string[] = [];
