@@ -172,7 +172,7 @@ async function buildInternalContext(): Promise<string> {
     supabaseAdmin
       .from("quotes")
       .select(
-        "customer_name, customer_email, customer_phone, design_state, size_label, material, finish, status, notes, created_at",
+        "customer_name, customer_email, customer_phone, service_name, estimated_total_cop, quantity, design_state, size_label, material, finish, status, notes, created_at",
       )
       .order("created_at", { ascending: false })
       .limit(20),
