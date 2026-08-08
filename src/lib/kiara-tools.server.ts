@@ -97,31 +97,8 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
     args = {};
   }
 
-  if (name === "list_quoter_services") {
-    const services = await getQuoterServices();
-    const summary = services.map((s) => ({
-      slug: s.slug,
-      name: s.name,
-      description: s.description,
-      desde_cop: s.min_price_cop,
-      permite_cantidad: s.allow_quantity,
-      preguntas: s.fields.map((f) => ({
-        key: f.key,
-        label: f.label,
-        tipo: f.input_type,
-        unidad: f.unit,
-        min: f.min_value,
-        max: f.max_value,
-        opciones: f.options.map((o) => o.value),
-      })),
-    }));
-    return {
-      text: "",
-      data: null,
-      // El modelo recibe el detalle vía el texto de la herramienta.
-      ...{ tool_text: JSON.stringify(summary) },
-    } as ToolOutcome;
-  }
+
+
 
   if (name === "quote_service" || name === "generate_quote") {
     const services = await getQuoterServices();
