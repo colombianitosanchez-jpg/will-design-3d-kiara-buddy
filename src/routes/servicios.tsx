@@ -179,6 +179,11 @@ const colorFor = (a: string) =>
       : "var(--brand-wine)";
 
 function ServiciosPage() {
+  const { data: quoterServices } = useQuery(quoterServicesQuery());
+  /** Servicio del cotizador vinculado a esta sección (Panel → Cotizador → Ancla). */
+  const quoterFor = (anchor: string) =>
+    (quoterServices ?? []).find((s) => s.site_anchor === anchor) ?? null;
+
   return (
     <>
       <section className="border-b border-border bg-muted/30">
