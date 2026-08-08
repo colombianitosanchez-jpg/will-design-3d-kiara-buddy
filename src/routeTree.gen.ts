@@ -26,6 +26,7 @@ import { Route as TiendaSlugRouteImport } from './routes/tienda.$slug'
 import { Route as PanelProductosRouteImport } from './routes/panel.productos'
 import { Route as PanelPedidosRouteImport } from './routes/panel.pedidos'
 import { Route as PanelMenuRouteImport } from './routes/panel.menu'
+import { Route as PanelLlmRouteImport } from './routes/panel.llm'
 import { Route as PanelContenidoRouteImport } from './routes/panel.contenido'
 import { Route as ApiKiaraRouteImport } from './routes/api/kiara'
 import { Route as AdminServiciosRouteImport } from './routes/admin.servicios'
@@ -119,6 +120,11 @@ const PanelMenuRoute = PanelMenuRouteImport.update({
   path: '/menu',
   getParentRoute: () => PanelRoute,
 } as any)
+const PanelLlmRoute = PanelLlmRouteImport.update({
+  id: '/llm',
+  path: '/llm',
+  getParentRoute: () => PanelRoute,
+} as any)
 const PanelContenidoRoute = PanelContenidoRouteImport.update({
   id: '/contenido',
   path: '/contenido',
@@ -173,6 +179,7 @@ export interface FileRoutesByFullPath {
   '/admin/servicios': typeof AdminServiciosRoute
   '/api/kiara': typeof ApiKiaraRoute
   '/panel/contenido': typeof PanelContenidoRoute
+  '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/pedidos': typeof PanelPedidosRoute
   '/panel/productos': typeof PanelProductosRoute
@@ -196,6 +203,7 @@ export interface FileRoutesByTo {
   '/admin/servicios': typeof AdminServiciosRoute
   '/api/kiara': typeof ApiKiaraRoute
   '/panel/contenido': typeof PanelContenidoRoute
+  '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/pedidos': typeof PanelPedidosRoute
   '/panel/productos': typeof PanelProductosRoute
@@ -223,6 +231,7 @@ export interface FileRoutesById {
   '/admin/servicios': typeof AdminServiciosRoute
   '/api/kiara': typeof ApiKiaraRoute
   '/panel/contenido': typeof PanelContenidoRoute
+  '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/pedidos': typeof PanelPedidosRoute
   '/panel/productos': typeof PanelProductosRoute
@@ -251,6 +260,7 @@ export interface FileRouteTypes {
     | '/admin/servicios'
     | '/api/kiara'
     | '/panel/contenido'
+    | '/panel/llm'
     | '/panel/menu'
     | '/panel/pedidos'
     | '/panel/productos'
@@ -274,6 +284,7 @@ export interface FileRouteTypes {
     | '/admin/servicios'
     | '/api/kiara'
     | '/panel/contenido'
+    | '/panel/llm'
     | '/panel/menu'
     | '/panel/pedidos'
     | '/panel/productos'
@@ -300,6 +311,7 @@ export interface FileRouteTypes {
     | '/admin/servicios'
     | '/api/kiara'
     | '/panel/contenido'
+    | '/panel/llm'
     | '/panel/menu'
     | '/panel/pedidos'
     | '/panel/productos'
@@ -444,6 +456,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelMenuRouteImport
       parentRoute: typeof PanelRoute
     }
+    '/panel/llm': {
+      id: '/panel/llm'
+      path: '/llm'
+      fullPath: '/panel/llm'
+      preLoaderRoute: typeof PanelLlmRouteImport
+      parentRoute: typeof PanelRoute
+    }
     '/panel/contenido': {
       id: '/panel/contenido'
       path: '/contenido'
@@ -518,6 +537,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface PanelRouteChildren {
   PanelContenidoRoute: typeof PanelContenidoRoute
+  PanelLlmRoute: typeof PanelLlmRoute
   PanelMenuRoute: typeof PanelMenuRoute
   PanelPedidosRoute: typeof PanelPedidosRoute
   PanelProductosRoute: typeof PanelProductosRoute
@@ -526,6 +546,7 @@ interface PanelRouteChildren {
 
 const PanelRouteChildren: PanelRouteChildren = {
   PanelContenidoRoute: PanelContenidoRoute,
+  PanelLlmRoute: PanelLlmRoute,
   PanelMenuRoute: PanelMenuRoute,
   PanelPedidosRoute: PanelPedidosRoute,
   PanelProductosRoute: PanelProductosRoute,

@@ -75,6 +75,7 @@ function PanelLayout() {
     { to: "/panel/pedidos", label: "Pedidos", icon: ShoppingCart },
     { to: "/panel/menu", label: "Menú de navegación", icon: ListTree },
     { to: "/panel/contenido", label: "Contenido", icon: FileText },
+    { to: "/panel/llm", label: "Configuración de LLM", icon: Bot },
 
   ];
 
