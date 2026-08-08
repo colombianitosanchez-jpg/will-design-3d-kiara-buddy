@@ -12,7 +12,7 @@ const cop = (n: number) =>
   });
 
 /** Tarjeta interactiva de cotización generada por Kiara, con paso a pedido. */
-export function KiaraQuoteCard({ quote }: { quote: KiaraQuoteData }) {
+export function KiaraQuoteCard({ quote }: { quote: KiaraServiceQuoteData }) {
   const confirm = useServerFn(confirmQuoteOrder);
   const [openForm, setOpenForm] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -26,6 +26,8 @@ export function KiaraQuoteCard({ quote }: { quote: KiaraQuoteData }) {
     shipping_city: "",
   });
 
+  const resumen = (quote.answers ?? []).map((a) => `${a.label}: ${a.value}`).join(" · ");
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -34,8 +36,8 @@ export function KiaraQuoteCard({ quote }: { quote: KiaraQuoteData }) {
       const res = await confirm({
         data: {
           ...form,
-          notes: `${quote.project_name} · ${quote.material} · acabado ${quote.finish} · ${quote.grams} g · ${quote.hours} h`,
-          item_name: `${quote.project_name} (${quote.material})`,
+          notes: `${quote.project_name} · ${resumen}`.slice(0, 800),
+          item_name: quote.project_name,
           quantity: quote.quantity,
           unit_price_cop: Math.round(quote.unit_price_cop),
         },
@@ -48,36 +50,38 @@ export function KiaraQuoteCard({ quote }: { quote: KiaraQuoteData }) {
     }
   }
 
-  const rows: [string, number][] = [
-    ["Material", quote.material_cost_cop],
-    ["Tiempo de máquina", quote.machine_cost_cop],
-    ["Preparación", quote.setup_fee_cop],
-    ["Margen", quote.margin_cop],
-  ];
-
   return (
     <div className="mt-2 w-full rounded-2xl border border-border bg-background p-3 shadow-sm">
       <div className="flex items-center gap-2">
         <Receipt className="h-4 w-4 text-[var(--brand-orange)]" />
         <p className="text-sm font-bold">{quote.project_name}</p>
       </div>
-      <p className="mt-0.5 text-[11px] text-muted-foreground">
-        {quote.material} · acabado {quote.finish} · {quote.grams} g · {quote.hours} h ·{" "}
-        {quote.quantity} u
-      </p>
+      {resumen && <p className="mt-0.5 text-[11px] text-muted-foreground">{resumen}</p>}
 
       <div className="mt-2 space-y-1 border-t border-dashed border-border pt-2 text-[11px]">
-        {rows.map(([label, val]) => (
-          <div key={label} className="flex justify-between text-muted-foreground">
-            <span>{label}</span>
-            <span>{cop(val)}</span>
+        {(quote.lines ?? []).map((l, i) => (
+          <div key={`${l.label}-${i}`} className="flex justify-between gap-2 text-muted-foreground">
+            <span>
+              {l.label}
+              {l.detail ? ` · ${l.detail}` : ""}
+            </span>
+            <span className="whitespace-nowrap">{cop(l.amount)}</span>
           </div>
         ))}
+        {quote.quantity > 1 && (
+          <div className="flex justify-between text-muted-foreground">
+            <span>Cantidad</span>
+            <span>
+              {quote.quantity} × {cop(quote.unit_price_cop)}
+            </span>
+          </div>
+        )}
         <div className="flex justify-between border-t border-border pt-1 text-sm font-black text-foreground">
           <span>Total estimado</span>
           <span>{cop(quote.total_cop)}</span>
         </div>
       </div>
+
 
       {orderId ? (
         <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-teal-deep)]">
