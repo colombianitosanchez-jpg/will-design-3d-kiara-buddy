@@ -106,7 +106,35 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
-  }),
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "Organization",
+              "@id": "https://will-design-3d.lovable.app/#organization",
+              name: "Will Design 3D",
+              url: "https://will-design-3d.lovable.app/",
+              description:
+                "Taller especializado en impresión 3D de gran formato en Bogotá: diseño, producción, post-procesado, equipos e insumos.",
+              areaServed: "Bogotá, Colombia",
+              sameAs: ["https://www.instagram.com/will_design2020"],
+            },
+            {
+              "@type": "WebSite",
+              "@id": "https://will-design-3d.lovable.app/#website",
+              url: "https://will-design-3d.lovable.app/",
+              name: "Will Design 3D",
+              inLanguage: "es-CO",
+              publisher: { "@id": "https://will-design-3d.lovable.app/#organization" },
+            },
+          ],
+        }),
+      },
+    ],
+
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
