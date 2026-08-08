@@ -76,7 +76,7 @@ export const KIARA_TOOLS = [
 ];
 
 export const TOOL_INSTRUCTIONS = `\n\nHERRAMIENTAS:
-- Si el usuario pide un precio o cotización de una impresión, llama a generate_quote (estima gramos y horas a partir de su descripción si no los da). No inventes precios manualmente.
+- Para cualquier precio o cotización usa quote_service (si no conoces el servicio o sus preguntas, llama primero a list_quoter_services). Nunca calcules ni inventes precios por tu cuenta.
 - Llama a create_order solo cuando tengas nombre, correo, dirección y el detalle del pedido confirmado por el usuario.
 - Después de una herramienta, comenta el resultado en 1-2 frases cálidas; la tarjeta con el detalle se muestra automáticamente.`;
 
@@ -90,6 +90,14 @@ function money(n: number) {
   });
 }
 
+const slugify = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+
 export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolOutcome> {
   let args: Record<string, unknown> = {};
   try {
@@ -98,25 +106,66 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
     args = {};
   }
 
-  if (name === "generate_quote") {
-    const rules = await getActivePricingRules();
-    const quote = calcQuote(rules, {
-      grams: Number(args.estimated_grams) || 0,
-      hours: Number(args.print_time) || 0,
-      material: typeof args.material === "string" ? args.material : "PLA",
-      finish: typeof args.finish === "string" ? args.finish : "Ninguno",
-      quantity: Number(args.quantity) || 1,
-    });
-    const projectName =
-      typeof args.project_name === "string" && args.project_name.trim()
-        ? args.project_name.trim()
-        : "Tu proyecto 3D";
+  if (name === "list_quoter_services") {
+    const services = await getQuoterServices();
+    const summary = services.map((s) => ({
+      slug: s.slug,
+      name: s.name,
+      description: s.description,
+      desde_cop: s.min_price_cop,
+      permite_cantidad: s.allow_quantity,
+      preguntas: s.fields.map((f) => ({
+        key: f.key,
+        label: f.label,
+        tipo: f.input_type,
+        unidad: f.unit,
+        min: f.min_value,
+        max: f.max_value,
+        opciones: f.options.map((o) => o.value),
+      })),
+    }));
+    return {
+      text: "",
+      data: null,
+      // El modelo recibe el detalle vía el texto de la herramienta.
+      ...{ tool_text: JSON.stringify(summary) },
+    } as ToolOutcome;
+  }
+
+  if (name === "quote_service" || name === "generate_quote") {
+    const services = await getQuoterServices();
+    if (services.length === 0)
+      return { text: "Aún no tengo servicios configurados para cotizar.", data: null };
+
+    const wanted = slugify(String(args.service_slug ?? args.material ?? ""));
+    const service =
+      services.find((s) => s.slug === wanted) ??
+      services.find((s) => slugify(s.name) === wanted) ??
+      services.find((s) => wanted && (s.slug.includes(wanted) || slugify(s.name).includes(wanted))) ??
+      services[0]!;
+
+    const rawAnswers =
+      args.answers && typeof args.answers === "object"
+        ? (args.answers as Record<string, unknown>)
+        : (args as Record<string, unknown>);
+    const values = coerceAnswers(service, rawAnswers);
+    const quote = computeQuote(service, values, Number(args.quantity) || 1);
 
     return {
-      text: `Listo 🐾 Te preparé una cotización estimada de ${money(quote.total_cop)}.`,
-      data: { ...quote, project_name: projectName },
+      text: `Listo 🐾 ${service.name}: cotización estimada de ${money(quote.total_cop)}.`,
+      data: {
+        service_slug: service.slug,
+        project_name: service.name,
+        answers: quote.answers,
+        lines: quote.lines,
+        quantity: quote.quantity,
+        unit_price_cop: quote.unit_price_cop,
+        total_cop: quote.total_cop,
+        total_formatted: formatCOP(quote.total_cop),
+      },
     };
   }
+
 
   if (name === "create_order") {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
