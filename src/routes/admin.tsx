@@ -39,7 +39,7 @@ export const Route = createFileRoute("/admin")({
   component: AdminLayout,
 });
 
-type Role = "admin" | "staff";
+type Role = "super_admin" | "empleado" | "pending";
 
 function AdminLayout() {
   const navigate = useNavigate();
@@ -52,15 +52,19 @@ function AdminLayout() {
   async function refreshRole() {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) {
-      navigate({ to: "/auth" });
+      navigate({ to: "/login" });
       return;
     }
     setEmail(userData.user.email ?? "");
     const { data } = await supabase
       .from("user_roles")
-      .select("role")
+      .select("role, is_active")
       .eq("user_id", userData.user.id);
-    setRoles((data?.map((r) => r.role) as Role[]) ?? []);
+    setRoles(
+      ((data ?? []) as { role: string; is_active?: boolean }[])
+        .filter((r) => r.is_active)
+        .map((r) => r.role as Role),
+    );
   }
 
   useEffect(() => {
