@@ -175,7 +175,12 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
           unit_price_cop: Math.max(0, Math.round(Number(it.unit_price_cop) || 0)),
         }))
       : [];
-    if (items.length === 0) return { text: "Necesito el detalle del pedido antes de crearlo.", data: null };
+    if (items.length === 0)
+      return {
+        text: "Necesito el detalle del pedido antes de crearlo.",
+        data: null,
+        result: { error: "sin_items" },
+      };
 
     const total = items.reduce((s, it) => s + it.quantity * it.unit_price_cop, 0);
 
@@ -193,19 +198,32 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
       })
       .select("id")
       .single();
-    if (error) return { text: `No pude guardar el pedido: ${error.message}`, data: null };
+    if (error)
+      return {
+        text: `No pude guardar el pedido: ${error.message}`,
+        data: null,
+        result: { error: error.message },
+      };
 
     await supabaseAdmin
       .from("order_items")
       .insert(items.map((it) => ({ order_id: order.id, ...it })));
 
+    const data = {
+      order_id: order.id,
+      total_cop: total,
+      items,
+      customer_name: args.customer_name,
+    };
     return {
       text: `¡Pedido registrado! Queda como pendiente por ${money(total)}.`,
-      data: { order_id: order.id, total_cop: total, items, customer_name: args.customer_name },
+      data,
+      result: data,
     };
   }
 
-  return { text: "", data: null };
+  return { text: "", data: null, result: { error: "herramienta_desconocida" } };
+
 }
 
 /**
