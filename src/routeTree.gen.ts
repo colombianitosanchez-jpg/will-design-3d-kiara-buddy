@@ -14,6 +14,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ServiciosRouteImport } from './routes/servicios'
 import { Route as PanelRouteImport } from './routes/panel'
 import { Route as NosotrosRouteImport } from './routes/nosotros'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as GaleriaRouteImport } from './routes/galeria'
 import { Route as CotizadorRouteImport } from './routes/cotizador'
 import { Route as ContactoRouteImport } from './routes/contacto'
@@ -66,6 +67,11 @@ const PanelRoute = PanelRouteImport.update({
 const NosotrosRoute = NosotrosRouteImport.update({
   id: '/nosotros',
   path: '/nosotros',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GaleriaRoute = GaleriaRouteImport.update({
@@ -217,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/contacto': typeof ContactoRoute
   '/cotizador': typeof CotizadorRoute
   '/galeria': typeof GaleriaRoute
+  '/login': typeof LoginRoute
   '/nosotros': typeof NosotrosRoute
   '/panel': typeof PanelRouteWithChildren
   '/servicios': typeof ServiciosRoute
@@ -251,6 +258,7 @@ export interface FileRoutesByTo {
   '/contacto': typeof ContactoRoute
   '/cotizador': typeof CotizadorRoute
   '/galeria': typeof GaleriaRoute
+  '/login': typeof LoginRoute
   '/nosotros': typeof NosotrosRoute
   '/servicios': typeof ServiciosRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -285,6 +293,7 @@ export interface FileRoutesById {
   '/contacto': typeof ContactoRoute
   '/cotizador': typeof CotizadorRoute
   '/galeria': typeof GaleriaRoute
+  '/login': typeof LoginRoute
   '/nosotros': typeof NosotrosRoute
   '/panel': typeof PanelRouteWithChildren
   '/servicios': typeof ServiciosRoute
@@ -322,6 +331,7 @@ export interface FileRouteTypes {
     | '/contacto'
     | '/cotizador'
     | '/galeria'
+    | '/login'
     | '/nosotros'
     | '/panel'
     | '/servicios'
@@ -356,6 +366,7 @@ export interface FileRouteTypes {
     | '/contacto'
     | '/cotizador'
     | '/galeria'
+    | '/login'
     | '/nosotros'
     | '/servicios'
     | '/sitemap.xml'
@@ -389,6 +400,7 @@ export interface FileRouteTypes {
     | '/contacto'
     | '/cotizador'
     | '/galeria'
+    | '/login'
     | '/nosotros'
     | '/panel'
     | '/servicios'
@@ -425,6 +437,7 @@ export interface RootRouteChildren {
   ContactoRoute: typeof ContactoRoute
   CotizadorRoute: typeof CotizadorRoute
   GaleriaRoute: typeof GaleriaRoute
+  LoginRoute: typeof LoginRoute
   NosotrosRoute: typeof NosotrosRoute
   PanelRoute: typeof PanelRouteWithChildren
   ServiciosRoute: typeof ServiciosRoute
@@ -470,6 +483,13 @@ declare module '@tanstack/react-router' {
       path: '/nosotros'
       fullPath: '/nosotros'
       preLoaderRoute: typeof NosotrosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/galeria': {
@@ -741,6 +761,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactoRoute: ContactoRoute,
   CotizadorRoute: CotizadorRoute,
   GaleriaRoute: GaleriaRoute,
+  LoginRoute: LoginRoute,
   NosotrosRoute: NosotrosRoute,
   PanelRoute: PanelRouteWithChildren,
   ServiciosRoute: ServiciosRoute,
@@ -754,13 +775,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
