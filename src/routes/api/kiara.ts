@@ -142,7 +142,7 @@ export const Route = createFileRoute("/api/kiara")({
                       ...payloadMessages,
                       {
                         role: "assistant",
-                        content: null,
+                        content: "",
                         tool_calls: [
                           {
                             id: call.id,
@@ -155,7 +155,11 @@ export const Route = createFileRoute("/api/kiara")({
                     ],
                   }),
                 });
-                return res.ok && res.body ? res.body : null;
+                if (!res.ok || !res.body) {
+                  console.error(`[kiara] 2a pasada falló en ${p.name}: HTTP ${res.status} ${await res.text().catch(() => "")}`);
+                  return null;
+                }
+                return res.body;
               },
             });
 
