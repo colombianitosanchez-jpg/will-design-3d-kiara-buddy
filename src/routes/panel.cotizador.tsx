@@ -176,6 +176,7 @@ function ServiceCard({
         description: draft.description,
         icon: draft.icon,
         base_price_cop: draft.base_price_cop,
+        gastos_extra_cop: draft.gastos_extra_cop,
         min_price_cop: draft.min_price_cop,
         margin_percent: draft.margin_percent,
         allow_quantity: draft.allow_quantity,
@@ -308,6 +309,15 @@ function ServiceCard({
                   min={0}
                   value={draft.base_price_cop}
                   onChange={(e) => set("base_price_cop", Number(e.target.value) || 0)}
+                  className={inputCls}
+                />
+              </L>
+              <L label="Gastos extra (COP)">
+                <input
+                  type="number"
+                  min={0}
+                  value={draft.gastos_extra_cop}
+                  onChange={(e) => set("gastos_extra_cop", Number(e.target.value) || 0)}
                   className={inputCls}
                 />
               </L>

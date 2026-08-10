@@ -1,0 +1,1 @@
+ALTER TABLE public.quoter_services ADD COLUMN IF NOT EXISTS gastos_extra_cop numeric NOT NULL DEFAULT 0;

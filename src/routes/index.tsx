@@ -132,7 +132,7 @@ function Hero() {
             {subtitle}
           </p>
           <div className="mt-7 flex flex-wrap items-center gap-3">
-            <Link to="/contacto" className="btn-primary">
+            <Link to="/cotizador" className="btn-primary">
               Cotizar Proyecto
               <ArrowRight className="h-4 w-4" />
             </Link>

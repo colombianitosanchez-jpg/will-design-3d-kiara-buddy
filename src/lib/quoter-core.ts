@@ -39,6 +39,8 @@ export type QuoterService = {
   icon: string;
   site_anchor: string;
   base_price_cop: number;
+  /** Gastos extra fijos (montaje / post-procesado) que se suman al total. */
+  gastos_extra_cop: number;
   min_price_cop: number;
   margin_percent: number;
   allow_quantity: boolean;
@@ -96,6 +98,7 @@ export function normalizeService(
     icon: String(row['icon'] ?? "printer"),
     site_anchor: String(row['site_anchor'] ?? ""),
     base_price_cop: num(row['base_price_cop']),
+    gastos_extra_cop: num(row['gastos_extra_cop']),
     min_price_cop: num(row['min_price_cop']),
     margin_percent: num(row['margin_percent']),
     allow_quantity: row['allow_quantity'] !== false,
@@ -206,7 +209,9 @@ export function computeQuote(
   const margin = subtotal * (num(service.margin_percent) / 100);
   const withMargin = subtotal + margin;
   const min = num(service.min_price_cop);
-  const unit = Math.max(min, withMargin);
+  const extra = num(service.gastos_extra_cop);
+  const unit = Math.max(min, withMargin) + extra;
+  if (extra > 0) lines.push({ label: "Gastos extra", detail: "Montaje y post-procesado", amount: extra });
   const qty = Math.max(1, Math.round(num(quantity, 1)));
 
   return {
