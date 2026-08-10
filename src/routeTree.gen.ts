@@ -14,6 +14,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ServiciosRouteImport } from './routes/servicios'
 import { Route as PanelRouteImport } from './routes/panel'
 import { Route as NosotrosRouteImport } from './routes/nosotros'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as GaleriaRouteImport } from './routes/galeria'
 import { Route as CotizadorRouteImport } from './routes/cotizador'
 import { Route as ContactoRouteImport } from './routes/contacto'
@@ -30,6 +31,7 @@ import { Route as PanelPedidosRouteImport } from './routes/panel.pedidos'
 import { Route as PanelNotificacionesRouteImport } from './routes/panel.notificaciones'
 import { Route as PanelMenuRouteImport } from './routes/panel.menu'
 import { Route as PanelLlmRouteImport } from './routes/panel.llm'
+import { Route as PanelEquipoRouteImport } from './routes/panel.equipo'
 import { Route as PanelCotizadorRouteImport } from './routes/panel.cotizador'
 import { Route as PanelCotizacionesRouteImport } from './routes/panel.cotizaciones'
 import { Route as PanelContenidoRouteImport } from './routes/panel.contenido'
@@ -66,6 +68,11 @@ const PanelRoute = PanelRouteImport.update({
 const NosotrosRoute = NosotrosRouteImport.update({
   id: '/nosotros',
   path: '/nosotros',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GaleriaRoute = GaleriaRouteImport.update({
@@ -148,6 +155,11 @@ const PanelLlmRoute = PanelLlmRouteImport.update({
   path: '/llm',
   getParentRoute: () => PanelRoute,
 } as any)
+const PanelEquipoRoute = PanelEquipoRouteImport.update({
+  id: '/equipo',
+  path: '/equipo',
+  getParentRoute: () => PanelRoute,
+} as any)
 const PanelCotizadorRoute = PanelCotizadorRouteImport.update({
   id: '/cotizador',
   path: '/cotizador',
@@ -217,6 +229,7 @@ export interface FileRoutesByFullPath {
   '/contacto': typeof ContactoRoute
   '/cotizador': typeof CotizadorRoute
   '/galeria': typeof GaleriaRoute
+  '/login': typeof LoginRoute
   '/nosotros': typeof NosotrosRoute
   '/panel': typeof PanelRouteWithChildren
   '/servicios': typeof ServiciosRoute
@@ -233,6 +246,7 @@ export interface FileRoutesByFullPath {
   '/panel/contenido': typeof PanelContenidoRoute
   '/panel/cotizaciones': typeof PanelCotizacionesRoute
   '/panel/cotizador': typeof PanelCotizadorRoute
+  '/panel/equipo': typeof PanelEquipoRoute
   '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/notificaciones': typeof PanelNotificacionesRoute
@@ -251,6 +265,7 @@ export interface FileRoutesByTo {
   '/contacto': typeof ContactoRoute
   '/cotizador': typeof CotizadorRoute
   '/galeria': typeof GaleriaRoute
+  '/login': typeof LoginRoute
   '/nosotros': typeof NosotrosRoute
   '/servicios': typeof ServiciosRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -265,6 +280,7 @@ export interface FileRoutesByTo {
   '/panel/contenido': typeof PanelContenidoRoute
   '/panel/cotizaciones': typeof PanelCotizacionesRoute
   '/panel/cotizador': typeof PanelCotizadorRoute
+  '/panel/equipo': typeof PanelEquipoRoute
   '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/notificaciones': typeof PanelNotificacionesRoute
@@ -285,6 +301,7 @@ export interface FileRoutesById {
   '/contacto': typeof ContactoRoute
   '/cotizador': typeof CotizadorRoute
   '/galeria': typeof GaleriaRoute
+  '/login': typeof LoginRoute
   '/nosotros': typeof NosotrosRoute
   '/panel': typeof PanelRouteWithChildren
   '/servicios': typeof ServiciosRoute
@@ -301,6 +318,7 @@ export interface FileRoutesById {
   '/panel/contenido': typeof PanelContenidoRoute
   '/panel/cotizaciones': typeof PanelCotizacionesRoute
   '/panel/cotizador': typeof PanelCotizadorRoute
+  '/panel/equipo': typeof PanelEquipoRoute
   '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/notificaciones': typeof PanelNotificacionesRoute
@@ -322,6 +340,7 @@ export interface FileRouteTypes {
     | '/contacto'
     | '/cotizador'
     | '/galeria'
+    | '/login'
     | '/nosotros'
     | '/panel'
     | '/servicios'
@@ -338,6 +357,7 @@ export interface FileRouteTypes {
     | '/panel/contenido'
     | '/panel/cotizaciones'
     | '/panel/cotizador'
+    | '/panel/equipo'
     | '/panel/llm'
     | '/panel/menu'
     | '/panel/notificaciones'
@@ -356,6 +376,7 @@ export interface FileRouteTypes {
     | '/contacto'
     | '/cotizador'
     | '/galeria'
+    | '/login'
     | '/nosotros'
     | '/servicios'
     | '/sitemap.xml'
@@ -370,6 +391,7 @@ export interface FileRouteTypes {
     | '/panel/contenido'
     | '/panel/cotizaciones'
     | '/panel/cotizador'
+    | '/panel/equipo'
     | '/panel/llm'
     | '/panel/menu'
     | '/panel/notificaciones'
@@ -389,6 +411,7 @@ export interface FileRouteTypes {
     | '/contacto'
     | '/cotizador'
     | '/galeria'
+    | '/login'
     | '/nosotros'
     | '/panel'
     | '/servicios'
@@ -405,6 +428,7 @@ export interface FileRouteTypes {
     | '/panel/contenido'
     | '/panel/cotizaciones'
     | '/panel/cotizador'
+    | '/panel/equipo'
     | '/panel/llm'
     | '/panel/menu'
     | '/panel/notificaciones'
@@ -425,6 +449,7 @@ export interface RootRouteChildren {
   ContactoRoute: typeof ContactoRoute
   CotizadorRoute: typeof CotizadorRoute
   GaleriaRoute: typeof GaleriaRoute
+  LoginRoute: typeof LoginRoute
   NosotrosRoute: typeof NosotrosRoute
   PanelRoute: typeof PanelRouteWithChildren
   ServiciosRoute: typeof ServiciosRoute
@@ -470,6 +495,13 @@ declare module '@tanstack/react-router' {
       path: '/nosotros'
       fullPath: '/nosotros'
       preLoaderRoute: typeof NosotrosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/galeria': {
@@ -584,6 +616,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelLlmRouteImport
       parentRoute: typeof PanelRoute
     }
+    '/panel/equipo': {
+      id: '/panel/equipo'
+      path: '/equipo'
+      fullPath: '/panel/equipo'
+      preLoaderRoute: typeof PanelEquipoRouteImport
+      parentRoute: typeof PanelRoute
+    }
     '/panel/cotizador': {
       id: '/panel/cotizador'
       path: '/cotizador'
@@ -696,6 +735,7 @@ interface PanelRouteChildren {
   PanelContenidoRoute: typeof PanelContenidoRoute
   PanelCotizacionesRoute: typeof PanelCotizacionesRoute
   PanelCotizadorRoute: typeof PanelCotizadorRoute
+  PanelEquipoRoute: typeof PanelEquipoRoute
   PanelLlmRoute: typeof PanelLlmRoute
   PanelMenuRoute: typeof PanelMenuRoute
   PanelNotificacionesRoute: typeof PanelNotificacionesRoute
@@ -710,6 +750,7 @@ const PanelRouteChildren: PanelRouteChildren = {
   PanelContenidoRoute: PanelContenidoRoute,
   PanelCotizacionesRoute: PanelCotizacionesRoute,
   PanelCotizadorRoute: PanelCotizadorRoute,
+  PanelEquipoRoute: PanelEquipoRoute,
   PanelLlmRoute: PanelLlmRoute,
   PanelMenuRoute: PanelMenuRoute,
   PanelNotificacionesRoute: PanelNotificacionesRoute,
@@ -741,6 +782,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactoRoute: ContactoRoute,
   CotizadorRoute: CotizadorRoute,
   GaleriaRoute: GaleriaRoute,
+  LoginRoute: LoginRoute,
   NosotrosRoute: NosotrosRoute,
   PanelRoute: PanelRouteWithChildren,
   ServiciosRoute: ServiciosRoute,
@@ -754,13 +796,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
