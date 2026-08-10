@@ -226,20 +226,27 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
 
 }
 
+export type ToolFollowUp = (
+  call: { id: string; name: string; args: string },
+  resultJson: string,
+) => Promise<ReadableStream<Uint8Array> | null>;
+
 /**
  * Reenvía el stream del proveedor al cliente, acumulando las llamadas a
- * herramientas. Cuando la llamada termina, ejecuta la herramienta y emite un
- * frame `kiara_tool` que el widget convierte en tarjeta interactiva.
+ * herramientas. Cuando la llamada termina, ejecuta la herramienta, le devuelve
+ * el resultado al modelo (segunda pasada) para que redacte la respuesta con las
+ * cifras reales, y emite el frame `kiara_tool` que el widget convierte en tarjeta.
  */
 export function interceptToolStream(
   upstream: ReadableStream<Uint8Array>,
-  onFinish?: () => void,
+  opts: { onFinish?: () => void; followUp?: ToolFollowUp } = {},
 ): ReadableStream<Uint8Array> {
   const enc = new TextEncoder();
   const dec = new TextDecoder();
   let buffer = "";
   let toolName = "";
   let toolArgs = "";
+  let toolId = "";
   let sawContent = false;
 
   return new ReadableStream<Uint8Array>({
@@ -247,6 +254,40 @@ export function interceptToolStream(
       const reader = upstream.getReader();
       const emit = (obj: unknown) =>
         controller.enqueue(enc.encode(`data: ${JSON.stringify(obj)}\n\n`));
+
+      /** Reenvía solo el texto de un stream OpenAI-compatible. */
+      const pipeText = async (stream: ReadableStream<Uint8Array>) => {
+        const r = stream.getReader();
+        let buf = "";
+        let got = false;
+        while (true) {
+          const { done, value } = await r.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          const ls = buf.split("\n");
+          buf = ls.pop() ?? "";
+          for (const raw of ls) {
+            const line = raw.trim();
+            if (!line.startsWith("data:")) continue;
+            const p = line.slice(5).trim();
+            if (!p || p === "[DONE]") continue;
+            try {
+              const j = JSON.parse(p) as {
+                choices?: { delta?: { content?: string }; message?: { content?: string } }[];
+              };
+              const piece =
+                j.choices?.[0]?.delta?.content ?? j.choices?.[0]?.message?.content ?? "";
+              if (piece) {
+                got = true;
+                emit({ choices: [{ delta: { content: piece } }] });
+              }
+            } catch {
+              /* fragmento incompleto */
+            }
+          }
+        }
+        return got;
+      };
 
       try {
         while (true) {
@@ -263,37 +304,51 @@ export function interceptToolStream(
             if (!payload || payload === "[DONE]") continue;
 
             try {
-              const json = JSON.parse(payload) as {
-                choices?: {
-                  delta?: {
-                    content?: string;
-                    tool_calls?: { function?: { name?: string; arguments?: string } }[];
-                  };
-                  message?: {
-                    content?: string;
-                    tool_calls?: { function?: { name?: string; arguments?: string } }[];
-                  };
+              type Delta = {
+                content?: string;
+                tool_calls?: {
+                  id?: string;
+                  index?: number;
+                  function?: { name?: string; arguments?: string };
                 }[];
+              };
+              const json = JSON.parse(payload) as {
+                choices?: { delta?: Delta; message?: Delta }[];
               };
               const choice = json.choices?.[0];
               const delta = choice?.delta ?? choice?.message ?? {};
-              const tc = delta.tool_calls?.[0];
-              if (tc) {
-                if (tc.function?.name) toolName = toolName || tc.function.name;
+
+              for (const tc of delta.tool_calls ?? []) {
+                if (tc.id && !toolId) toolId = tc.id;
+                if (tc.function?.name && !toolName) toolName = tc.function.name;
                 if (tc.function?.arguments) toolArgs += tc.function.arguments;
-                continue;
               }
-              if (delta.content) sawContent = true;
-              controller.enqueue(enc.encode(`data: ${payload}\n\n`));
+
+              if (delta.content) {
+                sawContent = true;
+                emit({ choices: [{ delta: { content: delta.content } }] });
+              }
             } catch {
-              controller.enqueue(enc.encode(`${line}\n\n`));
+              /* ignoramos fragmentos no JSON del proveedor */
             }
           }
         }
 
         if (toolName) {
           const result = await runKiaraTool(toolName, toolArgs);
-          if (result.text) {
+          let narrated = false;
+          if (opts.followUp) {
+            try {
+              const stream = await opts.followUp(
+                { id: toolId || "call_kiara", name: toolName, args: toolArgs || "{}" },
+                JSON.stringify(result.result ?? { ok: true }),
+              );
+              if (stream) narrated = await pipeText(stream);
+            } catch {
+              narrated = false;
+            }
+          }
+          if (!narrated && result.text) {
             emit({ choices: [{ delta: { content: (sawContent ? "\n\n" : "") + result.text } }] });
           }
           if (result.data) {
@@ -307,8 +362,9 @@ export function interceptToolStream(
       } catch (e) {
         controller.error(e);
       } finally {
-        onFinish?.();
+        opts.onFinish?.();
       }
     },
+
   });
 }
