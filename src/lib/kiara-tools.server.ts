@@ -1,8 +1,9 @@
 // Kiara agéntica — definición y ejecución de herramientas (function calling).
 // Server-only: nunca llega al bundle del cliente.
 
-import { computeQuote, coerceAnswers, formatCOP } from "@/lib/quoter-core";
+import { computeQuote, coerceAnswersDetailed, formatCOP } from "@/lib/quoter-core";
 import { getQuoterServices } from "@/lib/quoter.server";
+
 
 export const KIARA_TOOLS = [
   {
