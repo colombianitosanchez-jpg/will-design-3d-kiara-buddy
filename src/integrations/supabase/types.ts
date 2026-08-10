@@ -776,6 +776,7 @@ export type Database = {
           base_price_cop: number
           created_at: string
           description: string
+          gastos_extra_cop: number
           icon: string
           id: string
           is_active: boolean
@@ -794,6 +795,7 @@ export type Database = {
           base_price_cop?: number
           created_at?: string
           description?: string
+          gastos_extra_cop?: number
           icon?: string
           id?: string
           is_active?: boolean
@@ -812,6 +814,7 @@ export type Database = {
           base_price_cop?: number
           created_at?: string
           description?: string
+          gastos_extra_cop?: number
           icon?: string
           id?: string
           is_active?: boolean
