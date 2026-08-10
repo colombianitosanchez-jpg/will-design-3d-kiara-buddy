@@ -915,16 +915,19 @@ export type Database = {
       site_content: {
         Row: {
           key: string
+          section: string
           updated_at: string
           value: string
         }
         Insert: {
           key: string
+          section?: string
           updated_at?: string
           value?: string
         }
         Update: {
           key?: string
+          section?: string
           updated_at?: string
           value?: string
         }
