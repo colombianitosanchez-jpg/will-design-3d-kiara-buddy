@@ -295,14 +295,16 @@ export function coerceAnswersDetailed(
     matched.add(field.key);
   }
 
-  const missingRequired = service.fields.filter(
-    (f) =>
-      f.is_active &&
-      f.is_required &&
-      !matched.has(f.key) &&
-      !f.default_value &&
-      (f.input_type === "slider" || f.input_type === "number" || f.input_type === "text"),
-  );
+  // Falta un dato si es obligatorio, o si es un número que cambia el precio y
+  // el cliente no lo dio: así Kiara pregunta en vez de asumir un valor por defecto.
+  const missingRequired = service.fields.filter((f) => {
+    if (!f.is_active || matched.has(f.key)) return false;
+    const numeric = f.input_type === "slider" || f.input_type === "number";
+    if (numeric) return f.is_required || f.price_per_unit_cop > 0;
+    if (f.input_type === "text") return f.is_required && !f.default_value;
+    return f.is_required && !f.default_value;
+  });
+
 
   return { values, matchedKeys: [...matched], missingRequired };
 }
