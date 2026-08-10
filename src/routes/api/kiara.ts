@@ -150,7 +150,8 @@ export const Route = createFileRoute("/api/kiara")({
                     stream: true,
                     temperature: 0.2,
                     messages: [
-                      ...payloadMessages,
+                      { role: "system", content: followUpSystem },
+                      { role: "user", content: lastUser },
                       {
                         role: "assistant",
                         content: "",
@@ -164,6 +165,7 @@ export const Route = createFileRoute("/api/kiara")({
                       },
                       { role: "tool", tool_call_id: call.id, name: call.name, content: resultJson },
                     ],
+
                   }),
                 });
                 if (!res.ok || !res.body) {
