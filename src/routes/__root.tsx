@@ -174,6 +174,8 @@ function RootComponent() {
         <SiteFooter />
         <KiaraWidget />
         <Toaster />
+      </div>
+
 
     </QueryClientProvider>
   );
