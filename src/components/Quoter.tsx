@@ -372,12 +372,31 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
       {service && result && (
         <div className="mt-10 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
           <div className="rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
-            <button
-              onClick={() => setServiceId(null)}
-              className="inline-flex items-center gap-1 text-sm font-bold text-muted-foreground hover:text-foreground"
-            >
-              <ChevronLeft className="h-4 w-4" /> Cambiar servicio
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => setServiceId(null)}
+                className="inline-flex items-center gap-1 text-sm font-bold text-muted-foreground hover:text-foreground"
+              >
+                <ChevronLeft className="h-4 w-4" /> Cambiar servicio
+              </button>
+              <label className="ml-auto flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                Selecciona el servicio
+                <select
+                  value={service.id}
+                  onChange={(e) => {
+                    const next = (services ?? []).find((s) => s.id === e.target.value);
+                    if (next) pick(next);
+                  }}
+                  className="rounded-xl border border-border bg-background px-3 py-2 text-sm font-semibold normal-case tracking-normal text-foreground"
+                >
+                  {(services ?? []).map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
 
             <div className="mt-4 flex items-start gap-3">
               <img
