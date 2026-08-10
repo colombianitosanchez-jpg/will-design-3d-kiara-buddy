@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import kiaraAsset from "@/assets/kiara.asset.json";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
+import { useSiteContent } from "@/hooks/use-site-content";
+
 import { supabase } from "@/integrations/supabase/client";
 import { createQuoteRequest } from "@/lib/quotes.functions";
 import {
@@ -197,6 +199,8 @@ function FieldControl({
 export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } = {}) {
   const { data: services, isLoading } = useQuery(quoterServicesQuery());
   const { data: content } = useQuery(siteContentQuery());
+  const { getText } = useSiteContent();
+
   const contact = getContactInfo(content);
   const saveQuote = useServerFn(createQuoteRequest);
 
@@ -319,14 +323,18 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
   return (
     <section id="cotizador" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
       <div className="mx-auto max-w-3xl text-center">
-        <span className="chip-teal">Cotizador</span>
+        <span className="chip-teal">{getText("quoter_badge", "Cotizador")}</span>
         <h2 className="mt-3 text-3xl font-black sm:text-4xl md:text-5xl">
-          Cotiza tu <span style={{ color: "var(--brand-orange)" }}>proyecto 3D</span> en un minuto
+          {getText("quoter_title", "Cotiza tu proyecto 3D en un minuto")}
         </h2>
         <p className="mt-3 text-muted-foreground">
-          Elige qué necesitas, mueve los deslizadores y verás el precio estimado al instante.
+          {getText(
+            "quoter_subtitle",
+            "Elige qué necesitas, mueve los deslizadores y verás el precio estimado al instante.",
+          )}
         </p>
       </div>
+
 
       {/* Paso 1: elegir servicio */}
       {!service && (

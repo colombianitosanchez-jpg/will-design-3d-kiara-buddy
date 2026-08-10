@@ -15,6 +15,8 @@ import { SiteHeader } from "../components/SiteHeader";
 import { SiteFooter } from "../components/SiteFooter";
 import { LiveBanner } from "../components/LiveBanner";
 import { KiaraWidget } from "../components/KiaraWidget";
+import { Toaster } from "../components/ui/sonner";
+
 
 function NotFoundComponent() {
   return (

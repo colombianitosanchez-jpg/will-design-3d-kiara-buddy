@@ -15,6 +15,8 @@ import { InstagramFeed } from "@/components/InstagramFeed";
 import { ProductCard } from "@/components/ProductCard";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 import { productsQuery, siteContentQuery } from "@/lib/catalog";
+import { useSiteContent } from "@/hooks/use-site-content";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -95,19 +97,20 @@ function Home() {
 }
 
 function Hero() {
-  const { data: content } = useQuery(siteContentQuery());
-  const title =
-    content?.hero_title || "Llevamos tus ideas a la realidad. Sin límites de tamaño.";
-  const subtitle =
-    content?.hero_subtitle ||
-    "Especialistas en Impresión 3D de gran formato en Bogotá. Diseño, producción y acabados profesionales bajo un mismo techo.";
-  const image = content?.hero_image_url?.trim() || heroImg;
-  const badge = content?.hero_badge_title?.trim() || "Escultura 1.8 m — PLA reforzado";
+  const { getText } = useSiteContent();
+  const title = getText("hero_title", "Llevamos tus ideas a la realidad. Sin límites de tamaño.");
+  const subtitle = getText(
+    "hero_subtitle",
+    "Especialistas en Impresión 3D de gran formato en Bogotá. Diseño, producción y acabados profesionales bajo un mismo techo.",
+  );
+  const image = getText("hero_image_url", heroImg);
+  const badge = getText("hero_badge_title", "Escultura 1.8 m — PLA reforzado");
   const stats = [
-    { k: content?.hero_stat_1_k?.trim() || "50×50", v: content?.hero_stat_1_v?.trim() || "cm mínimo" },
-    { k: content?.hero_stat_2_k?.trim() || "∞", v: content?.hero_stat_2_v?.trim() || "sin límite" },
-    { k: content?.hero_stat_3_k?.trim() || "+200", v: content?.hero_stat_3_v?.trim() || "proyectos" },
+    { k: getText("hero_stat_1_k", "50×50"), v: getText("hero_stat_1_v", "cm mínimo") },
+    { k: getText("hero_stat_2_k", "∞"), v: getText("hero_stat_2_v", "sin límite") },
+    { k: getText("hero_stat_3_k", "+200"), v: getText("hero_stat_3_v", "proyectos") },
   ];
+
 
   return (
     <section id="inicio" className="relative overflow-hidden">
