@@ -91,7 +91,18 @@ export const Route = createFileRoute("/api/kiara")({
           ...parsed.messages.map((m) => ({ role: m.role, content: m.content })),
         ];
 
+        // Para la 2a pasada (redactar el resultado de la herramienta) se usa un
+        // contexto mínimo: así es exacta, rápida y no agota la cuota del proveedor.
+        const lastUser =
+          [...parsed.messages].reverse().find((m) => m.role === "user")?.content ?? "";
+        const followUpSystem =
+          "Eres Kiara, asistente de Will Design 3D (cálida, español colombiano, 🐾 ocasional). " +
+          "Redacta en 1-2 frases el resultado de la herramienta usando EXACTAMENTE las cifras recibidas; " +
+          "no recalcules, no agregues ni cambies números, no inventes plazos ni datos. " +
+          "Si el resultado indica datos faltantes, pide justo esos datos.";
+
         const failures: string[] = [];
+
 
         for (const p of list) {
           const controller = new AbortController();
