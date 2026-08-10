@@ -229,45 +229,91 @@ export function computeQuote(
 
 /**
  * Convierte respuestas "en lenguaje natural" (por clave, etiqueta o valor) a los
- * valores exactos que espera el motor. Lo usa Kiara para cotizar por chat.
+ * valores exactos que espera el motor, e informa qué campos quedaron sin dato.
+ * Lo usa Kiara para cotizar por chat: si falta un campo obligatorio, debe
+ * preguntarlo en vez de inventarlo.
  */
-export function coerceAnswers(
+export function coerceAnswersDetailed(
   service: QuoterService,
   input: Record<string, unknown>,
-): QuoterValues {
+): { values: QuoterValues; matchedKeys: string[]; missingRequired: QuoterField[] } {
   const values = defaultValuesFor(service);
+  const matched = new Set<string>();
   const norm = (s: string) =>
     s
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[_-]+/g, " ")
+      .replace(/\s+/g, " ")
       .trim();
 
   for (const [rawKey, rawVal] of Object.entries(input)) {
     const key = norm(rawKey);
+    if (!key) continue;
+    // Coincidencia estricta primero; la difusa solo con claves suficientemente
+    // largas y por palabra completa, para no mapear datos al campo equivocado.
+    const fuzzy = (f: QuoterField) => {
+      if (key.length < 4) return false;
+      const words = (s: string) => norm(s).split(" ");
+      return words(f.key).includes(key) || words(f.label).includes(key) ||
+        key.split(" ").some((w) => w.length >= 4 && (words(f.key).includes(w) || words(f.label).includes(w)));
+    };
     const field =
       service.fields.find((f) => norm(f.key) === key) ??
       service.fields.find((f) => norm(f.label) === key) ??
-      service.fields.find((f) => norm(f.label).includes(key) || key.includes(norm(f.key)));
+      service.fields.find(fuzzy);
     if (!field) continue;
 
     const val = String(rawVal ?? "").trim();
+    if (!val) continue;
+
     if (field.input_type === "select") {
       const opt =
         field.options.find((o) => norm(o.value) === norm(val)) ??
         field.options.find((o) => norm(o.label) === norm(val)) ??
         field.options.find((o) => norm(o.label).includes(norm(val)));
-      if (opt) values[field.key] = opt.value;
+      if (opt) {
+        values[field.key] = opt.value;
+        matched.add(field.key);
+      }
       continue;
     }
     if (field.input_type === "toggle") {
       values[field.key] = isOn(val) ? "si" : "no";
+      matched.add(field.key);
+      continue;
+    }
+    if (field.input_type === "slider" || field.input_type === "number") {
+      const n = Number(String(val).replace(/[^0-9.,-]/g, "").replace(",", "."));
+      if (!Number.isFinite(n)) continue;
+      values[field.key] = String(n);
+      matched.add(field.key);
       continue;
     }
     values[field.key] = val;
+    matched.add(field.key);
   }
-  return values;
+
+  const missingRequired = service.fields.filter(
+    (f) =>
+      f.is_active &&
+      f.is_required &&
+      !matched.has(f.key) &&
+      !f.default_value &&
+      (f.input_type === "slider" || f.input_type === "number" || f.input_type === "text"),
+  );
+
+  return { values, matchedKeys: [...matched], missingRequired };
 }
+
+export function coerceAnswers(
+  service: QuoterService,
+  input: Record<string, unknown>,
+): QuoterValues {
+  return coerceAnswersDetailed(service, input).values;
+}
+
 
 export function formatCOP(n: number) {
   return (Number(n) || 0).toLocaleString("es-CO", {
