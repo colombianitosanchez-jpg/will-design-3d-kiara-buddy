@@ -31,6 +31,7 @@ import { Route as PanelPedidosRouteImport } from './routes/panel.pedidos'
 import { Route as PanelNotificacionesRouteImport } from './routes/panel.notificaciones'
 import { Route as PanelMenuRouteImport } from './routes/panel.menu'
 import { Route as PanelLlmRouteImport } from './routes/panel.llm'
+import { Route as PanelEquipoRouteImport } from './routes/panel.equipo'
 import { Route as PanelCotizadorRouteImport } from './routes/panel.cotizador'
 import { Route as PanelCotizacionesRouteImport } from './routes/panel.cotizaciones'
 import { Route as PanelContenidoRouteImport } from './routes/panel.contenido'
@@ -154,6 +155,11 @@ const PanelLlmRoute = PanelLlmRouteImport.update({
   path: '/llm',
   getParentRoute: () => PanelRoute,
 } as any)
+const PanelEquipoRoute = PanelEquipoRouteImport.update({
+  id: '/equipo',
+  path: '/equipo',
+  getParentRoute: () => PanelRoute,
+} as any)
 const PanelCotizadorRoute = PanelCotizadorRouteImport.update({
   id: '/cotizador',
   path: '/cotizador',
@@ -240,6 +246,7 @@ export interface FileRoutesByFullPath {
   '/panel/contenido': typeof PanelContenidoRoute
   '/panel/cotizaciones': typeof PanelCotizacionesRoute
   '/panel/cotizador': typeof PanelCotizadorRoute
+  '/panel/equipo': typeof PanelEquipoRoute
   '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/notificaciones': typeof PanelNotificacionesRoute
@@ -273,6 +280,7 @@ export interface FileRoutesByTo {
   '/panel/contenido': typeof PanelContenidoRoute
   '/panel/cotizaciones': typeof PanelCotizacionesRoute
   '/panel/cotizador': typeof PanelCotizadorRoute
+  '/panel/equipo': typeof PanelEquipoRoute
   '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/notificaciones': typeof PanelNotificacionesRoute
@@ -310,6 +318,7 @@ export interface FileRoutesById {
   '/panel/contenido': typeof PanelContenidoRoute
   '/panel/cotizaciones': typeof PanelCotizacionesRoute
   '/panel/cotizador': typeof PanelCotizadorRoute
+  '/panel/equipo': typeof PanelEquipoRoute
   '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/notificaciones': typeof PanelNotificacionesRoute
@@ -348,6 +357,7 @@ export interface FileRouteTypes {
     | '/panel/contenido'
     | '/panel/cotizaciones'
     | '/panel/cotizador'
+    | '/panel/equipo'
     | '/panel/llm'
     | '/panel/menu'
     | '/panel/notificaciones'
@@ -381,6 +391,7 @@ export interface FileRouteTypes {
     | '/panel/contenido'
     | '/panel/cotizaciones'
     | '/panel/cotizador'
+    | '/panel/equipo'
     | '/panel/llm'
     | '/panel/menu'
     | '/panel/notificaciones'
@@ -417,6 +428,7 @@ export interface FileRouteTypes {
     | '/panel/contenido'
     | '/panel/cotizaciones'
     | '/panel/cotizador'
+    | '/panel/equipo'
     | '/panel/llm'
     | '/panel/menu'
     | '/panel/notificaciones'
@@ -604,6 +616,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelLlmRouteImport
       parentRoute: typeof PanelRoute
     }
+    '/panel/equipo': {
+      id: '/panel/equipo'
+      path: '/equipo'
+      fullPath: '/panel/equipo'
+      preLoaderRoute: typeof PanelEquipoRouteImport
+      parentRoute: typeof PanelRoute
+    }
     '/panel/cotizador': {
       id: '/panel/cotizador'
       path: '/cotizador'
@@ -716,6 +735,7 @@ interface PanelRouteChildren {
   PanelContenidoRoute: typeof PanelContenidoRoute
   PanelCotizacionesRoute: typeof PanelCotizacionesRoute
   PanelCotizadorRoute: typeof PanelCotizadorRoute
+  PanelEquipoRoute: typeof PanelEquipoRoute
   PanelLlmRoute: typeof PanelLlmRoute
   PanelMenuRoute: typeof PanelMenuRoute
   PanelNotificacionesRoute: typeof PanelNotificacionesRoute
@@ -730,6 +750,7 @@ const PanelRouteChildren: PanelRouteChildren = {
   PanelContenidoRoute: PanelContenidoRoute,
   PanelCotizacionesRoute: PanelCotizacionesRoute,
   PanelCotizadorRoute: PanelCotizadorRoute,
+  PanelEquipoRoute: PanelEquipoRoute,
   PanelLlmRoute: PanelLlmRoute,
   PanelMenuRoute: PanelMenuRoute,
   PanelNotificacionesRoute: PanelNotificacionesRoute,

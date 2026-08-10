@@ -16,6 +16,7 @@ import { SiteFooter } from "../components/SiteFooter";
 import { LiveBanner } from "../components/LiveBanner";
 import { KiaraWidget } from "../components/KiaraWidget";
 import { Toaster } from "../components/ui/sonner";
+import { AuthProvider } from "../hooks/use-auth";
 
 
 function NotFoundComponent() {
