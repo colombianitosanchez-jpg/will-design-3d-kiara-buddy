@@ -34,7 +34,7 @@ export const Route = createFileRoute("/admin")({
 
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();
-    if (!data.user) throw redirect({ to: "/auth" });
+    if (!data.user) throw redirect({ to: "/login" });
   },
   component: AdminLayout,
 });
@@ -78,7 +78,7 @@ function AdminLayout() {
 
   async function signOut() {
     await supabase.auth.signOut();
-    navigate({ to: "/auth" });
+    navigate({ to: "/login" });
   }
 
   if (roles === null) {
