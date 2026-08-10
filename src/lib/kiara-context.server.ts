@@ -44,14 +44,20 @@ export async function resolveAuthBoundary(
 
   const { data: roles } = await supabaseAdmin
     .from("user_roles")
-    .select("role")
+    .select("role, is_active")
     .eq("user_id", userId);
 
+  // Roles vigentes del panel: super_admin y empleado (activos).
   const isInternalTeam = Boolean(
-    roles?.some((r) => r.role === "admin" || r.role === "staff"),
+    roles?.some(
+      (r) =>
+        (r as { is_active?: boolean }).is_active !== false &&
+        ["super_admin", "empleado", "admin", "staff"].includes(String(r.role)),
+    ),
   );
   return { isInternalTeam, userId: isInternalTeam ? userId : null };
 }
+
 
 function trimBlock(parts: string[]) {
   let used = 0;
