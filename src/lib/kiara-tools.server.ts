@@ -67,12 +67,14 @@ export const KIARA_TOOLS = [
   },
 ];
 
-export const TOOL_INSTRUCTIONS = `\n\nHERRAMIENTAS:
-- Para cualquier precio o cotización usa quote_service con el servicio más parecido a lo que pide el usuario. Nunca calcules ni inventes precios por tu cuenta.
+export const TOOL_INSTRUCTIONS = `\n\nHERRAMIENTAS (function calling):
+- quote_service es la ÚNICA forma válida de dar un precio. Nunca calcules, estimes ni inventes cifras.
+- Antes de llamar a quote_service debes tener: el slug exacto de un servicio de la lista y TODOS los datos numéricos que ese servicio pide (por ejemplo gramos, altura, horas). Si falta alguno, NO llames la herramienta: pregunta en una sola frase por los datos que faltan.
+- Usa las claves exactas de cada pregunta (por ejemplo {"peso_gramos": 120, "material": "PLA"}). No rellenes campos que el cliente no mencionó.
 - Llama a create_order solo cuando tengas nombre, correo, dirección y el detalle del pedido confirmado por el usuario.
-- Después de una herramienta, comenta el resultado en 1-2 frases cálidas; la tarjeta con el detalle se muestra automáticamente.`;
+- Cuando recibas el resultado de una herramienta, resume SOLO esas cifras en 1-2 frases; la tarjeta con el desglose se muestra automáticamente. No repitas ni modifiques los números.`;
 
-export type ToolOutcome = { text: string; data: unknown };
+export type ToolOutcome = { text: string; data: unknown; result: unknown };
 
 function money(n: number) {
   return (Number(n) || 0).toLocaleString("es-CO", {
@@ -98,42 +100,70 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
     args = {};
   }
 
-
-
-
   if (name === "quote_service" || name === "generate_quote") {
     const services = await getQuoterServices();
     if (services.length === 0)
-      return { text: "Aún no tengo servicios configurados para cotizar.", data: null };
+      return {
+        text: "Aún no tengo servicios configurados para cotizar.",
+        data: null,
+        result: { error: "sin_servicios" },
+      };
 
-    const wanted = slugify(String(args.service_slug ?? args.material ?? ""));
+    const wanted = slugify(String(args.service_slug ?? ""));
+    // Sin coincidencia clara NO se cotiza a ciegas: se pregunta.
     const service =
       services.find((s) => s.slug === wanted) ??
       services.find((s) => slugify(s.name) === wanted) ??
-      services.find((s) => wanted && (s.slug.includes(wanted) || slugify(s.name).includes(wanted))) ??
-      services[0]!;
+      (wanted.length >= 4
+        ? services.find((s) => s.slug.includes(wanted) || slugify(s.name).includes(wanted))
+        : undefined);
+
+    if (!service) {
+      const opciones = services.map((s) => `${s.name} (${s.slug})`).join(", ");
+      return {
+        text: `¿Cuál de estos servicios necesitas? ${opciones}`,
+        data: null,
+        result: { error: "servicio_no_encontrado", servicios_disponibles: opciones },
+      };
+    }
 
     const rawAnswers =
       args.answers && typeof args.answers === "object"
         ? (args.answers as Record<string, unknown>)
         : (args as Record<string, unknown>);
-    const values = coerceAnswers(service, rawAnswers);
+    const { values, missingRequired } = coerceAnswersDetailed(service, rawAnswers);
+
+    if (missingRequired.length > 0) {
+      const faltan = missingRequired
+        .map((f) => `${f.label}${f.unit ? ` en ${f.unit}` : ""} (clave ${f.key})`)
+        .join(", ");
+      return {
+        text: `Para cotizar ${service.name} necesito: ${faltan}.`,
+        data: null,
+        result: { error: "datos_faltantes", servicio: service.slug, faltan },
+      };
+    }
+
     const quote = computeQuote(service, values, Number(args.quantity) || 1);
+    const data = {
+      service_slug: service.slug,
+      project_name: service.name,
+      answers: quote.answers,
+      lines: quote.lines,
+      quantity: quote.quantity,
+      unit_price_cop: quote.unit_price_cop,
+      total_cop: quote.total_cop,
+      total_formatted: formatCOP(quote.total_cop),
+    };
 
     return {
       text: `Listo 🐾 ${service.name}: cotización estimada de ${money(quote.total_cop)}.`,
-      data: {
-        service_slug: service.slug,
-        project_name: service.name,
-        answers: quote.answers,
-        lines: quote.lines,
-        quantity: quote.quantity,
-        unit_price_cop: quote.unit_price_cop,
-        total_cop: quote.total_cop,
-        total_formatted: formatCOP(quote.total_cop),
-      },
+      data,
+      result: data,
     };
   }
+
+
 
 
   if (name === "create_order") {
