@@ -39,6 +39,8 @@ export type QuoterService = {
   icon: string;
   site_anchor: string;
   base_price_cop: number;
+  /** Gastos extra fijos (montaje / post-procesado) que se suman al total. */
+  gastos_extra_cop: number;
   min_price_cop: number;
   margin_percent: number;
   allow_quantity: boolean;
