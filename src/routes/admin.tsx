@@ -89,8 +89,8 @@ function AdminLayout() {
     );
   }
 
-  const isAdmin = roles.includes("admin");
-  const isStaff = roles.includes("staff");
+  const isAdmin = roles.includes("super_admin");
+  const isStaff = roles.includes("empleado");
 
   if (!isAdmin && !isStaff) {
     return (
