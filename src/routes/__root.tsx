@@ -173,7 +173,8 @@ function RootComponent() {
         </main>
         <SiteFooter />
         <KiaraWidget />
-      </div>
+        <Toaster />
+
     </QueryClientProvider>
   );
 }
