@@ -96,26 +96,25 @@ export const Route = createFileRoute("/api/kiara")({
         for (const p of list) {
           const controller = new AbortController();
           const timer = setTimeout(() => controller.abort(), 25_000);
+          const endpoint = `${p.base_url.replace(/\/+$/, "")}/chat/completions`;
+          const authHeaders = {
+            "Content-Type": "application/json",
+            ...(p.api_key ? { Authorization: `Bearer ${p.api_key}` } : {}),
+          };
           try {
-            const upstream = await fetch(
-              `${p.base_url.replace(/\/+$/, "")}/chat/completions`,
-              {
-                method: "POST",
-                signal: controller.signal,
-                headers: {
-                  "Content-Type": "application/json",
-                  ...(p.api_key ? { Authorization: `Bearer ${p.api_key}` } : {}),
-                },
-                body: JSON.stringify({
-                  model: p.model,
-                  messages: payloadMessages,
-                  stream: true,
-                  temperature: 0.7,
-                  tools: KIARA_TOOLS,
-                  tool_choice: "auto",
-                }),
-              },
-            );
+            const upstream = await fetch(endpoint, {
+              method: "POST",
+              signal: controller.signal,
+              headers: authHeaders,
+              body: JSON.stringify({
+                model: p.model,
+                messages: payloadMessages,
+                stream: true,
+                temperature: 0.2,
+                tools: KIARA_TOOLS,
+                tool_choice: "auto",
+              }),
+            });
 
             if (!upstream.ok || !upstream.body) {
               const detail = upstream.ok ? "sin cuerpo" : `HTTP ${upstream.status}`;
@@ -126,9 +125,39 @@ export const Route = createFileRoute("/api/kiara")({
               continue;
             }
 
-            // El primero que responde gana: se reenvía su stream y se ejecutan
-            // las herramientas que pida (cotizar, crear pedido).
-            const stream = interceptToolStream(upstream.body, () => clearTimeout(timer));
+            // El primero que responde gana: se reenvía su stream, se ejecutan las
+            // herramientas y el resultado se devuelve al modelo (segunda pasada)
+            // para que redacte con las cifras exactas del motor de precios.
+            const stream = interceptToolStream(upstream.body, {
+              onFinish: () => clearTimeout(timer),
+              followUp: async (call, resultJson) => {
+                const res = await fetch(endpoint, {
+                  method: "POST",
+                  headers: authHeaders,
+                  body: JSON.stringify({
+                    model: p.model,
+                    stream: true,
+                    temperature: 0.2,
+                    messages: [
+                      ...payloadMessages,
+                      {
+                        role: "assistant",
+                        content: null,
+                        tool_calls: [
+                          {
+                            id: call.id,
+                            type: "function",
+                            function: { name: call.name, arguments: call.args },
+                          },
+                        ],
+                      },
+                      { role: "tool", tool_call_id: call.id, name: call.name, content: resultJson },
+                    ],
+                  }),
+                });
+                return res.ok && res.body ? res.body : null;
+              },
+            });
 
 
             return new Response(stream, {
@@ -140,6 +169,7 @@ export const Route = createFileRoute("/api/kiara")({
                 "X-Kiara-Provider": p.name,
               },
             });
+
           } catch (e) {
             clearTimeout(timer);
             const msg = (e as Error).name === "AbortError" ? "timeout" : (e as Error).message;
