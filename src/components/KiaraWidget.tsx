@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { MessageCircle, X, Radio, Send } from "lucide-react";
+import { MessageCircle, Radio, Send } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import kiaraAsset from "@/assets/kiara.asset.json";
 import { useLive } from "@/lib/live-store";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 import { useKiaraChat } from "@/hooks/use-kiara-chat";
-import { KiaraQuoteCard, KiaraOrderCard } from "@/components/KiaraToolCards";
+import { KiaraQuoteCard, KiaraOrderCard, KiaraProductsCard } from "@/components/KiaraToolCards";
 
 
 
@@ -52,32 +58,26 @@ export function KiaraWidget() {
 
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
-      {open && (
-        <div className="flex h-[28rem] w-[20rem] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent
+          side="right"
+          className="flex w-full flex-col gap-0 p-0 sm:max-w-md"
+        >
           {/* Header */}
-          <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/40 px-4 py-3">
-            <div className="flex items-center gap-2">
-              <img
-                src={kiaraImg}
-                alt="Kiara"
-                width={36}
-                height={36}
-                className="h-9 w-9 rounded-full object-cover ring-2 ring-primary"
-              />
-              <div>
-                <p className="text-sm font-bold text-foreground">Kiara 🐾</p>
-                <p className="text-[11px] text-muted-foreground">
-                  {sending ? "escribiendo…" : "Asistente virtual"}
-                </p>
-              </div>
+          <div className="flex items-center gap-2 border-b border-border bg-muted/40 px-4 py-3 pr-12">
+            <img
+              src={kiaraImg}
+              alt="Kiara"
+              width={36}
+              height={36}
+              className="h-9 w-9 rounded-full object-cover ring-2 ring-primary"
+            />
+            <div>
+              <SheetTitle className="text-sm font-bold text-foreground">Kiara 🐾</SheetTitle>
+              <SheetDescription className="text-[11px]">
+                {sending ? "escribiendo…" : "Asistente virtual"}
+              </SheetDescription>
             </div>
-            <button
-              onClick={() => setOpen(false)}
-              aria-label="Cerrar"
-              className="rounded-full p-1 text-muted-foreground hover:bg-muted"
-            >
-              <X className="h-4 w-4" />
-            </button>
           </div>
 
           {isLive && (
@@ -92,10 +92,7 @@ export function KiaraWidget() {
           )}
 
           {/* Messages */}
-          <div
-            ref={scrollRef}
-            className="flex-1 space-y-3 overflow-y-auto px-3 py-3"
-          >
+          <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-3 py-3">
             {messages.map((m) => (
               <div
                 key={m.id}
@@ -114,6 +111,9 @@ export function KiaraWidget() {
                 )}
                 {m.tool?.name === "quote_service" && <KiaraQuoteCard quote={m.tool.data} />}
                 {m.tool?.name === "create_order" && <KiaraOrderCard order={m.tool.data} />}
+                {m.tool?.name === "search_products" && (
+                  <KiaraProductsCard products={m.tool.data} />
+                )}
               </div>
             ))}
 
@@ -159,8 +159,8 @@ export function KiaraWidget() {
           >
             <MessageCircle className="h-3.5 w-3.5" /> Prefiero WhatsApp
           </a>
-        </div>
-      )}
+        </SheetContent>
+      </Sheet>
 
       {!open && (
         <div

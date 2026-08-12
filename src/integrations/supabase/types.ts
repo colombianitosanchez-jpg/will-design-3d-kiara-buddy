@@ -232,9 +232,12 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          max_tokens: number | null
           model: string
           name: string
           priority: number
+          system_prompt: string | null
+          temperature: number
           updated_at: string
         }
         Insert: {
@@ -243,9 +246,12 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          max_tokens?: number | null
           model: string
           name: string
           priority?: number
+          system_prompt?: string | null
+          temperature?: number
           updated_at?: string
         }
         Update: {
@@ -254,9 +260,12 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          max_tokens?: number | null
           model?: string
           name?: string
           priority?: number
+          system_prompt?: string | null
+          temperature?: number
           updated_at?: string
         }
         Relationships: []

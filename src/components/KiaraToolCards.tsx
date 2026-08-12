@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { CheckCircle2, Loader2, Receipt } from "lucide-react";
-import type { KiaraOrderData, KiaraServiceQuoteData } from "@/lib/kiara-chat";
+import { CheckCircle2, Loader2, Receipt, ShoppingCart } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import type { KiaraOrderData, KiaraProductsData, KiaraServiceQuoteData } from "@/lib/kiara-chat";
 import { confirmQuoteOrder } from "@/lib/kiara-orders.functions";
 
 const cop = (n: number) =>
@@ -153,6 +154,48 @@ export function KiaraOrderCard({ order }: { order: KiaraOrderData }) {
       <p className="mt-1 text-[10px] text-muted-foreground">
         Referencia: {order.order_id.slice(0, 8).toUpperCase()}
       </p>
+    </div>
+  );
+}
+
+/** Productos reales del catálogo con enlace directo de compra. */
+export function KiaraProductsCard({ products }: { products: KiaraProductsData }) {
+  return (
+    <div className="mt-2 w-full space-y-2">
+      {products.items.map((p) => (
+        <div
+          key={p.slug}
+          className="flex gap-2 rounded-2xl border border-border bg-background p-2 shadow-sm"
+        >
+          {p.image_url && (
+            <img
+              src={p.image_url}
+              alt={p.name}
+              loading="lazy"
+              className="h-16 w-16 shrink-0 rounded-xl object-cover"
+            />
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-bold">{p.name}</p>
+            <p className="text-[10px] text-muted-foreground">
+              {[p.brand, p.category].filter(Boolean).join(" · ")}
+              {p.in_stock ? " · disponible" : " · bajo pedido"}
+            </p>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <span className="text-sm font-black text-[var(--brand-wine)]">
+                {cop(p.price_cop)}
+              </span>
+              <Link
+                to="/tienda/$slug"
+                params={{ slug: p.slug }}
+                className="flex items-center gap-1 rounded-full bg-[var(--brand-orange)] px-3 py-1.5 text-[11px] font-bold text-white hover:opacity-90"
+              >
+                <ShoppingCart className="h-3 w-3" /> Comprar
+              </Link>
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
