@@ -10,9 +10,13 @@ export type LlmProviderRow = {
   priority: number;
   is_active: boolean;
   has_key: boolean;
+  temperature: number;
+  system_prompt: string;
+  max_tokens: number | null;
 };
 
-const SAFE_COLUMNS = "id, name, base_url, model, priority, is_active, api_key";
+const SAFE_COLUMNS =
+  "id, name, base_url, model, priority, is_active, api_key, temperature, system_prompt, max_tokens";
 
 const upsertSchema = z.object({
   id: z.string().uuid().nullable().optional().default(null),
@@ -22,6 +26,9 @@ const upsertSchema = z.object({
   api_key: z.string().trim().max(400).nullable().optional().default(null),
   priority: z.number().int().min(1).max(99),
   is_active: z.boolean().default(true),
+  temperature: z.number().min(0).max(2).default(0.2),
+  system_prompt: z.string().trim().max(4000).nullable().optional().default(null),
+  max_tokens: z.number().int().min(64).max(32000).nullable().optional().default(null),
 });
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
@@ -52,6 +59,9 @@ export const listLlmProviders = createServerFn({ method: "POST" })
       priority: r.priority,
       is_active: r.is_active,
       has_key: Boolean(r.api_key && String(r.api_key).length > 0),
+      temperature: Number(r.temperature ?? 0.2),
+      system_prompt: r.system_prompt ?? "",
+      max_tokens: r.max_tokens ?? null,
     }));
   });
 
@@ -69,6 +79,9 @@ export const saveLlmProvider = createServerFn({ method: "POST" })
       model: data.model,
       priority: data.priority,
       is_active: data.is_active,
+      temperature: data.temperature,
+      system_prompt: data.system_prompt || null,
+      max_tokens: data.max_tokens ?? null,
     };
 
     if (data.id) {
