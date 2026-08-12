@@ -19,6 +19,9 @@ type Provider = {
   base_url: string;
   model: string;
   api_key: string | null;
+  temperature: number | null;
+  system_prompt: string | null;
+  max_tokens: number | null;
 };
 
 /** Códigos que deben provocar el salto al siguiente proveedor de la cascada. */
@@ -73,7 +76,7 @@ export const Route = createFileRoute("/api/kiara")({
 
         const { data: providers } = await supabaseAdmin
           .from("llm_providers")
-          .select("id, name, base_url, model, api_key")
+          .select("id, name, base_url, model, api_key, temperature, system_prompt, max_tokens")
           .eq("is_active", true)
           .order("priority", { ascending: true })
           .order("created_at", { ascending: true });
@@ -86,9 +89,16 @@ export const Route = createFileRoute("/api/kiara")({
           );
         }
 
-        const payloadMessages = [
-          { role: "system", content: systemPrompt },
-          ...parsed.messages.map((m) => ({ role: m.role, content: m.content })),
+        // El prompt, la temperatura y el modelo salen del panel (Configuración de LLM).
+        const historyMessages = parsed.messages.map((m) => ({ role: m.role, content: m.content }));
+        const buildMessages = (extraPrompt: string | null) => [
+          {
+            role: "system",
+            content: extraPrompt?.trim()
+              ? `${systemPrompt}\n\n${extraPrompt.trim()}`
+              : systemPrompt,
+          },
+          ...historyMessages,
         ];
 
         // Para la 2a pasada (redactar el resultado de la herramienta) se usa un
@@ -105,6 +115,7 @@ export const Route = createFileRoute("/api/kiara")({
 
 
         for (const p of list) {
+          const temp = Number.isFinite(Number(p.temperature)) ? Number(p.temperature) : 0.2;
           const controller = new AbortController();
           const timer = setTimeout(() => controller.abort(), 25_000);
           const endpoint = `${p.base_url.replace(/\/+$/, "")}/chat/completions`;
@@ -119,9 +130,10 @@ export const Route = createFileRoute("/api/kiara")({
               headers: authHeaders,
               body: JSON.stringify({
                 model: p.model,
-                messages: payloadMessages,
+                messages: buildMessages(p.system_prompt),
                 stream: true,
-                temperature: 0.2,
+                temperature: temp,
+                ...(p.max_tokens ? { max_tokens: p.max_tokens } : {}),
                 tools: KIARA_TOOLS,
                 tool_choice: "auto",
               }),
@@ -148,7 +160,8 @@ export const Route = createFileRoute("/api/kiara")({
                   body: JSON.stringify({
                     model: p.model,
                     stream: true,
-                    temperature: 0.2,
+                    temperature: temp,
+                    ...(p.max_tokens ? { max_tokens: p.max_tokens } : {}),
                     messages: [
                       { role: "system", content: followUpSystem },
                       { role: "user", content: lastUser },
