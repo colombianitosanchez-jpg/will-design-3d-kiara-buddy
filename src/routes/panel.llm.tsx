@@ -37,9 +37,6 @@ type Draft = {
   priority: number;
   is_active: boolean;
   has_key: boolean;
-  temperature: number;
-  system_prompt: string;
-  max_tokens: string;
 };
 
 const EMPTY: Draft = {
@@ -51,9 +48,6 @@ const EMPTY: Draft = {
   priority: 1,
   is_active: true,
   has_key: false,
-  temperature: 0.2,
-  system_prompt: "",
-  max_tokens: "",
 };
 
 function LlmAdmin() {
@@ -139,9 +133,6 @@ function LlmAdmin() {
           api_key: draft.api_key || null,
           priority: draft.priority,
           is_active: draft.is_active,
-          temperature: draft.temperature,
-          system_prompt: draft.system_prompt.trim() || null,
-          max_tokens: draft.max_tokens.trim() ? Number(draft.max_tokens) : null,
         },
       });
       setDraft(null);
@@ -325,9 +316,6 @@ function LlmAdmin() {
                             priority: r.priority,
                             is_active: r.is_active,
                             has_key: r.has_key,
-                            temperature: r.temperature,
-                            system_prompt: r.system_prompt ?? "",
-                            max_tokens: r.max_tokens ? String(r.max_tokens) : "",
                           })
                         }
                         className="rounded-lg border border-border px-2 py-1.5 text-xs font-bold hover:bg-muted"
@@ -445,55 +433,6 @@ function LlmAdmin() {
                   value={draft.api_key}
                   onChange={(e) => setDraft({ ...draft, api_key: e.target.value })}
                   placeholder={draft.has_key ? "•••••••• guardada" : "sk-..."}
-                  className="mt-1 w-full rounded-2xl border border-input bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <label className="text-sm font-bold">
-                    Temperatura ({draft.temperature.toFixed(2)})
-                  </label>
-                  <p className="text-xs text-muted-foreground">
-                    0 = exacta y predecible · 1 = más creativa
-                  </p>
-                  <input
-                    type="range"
-                    min={0}
-                    max={2}
-                    step={0.05}
-                    value={draft.temperature}
-                    onChange={(e) =>
-                      setDraft({ ...draft, temperature: Number(e.target.value) })
-                    }
-                    className="mt-2 w-full accent-[var(--brand-orange)]"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="text-sm font-bold">Máx. tokens (opcional)</label>
-                  <p className="text-xs text-muted-foreground">Vacío = sin límite</p>
-                  <input
-                    type="number"
-                    min={64}
-                    max={32000}
-                    value={draft.max_tokens}
-                    onChange={(e) => setDraft({ ...draft, max_tokens: e.target.value })}
-                    placeholder="800"
-                    className="mt-1 w-full rounded-2xl border border-input bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-bold">
-                  Instrucciones extra para este proveedor (opcional)
-                </label>
-                <p className="text-xs text-muted-foreground">
-                  Se añaden al final del prompt de Kiara solo cuando responde este proveedor.
-                </p>
-                <textarea
-                  value={draft.system_prompt}
-                  onChange={(e) => setDraft({ ...draft, system_prompt: e.target.value })}
-                  rows={3}
-                  placeholder="Ej: responde siempre en máximo 3 frases."
                   className="mt-1 w-full rounded-2xl border border-input bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
