@@ -398,7 +398,6 @@ export function interceptToolStream(
             if (!line.startsWith("data:")) continue;
             const payload = line.slice(5).trim();
             if (!payload || payload === "[DONE]") continue;
-            console.log("[kiara-raw]", payload.slice(0, 400));
 
             try {
               type Delta = {
@@ -411,7 +410,20 @@ export function interceptToolStream(
               };
               const json = JSON.parse(payload) as {
                 choices?: { delta?: Delta; message?: Delta }[];
+                error?: { code?: string; failed_generation?: string };
               };
+
+              // Algunos modelos (Groq/Llama) emiten la llamada con sintaxis
+              // inválida y el proveedor devuelve tool_use_failed. Rescatamos
+              // el nombre y los argumentos para no perder la respuesta.
+              const failed = json.error?.failed_generation;
+              if (failed && !toolName) {
+                const m = /<function=([a-zA-Z_][\w]*)\s*(\{[\s\S]*?\})/.exec(failed);
+                if (m) {
+                  toolName = m[1];
+                  toolArgs = m[2];
+                }
+              }
               const choice = json.choices?.[0];
               const delta = choice?.delta ?? choice?.message ?? {};
 
