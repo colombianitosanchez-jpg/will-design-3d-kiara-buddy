@@ -20,24 +20,9 @@ export type KiaraOrderData = {
   customer_name?: string;
   items: { product_name: string; quantity: number; unit_price_cop: number }[];
 };
-export type KiaraProductsData = {
-  query: string;
-  items: {
-    name: string;
-    slug: string;
-    price_cop: number;
-    brand: string | null;
-    category: string | null;
-    short: string;
-    image_url: string | null;
-    in_stock: boolean;
-    url: string;
-  }[];
-};
 export type KiaraTool =
   | { name: "quote_service"; data: KiaraServiceQuoteData }
-  | { name: "create_order"; data: KiaraOrderData }
-  | { name: "search_products"; data: KiaraProductsData };
+  | { name: "create_order"; data: KiaraOrderData };
 
 export type ChatMessage = {
   id: string;

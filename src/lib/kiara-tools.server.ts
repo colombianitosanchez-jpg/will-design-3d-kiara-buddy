@@ -35,26 +35,6 @@ export const KIARA_TOOLS = [
   {
     type: "function" as const,
     function: {
-      name: "search_products",
-      description:
-        "Busca productos reales del catálogo (impresoras 3D, filamentos, resinas, repuestos, insumos) para recomendarlos con su precio y su enlace de compra. Úsala SIEMPRE que el cliente pida, compare o pregunte por un producto: la respuesta muestra tarjetas con botón de compra.",
-      parameters: {
-        type: "object",
-        properties: {
-          query: {
-            type: "string",
-            description: "Texto de búsqueda: nombre, marca, categoría o tipo (por ejemplo impresora, PLA, resina).",
-          },
-          max_price_cop: { type: "number", description: "Precio máximo en COP si el cliente da presupuesto" },
-        },
-        required: ["query"],
-      },
-    },
-  },
-
-  {
-    type: "function" as const,
-    function: {
       name: "create_order",
       description:
         "Crea un pedido pendiente en el sistema. Úsala solo cuando ya tengas nombre, correo, teléfono y dirección del cliente, y el detalle de lo que quiere.",
@@ -91,20 +71,8 @@ export const TOOL_INSTRUCTIONS = `\n\nHERRAMIENTAS (function calling):
 - quote_service es la ÚNICA forma válida de dar un precio. Nunca calcules, estimes ni inventes cifras.
 - Antes de llamar a quote_service debes tener: el slug exacto de un servicio de la lista y TODOS los datos numéricos que ese servicio pide (por ejemplo gramos, altura, horas). Si falta alguno, NO llames la herramienta: pregunta en una sola frase por los datos que faltan.
 - Usa las claves exactas de cada pregunta (por ejemplo {"peso_gramos": 120, "material": "PLA"}). No rellenes campos que el cliente no mencionó.
-- search_products es la ÚNICA forma válida de recomendar productos. Nunca listes productos de memoria ni escribas enlaces a mano: llama la herramienta y luego resume en 1-2 frases; las tarjetas con precio y botón "Comprar" aparecen automáticamente.
 - Llama a create_order solo cuando tengas nombre, correo, dirección y el detalle del pedido confirmado por el usuario.
 - Cuando recibas el resultado de una herramienta, resume SOLO esas cifras en 1-2 frases; la tarjeta con el desglose se muestra automáticamente. No repitas ni modifiques los números.`;
-
-type ProductRow = {
-  name: string;
-  slug: string;
-  price_cop: number | null;
-  short: string | null;
-  stock: number | null;
-  image_url: string | null;
-  categories?: { name?: string } | null;
-  brands?: { name?: string } | null;
-};
 
 export type ToolOutcome = { text: string; data: unknown; result: unknown };
 
@@ -197,70 +165,6 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
 
 
 
-
-  if (name === "search_products") {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const q = String(args.query ?? "").trim().slice(0, 80);
-    const maxPrice = Number(args.max_price_cop);
-
-    let builder = supabaseAdmin
-      .from("products")
-      .select("name, slug, price_cop, short, stock, image_url, categories(name), brands(name)")
-      .eq("active", true);
-    if (Number.isFinite(maxPrice) && maxPrice > 0) builder = builder.lte("price_cop", Math.round(maxPrice));
-
-    const { data: all } = await builder.order("featured", { ascending: false }).limit(200);
-    const rows = (all ?? []) as ProductRow[];
-
-    const terms = slugify(q).split("-").filter((t) => t.length >= 3);
-    const score = (p: ProductRow) => {
-      const hay = slugify(
-        [p.name, p.short, p.categories?.name, p.brands?.name].filter(Boolean).join(" "),
-      );
-      return terms.reduce((n, t) => n + (hay.includes(t) ? 1 : 0), 0);
-    };
-    const matched = terms.length
-      ? rows
-          .map((p) => ({ p, s: score(p) }))
-          .filter((x) => x.s > 0)
-          .sort((a, b) => b.s - a.s)
-          .map((x) => x.p)
-      : rows;
-
-    const items = matched.slice(0, 6).map((p) => ({
-      name: p.name,
-      slug: p.slug,
-      price_cop: Number(p.price_cop) || 0,
-      brand: p.brands?.name ?? null,
-      category: p.categories?.name ?? null,
-      short: p.short ?? "",
-      image_url: p.image_url ?? null,
-      in_stock: (p.stock ?? 0) > 0,
-      url: `/tienda/${p.slug}`,
-    }));
-
-    if (items.length === 0)
-      return {
-        text: `No encontré productos que coincidan con "${q}" en el catálogo.`,
-        data: null,
-        result: { error: "sin_resultados", query: q },
-      };
-
-    const data = { query: q, items };
-    return {
-      text: `Encontré ${items.length} opción(es) para "${q}" 🐾`,
-      data,
-      result: {
-        query: q,
-        items: items.map((i) => ({
-          name: i.name,
-          price_cop: i.price_cop,
-          url: i.url,
-          in_stock: i.in_stock,
-        })),
-      },
-    };
-  }
 
   if (name === "create_order") {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -410,20 +314,7 @@ export function interceptToolStream(
               };
               const json = JSON.parse(payload) as {
                 choices?: { delta?: Delta; message?: Delta }[];
-                error?: { code?: string; failed_generation?: string };
               };
-
-              // Algunos modelos (Groq/Llama) emiten la llamada con sintaxis
-              // inválida y el proveedor devuelve tool_use_failed. Rescatamos
-              // el nombre y los argumentos para no perder la respuesta.
-              const failed = json.error?.failed_generation;
-              if (failed && !toolName) {
-                const m = /<function=([a-zA-Z_][\w]*)\s*(\{[\s\S]*?\})/.exec(failed);
-                if (m) {
-                  toolName = m[1];
-                  toolArgs = m[2];
-                }
-              }
               const choice = json.choices?.[0];
               const delta = choice?.delta ?? choice?.message ?? {};
 

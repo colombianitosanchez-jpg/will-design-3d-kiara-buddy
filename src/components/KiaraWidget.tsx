@@ -11,7 +11,7 @@ import kiaraAsset from "@/assets/kiara.asset.json";
 import { useLive } from "@/lib/live-store";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 import { useKiaraChat } from "@/hooks/use-kiara-chat";
-import { KiaraQuoteCard, KiaraOrderCard, KiaraProductsCard } from "@/components/KiaraToolCards";
+import { KiaraQuoteCard, KiaraOrderCard } from "@/components/KiaraToolCards";
 
 
 
@@ -111,9 +111,6 @@ export function KiaraWidget() {
                 )}
                 {m.tool?.name === "quote_service" && <KiaraQuoteCard quote={m.tool.data} />}
                 {m.tool?.name === "create_order" && <KiaraOrderCard order={m.tool.data} />}
-                {m.tool?.name === "search_products" && (
-                  <KiaraProductsCard products={m.tool.data} />
-                )}
               </div>
             ))}
 
