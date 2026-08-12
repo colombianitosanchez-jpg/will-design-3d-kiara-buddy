@@ -398,7 +398,7 @@ export function interceptToolStream(
             if (!line.startsWith("data:")) continue;
             const payload = line.slice(5).trim();
             if (!payload || payload === "[DONE]") continue;
-            if (process.env['KIARA_DEBUG']) console.log("[kiara-raw]", payload.slice(0, 400));
+            console.log("[kiara-raw]", payload.slice(0, 400));
 
             try {
               type Delta = {
