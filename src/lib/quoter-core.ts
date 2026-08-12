@@ -229,93 +229,45 @@ export function computeQuote(
 
 /**
  * Convierte respuestas "en lenguaje natural" (por clave, etiqueta o valor) a los
- * valores exactos que espera el motor, e informa qué campos quedaron sin dato.
- * Lo usa Kiara para cotizar por chat: si falta un campo obligatorio, debe
- * preguntarlo en vez de inventarlo.
+ * valores exactos que espera el motor. Lo usa Kiara para cotizar por chat.
  */
-export function coerceAnswersDetailed(
+export function coerceAnswers(
   service: QuoterService,
   input: Record<string, unknown>,
-): { values: QuoterValues; matchedKeys: string[]; missingRequired: QuoterField[] } {
+): QuoterValues {
   const values = defaultValuesFor(service);
-  const matched = new Set<string>();
   const norm = (s: string) =>
     s
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[_-]+/g, " ")
-      .replace(/\s+/g, " ")
       .trim();
 
   for (const [rawKey, rawVal] of Object.entries(input)) {
     const key = norm(rawKey);
-    if (!key) continue;
-    // Coincidencia estricta primero; la difusa solo con claves suficientemente
-    // largas y por palabra completa, para no mapear datos al campo equivocado.
-    const fuzzy = (f: QuoterField) => {
-      if (key.length < 4) return false;
-      const words = (s: string) => norm(s).split(" ");
-      return words(f.key).includes(key) || words(f.label).includes(key) ||
-        key.split(" ").some((w) => w.length >= 4 && (words(f.key).includes(w) || words(f.label).includes(w)));
-    };
     const field =
       service.fields.find((f) => norm(f.key) === key) ??
       service.fields.find((f) => norm(f.label) === key) ??
-      service.fields.find(fuzzy);
+      service.fields.find((f) => norm(f.label).includes(key) || key.includes(norm(f.key)));
     if (!field) continue;
 
     const val = String(rawVal ?? "").trim();
-    if (!val) continue;
-
     if (field.input_type === "select") {
       const opt =
         field.options.find((o) => norm(o.value) === norm(val)) ??
         field.options.find((o) => norm(o.label) === norm(val)) ??
         field.options.find((o) => norm(o.label).includes(norm(val)));
-      if (opt) {
-        values[field.key] = opt.value;
-        matched.add(field.key);
-      }
+      if (opt) values[field.key] = opt.value;
       continue;
     }
     if (field.input_type === "toggle") {
       values[field.key] = isOn(val) ? "si" : "no";
-      matched.add(field.key);
-      continue;
-    }
-    if (field.input_type === "slider" || field.input_type === "number") {
-      const n = Number(String(val).replace(/[^0-9.,-]/g, "").replace(",", "."));
-      if (!Number.isFinite(n)) continue;
-      values[field.key] = String(n);
-      matched.add(field.key);
       continue;
     }
     values[field.key] = val;
-    matched.add(field.key);
   }
-
-  // Falta un dato si es obligatorio, o si es un número que cambia el precio y
-  // el cliente no lo dio: así Kiara pregunta en vez de asumir un valor por defecto.
-  const missingRequired = service.fields.filter((f) => {
-    if (!f.is_active || matched.has(f.key)) return false;
-    const numeric = f.input_type === "slider" || f.input_type === "number";
-    if (numeric) return f.is_required || f.price_per_unit_cop > 0;
-    if (f.input_type === "text") return f.is_required && !f.default_value;
-    return f.is_required && !f.default_value;
-  });
-
-
-  return { values, matchedKeys: [...matched], missingRequired };
+  return values;
 }
-
-export function coerceAnswers(
-  service: QuoterService,
-  input: Record<string, unknown>,
-): QuoterValues {
-  return coerceAnswersDetailed(service, input).values;
-}
-
 
 export function formatCOP(n: number) {
   return (Number(n) || 0).toLocaleString("es-CO", {

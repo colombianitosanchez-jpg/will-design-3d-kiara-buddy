@@ -1,9 +1,8 @@
 // Kiara agéntica — definición y ejecución de herramientas (function calling).
 // Server-only: nunca llega al bundle del cliente.
 
-import { computeQuote, coerceAnswersDetailed, formatCOP } from "@/lib/quoter-core";
+import { computeQuote, coerceAnswers, formatCOP } from "@/lib/quoter-core";
 import { getQuoterServices } from "@/lib/quoter.server";
-
 
 export const KIARA_TOOLS = [
   {
@@ -67,14 +66,12 @@ export const KIARA_TOOLS = [
   },
 ];
 
-export const TOOL_INSTRUCTIONS = `\n\nHERRAMIENTAS (function calling):
-- quote_service es la ÚNICA forma válida de dar un precio. Nunca calcules, estimes ni inventes cifras.
-- Antes de llamar a quote_service debes tener: el slug exacto de un servicio de la lista y TODOS los datos numéricos que ese servicio pide (por ejemplo gramos, altura, horas). Si falta alguno, NO llames la herramienta: pregunta en una sola frase por los datos que faltan.
-- Usa las claves exactas de cada pregunta (por ejemplo {"peso_gramos": 120, "material": "PLA"}). No rellenes campos que el cliente no mencionó.
+export const TOOL_INSTRUCTIONS = `\n\nHERRAMIENTAS:
+- Para cualquier precio o cotización usa quote_service con el servicio más parecido a lo que pide el usuario. Nunca calcules ni inventes precios por tu cuenta.
 - Llama a create_order solo cuando tengas nombre, correo, dirección y el detalle del pedido confirmado por el usuario.
-- Cuando recibas el resultado de una herramienta, resume SOLO esas cifras en 1-2 frases; la tarjeta con el desglose se muestra automáticamente. No repitas ni modifiques los números.`;
+- Después de una herramienta, comenta el resultado en 1-2 frases cálidas; la tarjeta con el detalle se muestra automáticamente.`;
 
-export type ToolOutcome = { text: string; data: unknown; result: unknown };
+export type ToolOutcome = { text: string; data: unknown };
 
 function money(n: number) {
   return (Number(n) || 0).toLocaleString("es-CO", {
@@ -100,70 +97,42 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
     args = {};
   }
 
+
+
+
   if (name === "quote_service" || name === "generate_quote") {
     const services = await getQuoterServices();
     if (services.length === 0)
-      return {
-        text: "Aún no tengo servicios configurados para cotizar.",
-        data: null,
-        result: { error: "sin_servicios" },
-      };
+      return { text: "Aún no tengo servicios configurados para cotizar.", data: null };
 
-    const wanted = slugify(String(args.service_slug ?? ""));
-    // Sin coincidencia clara NO se cotiza a ciegas: se pregunta.
+    const wanted = slugify(String(args.service_slug ?? args.material ?? ""));
     const service =
       services.find((s) => s.slug === wanted) ??
       services.find((s) => slugify(s.name) === wanted) ??
-      (wanted.length >= 4
-        ? services.find((s) => s.slug.includes(wanted) || slugify(s.name).includes(wanted))
-        : undefined);
-
-    if (!service) {
-      const opciones = services.map((s) => `${s.name} (${s.slug})`).join(", ");
-      return {
-        text: `¿Cuál de estos servicios necesitas? ${opciones}`,
-        data: null,
-        result: { error: "servicio_no_encontrado", servicios_disponibles: opciones },
-      };
-    }
+      services.find((s) => wanted && (s.slug.includes(wanted) || slugify(s.name).includes(wanted))) ??
+      services[0]!;
 
     const rawAnswers =
       args.answers && typeof args.answers === "object"
         ? (args.answers as Record<string, unknown>)
         : (args as Record<string, unknown>);
-    const { values, missingRequired } = coerceAnswersDetailed(service, rawAnswers);
-
-    if (missingRequired.length > 0) {
-      const faltan = missingRequired
-        .map((f) => `${f.label}${f.unit ? ` en ${f.unit}` : ""} (clave ${f.key})`)
-        .join(", ");
-      return {
-        text: `Para cotizar ${service.name} necesito: ${faltan}.`,
-        data: null,
-        result: { error: "datos_faltantes", servicio: service.slug, faltan },
-      };
-    }
-
+    const values = coerceAnswers(service, rawAnswers);
     const quote = computeQuote(service, values, Number(args.quantity) || 1);
-    const data = {
-      service_slug: service.slug,
-      project_name: service.name,
-      answers: quote.answers,
-      lines: quote.lines,
-      quantity: quote.quantity,
-      unit_price_cop: quote.unit_price_cop,
-      total_cop: quote.total_cop,
-      total_formatted: formatCOP(quote.total_cop),
-    };
 
     return {
       text: `Listo 🐾 ${service.name}: cotización estimada de ${money(quote.total_cop)}.`,
-      data,
-      result: data,
+      data: {
+        service_slug: service.slug,
+        project_name: service.name,
+        answers: quote.answers,
+        lines: quote.lines,
+        quantity: quote.quantity,
+        unit_price_cop: quote.unit_price_cop,
+        total_cop: quote.total_cop,
+        total_formatted: formatCOP(quote.total_cop),
+      },
     };
   }
-
-
 
 
   if (name === "create_order") {
@@ -175,12 +144,7 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
           unit_price_cop: Math.max(0, Math.round(Number(it.unit_price_cop) || 0)),
         }))
       : [];
-    if (items.length === 0)
-      return {
-        text: "Necesito el detalle del pedido antes de crearlo.",
-        data: null,
-        result: { error: "sin_items" },
-      };
+    if (items.length === 0) return { text: "Necesito el detalle del pedido antes de crearlo.", data: null };
 
     const total = items.reduce((s, it) => s + it.quantity * it.unit_price_cop, 0);
 
@@ -198,55 +162,35 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
       })
       .select("id")
       .single();
-    if (error)
-      return {
-        text: `No pude guardar el pedido: ${error.message}`,
-        data: null,
-        result: { error: error.message },
-      };
+    if (error) return { text: `No pude guardar el pedido: ${error.message}`, data: null };
 
     await supabaseAdmin
       .from("order_items")
       .insert(items.map((it) => ({ order_id: order.id, ...it })));
 
-    const data = {
-      order_id: order.id,
-      total_cop: total,
-      items,
-      customer_name: args.customer_name,
-    };
     return {
       text: `¡Pedido registrado! Queda como pendiente por ${money(total)}.`,
-      data,
-      result: data,
+      data: { order_id: order.id, total_cop: total, items, customer_name: args.customer_name },
     };
   }
 
-  return { text: "", data: null, result: { error: "herramienta_desconocida" } };
-
+  return { text: "", data: null };
 }
-
-export type ToolFollowUp = (
-  call: { id: string; name: string; args: string },
-  resultJson: string,
-) => Promise<ReadableStream<Uint8Array> | null>;
 
 /**
  * Reenvía el stream del proveedor al cliente, acumulando las llamadas a
- * herramientas. Cuando la llamada termina, ejecuta la herramienta, le devuelve
- * el resultado al modelo (segunda pasada) para que redacte la respuesta con las
- * cifras reales, y emite el frame `kiara_tool` que el widget convierte en tarjeta.
+ * herramientas. Cuando la llamada termina, ejecuta la herramienta y emite un
+ * frame `kiara_tool` que el widget convierte en tarjeta interactiva.
  */
 export function interceptToolStream(
   upstream: ReadableStream<Uint8Array>,
-  opts: { onFinish?: () => void; followUp?: ToolFollowUp } = {},
+  onFinish?: () => void,
 ): ReadableStream<Uint8Array> {
   const enc = new TextEncoder();
   const dec = new TextDecoder();
   let buffer = "";
   let toolName = "";
   let toolArgs = "";
-  let toolId = "";
   let sawContent = false;
 
   return new ReadableStream<Uint8Array>({
@@ -254,40 +198,6 @@ export function interceptToolStream(
       const reader = upstream.getReader();
       const emit = (obj: unknown) =>
         controller.enqueue(enc.encode(`data: ${JSON.stringify(obj)}\n\n`));
-
-      /** Reenvía solo el texto de un stream OpenAI-compatible. */
-      const pipeText = async (stream: ReadableStream<Uint8Array>) => {
-        const r = stream.getReader();
-        let buf = "";
-        let got = false;
-        while (true) {
-          const { done, value } = await r.read();
-          if (done) break;
-          buf += dec.decode(value, { stream: true });
-          const ls = buf.split("\n");
-          buf = ls.pop() ?? "";
-          for (const raw of ls) {
-            const line = raw.trim();
-            if (!line.startsWith("data:")) continue;
-            const p = line.slice(5).trim();
-            if (!p || p === "[DONE]") continue;
-            try {
-              const j = JSON.parse(p) as {
-                choices?: { delta?: { content?: string }; message?: { content?: string } }[];
-              };
-              const piece =
-                j.choices?.[0]?.delta?.content ?? j.choices?.[0]?.message?.content ?? "";
-              if (piece) {
-                got = true;
-                emit({ choices: [{ delta: { content: piece } }] });
-              }
-            } catch {
-              /* fragmento incompleto */
-            }
-          }
-        }
-        return got;
-      };
 
       try {
         while (true) {
@@ -304,51 +214,37 @@ export function interceptToolStream(
             if (!payload || payload === "[DONE]") continue;
 
             try {
-              type Delta = {
-                content?: string;
-                tool_calls?: {
-                  id?: string;
-                  index?: number;
-                  function?: { name?: string; arguments?: string };
-                }[];
-              };
               const json = JSON.parse(payload) as {
-                choices?: { delta?: Delta; message?: Delta }[];
+                choices?: {
+                  delta?: {
+                    content?: string;
+                    tool_calls?: { function?: { name?: string; arguments?: string } }[];
+                  };
+                  message?: {
+                    content?: string;
+                    tool_calls?: { function?: { name?: string; arguments?: string } }[];
+                  };
+                }[];
               };
               const choice = json.choices?.[0];
               const delta = choice?.delta ?? choice?.message ?? {};
-
-              for (const tc of delta.tool_calls ?? []) {
-                if (tc.id && !toolId) toolId = tc.id;
-                if (tc.function?.name && !toolName) toolName = tc.function.name;
+              const tc = delta.tool_calls?.[0];
+              if (tc) {
+                if (tc.function?.name) toolName = toolName || tc.function.name;
                 if (tc.function?.arguments) toolArgs += tc.function.arguments;
+                continue;
               }
-
-              if (delta.content) {
-                sawContent = true;
-                emit({ choices: [{ delta: { content: delta.content } }] });
-              }
+              if (delta.content) sawContent = true;
+              controller.enqueue(enc.encode(`data: ${payload}\n\n`));
             } catch {
-              /* ignoramos fragmentos no JSON del proveedor */
+              controller.enqueue(enc.encode(`${line}\n\n`));
             }
           }
         }
 
         if (toolName) {
           const result = await runKiaraTool(toolName, toolArgs);
-          let narrated = false;
-          if (opts.followUp) {
-            try {
-              const stream = await opts.followUp(
-                { id: toolId || "call_kiara", name: toolName, args: toolArgs || "{}" },
-                JSON.stringify(result.result ?? { ok: true }),
-              );
-              if (stream) narrated = await pipeText(stream);
-            } catch {
-              narrated = false;
-            }
-          }
-          if (!narrated && result.text) {
+          if (result.text) {
             emit({ choices: [{ delta: { content: (sawContent ? "\n\n" : "") + result.text } }] });
           }
           if (result.data) {
@@ -362,9 +258,8 @@ export function interceptToolStream(
       } catch (e) {
         controller.error(e);
       } finally {
-        opts.onFinish?.();
+        onFinish?.();
       }
     },
-
   });
 }

@@ -91,41 +91,31 @@ export const Route = createFileRoute("/api/kiara")({
           ...parsed.messages.map((m) => ({ role: m.role, content: m.content })),
         ];
 
-        // Para la 2a pasada (redactar el resultado de la herramienta) se usa un
-        // contexto mínimo: así es exacta, rápida y no agota la cuota del proveedor.
-        const lastUser =
-          [...parsed.messages].reverse().find((m) => m.role === "user")?.content ?? "";
-        const followUpSystem =
-          "Eres Kiara, asistente de Will Design 3D (cálida, español colombiano, 🐾 ocasional). " +
-          "Redacta en 1-2 frases el resultado de la herramienta usando EXACTAMENTE las cifras recibidas; " +
-          "no recalcules, no agregues ni cambies números, no inventes plazos ni datos. " +
-          "Si el resultado indica datos faltantes, pide justo esos datos.";
-
         const failures: string[] = [];
-
 
         for (const p of list) {
           const controller = new AbortController();
           const timer = setTimeout(() => controller.abort(), 25_000);
-          const endpoint = `${p.base_url.replace(/\/+$/, "")}/chat/completions`;
-          const authHeaders = {
-            "Content-Type": "application/json",
-            ...(p.api_key ? { Authorization: `Bearer ${p.api_key}` } : {}),
-          };
           try {
-            const upstream = await fetch(endpoint, {
-              method: "POST",
-              signal: controller.signal,
-              headers: authHeaders,
-              body: JSON.stringify({
-                model: p.model,
-                messages: payloadMessages,
-                stream: true,
-                temperature: 0.2,
-                tools: KIARA_TOOLS,
-                tool_choice: "auto",
-              }),
-            });
+            const upstream = await fetch(
+              `${p.base_url.replace(/\/+$/, "")}/chat/completions`,
+              {
+                method: "POST",
+                signal: controller.signal,
+                headers: {
+                  "Content-Type": "application/json",
+                  ...(p.api_key ? { Authorization: `Bearer ${p.api_key}` } : {}),
+                },
+                body: JSON.stringify({
+                  model: p.model,
+                  messages: payloadMessages,
+                  stream: true,
+                  temperature: 0.7,
+                  tools: KIARA_TOOLS,
+                  tool_choice: "auto",
+                }),
+              },
+            );
 
             if (!upstream.ok || !upstream.body) {
               const detail = upstream.ok ? "sin cuerpo" : `HTTP ${upstream.status}`;
@@ -136,45 +126,9 @@ export const Route = createFileRoute("/api/kiara")({
               continue;
             }
 
-            // El primero que responde gana: se reenvía su stream, se ejecutan las
-            // herramientas y el resultado se devuelve al modelo (segunda pasada)
-            // para que redacte con las cifras exactas del motor de precios.
-            const stream = interceptToolStream(upstream.body, {
-              onFinish: () => clearTimeout(timer),
-              followUp: async (call, resultJson) => {
-                const res = await fetch(endpoint, {
-                  method: "POST",
-                  headers: authHeaders,
-                  body: JSON.stringify({
-                    model: p.model,
-                    stream: true,
-                    temperature: 0.2,
-                    messages: [
-                      { role: "system", content: followUpSystem },
-                      { role: "user", content: lastUser },
-                      {
-                        role: "assistant",
-                        content: "",
-                        tool_calls: [
-                          {
-                            id: call.id,
-                            type: "function",
-                            function: { name: call.name, arguments: call.args },
-                          },
-                        ],
-                      },
-                      { role: "tool", tool_call_id: call.id, name: call.name, content: resultJson },
-                    ],
-
-                  }),
-                });
-                if (!res.ok || !res.body) {
-                  console.error(`[kiara] 2a pasada falló en ${p.name}: HTTP ${res.status} ${await res.text().catch(() => "")}`);
-                  return null;
-                }
-                return res.body;
-              },
-            });
+            // El primero que responde gana: se reenvía su stream y se ejecutan
+            // las herramientas que pida (cotizar, crear pedido).
+            const stream = interceptToolStream(upstream.body, () => clearTimeout(timer));
 
 
             return new Response(stream, {
@@ -186,7 +140,6 @@ export const Route = createFileRoute("/api/kiara")({
                 "X-Kiara-Provider": p.name,
               },
             });
-
           } catch (e) {
             clearTimeout(timer);
             const msg = (e as Error).name === "AbortError" ? "timeout" : (e as Error).message;
