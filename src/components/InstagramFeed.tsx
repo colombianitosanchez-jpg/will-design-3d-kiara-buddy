@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Instagram, ImageIcon, X } from "lucide-react";
 import { siteContentQuery, getContactInfo } from "@/lib/catalog";
@@ -69,7 +69,7 @@ export function InstagramFeed() {
   const widgetId = (content?.elfsight_instagram_id?.trim() || ENV_WIDGET_ID || "").trim();
   const photos = parseImages(content?.portfolio_images);
 
-  useElfsightScript(Boolean(widgetId));
+  useElfsightScript(Boolean(widgetId), widgetId);
 
   return (
     <section
