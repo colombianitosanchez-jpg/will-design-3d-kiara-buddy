@@ -1,13 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Pencil, Trash2, Loader2, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, X, Search } from "lucide-react";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { ImageDropzone } from "@/components/ImageDropzone";
 import {
   buildCategoryTree,
   categoryPath,
   flattenCategoryTree,
+  matchesSearch,
   slugify as slugifyValue,
   type Attribute,
   type Brand,
@@ -81,6 +82,23 @@ function ProductosAdmin() {
   const [attrRows, setAttrRows] = useState<ProductAttrRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Product> | null>(null);
+  const [search, setSearch] = useState("");
+
+  const visibleProducts = useMemo(() => {
+    return products.filter((p) =>
+      matchesSearch(
+        [
+          p.name,
+          p.sku ?? "",
+          p.slug,
+          p.short ?? "",
+          brands.find((b) => b.id === p.brand_id)?.name ?? "",
+          categories.find((c) => c.id === p.category_id)?.name ?? "",
+        ].join(" "),
+        search,
+      ),
+    );
+  }, [products, brands, categories, search]);
 
   async function load() {
     setLoading(true);
@@ -133,7 +151,7 @@ function ProductosAdmin() {
         <div>
           <h1 className="text-3xl font-black">Productos</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {products.length} producto{products.length === 1 ? "" : "s"} en el catálogo.
+            {visibleProducts.length} de {products.length} producto{products.length === 1 ? "" : "s"} en el catálogo.
           </p>
         </div>
         <button
@@ -144,6 +162,17 @@ function ProductosAdmin() {
         </button>
       </div>
 
+      <div className="relative mt-5 max-w-md">
+        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar por nombre, SKU, marca o categoría…"
+          className="w-full rounded-full border border-border bg-card py-2.5 pl-11 pr-4 text-sm outline-none focus:ring-2 focus:ring-[var(--brand-orange)]"
+        />
+      </div>
+
       <div className="mt-6 overflow-hidden rounded-3xl border border-border bg-card">
         {loading ? (
           <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
@@ -152,6 +181,10 @@ function ProductosAdmin() {
         ) : products.length === 0 ? (
           <div className="py-16 text-center text-sm text-muted-foreground">
             Aún no hay productos. Haz clic en <b>Añadir producto</b>.
+          </div>
+        ) : visibleProducts.length === 0 ? (
+          <div className="py-16 text-center text-sm text-muted-foreground">
+            Ningún producto coincide con «{search}».
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -169,7 +202,7 @@ function ProductosAdmin() {
                 </tr>
               </thead>
               <tbody>
-                {products.map((p) => {
+                {visibleProducts.map((p) => {
                   const cat = p.category_id
                     ? (categoryPath(categories.find((c) => c.id === p.category_id)?.slug, categories) || "—")
                     : "—";

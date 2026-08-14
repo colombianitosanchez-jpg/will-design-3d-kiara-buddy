@@ -4,6 +4,9 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Los dispositivos táctiles ignoran :hover → sin "doble tap" en móviles. */
+@custom-variant hover (@media (hover: hover) { &:hover { @slot } });
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -98,10 +101,12 @@
   background: linear-gradient(135deg, var(--brand-orange), var(--brand-orange-deep));
   box-shadow: 0 10px 30px -12px color-mix(in oklab, var(--brand-orange) 60%, transparent);
   transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
-  &:hover {
+  @media (hover: hover) {
+   &:hover {
     transform: translateY(-1px);
     filter: brightness(1.05);
     box-shadow: 0 14px 34px -12px color-mix(in oklab, var(--brand-orange) 70%, transparent);
+   }
   }
 }
 
@@ -117,9 +122,11 @@
   border: 1.5px solid var(--brand-wine);
   background: transparent;
   transition: background 0.2s ease, color 0.2s ease;
-  &:hover {
-    background: var(--brand-wine);
-    color: var(--primary-foreground);
+  @media (hover: hover) {
+    &:hover {
+      background: var(--brand-wine);
+      color: var(--primary-foreground);
+    }
   }
 }
 
