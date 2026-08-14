@@ -6,21 +6,44 @@ import { siteContentQuery, getContactInfo } from "@/lib/catalog";
 // Fallback si aún no hay nada configurado en Panel → Contenido.
 const ENV_WIDGET_ID = import.meta.env.VITE_ELFSIGHT_INSTAGRAM_ID as string | undefined;
 
-function useElfsightScript(enabled: boolean) {
-  const loaded = useRef(false);
+declare global {
+  interface Window {
+    eapps?: { AppsManager?: { initApps?: () => void } };
+  }
+}
+
+/**
+ * Carga platform.js y, en navegaciones cliente (cuando el script ya existe),
+ * re-inicializa el widget para que vuelva a renderizarse en cada montaje.
+ */
+function useElfsightScript(enabled: boolean, widgetId: string) {
   useEffect(() => {
-    if (!enabled || loaded.current) return;
-    if (document.querySelector('script[data-elfsight="1"]')) {
-      loaded.current = true;
-      return;
+    if (!enabled || typeof document === "undefined") return;
+
+    const retrigger = () => {
+      try {
+        window.eapps?.AppsManager?.initApps?.();
+      } catch {
+        /* ignore */
+      }
+    };
+
+    const existing = document.querySelector<HTMLScriptElement>('script[data-elfsight="1"]');
+    if (existing) {
+      // El script ya está en la página: forzamos la re-inicialización.
+      retrigger();
+      const t = window.setTimeout(retrigger, 400);
+      return () => window.clearTimeout(t);
     }
+
     const s = document.createElement("script");
     s.src = "https://static.elfsight.com/platform/platform.js";
     s.async = true;
     s.dataset.elfsight = "1";
+    s.addEventListener("load", retrigger);
     document.body.appendChild(s);
-    loaded.current = true;
-  }, [enabled]);
+    return () => s.removeEventListener("load", retrigger);
+  }, [enabled, widgetId]);
 }
 
 function parseImages(raw: string | undefined): string[] {
