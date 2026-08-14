@@ -8,6 +8,7 @@ import {
   buildCategoryTree,
   categoryPath,
   flattenCategoryTree,
+  matchesSearch,
   slugify as slugifyValue,
   type Attribute,
   type Brand,
