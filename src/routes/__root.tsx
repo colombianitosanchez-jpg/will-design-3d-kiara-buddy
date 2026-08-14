@@ -17,6 +17,7 @@ import { LiveBanner } from "../components/LiveBanner";
 import { KiaraWidget } from "../components/KiaraWidget";
 import { Toaster } from "../components/ui/sonner";
 import { AuthProvider } from "../hooks/use-auth";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 
 
 function NotFoundComponent() {
@@ -171,7 +172,9 @@ function RootComponent() {
           <SiteHeader />
           <main className="flex-1">
             {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-            <Outlet />
+            <ErrorBoundary label="root_layout">
+              <Outlet />
+            </ErrorBoundary>
           </main>
           <SiteFooter />
           <KiaraWidget />
