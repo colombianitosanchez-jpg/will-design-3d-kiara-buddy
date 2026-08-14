@@ -398,6 +398,28 @@ export function productMatchesAttrs(product: Product, filters: AttrFilter[]): bo
   );
 }
 
+/** Normaliza texto: minúsculas y sin acentos, para búsquedas tolerantes. */
+export function normalizeText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+/**
+ * Búsqueda robusta: divide la consulta en palabras y exige que TODAS aparezcan
+ * en el texto, sin importar el orden, las mayúsculas ni los acentos.
+ */
+export function matchesSearch(haystack: string, query?: string | null): boolean {
+  const q = query?.trim();
+  if (!q) return true;
+  const target = normalizeText(haystack);
+  return normalizeText(q)
+    .split(/\s+/)
+    .filter(Boolean)
+    .every((term) => target.includes(term));
+}
+
 /** Filtra el catálogo por rama de categoría, marca, atributos y texto libre. */
 export function filterProducts(
   products: Product[],
@@ -411,16 +433,19 @@ export function filterProducts(
   const { filter, brandSlug, attrs = [], query } = opts;
   if (filter.unknown) return [];
   const branch = new Set(filter.branch);
-  const q = query?.trim().toLowerCase();
   return products.filter((p) => {
     const okCat = !filter.categorySlug || (p.category?.slug ? branch.has(p.category.slug) : false);
     const okBrand = !brandSlug || brandSlugOf(p.brand) === brandSlug;
     const okAttrs = productMatchesAttrs(p, attrs);
-    const okQ =
-      !q ||
-      (p.name + " " + (p.brand?.name ?? "") + " " + p.short + " " + p.attributes.map((a) => a.value_label).join(" "))
-        .toLowerCase()
-        .includes(q);
+    const haystack = [
+      p.name,
+      p.brand?.name ?? "",
+      p.category?.name ?? "",
+      p.short,
+      p.slug,
+      p.attributes.map((a) => a.value_label).join(" "),
+    ].join(" ");
+    const okQ = matchesSearch(haystack, query);
     return okCat && okBrand && okAttrs && okQ;
   });
 }
