@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Pencil, Trash2, Loader2, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, X, Search } from "lucide-react";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { ImageDropzone } from "@/components/ImageDropzone";
 import {
@@ -81,6 +81,23 @@ function ProductosAdmin() {
   const [attrRows, setAttrRows] = useState<ProductAttrRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Product> | null>(null);
+  const [search, setSearch] = useState("");
+
+  const visibleProducts = useMemo(() => {
+    return products.filter((p) =>
+      matchesSearch(
+        [
+          p.name,
+          p.sku ?? "",
+          p.slug,
+          p.short ?? "",
+          brands.find((b) => b.id === p.brand_id)?.name ?? "",
+          categories.find((c) => c.id === p.category_id)?.name ?? "",
+        ].join(" "),
+        search,
+      ),
+    );
+  }, [products, brands, categories, search]);
 
   async function load() {
     setLoading(true);
@@ -184,7 +201,7 @@ function ProductosAdmin() {
                 </tr>
               </thead>
               <tbody>
-                {products.map((p) => {
+                {visibleProducts.map((p) => {
                   const cat = p.category_id
                     ? (categoryPath(categories.find((c) => c.id === p.category_id)?.slug, categories) || "—")
                     : "—";
