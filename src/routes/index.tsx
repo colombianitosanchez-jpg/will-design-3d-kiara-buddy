@@ -16,6 +16,8 @@ import { ProductCard } from "@/components/ProductCard";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 import { productsQuery, siteContentQuery } from "@/lib/catalog";
 import { useSiteContent } from "@/hooks/use-site-content";
+import { heroCarouselQuery } from "@/lib/hero-carousel";
+import { HeroMedia } from "@/components/HeroMedia";
 
 
 export const Route = createFileRoute("/")({
@@ -41,6 +43,7 @@ export const Route = createFileRoute("/")({
   loader: ({ context }) => {
     context.queryClient.prefetchQuery(productsQuery());
     context.queryClient.prefetchQuery(siteContentQuery());
+    context.queryClient.prefetchQuery(heroCarouselQuery());
   },
   component: Home,
 });
@@ -164,13 +167,7 @@ function Hero() {
                 "linear-gradient(135deg, color-mix(in oklab, var(--brand-orange) 40%, transparent), color-mix(in oklab, var(--brand-teal) 40%, transparent))",
             }}
           />
-          <img
-            src={image}
-            alt="Impresión 3D de gran formato Will Design 3D"
-            width={1600}
-            height={1000}
-            className="aspect-[4/3] w-full rounded-3xl object-cover shadow-2xl ring-1 ring-border"
-          />
+          <HeroMedia fallbackImage={image} />
           {badge && (
             <div className="absolute -bottom-5 -left-5 hidden max-w-[15rem] rounded-2xl border border-border bg-card p-3 shadow-xl sm:block">
               <p className="text-xs font-semibold text-muted-foreground">Pieza destacada</p>

@@ -21,6 +21,7 @@ import {
   UsersRound,
   LogOut,
   ShieldCheck,
+  GalleryHorizontal,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,6 +52,7 @@ const ALL_LINKS = [
   { to: "/panel/notificaciones", label: "Notificaciones", icon: BellRing, superOnly: true },
   { to: "/panel/menu", label: "Menú de navegación", icon: ListTree, superOnly: true },
   { to: "/panel/contenido", label: "Contenido", icon: FileText, superOnly: true },
+  { to: "/panel/carrusel", label: "Carrusel", icon: GalleryHorizontal, superOnly: true },
   { to: "/panel/llm", label: "Configuración de LLM", icon: Bot, superOnly: true },
   { to: "/panel/equipo", label: "Equipo", icon: UsersRound, superOnly: true },
 ];
