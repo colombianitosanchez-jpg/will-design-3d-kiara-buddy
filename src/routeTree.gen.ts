@@ -36,6 +36,7 @@ import { Route as PanelCotizadorRouteImport } from './routes/panel.cotizador'
 import { Route as PanelCotizacionesRouteImport } from './routes/panel.cotizaciones'
 import { Route as PanelContenidoRouteImport } from './routes/panel.contenido'
 import { Route as PanelConocimientoRouteImport } from './routes/panel.conocimiento'
+import { Route as PanelCarruselRouteImport } from './routes/panel.carrusel'
 import { Route as ApiKiaraRouteImport } from './routes/api/kiara'
 import { Route as ApiCalculateQuoteRouteImport } from './routes/api/calculate-quote'
 import { Route as AdminServiciosRouteImport } from './routes/admin.servicios'
@@ -180,6 +181,11 @@ const PanelConocimientoRoute = PanelConocimientoRouteImport.update({
   path: '/conocimiento',
   getParentRoute: () => PanelRoute,
 } as any)
+const PanelCarruselRoute = PanelCarruselRouteImport.update({
+  id: '/carrusel',
+  path: '/carrusel',
+  getParentRoute: () => PanelRoute,
+} as any)
 const ApiKiaraRoute = ApiKiaraRouteImport.update({
   id: '/api/kiara',
   path: '/api/kiara',
@@ -242,6 +248,7 @@ export interface FileRoutesByFullPath {
   '/admin/servicios': typeof AdminServiciosRoute
   '/api/calculate-quote': typeof ApiCalculateQuoteRoute
   '/api/kiara': typeof ApiKiaraRoute
+  '/panel/carrusel': typeof PanelCarruselRoute
   '/panel/conocimiento': typeof PanelConocimientoRoute
   '/panel/contenido': typeof PanelContenidoRoute
   '/panel/cotizaciones': typeof PanelCotizacionesRoute
@@ -276,6 +283,7 @@ export interface FileRoutesByTo {
   '/admin/servicios': typeof AdminServiciosRoute
   '/api/calculate-quote': typeof ApiCalculateQuoteRoute
   '/api/kiara': typeof ApiKiaraRoute
+  '/panel/carrusel': typeof PanelCarruselRoute
   '/panel/conocimiento': typeof PanelConocimientoRoute
   '/panel/contenido': typeof PanelContenidoRoute
   '/panel/cotizaciones': typeof PanelCotizacionesRoute
@@ -314,6 +322,7 @@ export interface FileRoutesById {
   '/admin/servicios': typeof AdminServiciosRoute
   '/api/calculate-quote': typeof ApiCalculateQuoteRoute
   '/api/kiara': typeof ApiKiaraRoute
+  '/panel/carrusel': typeof PanelCarruselRoute
   '/panel/conocimiento': typeof PanelConocimientoRoute
   '/panel/contenido': typeof PanelContenidoRoute
   '/panel/cotizaciones': typeof PanelCotizacionesRoute
@@ -353,6 +362,7 @@ export interface FileRouteTypes {
     | '/admin/servicios'
     | '/api/calculate-quote'
     | '/api/kiara'
+    | '/panel/carrusel'
     | '/panel/conocimiento'
     | '/panel/contenido'
     | '/panel/cotizaciones'
@@ -387,6 +397,7 @@ export interface FileRouteTypes {
     | '/admin/servicios'
     | '/api/calculate-quote'
     | '/api/kiara'
+    | '/panel/carrusel'
     | '/panel/conocimiento'
     | '/panel/contenido'
     | '/panel/cotizaciones'
@@ -424,6 +435,7 @@ export interface FileRouteTypes {
     | '/admin/servicios'
     | '/api/calculate-quote'
     | '/api/kiara'
+    | '/panel/carrusel'
     | '/panel/conocimiento'
     | '/panel/contenido'
     | '/panel/cotizaciones'
@@ -651,6 +663,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelConocimientoRouteImport
       parentRoute: typeof PanelRoute
     }
+    '/panel/carrusel': {
+      id: '/panel/carrusel'
+      path: '/carrusel'
+      fullPath: '/panel/carrusel'
+      preLoaderRoute: typeof PanelCarruselRouteImport
+      parentRoute: typeof PanelRoute
+    }
     '/api/kiara': {
       id: '/api/kiara'
       path: '/api/kiara'
@@ -731,6 +750,7 @@ const AdminRouteChildren: AdminRouteChildren = {
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface PanelRouteChildren {
+  PanelCarruselRoute: typeof PanelCarruselRoute
   PanelConocimientoRoute: typeof PanelConocimientoRoute
   PanelContenidoRoute: typeof PanelContenidoRoute
   PanelCotizacionesRoute: typeof PanelCotizacionesRoute
@@ -746,6 +766,7 @@ interface PanelRouteChildren {
 }
 
 const PanelRouteChildren: PanelRouteChildren = {
+  PanelCarruselRoute: PanelCarruselRoute,
   PanelConocimientoRoute: PanelConocimientoRoute,
   PanelContenidoRoute: PanelContenidoRoute,
   PanelCotizacionesRoute: PanelCotizacionesRoute,
