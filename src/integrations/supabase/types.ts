@@ -195,6 +195,36 @@ export type Database = {
           },
         ]
       }
+      hero_carousel: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          media_type: string
+          media_url: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          media_type?: string
+          media_url: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          media_type?: string
+          media_url?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       knowledge_base: {
         Row: {
           category: string
