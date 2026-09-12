@@ -43,13 +43,14 @@ function CarruselAdmin() {
   const [busy, setBusy] = useState(false);
   const [over, setOver] = useState(false);
   const [durations, setDurations] = useState<Record<string, string>>({});
+  const [actionUrls, setActionUrls] = useState<Record<string, string>>({});
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function load() {
     setLoading(true);
     const { data, error } = await supabase
       .from("hero_carousel")
-      .select("id,media_url,media_type,is_active,display_order,duration_ms")
+      .select("id,media_url,media_type,is_active,display_order,duration_ms,action_url")
       .order("display_order", { ascending: true })
       .order("created_at", { ascending: true });
     if (error) toast.error("No pudimos cargar el carrusel", { description: error.message });
