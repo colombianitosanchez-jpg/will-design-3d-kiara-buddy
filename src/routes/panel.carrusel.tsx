@@ -15,7 +15,13 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { HERO_MEDIA_BUCKET, detectMediaType, type HeroSlide } from "@/lib/hero-carousel";
+import { Input } from "@/components/ui/input";
+import {
+  DEFAULT_SLIDE_MS,
+  HERO_MEDIA_BUCKET,
+  detectMediaType,
+  type HeroSlide,
+} from "@/lib/hero-carousel";
 
 export const Route = createFileRoute("/panel/carrusel")({
   ssr: false,
@@ -42,7 +48,7 @@ function CarruselAdmin() {
     setLoading(true);
     const { data, error } = await supabase
       .from("hero_carousel")
-      .select("id,media_url,media_type,is_active,display_order")
+      .select("id,media_url,media_type,is_active,display_order,duration_ms")
       .order("display_order", { ascending: true })
       .order("created_at", { ascending: true });
     if (error) toast.error("No pudimos cargar el carrusel", { description: error.message });
@@ -82,10 +88,20 @@ function CarruselAdmin() {
     setBusy(true);
     try {
       let order = slides.length ? Math.max(...slides.map((s) => s.display_order)) + 1 : 0;
-      const rows: { media_url: string; media_type: string; display_order: number }[] = [];
+      const rows: {
+        media_url: string;
+        media_type: string;
+        display_order: number;
+        duration_ms: number;
+      }[] = [];
       for (const f of list) {
         const { url, kind } = await uploadFile(f);
-        rows.push({ media_url: url, media_type: kind, display_order: order++ });
+        rows.push({
+          media_url: url,
+          media_type: kind,
+          display_order: order++,
+          duration_ms: DEFAULT_SLIDE_MS,
+        });
       }
       const { error } = await supabase.from("hero_carousel").insert(rows);
       if (error) throw error;
