@@ -1,5 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { parseProductButtons, type ProductButton } from "@/lib/product-buttons";
+
 
 export type Category = {
   id: string;
