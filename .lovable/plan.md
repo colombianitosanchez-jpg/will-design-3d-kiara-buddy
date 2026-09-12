@@ -23,7 +23,7 @@ Fix the logo/text overlap in `SiteHeader` and make the navbar fully responsive o
 - Replace the current inline dropdown mobile menu with the existing shadcn `Sheet` component (`src/components/ui/sheet.tsx`).
 - Add a hamburger toggle button visible only below the `lg` breakpoint: `flex lg:hidden`.
 - Keep the cart icon and WhatsApp button visible on mobile, positioned to the right of the hamburger toggle.
-- Render all navigation links inside the Sheet side drawer, including the recursive dynamic menu items (reuse the existing `MobileNode` accordion renderer).
+- Render navigation links inside the Sheet side drawer: dynamic menu roots, `Galería`, `Nosotros`, and `Contacto` (no explicit "Inicio" because the logo links home). Reuse the existing `MobileNode` accordion renderer for nested items.
 - Close the Sheet automatically when a link is clicked.
 
 ## Files to edit
