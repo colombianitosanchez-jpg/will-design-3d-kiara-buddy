@@ -1,0 +1,1 @@
+ALTER TABLE public.hero_carousel ADD COLUMN action_url text;

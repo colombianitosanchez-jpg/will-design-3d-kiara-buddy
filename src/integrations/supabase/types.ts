@@ -197,6 +197,7 @@ export type Database = {
       }
       hero_carousel: {
         Row: {
+          action_url: string | null
           created_at: string
           display_order: number
           duration_ms: number
@@ -207,6 +208,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          action_url?: string | null
           created_at?: string
           display_order?: number
           duration_ms?: number
@@ -217,6 +219,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          action_url?: string | null
           created_at?: string
           display_order?: number
           duration_ms?: number
