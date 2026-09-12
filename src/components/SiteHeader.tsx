@@ -15,8 +15,14 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
-const NAV_BEFORE = [{ to: "/", label: "Inicio" }] as const;
 const NAV_AFTER = [
   { to: "/galeria", label: "Galería" },
   { to: "/nosotros", label: "Nosotros" },
@@ -108,7 +114,6 @@ function DesktopRoot({ node }: { node: MenuNodeData }) {
   );
 }
 
-
 /** Recursive accordion renderer (mobile). */
 function MobileNode({
   node,
@@ -155,7 +160,6 @@ function MobileNode({
             ))}
           </div>
         )}
-
       </div>
     );
   }
@@ -180,19 +184,103 @@ function MobileNode({
   );
 }
 
-export function SiteHeader() {
-  const [open, setOpen] = useState(false);
+function CartLink({ className }: { className?: string }) {
+  const { count: cartCount } = useCart();
+  return (
+    <Link
+      to="/carrito"
+      aria-label={`Carrito (${cartCount})`}
+      className={`relative rounded-full border border-border p-2 hover:bg-muted ${className ?? ""}`}
+    >
+      <ShoppingCart className="h-5 w-5" />
+      {cartCount > 0 && (
+        <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--brand-orange)] px-1 text-[10px] font-bold text-white">
+          {cartCount}
+        </span>
+      )}
+    </Link>
+  );
+}
+
+function WhatsAppLink({ className }: { className?: string }) {
   const { data: content } = useQuery(siteContentQuery());
-  const { data: menu } = useQuery(menuItemsQuery());
   const contact = getContactInfo(content);
   const WHATSAPP_URL = waLink(contact.whatsapp, "Hola Will Design 3D");
+  return (
+    <a
+      href={WHATSAPP_URL}
+      target="_blank"
+      rel="noreferrer"
+      className={`btn-primary text-sm ${className ?? ""}`}
+    >
+      <MessageCircle className="h-4 w-4" />
+      WhatsApp
+    </a>
+  );
+}
+
+function MobileNav({ roots }: { roots: MenuNodeData[] }) {
+  const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <button
+          aria-label="Abrir menú"
+          className="flex lg:hidden rounded-full border border-border p-2"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+      </SheetTrigger>
+      <SheetContent side="right" className="flex w-3/4 max-w-sm flex-col">
+        <SheetHeader className="text-left">
+          <SheetTitle className="text-base font-black tracking-tight">
+            Will Design{" "}
+            <span style={{ color: "var(--brand-orange)" }}>3D</span>
+          </SheetTitle>
+        </SheetHeader>
+        <nav className="mt-6 flex flex-col gap-1 overflow-y-auto">
+          {roots.map((node) => (
+            <MobileNode key={node.id} node={node} onNavigate={close} />
+          ))}
+          {NAV_AFTER.map((l) => (
+            <Link
+              key={l.to}
+              to={l.to}
+              onClick={close}
+              className="rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted"
+            >
+              {l.label}
+            </Link>
+          ))}
+          <a
+            href={waLink(undefined, "Hola Will Design 3D")}
+            target="_blank"
+            rel="noreferrer"
+            onClick={close}
+            className="btn-primary mt-4 text-sm"
+          >
+            <MessageCircle className="h-4 w-4" />
+            WhatsApp
+          </a>
+        </nav>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+export function SiteHeader() {
+  const { data: menu } = useQuery(menuItemsQuery());
   const roots = menu ?? [];
-  const { count: cartCount } = useCart();
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur">
-      <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-3 sm:px-6">
-        <Link to="/" className="flex min-w-0 items-center gap-3">
+      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+        <Link
+          to="/"
+          className="flex flex-shrink-0 min-w-max items-center gap-3 whitespace-nowrap"
+        >
           <img
             src={logoAsset.url}
             alt="Will Design 3D"
@@ -200,8 +288,8 @@ export function SiteHeader() {
             height={44}
             className="h-11 w-11 shrink-0 rounded-lg object-cover"
           />
-          <div className="min-w-0 leading-tight">
-            <p className="truncate text-base font-black tracking-tight sm:text-lg">
+          <div className="leading-tight">
+            <p className="text-base font-black tracking-tight sm:text-lg">
               Will Design{" "}
               <span style={{ color: "var(--brand-orange)" }}>3D</span>
             </p>
@@ -211,19 +299,7 @@ export function SiteHeader() {
           </div>
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex">
-          {NAV_BEFORE.map((l) => (
-            <Link
-              key={l.to}
-              to={l.to}
-              activeOptions={{ exact: true }}
-              className={linkClass}
-              activeProps={{ className: activeLinkClass }}
-            >
-              {l.label}
-            </Link>
-          ))}
-
+        <nav className="hidden items-center gap-4 xl:gap-6 lg:flex">
           {roots.map((node) => (
             <DesktopRoot key={node.id} node={node} />
           ))}
@@ -238,94 +314,16 @@ export function SiteHeader() {
               {l.label}
             </Link>
           ))}
-          <Link
-            to="/carrito"
-            aria-label={`Carrito (${cartCount})`}
-            className="relative ml-1 rounded-full border border-border p-2 hover:bg-muted"
-          >
-            <ShoppingCart className="h-4 w-4" />
-            {cartCount > 0 && (
-              <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--brand-orange)] px-1 text-[10px] font-bold text-white">
-                {cartCount}
-              </span>
-            )}
-          </Link>
-          <a
-            href={WHATSAPP_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="btn-primary ml-2 text-sm"
-          >
-            <MessageCircle className="h-4 w-4" />
-            WhatsApp
-          </a>
+          <CartLink className="ml-1" />
+          <WhatsAppLink className="ml-2" />
         </nav>
 
-        <div className="flex items-center gap-2 md:hidden">
-          <Link
-            to="/carrito"
-            aria-label={`Carrito (${cartCount})`}
-            className="relative rounded-full border border-border p-2"
-          >
-            <ShoppingCart className="h-5 w-5" />
-            {cartCount > 0 && (
-              <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--brand-orange)] px-1 text-[10px] font-bold text-white">
-                {cartCount}
-              </span>
-            )}
-          </Link>
-          <button
-            aria-label="Abrir menú"
-            className="rounded-full border border-border p-2"
-            onClick={() => setOpen((v) => !v)}
-          >
-            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+        <div className="flex items-center gap-2 lg:hidden">
+          <CartLink />
+          <WhatsAppLink className="hidden sm:flex" />
+          <MobileNav roots={roots} />
         </div>
-
       </div>
-
-      {open && (
-        <div className="border-t border-border bg-background md:hidden">
-          <nav className="mx-auto flex max-h-[75vh] max-w-7xl flex-col gap-1 overflow-y-auto px-4 py-3">
-            {NAV_BEFORE.map((l) => (
-              <Link
-                key={l.to}
-                to={l.to}
-                onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted"
-              >
-                {l.label}
-              </Link>
-            ))}
-
-            {roots.map((node) => (
-              <MobileNode key={node.id} node={node} onNavigate={() => setOpen(false)} />
-            ))}
-
-            {NAV_AFTER.map((l) => (
-              <Link
-                key={l.to}
-                to={l.to}
-                onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted"
-              >
-                {l.label}
-              </Link>
-            ))}
-            <a
-              href={WHATSAPP_URL}
-              target="_blank"
-              rel="noreferrer"
-              onClick={() => setOpen(false)}
-              className="btn-primary mt-2 text-sm"
-            >
-              <MessageCircle className="h-4 w-4" />
-              WhatsApp
-            </a>
-          </nav>
-        </div>
-      )}
     </header>
   );
 }
