@@ -6,6 +6,20 @@ import { RichTextEditor } from "@/components/RichTextEditor";
 import { ImageDropzone } from "@/components/ImageDropzone";
 import { Switch } from "@/components/ui/switch";
 import {
+  ACTION_LABELS,
+  BUTTON_ACTIONS,
+  BUTTON_POSITIONS,
+  BUTTON_VARIANTS,
+  BUTTON_WIDTHS,
+  POSITION_LABELS,
+  VARIANT_LABELS,
+  WIDTH_LABELS,
+  newProductButton,
+  parseProductButtons,
+  validateProductButtons,
+  type ProductButton,
+} from "@/lib/product-buttons";
+import {
   buildCategoryTree,
   categoryPath,
   flattenCategoryTree,
