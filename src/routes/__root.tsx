@@ -18,6 +18,7 @@ import { KiaraWidget } from "../components/KiaraWidget";
 import { Toaster } from "../components/ui/sonner";
 import { AuthProvider } from "../hooks/use-auth";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import { CartProvider } from "../lib/cart";
 
 
 function NotFoundComponent() {

@@ -18,6 +18,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as GaleriaRouteImport } from './routes/galeria'
 import { Route as CotizadorRouteImport } from './routes/cotizador'
 import { Route as ContactoRouteImport } from './routes/contacto'
+import { Route as CarritoRouteImport } from './routes/carrito'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -89,6 +90,11 @@ const CotizadorRoute = CotizadorRouteImport.update({
 const ContactoRoute = ContactoRouteImport.update({
   id: '/contacto',
   path: '/contacto',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CarritoRoute = CarritoRouteImport.update({
+  id: '/carrito',
+  path: '/carrito',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -232,6 +238,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
+  '/carrito': typeof CarritoRoute
   '/contacto': typeof ContactoRoute
   '/cotizador': typeof CotizadorRoute
   '/galeria': typeof GaleriaRoute
@@ -269,6 +276,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/carrito': typeof CarritoRoute
   '/contacto': typeof ContactoRoute
   '/cotizador': typeof CotizadorRoute
   '/galeria': typeof GaleriaRoute
@@ -306,6 +314,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
+  '/carrito': typeof CarritoRoute
   '/contacto': typeof ContactoRoute
   '/cotizador': typeof CotizadorRoute
   '/galeria': typeof GaleriaRoute
@@ -346,6 +355,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/carrito'
     | '/contacto'
     | '/cotizador'
     | '/galeria'
@@ -383,6 +393,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/carrito'
     | '/contacto'
     | '/cotizador'
     | '/galeria'
@@ -419,6 +430,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/carrito'
     | '/contacto'
     | '/cotizador'
     | '/galeria'
@@ -458,6 +470,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
+  CarritoRoute: typeof CarritoRoute
   ContactoRoute: typeof ContactoRoute
   CotizadorRoute: typeof CotizadorRoute
   GaleriaRoute: typeof GaleriaRoute
@@ -535,6 +548,13 @@ declare module '@tanstack/react-router' {
       path: '/contacto'
       fullPath: '/contacto'
       preLoaderRoute: typeof ContactoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/carrito': {
+      id: '/carrito'
+      path: '/carrito'
+      fullPath: '/carrito'
+      preLoaderRoute: typeof CarritoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -800,6 +820,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
+  CarritoRoute: CarritoRoute,
   ContactoRoute: ContactoRoute,
   CotizadorRoute: CotizadorRoute,
   GaleriaRoute: GaleriaRoute,
