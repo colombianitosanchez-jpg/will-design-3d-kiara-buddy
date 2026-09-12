@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Menu, X, MessageCircle, ChevronDown, ShoppingCart } from "lucide-react";
+import { Menu, MessageCircle, ChevronDown, ShoppingCart } from "lucide-react";
 import logoAsset from "@/assets/will_logo.asset.json";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
@@ -202,13 +202,16 @@ function CartLink({ className }: { className?: string }) {
   );
 }
 
-function WhatsAppLink({ className }: { className?: string }) {
-  const { data: content } = useQuery(siteContentQuery());
-  const contact = getContactInfo(content);
-  const WHATSAPP_URL = waLink(contact.whatsapp, "Hola Will Design 3D");
+function WhatsAppLink({
+  url,
+  className,
+}: {
+  url: string;
+  className?: string;
+}) {
   return (
     <a
-      href={WHATSAPP_URL}
+      href={url}
       target="_blank"
       rel="noreferrer"
       className={`btn-primary text-sm ${className ?? ""}`}
@@ -219,7 +222,7 @@ function WhatsAppLink({ className }: { className?: string }) {
   );
 }
 
-function MobileNav({ roots }: { roots: MenuNodeData[] }) {
+function MobileNav({ roots, whatsappUrl }: { roots: MenuNodeData[]; whatsappUrl: string }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
 
@@ -255,7 +258,7 @@ function MobileNav({ roots }: { roots: MenuNodeData[] }) {
             </Link>
           ))}
           <a
-            href={waLink(undefined, "Hola Will Design 3D")}
+            href={whatsappUrl}
             target="_blank"
             rel="noreferrer"
             onClick={close}
@@ -271,7 +274,10 @@ function MobileNav({ roots }: { roots: MenuNodeData[] }) {
 }
 
 export function SiteHeader() {
+  const { data: content } = useQuery(siteContentQuery());
   const { data: menu } = useQuery(menuItemsQuery());
+  const contact = getContactInfo(content);
+  const WHATSAPP_URL = waLink(contact.whatsapp, "Hola Will Design 3D");
   const roots = menu ?? [];
 
   return (
@@ -315,13 +321,13 @@ export function SiteHeader() {
             </Link>
           ))}
           <CartLink className="ml-1" />
-          <WhatsAppLink className="ml-2" />
+          <WhatsAppLink url={WHATSAPP_URL} className="ml-2" />
         </nav>
 
         <div className="flex items-center gap-2 lg:hidden">
           <CartLink />
-          <WhatsAppLink className="hidden sm:flex" />
-          <MobileNav roots={roots} />
+          <WhatsAppLink url={WHATSAPP_URL} className="hidden sm:flex" />
+          <MobileNav roots={roots} whatsappUrl={WHATSAPP_URL} />
         </div>
       </div>
     </header>
