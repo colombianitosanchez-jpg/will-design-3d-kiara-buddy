@@ -342,8 +342,24 @@ function CarruselAdmin() {
                          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
                        }}
                      />
-                   </label>
+                    </label>
 
+                    <label className="flex min-w-[12rem] flex-1 items-center gap-2 text-xs font-semibold">
+                      URL de destino / Enlace (Opcional)
+                      <Input
+                        type="text"
+                        placeholder="/tienda"
+                        className="h-9 flex-1"
+                        value={actionUrls[s.id] ?? (s.action_url || "")}
+                        onChange={(e) =>
+                          setActionUrls((d) => ({ ...d, [s.id]: e.target.value }))
+                        }
+                        onBlur={() => saveActionUrl(s)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                        }}
+                      />
+                    </label>
 
                   <div className="ml-auto flex items-center gap-3">
                     <label className="flex items-center gap-2 text-xs font-semibold">
