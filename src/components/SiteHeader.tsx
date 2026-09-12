@@ -326,6 +326,15 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-2 lg:hidden">
           <CartLink />
+          <a
+            href={WHATSAPP_URL}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="WhatsApp"
+            className="btn-primary inline-flex h-9 w-9 items-center justify-center rounded-full p-0 sm:hidden"
+          >
+            <MessageCircle className="h-4 w-4" />
+          </a>
           <WhatsAppLink url={WHATSAPP_URL} className="hidden sm:flex" />
           <MobileNav roots={roots} whatsappUrl={WHATSAPP_URL} />
         </div>
