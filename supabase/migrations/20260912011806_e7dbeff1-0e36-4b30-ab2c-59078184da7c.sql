@@ -1,0 +1,1 @@
+ALTER TABLE public.hero_carousel ADD COLUMN IF NOT EXISTS duration_ms integer NOT NULL DEFAULT 5000; ALTER TABLE public.hero_carousel ADD CONSTRAINT hero_carousel_duration_ms_range CHECK (duration_ms BETWEEN 500 AND 120000);
