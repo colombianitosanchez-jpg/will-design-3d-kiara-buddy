@@ -472,6 +472,8 @@ function ProductModal({
         stock: Number(form.stock) || 0,
       };
       if (!payload.name || !payload.slug) throw new Error("Nombre y slug son obligatorios");
+      const buttonsError = validateProductButtons(buttons);
+      if (buttonsError) throw new Error(buttonsError);
 
       let id = form.id;
       if (id) {
