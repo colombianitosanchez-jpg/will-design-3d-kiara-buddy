@@ -18,6 +18,7 @@ import { KiaraWidget } from "../components/KiaraWidget";
 import { Toaster } from "../components/ui/sonner";
 import { AuthProvider } from "../hooks/use-auth";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import { CartProvider } from "../lib/cart";
 
 
 function NotFoundComponent() {
@@ -167,20 +168,23 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <div className="flex min-h-screen flex-col bg-background text-foreground">
-          <LiveBanner />
-          <SiteHeader />
-          <main className="flex-1">
-            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-            <ErrorBoundary label="root_layout">
-              <Outlet />
-            </ErrorBoundary>
-          </main>
-          <SiteFooter />
-          <KiaraWidget />
-          <Toaster />
-        </div>
+        <CartProvider>
+          <div className="flex min-h-screen flex-col bg-background text-foreground">
+            <LiveBanner />
+            <SiteHeader />
+            <main className="flex-1">
+              {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+              <ErrorBoundary label="root_layout">
+                <Outlet />
+              </ErrorBoundary>
+            </main>
+            <SiteFooter />
+            <KiaraWidget />
+            <Toaster />
+          </div>
+        </CartProvider>
       </AuthProvider>
+
     </QueryClientProvider>
   );
 }

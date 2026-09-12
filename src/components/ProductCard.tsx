@@ -8,6 +8,8 @@ import {
   type Product,
 } from "@/lib/catalog";
 import { useSiteContent } from "@/hooks/use-site-content";
+import { ProductButtons } from "@/components/ProductButtons";
+
 
 const GRADIENTS: Record<string, string> = {
   orange:
@@ -67,33 +69,40 @@ export function ProductCard({ product }: { product: Product }) {
           <p className="line-clamp-2 text-xs text-muted-foreground">{product.short}</p>
         </div>
       </Link>
-      <div className="flex min-h-12 items-center justify-between gap-3 px-4 pb-4">
+      <div className="flex min-h-12 items-center justify-between gap-3 px-4 pb-2">
         <span className="text-lg font-black text-[var(--brand-wine)]">
           {formatCOP(product.price_cop)}
         </span>
-        <div className="flex min-w-0 items-center justify-end gap-1.5">
-          <Link
-            to="/tienda/$slug"
-            params={{ slug: product.slug }}
-            className="inline-flex min-w-0 items-center gap-1 text-xs font-semibold text-[var(--brand-orange)] transition group-hover:gap-2"
-          >
-            <span className="truncate">{actionText}</span>
-            <ArrowRight className="h-3 w-3 shrink-0" />
-          </Link>
-          {product.show_whatsapp && (
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={`Consultar ${product.name} por WhatsApp`}
-              title="Consultar por WhatsApp"
-              className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[var(--brand-teal-deep)] transition hover:bg-muted"
+        {!product.hide_default_cta && (
+          <div className="flex min-w-0 items-center justify-end gap-1.5">
+            <Link
+              to="/tienda/$slug"
+              params={{ slug: product.slug }}
+              className="inline-flex min-w-0 items-center gap-1 text-xs font-semibold text-[var(--brand-orange)] transition group-hover:gap-2"
             >
-              <MessageCircle className="h-4 w-4" />
-            </a>
-          )}
-        </div>
+              <span className="truncate">{actionText}</span>
+              <ArrowRight className="h-3 w-3 shrink-0" />
+            </Link>
+            {product.show_whatsapp && (
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Consultar ${product.name} por WhatsApp`}
+                title="Consultar por WhatsApp"
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[var(--brand-teal-deep)] transition hover:bg-muted"
+              >
+                <MessageCircle className="h-4 w-4" />
+              </a>
+            )}
+          </div>
+        )}
       </div>
+      {product.custom_buttons.length > 0 && (
+        <ProductButtons product={product} buttons={product.custom_buttons} className="px-4 pb-4" />
+      )}
+      {product.custom_buttons.length === 0 && <div className="pb-2" />}
+
     </article>
   );
 }

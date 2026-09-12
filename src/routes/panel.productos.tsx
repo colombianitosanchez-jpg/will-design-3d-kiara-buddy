@@ -6,6 +6,20 @@ import { RichTextEditor } from "@/components/RichTextEditor";
 import { ImageDropzone } from "@/components/ImageDropzone";
 import { Switch } from "@/components/ui/switch";
 import {
+  ACTION_LABELS,
+  BUTTON_ACTIONS,
+  BUTTON_POSITIONS,
+  BUTTON_VARIANTS,
+  BUTTON_WIDTHS,
+  POSITION_LABELS,
+  VARIANT_LABELS,
+  WIDTH_LABELS,
+  newProductButton,
+  parseProductButtons,
+  validateProductButtons,
+  type ProductButton,
+} from "@/lib/product-buttons";
+import {
   buildCategoryTree,
   categoryPath,
   flattenCategoryTree,
@@ -31,6 +45,8 @@ type Product = {
   price_cop: number;
   btn_text: string;
   show_whatsapp: boolean;
+  hide_default_cta: boolean;
+  custom_buttons: ProductButton[];
   category_id: string | null;
   brand_id: string | null;
   short: string;
@@ -51,6 +67,8 @@ const empty: Omit<Product, "id"> = {
   price_cop: 0,
   btn_text: "Ver más",
   show_whatsapp: false,
+  hide_default_cta: false,
+  custom_buttons: [],
   category_id: null,
   brand_id: null,
   short: "",
@@ -64,6 +82,7 @@ const empty: Omit<Product, "id"> = {
   active: true,
   stock: 0,
 };
+
 
 function slugify(s: string) {
   return s
@@ -128,6 +147,8 @@ function ProductosAdmin() {
         ...r,
         images: Array.isArray(r.images) ? r.images : [],
         specs: Array.isArray(r.specs) ? r.specs : [],
+        hide_default_cta: !!r.hide_default_cta,
+        custom_buttons: parseProductButtons(r.custom_buttons),
       })) as Product[],
     );
     setCategories((c.data as Category[]) ?? []);
@@ -306,6 +327,21 @@ function ProductModal({
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [attrSel, setAttrSel] = useState<Record<string, string>>(initialAttrs);
+  const [buttons, setButtons] = useState<ProductButton[]>(product.custom_buttons ?? []);
+
+  function updateButton(index: number, patch: Partial<ProductButton>) {
+    setButtons((list) => list.map((b, i) => (i === index ? { ...b, ...patch } : b)));
+  }
+
+  function moveButton(index: number, dir: -1 | 1) {
+    setButtons((list) => {
+      const next = [...list];
+      const target = index + dir;
+      if (target < 0 || target >= next.length) return list;
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  }
 
   const categoryOptions = useMemo(
     () => flattenCategoryTree(buildCategoryTree(categories)),
@@ -420,6 +456,8 @@ function ProductModal({
         price_cop: Number(form.price_cop) || 0,
         btn_text: form.btn_text?.trim() || "Ver más",
         show_whatsapp: !!form.show_whatsapp,
+        hide_default_cta: !!form.hide_default_cta,
+        custom_buttons: buttons.map((b) => ({ ...b, text: b.text.trim(), action_value: b.action_value.trim() })),
         category_id: form.category_id || null,
         brand_id: form.brand_id || null,
         short: form.short ?? "",
@@ -434,6 +472,8 @@ function ProductModal({
         stock: Number(form.stock) || 0,
       };
       if (!payload.name || !payload.slug) throw new Error("Nombre y slug son obligatorios");
+      const buttonsError = validateProductButtons(buttons);
+      if (buttonsError) throw new Error(buttonsError);
 
       let id = form.id;
       if (id) {
@@ -698,6 +738,156 @@ function ProductModal({
           </div>
         </Field>
 
+        <Field label="Botones del producto (se muestran en las tarjetas del catálogo)">
+          <div className="grid gap-3">
+            {buttons.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                Sin botones personalizados: la tarjeta mostrará el texto de acción de arriba.
+              </p>
+            )}
+            {buttons.map((b, i) => (
+              <div key={b.id} className="rounded-2xl border border-border bg-muted/30 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Botón {i + 1}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => moveButton(i, -1)}
+                      disabled={i === 0}
+                      aria-label="Subir botón"
+                      className="rounded-lg border border-border px-2 py-1 text-xs disabled:opacity-40"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveButton(i, 1)}
+                      disabled={i === buttons.length - 1}
+                      aria-label="Bajar botón"
+                      className="rounded-lg border border-border px-2 py-1 text-xs disabled:opacity-40"
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setButtons((list) => list.filter((_, j) => j !== i))}
+                      className="rounded-lg bg-red-50 px-2 py-1 text-xs font-semibold text-red-700"
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  <label className="text-xs font-semibold text-muted-foreground">
+                    Texto
+                    <input
+                      value={b.text}
+                      onChange={(e) => updateButton(i, { text: e.target.value })}
+                      placeholder="Comprar ahora"
+                      className={inputCls}
+                    />
+                  </label>
+                  <label className="text-xs font-semibold text-muted-foreground">
+                    Estilo
+                    <select
+                      value={b.variant}
+                      onChange={(e) => updateButton(i, { variant: e.target.value as ProductButton["variant"] })}
+                      className={inputCls}
+                    >
+                      {BUTTON_VARIANTS.map((v) => (
+                        <option key={v} value={v}>
+                          {VARIANT_LABELS[v]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="text-xs font-semibold text-muted-foreground">
+                    Ancho
+                    <select
+                      value={b.width}
+                      onChange={(e) => updateButton(i, { width: e.target.value as ProductButton["width"] })}
+                      className={inputCls}
+                    >
+                      {BUTTON_WIDTHS.map((w) => (
+                        <option key={w} value={w}>
+                          {WIDTH_LABELS[w]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="text-xs font-semibold text-muted-foreground">
+                    Alineación
+                    <select
+                      value={b.position}
+                      onChange={(e) => updateButton(i, { position: e.target.value as ProductButton["position"] })}
+                      className={inputCls}
+                    >
+                      {BUTTON_POSITIONS.map((p) => (
+                        <option key={p} value={p}>
+                          {POSITION_LABELS[p]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="text-xs font-semibold text-muted-foreground">
+                    Acción al pulsar
+                    <select
+                      value={b.action_type}
+                      onChange={(e) =>
+                        updateButton(i, {
+                          action_type: e.target.value as ProductButton["action_type"],
+                          action_value: "",
+                        })
+                      }
+                      className={inputCls}
+                    >
+                      {BUTTON_ACTIONS.map((a) => (
+                        <option key={a} value={a}>
+                          {ACTION_LABELS[a]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {(b.action_type === "link" || b.action_type === "whatsapp") && (
+                    <label className="text-xs font-semibold text-muted-foreground">
+                      {b.action_type === "link" ? "URL o ruta de destino" : "Número de WhatsApp (opcional)"}
+                      <input
+                        value={b.action_value}
+                        onChange={(e) => updateButton(i, { action_value: e.target.value })}
+                        placeholder={b.action_type === "link" ? "/cotizador o https://…" : "573156724474"}
+                        className={inputCls}
+                      />
+                    </label>
+                  )}
+                </div>
+                {b.action_type === "whatsapp" && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Si lo dejas vacío usamos el WhatsApp general del sitio.
+                  </p>
+                )}
+                {(b.action_type === "add_to_cart" || b.action_type === "checkout") && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {b.action_type === "add_to_cart"
+                      ? "Añade este producto al carrito del visitante."
+                      : "Añade el producto y lleva directo al carrito para confirmar el pedido."}
+                  </p>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => setButtons((list) => [...list, newProductButton()])}
+              className="justify-self-start rounded-full border border-border px-4 py-1.5 text-xs font-semibold hover:bg-muted"
+            >
+              + Añadir botón
+            </button>
+          </div>
+        </Field>
+
+
+
         <div className="mt-4 flex flex-wrap gap-6">
           <label className="inline-flex items-center gap-2 text-sm">
             <Switch
@@ -706,6 +896,14 @@ function ProductModal({
               aria-label="Mostrar icono de WhatsApp en el catálogo"
             />
             Mostrar icono de WhatsApp en el catálogo
+          </label>
+          <label className="inline-flex items-center gap-2 text-sm">
+            <Switch
+              checked={!!form.hide_default_cta}
+              onCheckedChange={(checked) => set("hide_default_cta", checked)}
+              aria-label="Ocultar el texto de acción y el icono de WhatsApp"
+            />
+            Ocultar el texto de acción y el icono de WhatsApp
           </label>
           <label className="inline-flex items-center gap-2 text-sm">
             <input

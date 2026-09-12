@@ -1,5 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { parseProductButtons, type ProductButton } from "@/lib/product-buttons";
+
 
 export type Category = {
   id: string;
@@ -66,6 +68,8 @@ export type Product = {
   price_cop: number;
   btn_text: string;
   show_whatsapp: boolean;
+  hide_default_cta: boolean;
+  custom_buttons: ProductButton[];
   short: string;
   description: string;
   kiara_tip: string;
@@ -82,9 +86,10 @@ export type Product = {
 };
 
 const PRODUCT_SELECT =
-  "id,slug,name,price_cop,btn_text,show_whatsapp,short,description,kiara_tip,image_url,images,featured,active,stock,sku,specs," +
+  "id,slug,name,price_cop,btn_text,show_whatsapp,hide_default_cta,custom_buttons,short,description,kiara_tip,image_url,images,featured,active,stock,sku,specs," +
   "category:categories(id,slug,name,parent_id),brand:brands(id,name,slug)," +
   "attribute_links:product_attribute_values(text_value,attribute:attributes(slug,name),value:attribute_values(slug,label,color_hex))";
+
 
 function normalize(row: any): Product {
   let specs: ProductSpec[] = [];
@@ -112,7 +117,15 @@ function normalize(row: any): Product {
     }))
     .filter((a: ProductAttribute) => a.value_label);
   const { attribute_links: _drop, ...rest } = row;
-  return { ...rest, specs, images, attributes } as Product;
+  return {
+    ...rest,
+    specs,
+    images,
+    attributes,
+    hide_default_cta: !!row.hide_default_cta,
+    custom_buttons: parseProductButtons(row.custom_buttons),
+  } as Product;
+
 }
 
 export async function fetchProducts(): Promise<Product[]> {
