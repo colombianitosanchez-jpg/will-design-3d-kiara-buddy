@@ -66,6 +66,8 @@ export type Product = {
   price_cop: number;
   btn_text: string;
   show_whatsapp: boolean;
+  hide_default_cta: boolean;
+  custom_buttons: ProductButton[];
   short: string;
   description: string;
   kiara_tip: string;
@@ -82,9 +84,10 @@ export type Product = {
 };
 
 const PRODUCT_SELECT =
-  "id,slug,name,price_cop,btn_text,show_whatsapp,short,description,kiara_tip,image_url,images,featured,active,stock,sku,specs," +
+  "id,slug,name,price_cop,btn_text,show_whatsapp,hide_default_cta,custom_buttons,short,description,kiara_tip,image_url,images,featured,active,stock,sku,specs," +
   "category:categories(id,slug,name,parent_id),brand:brands(id,name,slug)," +
   "attribute_links:product_attribute_values(text_value,attribute:attributes(slug,name),value:attribute_values(slug,label,color_hex))";
+
 
 function normalize(row: any): Product {
   let specs: ProductSpec[] = [];
