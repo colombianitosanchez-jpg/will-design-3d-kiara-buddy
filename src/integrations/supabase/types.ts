@@ -666,6 +666,7 @@ export type Database = {
         Row: {
           active: boolean
           brand_id: string | null
+          btn_text: string
           category_id: string | null
           created_at: string
           description: string
@@ -677,6 +678,7 @@ export type Database = {
           name: string
           price_cop: number
           short: string
+          show_whatsapp: boolean
           sku: string | null
           slug: string
           specs: Json
@@ -686,6 +688,7 @@ export type Database = {
         Insert: {
           active?: boolean
           brand_id?: string | null
+          btn_text?: string
           category_id?: string | null
           created_at?: string
           description?: string
@@ -697,6 +700,7 @@ export type Database = {
           name: string
           price_cop?: number
           short?: string
+          show_whatsapp?: boolean
           sku?: string | null
           slug: string
           specs?: Json
@@ -706,6 +710,7 @@ export type Database = {
         Update: {
           active?: boolean
           brand_id?: string | null
+          btn_text?: string
           category_id?: string | null
           created_at?: string
           description?: string
@@ -717,6 +722,7 @@ export type Database = {
           name?: string
           price_cop?: number
           short?: string
+          show_whatsapp?: boolean
           sku?: string | null
           slug?: string
           specs?: Json
