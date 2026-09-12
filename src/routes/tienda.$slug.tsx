@@ -17,6 +17,7 @@ import {
 
 import { KiaraTip } from "@/components/KiaraTip";
 import { ProductCard } from "@/components/ProductCard";
+import { ProductButtons } from "@/components/ProductButtons";
 
 export const Route = createFileRoute("/tienda/$slug")({
   loader: async ({ params, context }) => {
