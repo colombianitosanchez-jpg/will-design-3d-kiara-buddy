@@ -441,6 +441,8 @@ function ProductModal({
         price_cop: Number(form.price_cop) || 0,
         btn_text: form.btn_text?.trim() || "Ver más",
         show_whatsapp: !!form.show_whatsapp,
+        hide_default_cta: !!form.hide_default_cta,
+        custom_buttons: buttons.map((b) => ({ ...b, text: b.text.trim(), action_value: b.action_value.trim() })),
         category_id: form.category_id || null,
         brand_id: form.brand_id || null,
         short: form.short ?? "",
