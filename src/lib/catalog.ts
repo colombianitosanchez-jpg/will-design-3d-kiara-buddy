@@ -117,7 +117,15 @@ function normalize(row: any): Product {
     }))
     .filter((a: ProductAttribute) => a.value_label);
   const { attribute_links: _drop, ...rest } = row;
-  return { ...rest, specs, images, attributes } as Product;
+  return {
+    ...rest,
+    specs,
+    images,
+    attributes,
+    hide_default_cta: !!row.hide_default_cta,
+    custom_buttons: parseProductButtons(row.custom_buttons),
+  } as Product;
+
 }
 
 export async function fetchProducts(): Promise<Product[]> {
