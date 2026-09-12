@@ -237,6 +237,18 @@ export function SiteHeader() {
               {l.label}
             </Link>
           ))}
+          <Link
+            to="/carrito"
+            aria-label={`Carrito (${cartCount})`}
+            className="relative ml-1 rounded-full border border-border p-2 hover:bg-muted"
+          >
+            <ShoppingCart className="h-4 w-4" />
+            {cartCount > 0 && (
+              <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--brand-orange)] px-1 text-[10px] font-bold text-white">
+                {cartCount}
+              </span>
+            )}
+          </Link>
           <a
             href={WHATSAPP_URL}
             target="_blank"
@@ -248,13 +260,28 @@ export function SiteHeader() {
           </a>
         </nav>
 
-        <button
-          aria-label="Abrir menú"
-          className="rounded-full border border-border p-2 md:hidden"
-          onClick={() => setOpen((v) => !v)}
-        >
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        <div className="flex items-center gap-2 md:hidden">
+          <Link
+            to="/carrito"
+            aria-label={`Carrito (${cartCount})`}
+            className="relative rounded-full border border-border p-2"
+          >
+            <ShoppingCart className="h-5 w-5" />
+            {cartCount > 0 && (
+              <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--brand-orange)] px-1 text-[10px] font-bold text-white">
+                {cartCount}
+              </span>
+            )}
+          </Link>
+          <button
+            aria-label="Abrir menú"
+            className="rounded-full border border-border p-2"
+            onClick={() => setOpen((v) => !v)}
+          >
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
+
       </div>
 
       {open && (
