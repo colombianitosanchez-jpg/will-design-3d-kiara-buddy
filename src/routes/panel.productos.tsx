@@ -147,6 +147,8 @@ function ProductosAdmin() {
         ...r,
         images: Array.isArray(r.images) ? r.images : [],
         specs: Array.isArray(r.specs) ? r.specs : [],
+        hide_default_cta: !!r.hide_default_cta,
+        custom_buttons: parseProductButtons(r.custom_buttons),
       })) as Product[],
     );
     setCategories((c.data as Category[]) ?? []);
