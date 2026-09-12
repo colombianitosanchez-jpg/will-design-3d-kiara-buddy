@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import type { CarouselApi } from "@/components/ui/carousel";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { DEFAULT_SLIDE_MS, heroCarouselQuery } from "@/lib/hero-carousel";
@@ -82,9 +83,9 @@ export function HeroMedia({ fallbackImage }: { fallbackImage: string }) {
       }}
     >
       <CarouselContent className="ml-0">
-        {slides.map((item) => (
-          <CarouselItem key={item.id} className="pl-0">
-            {item.media_type === "video" ? (
+        {slides.map((item) => {
+          const media =
+            item.media_type === "video" ? (
               <video
                 src={item.media_url}
                 autoPlay
@@ -95,9 +96,28 @@ export function HeroMedia({ fallbackImage }: { fallbackImage: string }) {
               />
             ) : (
               <img src={item.media_url} alt="Slide" className={MEDIA_CLASS} />
-            )}
-          </CarouselItem>
-        ))}
+            );
+          return (
+            <CarouselItem key={item.id} className="pl-0">
+              {item.action_url ? (
+                <Link
+                  to={item.action_url}
+                  className="block h-full w-full cursor-pointer"
+                  onClick={(e) => {
+                    if (item.action_url?.startsWith("http")) {
+                      e.preventDefault();
+                      window.open(item.action_url, "_blank", "noopener,noreferrer");
+                    }
+                  }}
+                >
+                  {media}
+                </Link>
+              ) : (
+                media
+              )}
+            </CarouselItem>
+          );
+        })}
       </CarouselContent>
     </Carousel>
   );

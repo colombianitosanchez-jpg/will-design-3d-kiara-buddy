@@ -43,13 +43,14 @@ function CarruselAdmin() {
   const [busy, setBusy] = useState(false);
   const [over, setOver] = useState(false);
   const [durations, setDurations] = useState<Record<string, string>>({});
+  const [actionUrls, setActionUrls] = useState<Record<string, string>>({});
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function load() {
     setLoading(true);
     const { data, error } = await supabase
       .from("hero_carousel")
-      .select("id,media_url,media_type,is_active,display_order,duration_ms")
+      .select("id,media_url,media_type,is_active,display_order,duration_ms,action_url")
       .order("display_order", { ascending: true })
       .order("created_at", { ascending: true });
     if (error) toast.error("No pudimos cargar el carrusel", { description: error.message });
@@ -158,6 +159,25 @@ function CarruselAdmin() {
       return;
     }
     toast.success(`Duración guardada: ${seconds} s`);
+    refreshPublic();
+  }
+
+  async function saveActionUrl(slide: HeroSlide) {
+    const raw = actionUrls[slide.id];
+    if (raw === undefined) return;
+    const url = raw.trim();
+    if (url === (slide.action_url ?? "")) return;
+    setSlides((s) => s.map((x) => (x.id === slide.id ? { ...x, action_url: url || undefined } : x)));
+    const { error } = await supabase
+      .from("hero_carousel")
+      .update({ action_url: url || null })
+      .eq("id", slide.id);
+    if (error) {
+      toast.error("No pudimos guardar el enlace", { description: error.message });
+      await load();
+      return;
+    }
+    toast.success("Enlace guardado");
     refreshPublic();
   }
 
@@ -322,8 +342,24 @@ function CarruselAdmin() {
                          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
                        }}
                      />
-                   </label>
+                    </label>
 
+                    <label className="flex min-w-[12rem] flex-1 items-center gap-2 text-xs font-semibold">
+                      URL de destino / Enlace (Opcional)
+                      <Input
+                        type="text"
+                        placeholder="/tienda"
+                        className="h-9 flex-1"
+                        value={actionUrls[s.id] ?? (s.action_url || "")}
+                        onChange={(e) =>
+                          setActionUrls((d) => ({ ...d, [s.id]: e.target.value }))
+                        }
+                        onBlur={() => saveActionUrl(s)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                        }}
+                      />
+                    </label>
 
                   <div className="ml-auto flex items-center gap-3">
                     <label className="flex items-center gap-2 text-xs font-semibold">
