@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Plus, Pencil, Trash2, Loader2, X, Search } from "lucide-react";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { ImageDropzone } from "@/components/ImageDropzone";
+import { Switch } from "@/components/ui/switch";
 import {
   buildCategoryTree,
   categoryPath,
@@ -28,6 +29,8 @@ type Product = {
   slug: string;
   name: string;
   price_cop: number;
+  btn_text: string;
+  show_whatsapp: boolean;
   category_id: string | null;
   brand_id: string | null;
   short: string;
@@ -46,6 +49,8 @@ const empty: Omit<Product, "id"> = {
   slug: "",
   name: "",
   price_cop: 0,
+  btn_text: "Ver más",
+  show_whatsapp: false,
   category_id: null,
   brand_id: null,
   short: "",
@@ -413,6 +418,8 @@ function ProductModal({
         slug: (form.slug || slugify(form.name || "")).slice(0, 80),
         name: form.name ?? "",
         price_cop: Number(form.price_cop) || 0,
+        btn_text: form.btn_text?.trim() || "Ver más",
+        show_whatsapp: !!form.show_whatsapp,
         category_id: form.category_id || null,
         brand_id: form.brand_id || null,
         short: form.short ?? "",
@@ -509,6 +516,14 @@ function ProductModal({
               value={form.price_cop ?? 0}
               onChange={(e) => set("price_cop", Number(e.target.value))}
               className={inputCls}
+            />
+          </Field>
+          <Field label="Texto de acción">
+            <input
+              value={form.btn_text ?? "Ver más"}
+              onChange={(e) => set("btn_text", e.target.value)}
+              className={inputCls}
+              placeholder="Ver más, Cotizar, Reservar"
             />
           </Field>
           <Field label="Stock">
@@ -684,6 +699,14 @@ function ProductModal({
         </Field>
 
         <div className="mt-4 flex flex-wrap gap-6">
+          <label className="inline-flex items-center gap-2 text-sm">
+            <Switch
+              checked={!!form.show_whatsapp}
+              onCheckedChange={(checked) => set("show_whatsapp", checked)}
+              aria-label="Mostrar icono de WhatsApp en el catálogo"
+            />
+            Mostrar icono de WhatsApp en el catálogo
+          </label>
           <label className="inline-flex items-center gap-2 text-sm">
             <input
               type="checkbox"
