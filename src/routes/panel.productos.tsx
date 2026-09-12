@@ -327,6 +327,21 @@ function ProductModal({
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [attrSel, setAttrSel] = useState<Record<string, string>>(initialAttrs);
+  const [buttons, setButtons] = useState<ProductButton[]>(product.custom_buttons ?? []);
+
+  function updateButton(index: number, patch: Partial<ProductButton>) {
+    setButtons((list) => list.map((b, i) => (i === index ? { ...b, ...patch } : b)));
+  }
+
+  function moveButton(index: number, dir: -1 | 1) {
+    setButtons((list) => {
+      const next = [...list];
+      const target = index + dir;
+      if (target < 0 || target >= next.length) return list;
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  }
 
   const categoryOptions = useMemo(
     () => flattenCategoryTree(buildCategoryTree(categories)),
