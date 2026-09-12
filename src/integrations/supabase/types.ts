@@ -669,8 +669,10 @@ export type Database = {
           btn_text: string
           category_id: string | null
           created_at: string
+          custom_buttons: Json
           description: string
           featured: boolean
+          hide_default_cta: boolean
           id: string
           image_url: string | null
           images: Json
@@ -691,8 +693,10 @@ export type Database = {
           btn_text?: string
           category_id?: string | null
           created_at?: string
+          custom_buttons?: Json
           description?: string
           featured?: boolean
+          hide_default_cta?: boolean
           id?: string
           image_url?: string | null
           images?: Json
@@ -713,8 +717,10 @@ export type Database = {
           btn_text?: string
           category_id?: string | null
           created_at?: string
+          custom_buttons?: Json
           description?: string
           featured?: boolean
+          hide_default_cta?: boolean
           id?: string
           image_url?: string | null
           images?: Json
