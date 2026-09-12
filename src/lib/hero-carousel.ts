@@ -8,6 +8,7 @@ export type HeroSlide = {
   is_active: boolean;
   display_order: number;
   duration_ms: number;
+  action_url?: string;
 };
 
 export const HERO_MEDIA_BUCKET = "site-media";
@@ -26,7 +27,7 @@ export function detectMediaType(file: File): "image" | "video" | null {
 async function fetchActiveSlides(): Promise<HeroSlide[]> {
   const { data, error } = await supabase
     .from("hero_carousel")
-    .select("id,media_url,media_type,is_active,display_order,duration_ms")
+    .select("id,media_url,media_type,is_active,display_order,duration_ms,action_url")
     .eq("is_active", true)
     .order("display_order", { ascending: true })
     .order("created_at", { ascending: true });
