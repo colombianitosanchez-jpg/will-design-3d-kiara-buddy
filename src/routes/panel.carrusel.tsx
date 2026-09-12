@@ -162,6 +162,25 @@ function CarruselAdmin() {
     refreshPublic();
   }
 
+  async function saveActionUrl(slide: HeroSlide) {
+    const raw = actionUrls[slide.id];
+    if (raw === undefined) return;
+    const url = raw.trim();
+    if (url === (slide.action_url ?? "")) return;
+    setSlides((s) => s.map((x) => (x.id === slide.id ? { ...x, action_url: url || undefined } : x)));
+    const { error } = await supabase
+      .from("hero_carousel")
+      .update({ action_url: url || null })
+      .eq("id", slide.id);
+    if (error) {
+      toast.error("No pudimos guardar el enlace", { description: error.message });
+      await load();
+      return;
+    }
+    toast.success("Enlace guardado");
+    refreshPublic();
+  }
+
   async function remove(slide: HeroSlide) {
     if (!confirm("¿Quitar este elemento del carrusel?")) return;
     const { error } = await supabase.from("hero_carousel").delete().eq("id", slide.id);
