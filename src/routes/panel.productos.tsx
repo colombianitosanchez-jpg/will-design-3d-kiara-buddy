@@ -31,6 +31,8 @@ type Product = {
   price_cop: number;
   btn_text: string;
   show_whatsapp: boolean;
+  hide_default_cta: boolean;
+  custom_buttons: ProductButton[];
   category_id: string | null;
   brand_id: string | null;
   short: string;
@@ -51,6 +53,8 @@ const empty: Omit<Product, "id"> = {
   price_cop: 0,
   btn_text: "Ver más",
   show_whatsapp: false,
+  hide_default_cta: false,
+  custom_buttons: [],
   category_id: null,
   brand_id: null,
   short: "",
@@ -64,6 +68,7 @@ const empty: Omit<Product, "id"> = {
   active: true,
   stock: 0,
 };
+
 
 function slugify(s: string) {
   return s
