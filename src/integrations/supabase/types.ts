@@ -199,6 +199,7 @@ export type Database = {
         Row: {
           created_at: string
           display_order: number
+          duration_ms: number
           id: string
           is_active: boolean
           media_type: string
@@ -208,6 +209,7 @@ export type Database = {
         Insert: {
           created_at?: string
           display_order?: number
+          duration_ms?: number
           id?: string
           is_active?: boolean
           media_type?: string
@@ -217,6 +219,7 @@ export type Database = {
         Update: {
           created_at?: string
           display_order?: number
+          duration_ms?: number
           id?: string
           is_active?: boolean
           media_type?: string
