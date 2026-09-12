@@ -898,6 +898,14 @@ function ProductModal({
             Mostrar icono de WhatsApp en el catálogo
           </label>
           <label className="inline-flex items-center gap-2 text-sm">
+            <Switch
+              checked={!!form.hide_default_cta}
+              onCheckedChange={(checked) => set("hide_default_cta", checked)}
+              aria-label="Ocultar el texto de acción y el icono de WhatsApp"
+            />
+            Ocultar el texto de acción y el icono de WhatsApp
+          </label>
+          <label className="inline-flex items-center gap-2 text-sm">
             <input
               type="checkbox"
               checked={!!form.featured}
