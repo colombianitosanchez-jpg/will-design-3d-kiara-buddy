@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Menu, X, MessageCircle, ChevronDown } from "lucide-react";
+import { Menu, X, MessageCircle, ChevronDown, ShoppingCart } from "lucide-react";
 import logoAsset from "@/assets/will_logo.asset.json";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
+import { useCart } from "@/lib/cart";
 import { menuItemsQuery, menuHref, type MenuNodeData } from "@/lib/menu";
 import {
   DropdownMenu,
