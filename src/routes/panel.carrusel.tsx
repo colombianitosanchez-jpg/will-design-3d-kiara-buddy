@@ -42,6 +42,7 @@ function CarruselAdmin() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [over, setOver] = useState(false);
+  const [durations, setDurations] = useState<Record<string, string>>({});
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function load() {
@@ -128,6 +129,35 @@ function CarruselAdmin() {
       await load();
       return;
     }
+    refreshPublic();
+  }
+
+  async function saveDuration(slide: HeroSlide) {
+    const raw = durations[slide.id];
+    if (raw === undefined) return;
+    const seconds = Number(raw.replace(",", "."));
+    if (!Number.isFinite(seconds) || seconds < 1 || seconds > 60) {
+      toast.error("La duración debe estar entre 1 y 60 segundos");
+      setDurations((d) => {
+        const next = { ...d };
+        delete next[slide.id];
+        return next;
+      });
+      return;
+    }
+    const ms = Math.round(seconds * 1000);
+    if (ms === slide.duration_ms) return;
+    setSlides((s) => s.map((x) => (x.id === slide.id ? { ...x, duration_ms: ms } : x)));
+    const { error } = await supabase
+      .from("hero_carousel")
+      .update({ duration_ms: ms })
+      .eq("id", slide.id);
+    if (error) {
+      toast.error("No pudimos guardar la duración", { description: error.message });
+      await load();
+      return;
+    }
+    toast.success(`Duración guardada: ${seconds} s`);
     refreshPublic();
   }
 
@@ -270,7 +300,30 @@ function CarruselAdmin() {
                         <ImageIcon className="h-3.5 w-3.5" /> Foto
                       </>
                     )}
-                  </span>
+                   </span>
+
+                   <label className="flex items-center gap-2 text-xs font-semibold">
+                     Duración (segundos)
+                     <Input
+                       type="number"
+                       min={1}
+                       max={60}
+                       step={0.5}
+                       className="h-9 w-20"
+                       value={
+                         durations[s.id] ??
+                         String((s.duration_ms || DEFAULT_SLIDE_MS) / 1000)
+                       }
+                       onChange={(e) =>
+                         setDurations((d) => ({ ...d, [s.id]: e.target.value }))
+                       }
+                       onBlur={() => saveDuration(s)}
+                       onKeyDown={(e) => {
+                         if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                       }}
+                     />
+                   </label>
+
 
                   <div className="ml-auto flex items-center gap-3">
                     <label className="flex items-center gap-2 text-xs font-semibold">
