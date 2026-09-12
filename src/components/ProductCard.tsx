@@ -8,6 +8,8 @@ import {
   type Product,
 } from "@/lib/catalog";
 import { useSiteContent } from "@/hooks/use-site-content";
+import { ProductButtons } from "@/components/ProductButtons";
+
 
 const GRADIENTS: Record<string, string> = {
   orange:
