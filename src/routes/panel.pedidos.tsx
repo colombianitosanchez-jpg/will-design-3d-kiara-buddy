@@ -332,6 +332,26 @@ function OrdersTab() {
     setOrders((os) => os.map((o) => (o.id === id ? { ...o, status } : o)));
   }
 
+  async function onConfirmPayment(id: string) {
+    try {
+      await doConfirm({ data: { order_id: id } });
+      await load();
+    } catch (err) {
+      alert((err as Error).message);
+    }
+  }
+
+  async function onRejectPayment(id: string) {
+    const note = prompt("¿Qué mensaje verá el cliente?", "No encontramos ese pago. Verifica la referencia.");
+    if (note === null) return;
+    try {
+      await doReject({ data: { order_id: id, note } });
+      await load();
+    } catch (err) {
+      alert((err as Error).message);
+    }
+  }
+
   const filtered = filter === "todos" ? orders : orders.filter((o) => o.status === filter);
 
   return (
