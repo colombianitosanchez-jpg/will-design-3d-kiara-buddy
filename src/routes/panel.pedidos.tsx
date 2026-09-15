@@ -412,6 +412,11 @@ function OrdersTab() {
                     <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusColors[o.status]}`}>
                       {o.status}
                     </span>
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${paymentColors[o.payment_status] ?? ""}`}
+                    >
+                      {paymentLabels[o.payment_status] ?? o.payment_status}
+                    </span>
                     <select
                       value={o.status}
                       onChange={(e) => updateStatus(o.id, e.target.value as Order["status"])}
