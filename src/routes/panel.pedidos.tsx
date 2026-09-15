@@ -310,6 +310,8 @@ function OrdersTab() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [filter, setFilter] = useState<"todos" | Order["status"]>("todos");
+  const doConfirm = useServerFn(confirmPayment);
+  const doReject = useServerFn(rejectPayment);
 
   async function load() {
     setLoading(true);
