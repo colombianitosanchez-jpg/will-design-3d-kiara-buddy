@@ -1,0 +1,1 @@
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS accepts_3d_file boolean NOT NULL DEFAULT false;

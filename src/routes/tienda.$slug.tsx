@@ -18,6 +18,7 @@ import {
 import { KiaraTip } from "@/components/KiaraTip";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductButtons } from "@/components/ProductButtons";
+import { FileDropzone3D, FILE_3D_WA_NOTE } from "@/components/FileDropzone3D";
 
 export const Route = createFileRoute("/tienda/$slug")({
   loader: async ({ params, context }) => {
@@ -138,6 +139,7 @@ function ProductPage() {
   }, [product.image_url, product.images]);
   const [activeImage, setActiveImage] = useState(0);
   const [orderOpen, setOrderOpen] = useState(false);
+  const [file3dName, setFile3dName] = useState<string | null>(null);
 
 
   return (
@@ -264,8 +266,21 @@ function ProductPage() {
             </Link>
           </div>
 
+          {product.accepts_3d_file && (
+            <FileDropzone3D
+              fileName={file3dName}
+              onFileChange={setFile3dName}
+              className="mt-6 max-w-md"
+            />
+          )}
+
           {product.custom_buttons.length > 0 && (
-            <ProductButtons product={product} buttons={product.custom_buttons} className="mt-4" />
+            <ProductButtons
+              product={product}
+              buttons={product.custom_buttons}
+              className="mt-4"
+              extraWhatsappNote={file3dName ? FILE_3D_WA_NOTE : undefined}
+            />
           )}
 
           <ul className="mt-6 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
