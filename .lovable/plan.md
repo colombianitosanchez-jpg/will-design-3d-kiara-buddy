@@ -36,7 +36,7 @@ Prueba en el navegador: crear un método con QR, comprar eligiendo ese método, 
 
 - Migración: `ALTER TABLE public.payment_methods ADD COLUMN qr_image_url text;` + `GRANT SELECT (qr_image_url) ON public.payment_methods TO anon, authenticated;` (se conservan los GRANT y políticas actuales).
 - `src/lib/payment-methods.functions.ts`: `qr_image_url` en `PublicPaymentMethod` y `AdminPaymentMethod`, en el esquema zod (`z.string().url().max(500).nullable()` o vacío → null) y en el upsert.
-- `src/routes/panel.pagos.tsx`: Input + preview del QR.
+- `src/routes/panel.pagos.tsx`: Input de URL + botón de subida que reutiliza el patrón de `panel.carrusel.tsx` (`supabase.storage.from(HERO_MEDIA_BUCKET).upload` + URL firmada de larga duración, bucket `site-media` ya existente), con preview y quitar.
 - `src/routes/carrito.tsx`: bloque QR dentro del método seleccionado (manual_transfer con `qr_image_url`).
 - `src/lib/order-tracking.functions.ts`: `getOrderByToken` devuelve también `qr_image_url` y `payment_method_type` para la página de seguimiento.
 - `src/routes/pedido.$token.tsx`: botón WhatsApp verde (enlace externo `wa.me` con `waLink()` de `src/lib/catalog.ts` y mensaje con la referencia corta), visible mientras el pago no esté confirmado como pagado. Sin cambios en estados ni notificaciones.
