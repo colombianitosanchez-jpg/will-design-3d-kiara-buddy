@@ -671,6 +671,7 @@ export type Database = {
           category_id: string | null
           created_at: string
           custom_buttons: Json
+          custom_share_text: string | null
           description: string
           featured: boolean
           hide_default_cta: boolean
@@ -696,6 +697,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           custom_buttons?: Json
+          custom_share_text?: string | null
           description?: string
           featured?: boolean
           hide_default_cta?: boolean
@@ -721,6 +723,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           custom_buttons?: Json
+          custom_share_text?: string | null
           description?: string
           featured?: boolean
           hide_default_cta?: boolean
