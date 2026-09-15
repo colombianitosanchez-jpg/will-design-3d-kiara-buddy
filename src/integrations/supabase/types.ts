@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_settings: {
+        Row: {
+          created_at: string
+          id: string
+          sidebar_order: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          sidebar_order?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          sidebar_order?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       attribute_values: {
         Row: {
           attribute_id: string
