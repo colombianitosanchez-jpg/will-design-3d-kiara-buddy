@@ -1,12 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { useCart } from "@/lib/cart";
 import { formatCOP } from "@/lib/catalog";
 import { createCartOrder } from "@/lib/cart-order.functions";
+import {
+  listPublicPaymentMethods,
+  type PublicPaymentMethod,
+} from "@/lib/payment-methods.functions";
 
 export const Route = createFileRoute("/carrito")({
   ssr: false,
