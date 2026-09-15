@@ -18,10 +18,12 @@ export function ProductButtons({
   product,
   buttons,
   className = "",
+  extraWhatsappNote,
 }: {
   product: Product;
   buttons: ProductButton[];
   className?: string;
+  extraWhatsappNote?: string;
 }) {
   const router = useRouter();
   const { addItem } = useCart();
@@ -54,8 +56,9 @@ export function ProductButtons({
       }
       case "whatsapp": {
         const number = button.action_value.trim() || fallbackWhatsapp;
+        const note = extraWhatsappNote?.trim() ? ` ${extraWhatsappNote.trim()}` : "";
         window.open(
-          waLink(number, `Hola, me interesa el producto: ${product.name}`),
+          waLink(number, `Hola, me interesa el producto: ${product.name}.${note}`),
           "_blank",
           "noopener,noreferrer",
         );
