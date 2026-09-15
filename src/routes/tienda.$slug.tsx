@@ -139,6 +139,7 @@ function ProductPage() {
   }, [product.image_url, product.images]);
   const [activeImage, setActiveImage] = useState(0);
   const [orderOpen, setOrderOpen] = useState(false);
+  const [file3dName, setFile3dName] = useState<string | null>(null);
 
 
   return (
