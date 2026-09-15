@@ -46,7 +46,7 @@ export function ShareButton({
       variant="ghost"
       size={label ? "sm" : "icon"}
       onClick={handleShare}
-      aria-label={`Compartir ${title}`}
+      aria-label={label ?? `Compartir ${title}`}
       title="Compartir"
       className={className}
     >
