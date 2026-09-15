@@ -441,6 +441,42 @@ function OrdersTab() {
                           <p className="mt-2 text-sm italic text-muted-foreground">Notas: {o.notes}</p>
                         )}
                       </div>
+                      <div className="md:col-span-2 rounded-xl border border-border bg-background p-3">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Pago
+                        </p>
+                        <p className="mt-1 text-sm">
+                          Método: {o.payment_method_name ?? "sin definir"} ·{" "}
+                          {paymentLabels[o.payment_status] ?? o.payment_status}
+                        </p>
+                        {o.payment_reference && (
+                          <p className="text-sm">
+                            Comprobante: <strong>{o.payment_reference}</strong>
+                            {o.payment_reported_at
+                              ? ` · reportado ${new Date(o.payment_reported_at).toLocaleString("es-CO")}`
+                              : ""}
+                          </p>
+                        )}
+                        {o.payment_note && (
+                          <p className="text-sm italic text-muted-foreground">Nota: {o.payment_note}</p>
+                        )}
+                        {o.payment_status !== "pagado" && (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button
+                              onClick={() => onConfirmPayment(o.id)}
+                              className="rounded-full bg-green-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-green-700"
+                            >
+                              Confirmar pago
+                            </button>
+                            <button
+                              onClick={() => onRejectPayment(o.id)}
+                              className="rounded-full border border-input px-4 py-1.5 text-xs font-bold hover:bg-muted"
+                            >
+                              Rechazar pago
+                            </button>
+                          </div>
+                        )}
+                      </div>
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Items</p>
                         <ul className="mt-1 space-y-1 text-sm">
