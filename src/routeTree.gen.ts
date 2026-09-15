@@ -29,6 +29,7 @@ import { Route as TiendaSlugRouteImport } from './routes/tienda.$slug'
 import { Route as PanelTaxonomiaRouteImport } from './routes/panel.taxonomia'
 import { Route as PanelProductosRouteImport } from './routes/panel.productos'
 import { Route as PanelPedidosRouteImport } from './routes/panel.pedidos'
+import { Route as PanelPagosRouteImport } from './routes/panel.pagos'
 import { Route as PanelNotificacionesRouteImport } from './routes/panel.notificaciones'
 import { Route as PanelMenuRouteImport } from './routes/panel.menu'
 import { Route as PanelLlmRouteImport } from './routes/panel.llm'
@@ -145,6 +146,11 @@ const PanelProductosRoute = PanelProductosRouteImport.update({
 const PanelPedidosRoute = PanelPedidosRouteImport.update({
   id: '/pedidos',
   path: '/pedidos',
+  getParentRoute: () => PanelRoute,
+} as any)
+const PanelPagosRoute = PanelPagosRouteImport.update({
+  id: '/pagos',
+  path: '/pagos',
   getParentRoute: () => PanelRoute,
 } as any)
 const PanelNotificacionesRoute = PanelNotificacionesRouteImport.update({
@@ -264,6 +270,7 @@ export interface FileRoutesByFullPath {
   '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/notificaciones': typeof PanelNotificacionesRoute
+  '/panel/pagos': typeof PanelPagosRoute
   '/panel/pedidos': typeof PanelPedidosRoute
   '/panel/productos': typeof PanelProductosRoute
   '/panel/taxonomia': typeof PanelTaxonomiaRoute
@@ -300,6 +307,7 @@ export interface FileRoutesByTo {
   '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/notificaciones': typeof PanelNotificacionesRoute
+  '/panel/pagos': typeof PanelPagosRoute
   '/panel/pedidos': typeof PanelPedidosRoute
   '/panel/productos': typeof PanelProductosRoute
   '/panel/taxonomia': typeof PanelTaxonomiaRoute
@@ -340,6 +348,7 @@ export interface FileRoutesById {
   '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/notificaciones': typeof PanelNotificacionesRoute
+  '/panel/pagos': typeof PanelPagosRoute
   '/panel/pedidos': typeof PanelPedidosRoute
   '/panel/productos': typeof PanelProductosRoute
   '/panel/taxonomia': typeof PanelTaxonomiaRoute
@@ -381,6 +390,7 @@ export interface FileRouteTypes {
     | '/panel/llm'
     | '/panel/menu'
     | '/panel/notificaciones'
+    | '/panel/pagos'
     | '/panel/pedidos'
     | '/panel/productos'
     | '/panel/taxonomia'
@@ -417,6 +427,7 @@ export interface FileRouteTypes {
     | '/panel/llm'
     | '/panel/menu'
     | '/panel/notificaciones'
+    | '/panel/pagos'
     | '/panel/pedidos'
     | '/panel/productos'
     | '/panel/taxonomia'
@@ -456,6 +467,7 @@ export interface FileRouteTypes {
     | '/panel/llm'
     | '/panel/menu'
     | '/panel/notificaciones'
+    | '/panel/pagos'
     | '/panel/pedidos'
     | '/panel/productos'
     | '/panel/taxonomia'
@@ -627,6 +639,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelPedidosRouteImport
       parentRoute: typeof PanelRoute
     }
+    '/panel/pagos': {
+      id: '/panel/pagos'
+      path: '/pagos'
+      fullPath: '/panel/pagos'
+      preLoaderRoute: typeof PanelPagosRouteImport
+      parentRoute: typeof PanelRoute
+    }
     '/panel/notificaciones': {
       id: '/panel/notificaciones'
       path: '/notificaciones'
@@ -779,6 +798,7 @@ interface PanelRouteChildren {
   PanelLlmRoute: typeof PanelLlmRoute
   PanelMenuRoute: typeof PanelMenuRoute
   PanelNotificacionesRoute: typeof PanelNotificacionesRoute
+  PanelPagosRoute: typeof PanelPagosRoute
   PanelPedidosRoute: typeof PanelPedidosRoute
   PanelProductosRoute: typeof PanelProductosRoute
   PanelTaxonomiaRoute: typeof PanelTaxonomiaRoute
@@ -795,6 +815,7 @@ const PanelRouteChildren: PanelRouteChildren = {
   PanelLlmRoute: PanelLlmRoute,
   PanelMenuRoute: PanelMenuRoute,
   PanelNotificacionesRoute: PanelNotificacionesRoute,
+  PanelPagosRoute: PanelPagosRoute,
   PanelPedidosRoute: PanelPedidosRoute,
   PanelProductosRoute: PanelProductosRoute,
   PanelTaxonomiaRoute: PanelTaxonomiaRoute,
