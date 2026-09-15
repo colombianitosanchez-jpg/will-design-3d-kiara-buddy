@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { FileDropzone3D, FILE_3D_WA_NOTE } from "@/components/FileDropzone3D";
 import { ProductButtons } from "@/components/ProductButtons";
+import { ShareButton } from "@/components/ShareButton";
 import { formatCOP, gradientKeyFor, type Product } from "@/lib/catalog";
 
 const GRADIENTS: Record<string, string> = {
@@ -60,7 +61,15 @@ export function ProductQuickView({
                   {product.brand.name}
                 </p>
               )}
-              <DialogTitle className="text-xl font-bold leading-tight">{product.name}</DialogTitle>
+              <div className="flex items-start justify-between gap-2">
+                <DialogTitle className="text-xl font-bold leading-tight">{product.name}</DialogTitle>
+                <ShareButton
+                  title={product.name}
+                  text={product.custom_share_text}
+                  url={`https://will-design-3d.lovable.app/tienda/${product.slug}`}
+                  className="-mr-2 -mt-1 h-8 w-8 shrink-0 text-muted-foreground"
+                />
+              </div>
               <DialogDescription className="text-sm">{product.short}</DialogDescription>
             </DialogHeader>
 
