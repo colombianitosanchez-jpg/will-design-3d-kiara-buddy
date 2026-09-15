@@ -122,7 +122,13 @@ export function SiteFooter() {
               <MapPin className="h-4 w-4 text-[var(--brand-wine)]" />
               {contact.location_short}
             </li>
-
+            <li>
+              <ShareButton
+                title="Will Design 3D"
+                label="Compartir esta página"
+                className="h-auto gap-2 p-0 text-sm font-semibold hover:bg-transparent hover:underline"
+              />
+            </li>
           </ul>
         </div>
       </div>
