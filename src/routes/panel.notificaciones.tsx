@@ -15,6 +15,11 @@ export const Route = createFileRoute("/panel/notificaciones")({
 });
 
 const STATES = ["pendiente", "empacando", "enviado", "entregado", "cancelado"] as const;
+const PAYMENT_EVENTS = [
+  { key: "comprobante_enviado", label: "Comprobante enviado por el cliente" },
+  { key: "pago_confirmado", label: "Pago confirmado" },
+  { key: "pago_rechazado", label: "Pago rechazado" },
+] as const;
 const DAYS = [
   { n: 1, label: "Lun" },
   { n: 2, label: "Mar" },
