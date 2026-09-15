@@ -253,6 +253,32 @@ function CarritoPage() {
               Notas
               <textarea rows={3} value={form.notes} onChange={(e) => set("notes", e.target.value)} className={inputCls} />
             </label>
+
+            {methods.length > 0 && (
+              <div className="mt-5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  ¿Cómo quieres pagar?
+                </p>
+                <RadioGroup value={methodId} onValueChange={setMethodId} className="mt-2 space-y-2">
+                  {methods.map((m) => (
+                    <div
+                      key={m.id}
+                      className="flex items-center gap-3 rounded-xl border border-border p-3"
+                    >
+                      <RadioGroupItem value={m.id} id={`pm-${m.id}`} />
+                      <Label htmlFor={`pm-${m.id}`} className="cursor-pointer text-sm font-semibold">
+                        {m.name}
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+                {selectedMethod?.type === "manual_transfer" && selectedMethod.instructions && (
+                  <p className="mt-2 whitespace-pre-line rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
+                    {selectedMethod.instructions}
+                  </p>
+                )}
+              </div>
+            )}
             <Button type="submit" disabled={sending} className="mt-5 w-full">
               {sending ? (
                 <>
