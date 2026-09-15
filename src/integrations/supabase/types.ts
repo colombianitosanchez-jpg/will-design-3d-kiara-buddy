@@ -630,6 +630,7 @@ export type Database = {
           instructions: string
           is_active: boolean
           name: string
+          qr_image_url: string | null
           type: Database["public"]["Enums"]["payment_method_type"]
           updated_at: string
         }
@@ -641,6 +642,7 @@ export type Database = {
           instructions?: string
           is_active?: boolean
           name: string
+          qr_image_url?: string | null
           type?: Database["public"]["Enums"]["payment_method_type"]
           updated_at?: string
         }
@@ -652,6 +654,7 @@ export type Database = {
           instructions?: string
           is_active?: boolean
           name?: string
+          qr_image_url?: string | null
           type?: Database["public"]["Enums"]["payment_method_type"]
           updated_at?: string
         }
