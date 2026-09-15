@@ -78,7 +78,7 @@ export const createCartOrder = createServerFn({ method: "POST" })
         total_cop: total,
         status: "pendiente",
       })
-      .select("id")
+      .select("id, public_token")
       .single();
     if (oErr) throw new Error(oErr.message);
 
@@ -87,5 +87,12 @@ export const createCartOrder = createServerFn({ method: "POST" })
       .insert(lines.map((l) => ({ ...l, order_id: order.id })));
     if (iErr) throw new Error(iErr.message);
 
-    return { ok: true as const, order_id: order.id, total_cop: total };
+    return {
+      ok: true as const,
+      order_id: order.id,
+      total_cop: total,
+      public_token: order.public_token as string,
+      payment_instructions: paymentMethod?.instructions ?? "",
+      payment_method_name: paymentMethod?.name ?? null,
+    };
   });
