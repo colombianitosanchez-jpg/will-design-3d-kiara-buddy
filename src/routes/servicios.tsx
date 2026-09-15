@@ -197,6 +197,13 @@ function ServiciosPage() {
             Diseño, producción, acabados y soporte técnico bajo un mismo techo
             en Bogotá.
           </p>
+          <ShareButton
+            title="Servicios de Impresión 3D — Will Design 3D"
+            text="Mira los servicios de impresión 3D de Will Design 3D"
+            url="https://will-design-3d.lovable.app/servicios"
+            label="Compartir"
+            className="mt-4 gap-2 text-muted-foreground"
+          />
         </div>
       </section>
 
