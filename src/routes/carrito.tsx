@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useCart } from "@/lib/cart";
-import { formatCOP } from "@/lib/catalog";
+import { formatCOP, getContactInfo, waLink } from "@/lib/catalog";
+import { useSiteContent } from "@/hooks/use-site-content";
 import { createCartOrder } from "@/lib/cart-order.functions";
 import {
   listPublicPaymentMethods,
