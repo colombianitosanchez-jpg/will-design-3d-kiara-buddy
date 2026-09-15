@@ -306,6 +306,13 @@ function CarritoPage() {
                     </div>
                   ))}
                 </RadioGroup>
+                {selectedMethod?.type === "manual_transfer" && selectedMethod.qr_image_url && (
+                  <img
+                    src={selectedMethod.qr_image_url}
+                    alt={`Código QR para pagar con ${selectedMethod.name}`}
+                    className="mx-auto mt-3 w-full max-w-[250px] rounded-xl border border-border object-contain shadow-sm"
+                  />
+                )}
                 {selectedMethod?.type === "manual_transfer" && selectedMethod.instructions && (
                   <p className="mt-2 whitespace-pre-line rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
                     {selectedMethod.instructions}
