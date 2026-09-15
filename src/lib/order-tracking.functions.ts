@@ -43,7 +43,7 @@ export const getOrderByToken = createServerFn({ method: "GET" })
       order.payment_method_id
         ? supabaseAdmin
             .from("payment_methods")
-            .select("instructions")
+            .select("instructions, type, qr_image_url")
             .eq("id", order.payment_method_id)
             .maybeSingle()
         : Promise.resolve({ data: null }),
@@ -56,7 +56,10 @@ export const getOrderByToken = createServerFn({ method: "GET" })
       status: order.status,
       payment_status: order.payment_status,
       payment_method_name: order.payment_method_name,
+      payment_method_type:
+        (method?.data as { type?: "manual_transfer" | "gateway" } | null)?.type ?? null,
       payment_instructions: (method?.data as { instructions?: string } | null)?.instructions ?? "",
+      qr_image_url: (method?.data as { qr_image_url?: string | null } | null)?.qr_image_url ?? null,
       payment_reference: order.payment_reference,
       payment_note: order.payment_note,
       customer_name: order.customer_name,
