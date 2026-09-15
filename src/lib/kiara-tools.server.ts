@@ -69,15 +69,20 @@ export const KIARA_TOOLS = [
           notes: { type: "string" },
           items: {
             type: "array",
-            description: "Ítems del pedido",
+            description:
+              "Ítems del pedido. Los precios NO se envían: el servidor los toma del catálogo o del cotizador.",
             items: {
               type: "object",
               properties: {
+                product_slug: {
+                  type: "string",
+                  description:
+                    "Slug del producto del catálogo obtenido con search_products, si el ítem es un producto.",
+                },
                 product_name: { type: "string" },
                 quantity: { type: "number" },
-                unit_price_cop: { type: "number" },
               },
-              required: ["product_name", "quantity", "unit_price_cop"],
+              required: ["product_name", "quantity"],
             },
           },
         },
