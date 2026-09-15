@@ -664,6 +664,7 @@ export type Database = {
       }
       products: {
         Row: {
+          accepts_3d_file: boolean
           active: boolean
           brand_id: string | null
           btn_text: string
@@ -688,6 +689,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accepts_3d_file?: boolean
           active?: boolean
           brand_id?: string | null
           btn_text?: string
@@ -712,6 +714,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accepts_3d_file?: boolean
           active?: boolean
           brand_id?: string | null
           btn_text?: string
