@@ -29,6 +29,7 @@ export function ProductCard({ product }: { product: Product }) {
     `Hola, me interesa el producto: ${product.name}`,
   );
   const actionText = product.btn_text?.trim() || "Ver más";
+  const [quickOpen, setQuickOpen] = useState(false);
 
   return (
     <article
@@ -59,6 +60,19 @@ export function ProductCard({ product }: { product: Product }) {
               Destacado
             </span>
           )}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setQuickOpen(true);
+            }}
+            aria-label={`Vista rápida de ${product.name}`}
+            className="absolute inset-x-0 bottom-3 mx-auto inline-flex w-max items-center gap-1.5 rounded-full bg-background/80 px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm backdrop-blur transition hover:bg-background md:inset-0 md:bottom-auto md:my-auto md:h-9 md:opacity-0 md:group-hover:opacity-100"
+          >
+            <Eye className="h-3.5 w-3.5" />
+            Vista Rápida
+          </button>
         </div>
         <div className="flex flex-1 flex-col gap-2 p-4 pb-2">
           {product.brand?.name && (
