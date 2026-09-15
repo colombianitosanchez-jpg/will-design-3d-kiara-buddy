@@ -5,6 +5,7 @@ import { Menu, MessageCircle, ChevronDown, ShoppingCart } from "lucide-react";
 import logoAsset from "@/assets/will_logo.asset.json";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
+import { ShareButton, DEFAULT_SHARE_TEXT } from "@/components/ShareButton";
 import { menuItemsQuery, menuHref, type MenuNodeData } from "@/lib/menu";
 import {
   DropdownMenu,
@@ -267,6 +268,14 @@ function MobileNav({ roots, whatsappUrl }: { roots: MenuNodeData[]; whatsappUrl:
             <MessageCircle className="h-4 w-4" />
             WhatsApp
           </a>
+          <div onClick={close} className="mt-2">
+            <ShareButton
+              title="Will Design 3D"
+              text={DEFAULT_SHARE_TEXT}
+              label="Compartir esta página"
+              className="w-full justify-start rounded-lg px-3 text-sm font-medium"
+            />
+          </div>
         </nav>
       </SheetContent>
     </Sheet>
@@ -320,11 +329,21 @@ export function SiteHeader() {
               {l.label}
             </Link>
           ))}
+          <ShareButton
+            title="Will Design 3D"
+            text={DEFAULT_SHARE_TEXT}
+            className="ml-1 rounded-full border border-border text-foreground/80 hover:bg-muted"
+          />
           <CartLink className="ml-1" />
           <WhatsAppLink url={WHATSAPP_URL} className="ml-2" />
         </nav>
 
         <div className="flex items-center gap-2 lg:hidden">
+          <ShareButton
+            title="Will Design 3D"
+            text={DEFAULT_SHARE_TEXT}
+            className="rounded-full border border-border"
+          />
           <CartLink />
           <a
             href={WHATSAPP_URL}
