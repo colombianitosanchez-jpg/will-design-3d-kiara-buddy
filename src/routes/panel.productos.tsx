@@ -46,6 +46,7 @@ type Product = {
   btn_text: string;
   show_whatsapp: boolean;
   hide_default_cta: boolean;
+  accepts_3d_file: boolean;
   custom_buttons: ProductButton[];
   category_id: string | null;
   brand_id: string | null;
@@ -68,6 +69,7 @@ const empty: Omit<Product, "id"> = {
   btn_text: "Ver más",
   show_whatsapp: false,
   hide_default_cta: false,
+  accepts_3d_file: false,
   custom_buttons: [],
   category_id: null,
   brand_id: null,
@@ -148,6 +150,7 @@ function ProductosAdmin() {
         images: Array.isArray(r.images) ? r.images : [],
         specs: Array.isArray(r.specs) ? r.specs : [],
         hide_default_cta: !!r.hide_default_cta,
+        accepts_3d_file: !!r.accepts_3d_file,
         custom_buttons: parseProductButtons(r.custom_buttons),
       })) as Product[],
     );
@@ -457,6 +460,7 @@ function ProductModal({
         btn_text: form.btn_text?.trim() || "Ver más",
         show_whatsapp: !!form.show_whatsapp,
         hide_default_cta: !!form.hide_default_cta,
+        accepts_3d_file: !!form.accepts_3d_file,
         custom_buttons: buttons.map((b) => ({ ...b, text: b.text.trim(), action_value: b.action_value.trim() })),
         category_id: form.category_id || null,
         brand_id: form.brand_id || null,
