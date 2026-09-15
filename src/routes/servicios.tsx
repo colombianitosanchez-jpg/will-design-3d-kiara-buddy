@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { ShareButton } from "@/components/ShareButton";
 import { useQuery } from "@tanstack/react-query";
 import {
   Boxes,
