@@ -17,6 +17,7 @@ const schema = z.object({
   shipping_address: z.string().trim().min(4).max(300),
   shipping_city: z.string().trim().max(120).optional().default(""),
   notes: z.string().trim().max(1000).optional().default(""),
+  payment_method_id: z.string().uuid().nullable().optional().default(null),
 });
 
 /** Crea un pedido público con varios productos (carrito) en las tablas orders / order_items. */
@@ -50,9 +51,24 @@ export const createCartOrder = createServerFn({ method: "POST" })
 
     const total = lines.reduce((sum, l) => sum + l.unit_price_cop * l.quantity, 0);
 
+    // El método de pago se vuelve a validar en el servidor: debe existir y estar activo.
+    let paymentMethod: { id: string; name: string; instructions: string } | null = null;
+    if (data.payment_method_id) {
+      const { data: pm } = await supabaseAdmin
+        .from("payment_methods")
+        .select("id, name, instructions, is_active")
+        .eq("id", data.payment_method_id)
+        .maybeSingle();
+      if (!pm || !pm.is_active) throw new Error("El método de pago ya no está disponible");
+      paymentMethod = { id: pm.id, name: pm.name, instructions: pm.instructions };
+    }
+
     const { data: order, error: oErr } = await supabaseAdmin
       .from("orders")
       .insert({
+        payment_method_id: paymentMethod?.id ?? null,
+        payment_method_name: paymentMethod?.name ?? null,
+        payment_status: "esperando_pago",
         customer_name: data.customer_name,
         customer_email: data.customer_email,
         customer_phone: data.customer_phone || null,

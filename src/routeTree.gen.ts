@@ -26,6 +26,7 @@ import { Route as TiendaIndexRouteImport } from './routes/tienda.index'
 import { Route as PanelIndexRouteImport } from './routes/panel.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TiendaSlugRouteImport } from './routes/tienda.$slug'
+import { Route as PedidoTokenRouteImport } from './routes/pedido.$token'
 import { Route as PanelTaxonomiaRouteImport } from './routes/panel.taxonomia'
 import { Route as PanelProductosRouteImport } from './routes/panel.productos'
 import { Route as PanelPedidosRouteImport } from './routes/panel.pedidos'
@@ -132,6 +133,11 @@ const TiendaSlugRoute = TiendaSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
   getParentRoute: () => TiendaRoute,
+} as any)
+const PedidoTokenRoute = PedidoTokenRouteImport.update({
+  id: '/pedido/$token',
+  path: '/pedido/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const PanelTaxonomiaRoute = PanelTaxonomiaRouteImport.update({
   id: '/taxonomia',
@@ -274,6 +280,7 @@ export interface FileRoutesByFullPath {
   '/panel/pedidos': typeof PanelPedidosRoute
   '/panel/productos': typeof PanelProductosRoute
   '/panel/taxonomia': typeof PanelTaxonomiaRoute
+  '/pedido/$token': typeof PedidoTokenRoute
   '/tienda/$slug': typeof TiendaSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/panel/': typeof PanelIndexRoute
@@ -311,6 +318,7 @@ export interface FileRoutesByTo {
   '/panel/pedidos': typeof PanelPedidosRoute
   '/panel/productos': typeof PanelProductosRoute
   '/panel/taxonomia': typeof PanelTaxonomiaRoute
+  '/pedido/$token': typeof PedidoTokenRoute
   '/tienda/$slug': typeof TiendaSlugRoute
   '/admin': typeof AdminIndexRoute
   '/panel': typeof PanelIndexRoute
@@ -352,6 +360,7 @@ export interface FileRoutesById {
   '/panel/pedidos': typeof PanelPedidosRoute
   '/panel/productos': typeof PanelProductosRoute
   '/panel/taxonomia': typeof PanelTaxonomiaRoute
+  '/pedido/$token': typeof PedidoTokenRoute
   '/tienda/$slug': typeof TiendaSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/panel/': typeof PanelIndexRoute
@@ -394,6 +403,7 @@ export interface FileRouteTypes {
     | '/panel/pedidos'
     | '/panel/productos'
     | '/panel/taxonomia'
+    | '/pedido/$token'
     | '/tienda/$slug'
     | '/admin/'
     | '/panel/'
@@ -431,6 +441,7 @@ export interface FileRouteTypes {
     | '/panel/pedidos'
     | '/panel/productos'
     | '/panel/taxonomia'
+    | '/pedido/$token'
     | '/tienda/$slug'
     | '/admin'
     | '/panel'
@@ -471,6 +482,7 @@ export interface FileRouteTypes {
     | '/panel/pedidos'
     | '/panel/productos'
     | '/panel/taxonomia'
+    | '/pedido/$token'
     | '/tienda/$slug'
     | '/admin/'
     | '/panel/'
@@ -494,6 +506,7 @@ export interface RootRouteChildren {
   TiendaRoute: typeof TiendaRouteWithChildren
   ApiCalculateQuoteRoute: typeof ApiCalculateQuoteRoute
   ApiKiaraRoute: typeof ApiKiaraRoute
+  PedidoTokenRoute: typeof PedidoTokenRoute
   ApiPublicHooksProcessNotificationsRoute: typeof ApiPublicHooksProcessNotificationsRoute
 }
 
@@ -617,6 +630,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/tienda/$slug'
       preLoaderRoute: typeof TiendaSlugRouteImport
       parentRoute: typeof TiendaRoute
+    }
+    '/pedido/$token': {
+      id: '/pedido/$token'
+      path: '/pedido/$token'
+      fullPath: '/pedido/$token'
+      preLoaderRoute: typeof PedidoTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/panel/taxonomia': {
       id: '/panel/taxonomia'
@@ -853,6 +873,7 @@ const rootRouteChildren: RootRouteChildren = {
   TiendaRoute: TiendaRouteWithChildren,
   ApiCalculateQuoteRoute: ApiCalculateQuoteRoute,
   ApiKiaraRoute: ApiKiaraRoute,
+  PedidoTokenRoute: PedidoTokenRoute,
   ApiPublicHooksProcessNotificationsRoute:
     ApiPublicHooksProcessNotificationsRoute,
 }
