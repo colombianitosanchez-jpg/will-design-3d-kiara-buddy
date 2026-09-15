@@ -1,0 +1,1 @@
+UPDATE public.admin_settings SET sidebar_order = '[]'::jsonb;
