@@ -97,6 +97,21 @@ function PagosPage() {
   const [saving, setSaving] = useState(false);
   const [showCreds, setShowCreds] = useState(false);
   const [uploadingQr, setUploadingQr] = useState(false);
+  const qrInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleQrUpload(file: File) {
+    if (!form) return;
+    setUploadingQr(true);
+    try {
+      const url = await uploadQrImage(file);
+      setForm({ ...form, qr_image_url: url });
+      toast.success("Imagen del QR subida");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setUploadingQr(false);
+    }
+  }
 
   const refresh = useCallback(async () => {
     try {
@@ -443,6 +458,7 @@ function PagosPage() {
                   {m.instructions || "sin instrucciones"}
                 </p>
               </div>
+              {m.qr_image_url && <Badge variant="secondary">Con QR</Badge>}
               {m.has_credentials ? (
                 <Badge variant="secondary">Credenciales guardadas</Badge>
               ) : (
