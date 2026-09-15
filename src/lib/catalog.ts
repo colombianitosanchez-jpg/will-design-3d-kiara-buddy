@@ -69,6 +69,7 @@ export type Product = {
   btn_text: string;
   show_whatsapp: boolean;
   hide_default_cta: boolean;
+  accepts_3d_file: boolean;
   custom_buttons: ProductButton[];
   short: string;
   description: string;
@@ -86,7 +87,7 @@ export type Product = {
 };
 
 const PRODUCT_SELECT =
-  "id,slug,name,price_cop,btn_text,show_whatsapp,hide_default_cta,custom_buttons,short,description,kiara_tip,image_url,images,featured,active,stock,sku,specs," +
+  "id,slug,name,price_cop,btn_text,show_whatsapp,hide_default_cta,accepts_3d_file,custom_buttons,short,description,kiara_tip,image_url,images,featured,active,stock,sku,specs," +
   "category:categories(id,slug,name,parent_id),brand:brands(id,name,slug)," +
   "attribute_links:product_attribute_values(text_value,attribute:attributes(slug,name),value:attribute_values(slug,label,color_hex))";
 
@@ -123,6 +124,7 @@ function normalize(row: any): Product {
     images,
     attributes,
     hide_default_cta: !!row.hide_default_cta,
+    accepts_3d_file: !!row.accepts_3d_file,
     custom_buttons: parseProductButtons(row.custom_buttons),
   } as Product;
 
