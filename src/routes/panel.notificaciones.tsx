@@ -15,6 +15,11 @@ export const Route = createFileRoute("/panel/notificaciones")({
 });
 
 const STATES = ["pendiente", "empacando", "enviado", "entregado", "cancelado"] as const;
+const PAYMENT_EVENTS = [
+  { key: "comprobante_enviado", label: "Comprobante enviado por el cliente" },
+  { key: "pago_confirmado", label: "Pago confirmado" },
+  { key: "pago_rechazado", label: "Pago rechazado" },
+] as const;
 const DAYS = [
   { n: 1, label: "Lun" },
   { n: 2, label: "Mar" },
@@ -243,6 +248,41 @@ function NotificationsPage() {
                   value={cfg.templates[st] ?? ""}
                   onChange={(e) =>
                     setCfg({ ...cfg, templates: { ...cfg.templates, [st]: e.target.value } })
+                  }
+                  className="mt-2 w-full rounded-xl border border-input bg-background px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+        <section className="rounded-3xl border border-border bg-card p-5">
+
+          <h2 className="text-lg font-bold">Mensajes por estado del pago</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            En el mensaje de pago rechazado puedes usar{" "}
+            <code className="rounded bg-muted px-1">{"{{nota}}"}</code> para incluir el motivo que
+            escribas al rechazar el comprobante.
+          </p>
+
+          <div className="mt-4 space-y-4">
+            {PAYMENT_EVENTS.map((ev) => (
+              <div key={ev.key} className="rounded-2xl border border-border bg-background p-3">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(cfg.events[ev.key])}
+                    onChange={(e) =>
+                      setCfg({ ...cfg, events: { ...cfg.events, [ev.key]: e.target.checked } })
+                    }
+                    className="h-4 w-4 accent-[var(--brand-orange)]"
+                  />
+                  <span className="text-sm font-bold">{ev.label}</span>
+                </label>
+                <textarea
+                  rows={2}
+                  value={cfg.templates[ev.key] ?? ""}
+                  onChange={(e) =>
+                    setCfg({ ...cfg, templates: { ...cfg.templates, [ev.key]: e.target.value } })
                   }
                   className="mt-2 w-full rounded-xl border border-input bg-background px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-ring"
                 />
