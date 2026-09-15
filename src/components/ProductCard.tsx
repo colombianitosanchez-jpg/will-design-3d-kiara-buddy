@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, MessageCircle } from "lucide-react";
+import { ArrowRight, Eye, MessageCircle } from "lucide-react";
 import {
   formatCOP,
   getContactInfo,
