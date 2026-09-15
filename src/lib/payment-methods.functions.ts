@@ -10,6 +10,7 @@ export type PublicPaymentMethod = {
   type: PaymentMethodType;
   instructions: string;
   display_order: number;
+  qr_image_url: string | null;
 };
 
 /** Método de pago para el Panel: incluye si tiene credenciales, nunca sus valores. */
@@ -23,6 +24,7 @@ const upsertSchema = z.object({
   name: z.string().trim().min(2).max(120),
   type: z.enum(["manual_transfer", "gateway"]),
   instructions: z.string().trim().max(4000).optional().default(""),
+  qr_image_url: z.string().trim().max(500).optional().default(""),
   display_order: z.number().int().min(0).max(999).optional().default(0),
   is_active: z.boolean().optional().default(false),
   /** Pares clave/valor. Si viene vacío en una edición, se conservan las credenciales guardadas. */
@@ -74,7 +76,7 @@ export const listPublicPaymentMethods = createServerFn({ method: "GET" }).handle
 
   const { data, error } = await client
     .from("payment_methods")
-    .select("id, name, type, instructions, display_order")
+    .select("id, name, type, instructions, display_order, qr_image_url")
     .eq("is_active", true)
     .order("display_order", { ascending: true });
   if (error) return [] as PublicPaymentMethod[];
@@ -89,7 +91,7 @@ export const listAdminPaymentMethods = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
       .from("payment_methods")
-      .select("id, name, type, instructions, display_order, is_active, credentials")
+      .select("id, name, type, instructions, display_order, is_active, credentials, qr_image_url")
       .order("display_order", { ascending: true });
     if (error) throw new Error(error.message);
     return (data ?? []).map((m) => {
@@ -114,6 +116,7 @@ export const savePaymentMethod = createServerFn({ method: "POST" })
       name: data.name,
       type: data.type,
       instructions: data.instructions,
+      qr_image_url: data.qr_image_url || null,
       display_order: data.display_order,
       is_active: data.is_active,
     };

@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Eye, EyeOff, Loader2, Plus, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, Plus, Trash2, UploadCloud, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +48,7 @@ type FormState = {
   name: string;
   type: PaymentMethodType;
   instructions: string;
+  qr_image_url: string;
   display_order: number;
   is_active: boolean;
   credentials: CredRow[];
@@ -56,10 +58,31 @@ const emptyForm: FormState = {
   name: "",
   type: "manual_transfer",
   instructions: "",
+  qr_image_url: "",
   display_order: 0,
   is_active: false,
   credentials: [{ key: "numero", value: "" }],
 };
+
+const QR_BUCKET = "site-media";
+
+/** Sube la imagen del QR al almacenamiento del sitio y devuelve una URL de larga duración. */
+async function uploadQrImage(file: File): Promise<string> {
+  if (!file.type.startsWith("image/")) throw new Error("El archivo debe ser una imagen");
+  if (file.size > 5 * 1024 * 1024) throw new Error("La imagen pesa más de 5 MB");
+  const path = `qr/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+  const up = await supabase.storage.from(QR_BUCKET).upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+    contentType: file.type || undefined,
+  });
+  if (up.error) throw up.error;
+  const signed = await supabase.storage
+    .from(QR_BUCKET)
+    .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+  if (signed.error) throw signed.error;
+  return signed.data.signedUrl;
+}
 
 function PagosPage() {
   const { isSuperAdmin, loading: authLoading } = useAuth();
@@ -73,6 +96,22 @@ function PagosPage() {
   const [form, setForm] = useState<FormState | null>(null);
   const [saving, setSaving] = useState(false);
   const [showCreds, setShowCreds] = useState(false);
+  const [uploadingQr, setUploadingQr] = useState(false);
+  const qrInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleQrUpload(file: File) {
+    if (!form) return;
+    setUploadingQr(true);
+    try {
+      const url = await uploadQrImage(file);
+      setForm({ ...form, qr_image_url: url });
+      toast.success("Imagen del QR subida");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setUploadingQr(false);
+    }
+  }
 
   const refresh = useCallback(async () => {
     try {
@@ -121,6 +160,7 @@ function PagosPage() {
           name: form.name,
           type: form.type,
           instructions: form.instructions,
+          qr_image_url: form.qr_image_url,
           display_order: form.display_order,
           is_active: form.is_active,
           credentials: form.credentials.filter((c) => c.key.trim() && c.value.trim()),
@@ -164,6 +204,7 @@ function PagosPage() {
       name: m.name,
       type: m.type,
       instructions: m.instructions,
+      qr_image_url: m.qr_image_url ?? "",
       display_order: m.display_order,
       is_active: m.is_active,
       credentials: [{ key: m.type === "gateway" ? "api_key" : "numero", value: "" }],
@@ -232,6 +273,66 @@ function PagosPage() {
                   className="mt-1"
                 />
               </label>
+
+              <div className="md:col-span-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Código QR (opcional)
+                </p>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <Input
+                    value={form.qr_image_url}
+                    onChange={(e) => setForm({ ...form, qr_image_url: e.target.value })}
+                    placeholder="Pega una URL pública de la imagen del QR…"
+                    className="min-w-[240px] flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={uploadingQr}
+                    onClick={() => qrInputRef.current?.click()}
+                  >
+                    {uploadingQr ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <UploadCloud className="mr-2 h-4 w-4" />
+                    )}
+                    Subir imagen
+                  </Button>
+                  {form.qr_image_url && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      aria-label="Quitar QR"
+                      onClick={() => setForm({ ...form, qr_image_url: "" })}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Sube la imagen o pega la URL (por ejemplo de Imgur). El cliente la verá en el
+                  carrito al elegir este método.
+                </p>
+                {form.qr_image_url && (
+                  <img
+                    src={form.qr_image_url}
+                    alt="Vista previa del código QR"
+                    className="mt-2 h-32 w-32 rounded-xl border border-border object-contain shadow-sm"
+                  />
+                )}
+                <input
+                  ref={qrInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    e.target.value = "";
+                    if (f) void handleQrUpload(f);
+                  }}
+                />
+              </div>
 
               <div className="md:col-span-2">
                 <div className="flex items-center justify-between">
@@ -357,6 +458,7 @@ function PagosPage() {
                   {m.instructions || "sin instrucciones"}
                 </p>
               </div>
+              {m.qr_image_url && <Badge variant="secondary">Con QR</Badge>}
               {m.has_credentials ? (
                 <Badge variant="secondary">Credenciales guardadas</Badge>
               ) : (
