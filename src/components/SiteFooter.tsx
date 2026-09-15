@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Instagram, MessageCircle, MapPin } from "lucide-react";
+import { Instagram, MessageCircle, MapPin, Share2 } from "lucide-react";
+import { ShareButton } from "@/components/ShareButton";
 import logoAsset from "@/assets/will_logo.asset.json";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 
