@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import { confirmPayment, rejectPayment } from "@/lib/order-payments.functions";
 
 export const Route = createFileRoute("/panel/pedidos")({
   ssr: false,
@@ -19,6 +21,25 @@ type Order = {
   total_cop: number;
   status: "pendiente" | "empacando" | "enviado" | "entregado" | "cancelado";
   created_at: string;
+  payment_method_name: string | null;
+  payment_status: "esperando_pago" | "comprobante_enviado" | "pagado" | "rechazado";
+  payment_reference: string | null;
+  payment_reported_at: string | null;
+  payment_note: string | null;
+};
+
+const paymentColors: Record<Order["payment_status"], string> = {
+  esperando_pago: "bg-yellow-100 text-yellow-800",
+  comprobante_enviado: "bg-orange-100 text-orange-800",
+  pagado: "bg-green-100 text-green-800",
+  rechazado: "bg-red-100 text-red-800",
+};
+
+const paymentLabels: Record<Order["payment_status"], string> = {
+  esperando_pago: "esperando pago",
+  comprobante_enviado: "comprobante enviado",
+  pagado: "pagado",
+  rechazado: "pago rechazado",
 };
 
 type Item = {
