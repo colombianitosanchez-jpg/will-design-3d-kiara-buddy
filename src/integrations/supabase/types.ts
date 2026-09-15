@@ -1035,14 +1035,6 @@ export type Database = {
           slug: string
         }[]
       }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       next_working_slot: {
         Args: {
           _days: number[]

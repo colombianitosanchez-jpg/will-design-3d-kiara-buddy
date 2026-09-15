@@ -69,15 +69,20 @@ export const KIARA_TOOLS = [
           notes: { type: "string" },
           items: {
             type: "array",
-            description: "Ítems del pedido",
+            description:
+              "Ítems del pedido. Los precios NO se envían: el servidor los toma del catálogo o del cotizador.",
             items: {
               type: "object",
               properties: {
+                product_slug: {
+                  type: "string",
+                  description:
+                    "Slug del producto del catálogo obtenido con search_products, si el ítem es un producto.",
+                },
                 product_name: { type: "string" },
                 quantity: { type: "number" },
-                unit_price_cop: { type: "number" },
               },
-              required: ["product_name", "quantity", "unit_price_cop"],
+              required: ["product_name", "quantity"],
             },
           },
         },
@@ -264,19 +269,48 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
 
   if (name === "create_order") {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const items = Array.isArray(args.items)
+    const requested = Array.isArray(args.items)
       ? (args.items as Record<string, unknown>[]).slice(0, 20).map((it) => ({
+          product_slug: it.product_slug ? slugify(String(it.product_slug)) : "",
           product_name: String(it.product_name ?? "Proyecto 3D").slice(0, 200),
           quantity: Math.max(1, Math.round(Number(it.quantity) || 1)),
-          unit_price_cop: Math.max(0, Math.round(Number(it.unit_price_cop) || 0)),
         }))
       : [];
-    if (items.length === 0)
+    if (requested.length === 0)
       return {
         text: "Necesito el detalle del pedido antes de crearlo.",
         data: null,
         result: { error: "sin_items" },
       };
+
+    // El precio NUNCA se toma de la llamada del modelo: se lee del catálogo.
+    const slugs = [
+      ...new Set([
+        ...requested.map((r) => r.product_slug).filter(Boolean),
+        ...requested.map((r) => slugify(r.product_name)).filter(Boolean),
+      ]),
+    ];
+    const { data: catalog } = slugs.length
+      ? await supabaseAdmin
+          .from("products")
+          .select("id, name, slug, price_cop, active")
+          .in("slug", slugs)
+      : { data: [] as { id: string; name: string; slug: string; price_cop: number | null; active: boolean }[] };
+
+    const bySlug = new Map(
+      (catalog ?? []).filter((p) => p.active).map((p) => [p.slug, p] as const),
+    );
+
+    const items = requested.map((r) => {
+      const found = bySlug.get(r.product_slug) ?? bySlug.get(slugify(r.product_name));
+      return {
+        product_id: found?.id ?? null,
+        product_name: found?.name ?? r.product_name,
+        quantity: r.quantity,
+        // Sin producto del catálogo el precio queda en 0 para que el equipo lo confirme.
+        unit_price_cop: found ? Math.max(0, Math.round(Number(found.price_cop) || 0)) : 0,
+      };
+    });
 
     const total = items.reduce((s, it) => s + it.quantity * it.unit_price_cop, 0);
 
