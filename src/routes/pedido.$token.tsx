@@ -167,10 +167,13 @@ function SeguimientoPage() {
 
       {pending && (
         <form onSubmit={send} className="mt-6 rounded-3xl border border-border bg-card p-5">
-          <h2 className="text-lg font-black">Ya pagué</h2>
+          <h2 className="text-lg font-black">
+            {order.payment_status === "rechazado" ? "Reportar el pago de nuevo" : "Ya pagué"}
+          </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Escribe el número de comprobante o referencia de la transacción para que verifiquemos tu
-            pago.
+            {order.payment_status === "rechazado"
+              ? "Revisa el mensaje de arriba y envíanos otra vez el número de comprobante o referencia correcta. Lo verificamos de nuevo."
+              : "Escribe el número de comprobante o referencia de la transacción para que verifiquemos tu pago."}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Input
