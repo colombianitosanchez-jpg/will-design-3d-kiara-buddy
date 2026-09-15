@@ -11,8 +11,10 @@ El sistema ya tiene una página de éxito/seguimiento segura (`/pedido/<enlace-�
 
 ## 2. Panel `/panel/pagos` (Super Admin)
 
-- Campo nuevo en el formulario de crear/editar: "URL de la imagen del código QR (opcional)".
-- El admin pega cualquier URL pública (Imgur, etc.). Vista previa pequeña de la imagen al escribir la URL.
+- En el formulario de crear/editar, el QR se puede definir de dos formas:
+  - **Subir la imagen** desde el computador o celular (se guarda en el almacenamiento del sitio, igual que las imágenes del carrusel y los productos).
+  - **O pegar una URL** pública (Imgur, etc.).
+- Vista previa del QR al guardarlo o escribir la URL, y botón para quitarlo.
 
 ## 3. Carrito (paso de pago)
 
