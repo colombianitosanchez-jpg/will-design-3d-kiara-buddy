@@ -534,6 +534,14 @@ export type Database = {
           customer_phone: string | null
           id: string
           notes: string | null
+          payment_confirmed_at: string | null
+          payment_method_id: string | null
+          payment_method_name: string | null
+          payment_note: string | null
+          payment_reference: string | null
+          payment_reported_at: string | null
+          payment_status: Database["public"]["Enums"]["payment_status"]
+          public_token: string
           shipping_address: string
           shipping_city: string | null
           status: Database["public"]["Enums"]["order_status"]
@@ -547,6 +555,14 @@ export type Database = {
           customer_phone?: string | null
           id?: string
           notes?: string | null
+          payment_confirmed_at?: string | null
+          payment_method_id?: string | null
+          payment_method_name?: string | null
+          payment_note?: string | null
+          payment_reference?: string | null
+          payment_reported_at?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          public_token?: string
           shipping_address: string
           shipping_city?: string | null
           status?: Database["public"]["Enums"]["order_status"]
@@ -560,10 +576,62 @@ export type Database = {
           customer_phone?: string | null
           id?: string
           notes?: string | null
+          payment_confirmed_at?: string | null
+          payment_method_id?: string | null
+          payment_method_name?: string | null
+          payment_note?: string | null
+          payment_reference?: string | null
+          payment_reported_at?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          public_token?: string
           shipping_address?: string
           shipping_city?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           total_cop?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_methods: {
+        Row: {
+          created_at: string
+          credentials: Json
+          display_order: number
+          id: string
+          instructions: string
+          is_active: boolean
+          name: string
+          type: Database["public"]["Enums"]["payment_method_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credentials?: Json
+          display_order?: number
+          id?: string
+          instructions?: string
+          is_active?: boolean
+          name: string
+          type?: Database["public"]["Enums"]["payment_method_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credentials?: Json
+          display_order?: number
+          id?: string
+          instructions?: string
+          is_active?: boolean
+          name?: string
+          type?: Database["public"]["Enums"]["payment_method_type"]
           updated_at?: string
         }
         Relationships: []
@@ -1054,6 +1122,12 @@ export type Database = {
         | "enviado"
         | "entregado"
         | "cancelado"
+      payment_method_type: "manual_transfer" | "gateway"
+      payment_status:
+        | "esperando_pago"
+        | "comprobante_enviado"
+        | "pagado"
+        | "rechazado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1188,6 +1262,13 @@ export const Constants = {
         "enviado",
         "entregado",
         "cancelado",
+      ],
+      payment_method_type: ["manual_transfer", "gateway"],
+      payment_status: [
+        "esperando_pago",
+        "comprobante_enviado",
+        "pagado",
+        "rechazado",
       ],
     },
   },
