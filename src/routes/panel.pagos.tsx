@@ -2,8 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Eye, EyeOff, Loader2, Plus, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, Plus, Trash2, UploadCloud, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +48,7 @@ type FormState = {
   name: string;
   type: PaymentMethodType;
   instructions: string;
+  qr_image_url: string;
   display_order: number;
   is_active: boolean;
   credentials: CredRow[];
@@ -56,10 +58,31 @@ const emptyForm: FormState = {
   name: "",
   type: "manual_transfer",
   instructions: "",
+  qr_image_url: "",
   display_order: 0,
   is_active: false,
   credentials: [{ key: "numero", value: "" }],
 };
+
+const QR_BUCKET = "site-media";
+
+/** Sube la imagen del QR al almacenamiento del sitio y devuelve una URL de larga duración. */
+async function uploadQrImage(file: File): Promise<string> {
+  if (!file.type.startsWith("image/")) throw new Error("El archivo debe ser una imagen");
+  if (file.size > 5 * 1024 * 1024) throw new Error("La imagen pesa más de 5 MB");
+  const path = `qr/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+  const up = await supabase.storage.from(QR_BUCKET).upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+    contentType: file.type || undefined,
+  });
+  if (up.error) throw up.error;
+  const signed = await supabase.storage
+    .from(QR_BUCKET)
+    .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+  if (signed.error) throw signed.error;
+  return signed.data.signedUrl;
+}
 
 function PagosPage() {
   const { isSuperAdmin, loading: authLoading } = useAuth();
@@ -73,6 +96,7 @@ function PagosPage() {
   const [form, setForm] = useState<FormState | null>(null);
   const [saving, setSaving] = useState(false);
   const [showCreds, setShowCreds] = useState(false);
+  const [uploadingQr, setUploadingQr] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -121,6 +145,7 @@ function PagosPage() {
           name: form.name,
           type: form.type,
           instructions: form.instructions,
+          qr_image_url: form.qr_image_url,
           display_order: form.display_order,
           is_active: form.is_active,
           credentials: form.credentials.filter((c) => c.key.trim() && c.value.trim()),
@@ -164,6 +189,7 @@ function PagosPage() {
       name: m.name,
       type: m.type,
       instructions: m.instructions,
+      qr_image_url: m.qr_image_url ?? "",
       display_order: m.display_order,
       is_active: m.is_active,
       credentials: [{ key: m.type === "gateway" ? "api_key" : "numero", value: "" }],
