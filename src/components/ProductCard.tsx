@@ -10,6 +10,7 @@ import {
 } from "@/lib/catalog";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { ProductButtons } from "@/components/ProductButtons";
+import { ProductQuickView } from "@/components/ProductQuickView";
 
 
 const GRADIENTS: Record<string, string> = {
@@ -118,6 +119,7 @@ export function ProductCard({ product }: { product: Product }) {
       )}
       {product.custom_buttons.length === 0 && <div className="pb-2" />}
 
+      <ProductQuickView product={product} open={quickOpen} onOpenChange={setQuickOpen} />
     </article>
   );
 }
