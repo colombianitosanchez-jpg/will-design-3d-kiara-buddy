@@ -910,6 +910,14 @@ function ProductModal({
             Ocultar el texto de acción y el icono de WhatsApp
           </label>
           <label className="inline-flex items-center gap-2 text-sm">
+            <Switch
+              checked={!!form.accepts_3d_file}
+              onCheckedChange={(checked) => set("accepts_3d_file", checked)}
+              aria-label="Solicitar archivo 3D al cliente (STL/OBJ/STEP) antes de cotizar"
+            />
+            Solicitar archivo 3D al cliente (STL/OBJ/STEP) antes de cotizar
+          </label>
+          <label className="inline-flex items-center gap-2 text-sm">
             <input
               type="checkbox"
               checked={!!form.featured}
