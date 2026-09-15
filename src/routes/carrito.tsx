@@ -42,8 +42,16 @@ const inputCls =
 function CarritoPage() {
   const { items, total, count, setQuantity, removeItem, clear } = useCart();
   const submit = useServerFn(createCartOrder);
+  const loadMethods = useServerFn(listPublicPaymentMethods);
   const [sending, setSending] = useState(false);
-  const [done, setDone] = useState<string | null>(null);
+  const [methods, setMethods] = useState<PublicPaymentMethod[]>([]);
+  const [methodId, setMethodId] = useState<string>("");
+  const [done, setDone] = useState<{
+    order_id: string;
+    public_token: string;
+    payment_instructions: string;
+    payment_method_name: string | null;
+  } | null>(null);
   const [form, setForm] = useState({
     customer_name: "",
     customer_email: "",
