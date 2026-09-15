@@ -70,6 +70,7 @@ export type Product = {
   show_whatsapp: boolean;
   hide_default_cta: boolean;
   accepts_3d_file: boolean;
+  custom_share_text: string | null;
   custom_buttons: ProductButton[];
   short: string;
   description: string;
