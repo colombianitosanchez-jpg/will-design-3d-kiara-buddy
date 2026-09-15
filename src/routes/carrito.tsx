@@ -114,12 +114,31 @@ function CarritoPage() {
       <section className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6">
         <h1 className="text-3xl font-black">¡Gracias por tu pedido! 🐾</h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          Registramos tu solicitud y te escribiremos para confirmar el pago y el envío.
+          Registramos tu solicitud. Sigue tu pedido y repórtanos el pago desde tu enlace privado.
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">Referencia: {done.slice(0, 8)}</p>
-        <Link to="/tienda" className="btn-primary mt-8 inline-flex text-sm">
-          Seguir viendo productos
-        </Link>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Referencia: {done.order_id.slice(0, 8).toUpperCase()}
+        </p>
+        {done.payment_instructions && (
+          <div className="mx-auto mt-6 max-w-xl rounded-3xl border border-border bg-muted/40 p-5 text-left">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Cómo pagar {done.payment_method_name ? `con ${done.payment_method_name}` : ""}
+            </p>
+            <p className="mt-2 whitespace-pre-line text-sm">{done.payment_instructions}</p>
+          </div>
+        )}
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <Link
+            to="/pedido/$token"
+            params={{ token: done.public_token }}
+            className="btn-primary inline-flex text-sm"
+          >
+            Ver mi pedido y reportar el pago
+          </Link>
+          <Link to="/tienda" className="text-sm font-semibold underline">
+            Seguir viendo productos
+          </Link>
+        </div>
       </section>
     );
   }
