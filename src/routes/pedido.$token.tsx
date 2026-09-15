@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { CheckCircle2, Clock, Loader2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { formatCOP } from "@/lib/catalog";
+import { formatCOP, getContactInfo, waLink } from "@/lib/catalog";
+import { useSiteContent } from "@/hooks/use-site-content";
 import { getOrderByToken, reportPayment, type TrackedOrder } from "@/lib/order-tracking.functions";
 
 export const Route = createFileRoute("/pedido/$token")({
@@ -38,6 +39,7 @@ function SeguimientoPage() {
   const { token } = Route.useParams();
   const fetchOrder = useServerFn(getOrderByToken);
   const report = useServerFn(reportPayment);
+  const { content } = useSiteContent();
 
   const [order, setOrder] = useState<TrackedOrder | null>(null);
   const [loading, setLoading] = useState(true);
