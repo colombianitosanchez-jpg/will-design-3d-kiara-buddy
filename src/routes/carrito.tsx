@@ -65,6 +65,23 @@ function CarritoPage() {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  useEffect(() => {
+    let alive = true;
+    void loadMethods({})
+      .then((list) => {
+        if (!alive) return;
+        setMethods(list);
+        if (list.length) setMethodId((prev) => prev || list[0]!.id);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [loadMethods]);
+
+  const selectedMethod = methods.find((m) => m.id === methodId) ?? null;
+
+
   async function confirm(e: React.FormEvent) {
     e.preventDefault();
     if (!items.length) return;
