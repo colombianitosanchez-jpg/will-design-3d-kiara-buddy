@@ -26,9 +26,11 @@ import { Route as TiendaIndexRouteImport } from './routes/tienda.index'
 import { Route as PanelIndexRouteImport } from './routes/panel.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TiendaSlugRouteImport } from './routes/tienda.$slug'
+import { Route as PedidoTokenRouteImport } from './routes/pedido.$token'
 import { Route as PanelTaxonomiaRouteImport } from './routes/panel.taxonomia'
 import { Route as PanelProductosRouteImport } from './routes/panel.productos'
 import { Route as PanelPedidosRouteImport } from './routes/panel.pedidos'
+import { Route as PanelPagosRouteImport } from './routes/panel.pagos'
 import { Route as PanelNotificacionesRouteImport } from './routes/panel.notificaciones'
 import { Route as PanelMenuRouteImport } from './routes/panel.menu'
 import { Route as PanelLlmRouteImport } from './routes/panel.llm'
@@ -46,6 +48,7 @@ import { Route as AdminLiveRouteImport } from './routes/admin.live'
 import { Route as AdminInventarioRouteImport } from './routes/admin.inventario'
 import { Route as AdminClientesRouteImport } from './routes/admin.clientes'
 import { Route as ApiPublicHooksProcessNotificationsRouteImport } from './routes/api/public/hooks/process-notifications'
+import { Route as ApiPublicHooksPaymentWebhookRouteImport } from './routes/api/public/hooks/payment-webhook'
 
 const TiendaRoute = TiendaRouteImport.update({
   id: '/tienda',
@@ -132,6 +135,11 @@ const TiendaSlugRoute = TiendaSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => TiendaRoute,
 } as any)
+const PedidoTokenRoute = PedidoTokenRouteImport.update({
+  id: '/pedido/$token',
+  path: '/pedido/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PanelTaxonomiaRoute = PanelTaxonomiaRouteImport.update({
   id: '/taxonomia',
   path: '/taxonomia',
@@ -145,6 +153,11 @@ const PanelProductosRoute = PanelProductosRouteImport.update({
 const PanelPedidosRoute = PanelPedidosRouteImport.update({
   id: '/pedidos',
   path: '/pedidos',
+  getParentRoute: () => PanelRoute,
+} as any)
+const PanelPagosRoute = PanelPagosRouteImport.update({
+  id: '/pagos',
+  path: '/pagos',
   getParentRoute: () => PanelRoute,
 } as any)
 const PanelNotificacionesRoute = PanelNotificacionesRouteImport.update({
@@ -233,6 +246,12 @@ const ApiPublicHooksProcessNotificationsRoute =
     path: '/api/public/hooks/process-notifications',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksPaymentWebhookRoute =
+  ApiPublicHooksPaymentWebhookRouteImport.update({
+    id: '/api/public/hooks/payment-webhook',
+    path: '/api/public/hooks/payment-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -264,13 +283,16 @@ export interface FileRoutesByFullPath {
   '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/notificaciones': typeof PanelNotificacionesRoute
+  '/panel/pagos': typeof PanelPagosRoute
   '/panel/pedidos': typeof PanelPedidosRoute
   '/panel/productos': typeof PanelProductosRoute
   '/panel/taxonomia': typeof PanelTaxonomiaRoute
+  '/pedido/$token': typeof PedidoTokenRoute
   '/tienda/$slug': typeof TiendaSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/panel/': typeof PanelIndexRoute
   '/tienda/': typeof TiendaIndexRoute
+  '/api/public/hooks/payment-webhook': typeof ApiPublicHooksPaymentWebhookRoute
   '/api/public/hooks/process-notifications': typeof ApiPublicHooksProcessNotificationsRoute
 }
 export interface FileRoutesByTo {
@@ -300,13 +322,16 @@ export interface FileRoutesByTo {
   '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/notificaciones': typeof PanelNotificacionesRoute
+  '/panel/pagos': typeof PanelPagosRoute
   '/panel/pedidos': typeof PanelPedidosRoute
   '/panel/productos': typeof PanelProductosRoute
   '/panel/taxonomia': typeof PanelTaxonomiaRoute
+  '/pedido/$token': typeof PedidoTokenRoute
   '/tienda/$slug': typeof TiendaSlugRoute
   '/admin': typeof AdminIndexRoute
   '/panel': typeof PanelIndexRoute
   '/tienda': typeof TiendaIndexRoute
+  '/api/public/hooks/payment-webhook': typeof ApiPublicHooksPaymentWebhookRoute
   '/api/public/hooks/process-notifications': typeof ApiPublicHooksProcessNotificationsRoute
 }
 export interface FileRoutesById {
@@ -340,13 +365,16 @@ export interface FileRoutesById {
   '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/notificaciones': typeof PanelNotificacionesRoute
+  '/panel/pagos': typeof PanelPagosRoute
   '/panel/pedidos': typeof PanelPedidosRoute
   '/panel/productos': typeof PanelProductosRoute
   '/panel/taxonomia': typeof PanelTaxonomiaRoute
+  '/pedido/$token': typeof PedidoTokenRoute
   '/tienda/$slug': typeof TiendaSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/panel/': typeof PanelIndexRoute
   '/tienda/': typeof TiendaIndexRoute
+  '/api/public/hooks/payment-webhook': typeof ApiPublicHooksPaymentWebhookRoute
   '/api/public/hooks/process-notifications': typeof ApiPublicHooksProcessNotificationsRoute
 }
 export interface FileRouteTypes {
@@ -381,13 +409,16 @@ export interface FileRouteTypes {
     | '/panel/llm'
     | '/panel/menu'
     | '/panel/notificaciones'
+    | '/panel/pagos'
     | '/panel/pedidos'
     | '/panel/productos'
     | '/panel/taxonomia'
+    | '/pedido/$token'
     | '/tienda/$slug'
     | '/admin/'
     | '/panel/'
     | '/tienda/'
+    | '/api/public/hooks/payment-webhook'
     | '/api/public/hooks/process-notifications'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -417,13 +448,16 @@ export interface FileRouteTypes {
     | '/panel/llm'
     | '/panel/menu'
     | '/panel/notificaciones'
+    | '/panel/pagos'
     | '/panel/pedidos'
     | '/panel/productos'
     | '/panel/taxonomia'
+    | '/pedido/$token'
     | '/tienda/$slug'
     | '/admin'
     | '/panel'
     | '/tienda'
+    | '/api/public/hooks/payment-webhook'
     | '/api/public/hooks/process-notifications'
   id:
     | '__root__'
@@ -456,13 +490,16 @@ export interface FileRouteTypes {
     | '/panel/llm'
     | '/panel/menu'
     | '/panel/notificaciones'
+    | '/panel/pagos'
     | '/panel/pedidos'
     | '/panel/productos'
     | '/panel/taxonomia'
+    | '/pedido/$token'
     | '/tienda/$slug'
     | '/admin/'
     | '/panel/'
     | '/tienda/'
+    | '/api/public/hooks/payment-webhook'
     | '/api/public/hooks/process-notifications'
   fileRoutesById: FileRoutesById
 }
@@ -482,6 +519,8 @@ export interface RootRouteChildren {
   TiendaRoute: typeof TiendaRouteWithChildren
   ApiCalculateQuoteRoute: typeof ApiCalculateQuoteRoute
   ApiKiaraRoute: typeof ApiKiaraRoute
+  PedidoTokenRoute: typeof PedidoTokenRoute
+  ApiPublicHooksPaymentWebhookRoute: typeof ApiPublicHooksPaymentWebhookRoute
   ApiPublicHooksProcessNotificationsRoute: typeof ApiPublicHooksProcessNotificationsRoute
 }
 
@@ -606,6 +645,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TiendaSlugRouteImport
       parentRoute: typeof TiendaRoute
     }
+    '/pedido/$token': {
+      id: '/pedido/$token'
+      path: '/pedido/$token'
+      fullPath: '/pedido/$token'
+      preLoaderRoute: typeof PedidoTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/panel/taxonomia': {
       id: '/panel/taxonomia'
       path: '/taxonomia'
@@ -625,6 +671,13 @@ declare module '@tanstack/react-router' {
       path: '/pedidos'
       fullPath: '/panel/pedidos'
       preLoaderRoute: typeof PanelPedidosRouteImport
+      parentRoute: typeof PanelRoute
+    }
+    '/panel/pagos': {
+      id: '/panel/pagos'
+      path: '/pagos'
+      fullPath: '/panel/pagos'
+      preLoaderRoute: typeof PanelPagosRouteImport
       parentRoute: typeof PanelRoute
     }
     '/panel/notificaciones': {
@@ -746,6 +799,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksProcessNotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/payment-webhook': {
+      id: '/api/public/hooks/payment-webhook'
+      path: '/api/public/hooks/payment-webhook'
+      fullPath: '/api/public/hooks/payment-webhook'
+      preLoaderRoute: typeof ApiPublicHooksPaymentWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -779,6 +839,7 @@ interface PanelRouteChildren {
   PanelLlmRoute: typeof PanelLlmRoute
   PanelMenuRoute: typeof PanelMenuRoute
   PanelNotificacionesRoute: typeof PanelNotificacionesRoute
+  PanelPagosRoute: typeof PanelPagosRoute
   PanelPedidosRoute: typeof PanelPedidosRoute
   PanelProductosRoute: typeof PanelProductosRoute
   PanelTaxonomiaRoute: typeof PanelTaxonomiaRoute
@@ -795,6 +856,7 @@ const PanelRouteChildren: PanelRouteChildren = {
   PanelLlmRoute: PanelLlmRoute,
   PanelMenuRoute: PanelMenuRoute,
   PanelNotificacionesRoute: PanelNotificacionesRoute,
+  PanelPagosRoute: PanelPagosRoute,
   PanelPedidosRoute: PanelPedidosRoute,
   PanelProductosRoute: PanelProductosRoute,
   PanelTaxonomiaRoute: PanelTaxonomiaRoute,
@@ -832,6 +894,8 @@ const rootRouteChildren: RootRouteChildren = {
   TiendaRoute: TiendaRouteWithChildren,
   ApiCalculateQuoteRoute: ApiCalculateQuoteRoute,
   ApiKiaraRoute: ApiKiaraRoute,
+  PedidoTokenRoute: PedidoTokenRoute,
+  ApiPublicHooksPaymentWebhookRoute: ApiPublicHooksPaymentWebhookRoute,
   ApiPublicHooksProcessNotificationsRoute:
     ApiPublicHooksProcessNotificationsRoute,
 }

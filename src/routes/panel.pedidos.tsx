@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import { confirmPayment, rejectPayment } from "@/lib/order-payments.functions";
 
 export const Route = createFileRoute("/panel/pedidos")({
   ssr: false,
@@ -19,6 +21,25 @@ type Order = {
   total_cop: number;
   status: "pendiente" | "empacando" | "enviado" | "entregado" | "cancelado";
   created_at: string;
+  payment_method_name: string | null;
+  payment_status: "esperando_pago" | "comprobante_enviado" | "pagado" | "rechazado";
+  payment_reference: string | null;
+  payment_reported_at: string | null;
+  payment_note: string | null;
+};
+
+const paymentColors: Record<Order["payment_status"], string> = {
+  esperando_pago: "bg-yellow-100 text-yellow-800",
+  comprobante_enviado: "bg-orange-100 text-orange-800",
+  pagado: "bg-green-100 text-green-800",
+  rechazado: "bg-red-100 text-red-800",
+};
+
+const paymentLabels: Record<Order["payment_status"], string> = {
+  esperando_pago: "esperando pago",
+  comprobante_enviado: "comprobante enviado",
+  pagado: "pagado",
+  rechazado: "pago rechazado",
 };
 
 type Item = {
@@ -289,6 +310,8 @@ function OrdersTab() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [filter, setFilter] = useState<"todos" | Order["status"]>("todos");
+  const doConfirm = useServerFn(confirmPayment);
+  const doReject = useServerFn(rejectPayment);
 
   async function load() {
     setLoading(true);
@@ -309,6 +332,26 @@ function OrdersTab() {
     const { error } = await supabase.from("orders").update({ status }).eq("id", id);
     if (error) return alert(error.message);
     setOrders((os) => os.map((o) => (o.id === id ? { ...o, status } : o)));
+  }
+
+  async function onConfirmPayment(id: string) {
+    try {
+      await doConfirm({ data: { order_id: id } });
+      await load();
+    } catch (err) {
+      alert((err as Error).message);
+    }
+  }
+
+  async function onRejectPayment(id: string) {
+    const note = prompt("¿Qué mensaje verá el cliente?", "No encontramos ese pago. Verifica la referencia.");
+    if (note === null) return;
+    try {
+      await doReject({ data: { order_id: id, note } });
+      await load();
+    } catch (err) {
+      alert((err as Error).message);
+    }
   }
 
   const filtered = filter === "todos" ? orders : orders.filter((o) => o.status === filter);
@@ -369,6 +412,11 @@ function OrdersTab() {
                     <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusColors[o.status]}`}>
                       {o.status}
                     </span>
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${paymentColors[o.payment_status] ?? ""}`}
+                    >
+                      {paymentLabels[o.payment_status] ?? o.payment_status}
+                    </span>
                     <select
                       value={o.status}
                       onChange={(e) => updateStatus(o.id, e.target.value as Order["status"])}
@@ -391,6 +439,42 @@ function OrdersTab() {
                         {o.customer_phone && <p className="mt-2 text-sm">Tel: {o.customer_phone}</p>}
                         {o.notes && (
                           <p className="mt-2 text-sm italic text-muted-foreground">Notas: {o.notes}</p>
+                        )}
+                      </div>
+                      <div className="md:col-span-2 rounded-xl border border-border bg-background p-3">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Pago
+                        </p>
+                        <p className="mt-1 text-sm">
+                          Método: {o.payment_method_name ?? "sin definir"} ·{" "}
+                          {paymentLabels[o.payment_status] ?? o.payment_status}
+                        </p>
+                        {o.payment_reference && (
+                          <p className="text-sm">
+                            Comprobante: <strong>{o.payment_reference}</strong>
+                            {o.payment_reported_at
+                              ? ` · reportado ${new Date(o.payment_reported_at).toLocaleString("es-CO")}`
+                              : ""}
+                          </p>
+                        )}
+                        {o.payment_note && (
+                          <p className="text-sm italic text-muted-foreground">Nota: {o.payment_note}</p>
+                        )}
+                        {o.payment_status !== "pagado" && (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button
+                              onClick={() => onConfirmPayment(o.id)}
+                              className="rounded-full bg-green-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-green-700"
+                            >
+                              Confirmar pago
+                            </button>
+                            <button
+                              onClick={() => onRejectPayment(o.id)}
+                              className="rounded-full border border-input px-4 py-1.5 text-xs font-bold hover:bg-muted"
+                            >
+                              Rechazar pago
+                            </button>
+                          </div>
                         )}
                       </div>
                       <div>

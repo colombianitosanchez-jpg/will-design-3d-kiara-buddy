@@ -1,12 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { useCart } from "@/lib/cart";
 import { formatCOP } from "@/lib/catalog";
 import { createCartOrder } from "@/lib/cart-order.functions";
+import {
+  listPublicPaymentMethods,
+  type PublicPaymentMethod,
+} from "@/lib/payment-methods.functions";
 
 export const Route = createFileRoute("/carrito")({
   ssr: false,
@@ -36,8 +42,16 @@ const inputCls =
 function CarritoPage() {
   const { items, total, count, setQuantity, removeItem, clear } = useCart();
   const submit = useServerFn(createCartOrder);
+  const loadMethods = useServerFn(listPublicPaymentMethods);
   const [sending, setSending] = useState(false);
-  const [done, setDone] = useState<string | null>(null);
+  const [methods, setMethods] = useState<PublicPaymentMethod[]>([]);
+  const [methodId, setMethodId] = useState<string>("");
+  const [done, setDone] = useState<{
+    order_id: string;
+    public_token: string;
+    payment_instructions: string;
+    payment_method_name: string | null;
+  } | null>(null);
   const [form, setForm] = useState({
     customer_name: "",
     customer_email: "",
@@ -51,6 +65,23 @@ function CarritoPage() {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  useEffect(() => {
+    let alive = true;
+    void loadMethods({})
+      .then((list) => {
+        if (!alive) return;
+        setMethods(list);
+        if (list.length) setMethodId((prev) => prev || list[0]!.id);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [loadMethods]);
+
+  const selectedMethod = methods.find((m) => m.id === methodId) ?? null;
+
+
   async function confirm(e: React.FormEvent) {
     e.preventDefault();
     if (!items.length) return;
@@ -60,10 +91,16 @@ function CarritoPage() {
         data: {
           items: items.map((i) => ({ product_id: i.product_id, quantity: i.quantity })),
           ...form,
+          payment_method_id: methodId || null,
         },
       });
       clear();
-      setDone(res.order_id);
+      setDone({
+        order_id: res.order_id,
+        public_token: res.public_token,
+        payment_instructions: res.payment_instructions,
+        payment_method_name: res.payment_method_name,
+      });
       toast.success("¡Pedido enviado! Te contactaremos muy pronto.");
     } catch (err) {
       toast.error((err as Error).message || "No pudimos enviar el pedido");
@@ -77,12 +114,31 @@ function CarritoPage() {
       <section className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6">
         <h1 className="text-3xl font-black">¡Gracias por tu pedido! 🐾</h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          Registramos tu solicitud y te escribiremos para confirmar el pago y el envío.
+          Registramos tu solicitud. Sigue tu pedido y repórtanos el pago desde tu enlace privado.
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">Referencia: {done.slice(0, 8)}</p>
-        <Link to="/tienda" className="btn-primary mt-8 inline-flex text-sm">
-          Seguir viendo productos
-        </Link>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Referencia: {done.order_id.slice(0, 8).toUpperCase()}
+        </p>
+        {done.payment_instructions && (
+          <div className="mx-auto mt-6 max-w-xl rounded-3xl border border-border bg-muted/40 p-5 text-left">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Cómo pagar {done.payment_method_name ? `con ${done.payment_method_name}` : ""}
+            </p>
+            <p className="mt-2 whitespace-pre-line text-sm">{done.payment_instructions}</p>
+          </div>
+        )}
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <Link
+            to="/pedido/$token"
+            params={{ token: done.public_token }}
+            className="btn-primary inline-flex text-sm"
+          >
+            Ver mi pedido y reportar el pago
+          </Link>
+          <Link to="/tienda" className="text-sm font-semibold underline">
+            Seguir viendo productos
+          </Link>
+        </div>
       </section>
     );
   }
@@ -197,6 +253,32 @@ function CarritoPage() {
               Notas
               <textarea rows={3} value={form.notes} onChange={(e) => set("notes", e.target.value)} className={inputCls} />
             </label>
+
+            {methods.length > 0 && (
+              <div className="mt-5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  ¿Cómo quieres pagar?
+                </p>
+                <RadioGroup value={methodId} onValueChange={setMethodId} className="mt-2 space-y-2">
+                  {methods.map((m) => (
+                    <div
+                      key={m.id}
+                      className="flex items-center gap-3 rounded-xl border border-border p-3"
+                    >
+                      <RadioGroupItem value={m.id} id={`pm-${m.id}`} />
+                      <Label htmlFor={`pm-${m.id}`} className="cursor-pointer text-sm font-semibold">
+                        {m.name}
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+                {selectedMethod?.type === "manual_transfer" && selectedMethod.instructions && (
+                  <p className="mt-2 whitespace-pre-line rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
+                    {selectedMethod.instructions}
+                  </p>
+                )}
+              </div>
+            )}
             <Button type="submit" disabled={sending} className="mt-5 w-full">
               {sending ? (
                 <>
