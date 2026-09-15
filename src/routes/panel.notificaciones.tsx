@@ -255,10 +255,8 @@ function NotificationsPage() {
             ))}
           </div>
         </section>
-      </div>
-
-      <div className="mt-6 flex items-center gap-3">
         <section className="rounded-3xl border border-border bg-card p-5">
+
           <h2 className="text-lg font-bold">Mensajes por estado del pago</h2>
           <p className="mt-1 text-xs text-muted-foreground">
             En el mensaje de pago rechazado puedes usar{" "}
