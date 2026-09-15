@@ -38,9 +38,9 @@ export function KiaraQuoteCard({ quote }: { quote: KiaraServiceQuoteData }) {
         data: {
           ...form,
           notes: `${quote.project_name} · ${resumen}`.slice(0, 800),
-          item_name: quote.project_name,
+          service_slug: quote.service_slug,
+          answers: quote.answers ?? [],
           quantity: quote.quantity,
-          unit_price_cop: Math.round(quote.unit_price_cop),
         },
       });
       setOrderId(res.order_id);
