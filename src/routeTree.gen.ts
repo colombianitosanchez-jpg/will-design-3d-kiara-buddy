@@ -48,6 +48,7 @@ import { Route as AdminLiveRouteImport } from './routes/admin.live'
 import { Route as AdminInventarioRouteImport } from './routes/admin.inventario'
 import { Route as AdminClientesRouteImport } from './routes/admin.clientes'
 import { Route as ApiPublicHooksProcessNotificationsRouteImport } from './routes/api/public/hooks/process-notifications'
+import { Route as ApiPublicHooksPaymentWebhookRouteImport } from './routes/api/public/hooks/payment-webhook'
 
 const TiendaRoute = TiendaRouteImport.update({
   id: '/tienda',
@@ -245,6 +246,12 @@ const ApiPublicHooksProcessNotificationsRoute =
     path: '/api/public/hooks/process-notifications',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksPaymentWebhookRoute =
+  ApiPublicHooksPaymentWebhookRouteImport.update({
+    id: '/api/public/hooks/payment-webhook',
+    path: '/api/public/hooks/payment-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -285,6 +292,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/panel/': typeof PanelIndexRoute
   '/tienda/': typeof TiendaIndexRoute
+  '/api/public/hooks/payment-webhook': typeof ApiPublicHooksPaymentWebhookRoute
   '/api/public/hooks/process-notifications': typeof ApiPublicHooksProcessNotificationsRoute
 }
 export interface FileRoutesByTo {
@@ -323,6 +331,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/panel': typeof PanelIndexRoute
   '/tienda': typeof TiendaIndexRoute
+  '/api/public/hooks/payment-webhook': typeof ApiPublicHooksPaymentWebhookRoute
   '/api/public/hooks/process-notifications': typeof ApiPublicHooksProcessNotificationsRoute
 }
 export interface FileRoutesById {
@@ -365,6 +374,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/panel/': typeof PanelIndexRoute
   '/tienda/': typeof TiendaIndexRoute
+  '/api/public/hooks/payment-webhook': typeof ApiPublicHooksPaymentWebhookRoute
   '/api/public/hooks/process-notifications': typeof ApiPublicHooksProcessNotificationsRoute
 }
 export interface FileRouteTypes {
@@ -408,6 +418,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/panel/'
     | '/tienda/'
+    | '/api/public/hooks/payment-webhook'
     | '/api/public/hooks/process-notifications'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -446,6 +457,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/panel'
     | '/tienda'
+    | '/api/public/hooks/payment-webhook'
     | '/api/public/hooks/process-notifications'
   id:
     | '__root__'
@@ -487,6 +499,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/panel/'
     | '/tienda/'
+    | '/api/public/hooks/payment-webhook'
     | '/api/public/hooks/process-notifications'
   fileRoutesById: FileRoutesById
 }
@@ -507,6 +520,7 @@ export interface RootRouteChildren {
   ApiCalculateQuoteRoute: typeof ApiCalculateQuoteRoute
   ApiKiaraRoute: typeof ApiKiaraRoute
   PedidoTokenRoute: typeof PedidoTokenRoute
+  ApiPublicHooksPaymentWebhookRoute: typeof ApiPublicHooksPaymentWebhookRoute
   ApiPublicHooksProcessNotificationsRoute: typeof ApiPublicHooksProcessNotificationsRoute
 }
 
@@ -785,6 +799,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksProcessNotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/payment-webhook': {
+      id: '/api/public/hooks/payment-webhook'
+      path: '/api/public/hooks/payment-webhook'
+      fullPath: '/api/public/hooks/payment-webhook'
+      preLoaderRoute: typeof ApiPublicHooksPaymentWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -874,6 +895,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCalculateQuoteRoute: ApiCalculateQuoteRoute,
   ApiKiaraRoute: ApiKiaraRoute,
   PedidoTokenRoute: PedidoTokenRoute,
+  ApiPublicHooksPaymentWebhookRoute: ApiPublicHooksPaymentWebhookRoute,
   ApiPublicHooksProcessNotificationsRoute:
     ApiPublicHooksProcessNotificationsRoute,
 }
