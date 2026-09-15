@@ -574,6 +574,14 @@ function ProductModal({
               placeholder="Ver más, Cotizar, Reservar"
             />
           </Field>
+          <Field label="Texto para compartir (Ej: ¡Mira este diseño increíble!)">
+            <input
+              value={form.custom_share_text ?? ""}
+              onChange={(e) => set("custom_share_text", e.target.value)}
+              className={inputCls}
+              placeholder="¡Mira este diseño increíble!"
+            />
+          </Field>
           <Field label="Stock">
             <input
               type="number"
