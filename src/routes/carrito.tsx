@@ -52,6 +52,8 @@ function CarritoPage() {
     public_token: string;
     payment_instructions: string;
     payment_method_name: string | null;
+    payment_method_type: string | null;
+    qr_image_url: string | null;
   } | null>(null);
   const [form, setForm] = useState({
     customer_name: "",
@@ -101,6 +103,8 @@ function CarritoPage() {
         public_token: res.public_token,
         payment_instructions: res.payment_instructions,
         payment_method_name: res.payment_method_name,
+        payment_method_type: selectedMethod?.type ?? null,
+        qr_image_url: selectedMethod?.qr_image_url ?? null,
       });
       toast.success("¡Pedido enviado! Te contactaremos muy pronto.");
     } catch (err) {
