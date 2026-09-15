@@ -91,10 +91,16 @@ function CarritoPage() {
         data: {
           items: items.map((i) => ({ product_id: i.product_id, quantity: i.quantity })),
           ...form,
+          payment_method_id: methodId || null,
         },
       });
       clear();
-      setDone(res.order_id);
+      setDone({
+        order_id: res.order_id,
+        public_token: res.public_token,
+        payment_instructions: res.payment_instructions,
+        payment_method_name: res.payment_method_name,
+      });
       toast.success("¡Pedido enviado! Te contactaremos muy pronto.");
     } catch (err) {
       toast.error((err as Error).message || "No pudimos enviar el pedido");
