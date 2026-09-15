@@ -47,6 +47,7 @@ type Product = {
   show_whatsapp: boolean;
   hide_default_cta: boolean;
   accepts_3d_file: boolean;
+  custom_share_text: string | null;
   custom_buttons: ProductButton[];
   category_id: string | null;
   brand_id: string | null;
@@ -70,6 +71,7 @@ const empty: Omit<Product, "id"> = {
   show_whatsapp: false,
   hide_default_cta: false,
   accepts_3d_file: false,
+  custom_share_text: null,
   custom_buttons: [],
   category_id: null,
   brand_id: null,
@@ -151,6 +153,7 @@ function ProductosAdmin() {
         specs: Array.isArray(r.specs) ? r.specs : [],
         hide_default_cta: !!r.hide_default_cta,
         accepts_3d_file: !!r.accepts_3d_file,
+        custom_share_text: r.custom_share_text ?? null,
         custom_buttons: parseProductButtons(r.custom_buttons),
       })) as Product[],
     );
@@ -461,6 +464,7 @@ function ProductModal({
         show_whatsapp: !!form.show_whatsapp,
         hide_default_cta: !!form.hide_default_cta,
         accepts_3d_file: !!form.accepts_3d_file,
+        custom_share_text: form.custom_share_text?.trim() ? form.custom_share_text.trim() : null,
         custom_buttons: buttons.map((b) => ({ ...b, text: b.text.trim(), action_value: b.action_value.trim() })),
         category_id: form.category_id || null,
         brand_id: form.brand_id || null,
@@ -568,6 +572,14 @@ function ProductModal({
               onChange={(e) => set("btn_text", e.target.value)}
               className={inputCls}
               placeholder="Ver más, Cotizar, Reservar"
+            />
+          </Field>
+          <Field label="Texto para compartir (Ej: ¡Mira este diseño increíble!)">
+            <input
+              value={form.custom_share_text ?? ""}
+              onChange={(e) => set("custom_share_text", e.target.value)}
+              className={inputCls}
+              placeholder="¡Mira este diseño increíble!"
             />
           </Field>
           <Field label="Stock">

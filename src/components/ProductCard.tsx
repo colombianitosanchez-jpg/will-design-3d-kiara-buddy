@@ -11,6 +11,7 @@ import {
 import { useSiteContent } from "@/hooks/use-site-content";
 import { ProductButtons } from "@/components/ProductButtons";
 import { ProductQuickView } from "@/components/ProductQuickView";
+import { ShareButton } from "@/components/ShareButton";
 
 
 const GRADIENTS: Record<string, string> = {
@@ -61,6 +62,12 @@ export function ProductCard({ product }: { product: Product }) {
               Destacado
             </span>
           )}
+          <ShareButton
+            title={product.name}
+            text={product.custom_share_text}
+            url={`https://will-design-3d.lovable.app/tienda/${product.slug}`}
+            className="absolute right-2 top-2 h-8 w-8 rounded-full bg-background/80 text-foreground shadow-sm backdrop-blur hover:bg-background"
+          />
           <button
             type="button"
             onClick={(e) => {

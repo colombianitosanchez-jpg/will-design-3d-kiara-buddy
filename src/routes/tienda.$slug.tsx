@@ -1,4 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { ShareButton } from "@/components/ShareButton";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
@@ -44,7 +45,8 @@ export const Route = createFileRoute("/tienda/$slug")({
         ? base
         : `${p.name} disponible en Will Design 3D, Bogotá. ${base} Asesoría técnica y envíos a todo el país.`
     ).slice(0, 160);
-    const image = p.image_url || p.images?.[0] || null;
+    const rawImage = p.image_url || p.images?.[0] || null;
+    const image = rawImage && /^https:\/\//i.test(rawImage) ? rawImage : null;
     return {
       meta: [
         { title: `${p.name} — Will Design 3D` },
@@ -198,7 +200,14 @@ function ProductPage() {
               {product.brand.name}
             </p>
           )}
-          <h1 className="mt-1 text-3xl font-black sm:text-4xl">{product.name}</h1>
+          <div className="mt-1 flex items-start justify-between gap-3">
+            <h1 className="text-3xl font-black sm:text-4xl">{product.name}</h1>
+            <ShareButton
+              title={product.name}
+              text={product.custom_share_text}
+              className="mt-1 h-9 w-9 shrink-0 text-muted-foreground"
+            />
+          </div>
           {/<[a-z][\s\S]*>/i.test(product.description ?? "") ? (
             <div
               className="rich-text mt-3 text-muted-foreground"
