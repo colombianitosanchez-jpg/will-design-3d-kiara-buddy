@@ -5,8 +5,11 @@ const schema = z.object({
   items: z
     .array(
       z.object({
-        product_id: z.string().uuid(),
+        product_id: z.string().min(1).max(200),
         quantity: z.number().int().min(1).max(99),
+        kind: z.enum(["product", "service"]).optional().default("product"),
+        service_slug: z.string().trim().max(120).optional(),
+        answers: z.record(z.string(), z.string().max(400)).optional(),
       }),
     )
     .min(1)
