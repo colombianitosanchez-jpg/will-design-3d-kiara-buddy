@@ -200,9 +200,12 @@ function CarritoPage() {
           </div>
         )}
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          {done.payment_method_type === "manual_transfer" && (
+          {isManualFlow(done.payment_method_type) && (
             <a
-              href={receiptWaUrl(done.order_id.slice(0, 8).toUpperCase())}
+              href={receiptWaUrl(
+                done.order_id.slice(0, 8).toUpperCase(),
+                done.payment_method_type,
+              )}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-xl bg-[#25D366] px-5 py-2.5 text-sm font-bold text-white shadow transition hover:brightness-95"
