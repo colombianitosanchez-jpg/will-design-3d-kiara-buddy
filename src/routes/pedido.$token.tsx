@@ -174,11 +174,28 @@ function SeguimientoPage() {
         </div>
       )}
 
-      {order.payment_method_type === "manual_transfer" && !paid && (
+      {order.allowed_zones && order.payment_method_type === "cash_on_delivery" && (
+        <p className="mt-6 rounded-3xl border border-border bg-card p-5 text-sm">
+          Pago contra entrega · Cobertura: {order.allowed_zones}
+        </p>
+      )}
+
+      {isRedirectFlow(order.payment_method_type) && order.payment_url && !paid && (
+        <a
+          href={order.payment_url}
+          className="btn-primary mt-6 flex items-center justify-center text-sm"
+        >
+          Ir a pagar en {order.payment_method_name ?? "la plataforma de pago"}
+        </a>
+      )}
+
+      {isManualFlow(order.payment_method_type) && !paid && (
         <a
           href={waLink(
             getContactInfo(content).whatsapp,
-            `Hola, acabo de realizar el pedido #${order.reference} en Will Design 3D. Adjunto el comprobante de pago.`,
+            order.payment_method_type === "cash_on_delivery"
+              ? `Hola, acabo de realizar el pedido #${order.reference}. El método es Pago Contra Entrega.`
+              : `Hola, acabo de realizar el pedido #${order.reference} en Will Design 3D. Adjunto el comprobante de pago.`,
           )}
           target="_blank"
           rel="noopener noreferrer"
