@@ -134,13 +134,19 @@ export const listAdminPaymentMethods = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
       .from("payment_methods")
-      .select("id, name, type, instructions, display_order, is_active, credentials, qr_image_url")
+      .select(
+        "id, name, type, instructions, display_order, is_active, credentials, qr_image_url, config",
+      )
       .order("display_order", { ascending: true });
     if (error) throw new Error(error.message);
     return (data ?? []).map((m) => {
       const creds = (m.credentials ?? {}) as Record<string, unknown>;
       const { credentials: _drop, ...rest } = m as typeof m & { credentials?: unknown };
-      return { ...rest, has_credentials: Object.keys(creds).length > 0 } as AdminPaymentMethod;
+      return {
+        ...rest,
+        config: (m.config ?? {}) as PaymentMethodConfig,
+        has_credentials: Object.keys(creds).length > 0,
+      } as AdminPaymentMethod;
     });
   });
 
