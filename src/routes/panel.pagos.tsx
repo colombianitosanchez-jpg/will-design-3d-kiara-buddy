@@ -278,13 +278,19 @@ function PagosPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="manual_transfer">Transferencia manual</SelectItem>
-                    <SelectItem value="gateway">Pasarela de pago</SelectItem>
+                    {PAYMENT_TYPE_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                    {form.type === "gateway" && (
+                      <SelectItem value="gateway">Pasarela de pago (antiguo)</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </label>
               <label className="md:col-span-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Instrucciones para el cliente
+                Instrucciones para el cliente {!usesQr(form.type) && "(opcional)"}
                 <Textarea
                   rows={3}
                   value={form.instructions}
@@ -294,6 +300,37 @@ function PagosPage() {
                 />
               </label>
 
+              {isRedirectFlow(form.type) && (
+                <label className="md:col-span-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  URL de pago / Link de checkout
+                  <Input
+                    required
+                    type="url"
+                    value={form.payment_url}
+                    onChange={(e) => setForm({ ...form, payment_url: e.target.value })}
+                    placeholder="https://checkout.wompi.co/l/xxxxx"
+                    className="mt-1"
+                  />
+                  <span className="mt-1 block text-xs font-normal normal-case tracking-normal text-muted-foreground">
+                    Al confirmar el pedido, el cliente se abrirá automáticamente en esta página para
+                    completar el pago.
+                  </span>
+                </label>
+              )}
+
+              {form.type === "cash_on_delivery" && (
+                <label className="md:col-span-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Zonas permitidas
+                  <Input
+                    value={form.allowed_zones}
+                    onChange={(e) => setForm({ ...form, allowed_zones: e.target.value })}
+                    placeholder="Ej: Solo Bogotá"
+                    className="mt-1"
+                  />
+                </label>
+              )}
+
+              {usesQr(form.type) && (
               <div className="md:col-span-2">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Código QR (opcional)
