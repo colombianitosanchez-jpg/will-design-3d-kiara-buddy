@@ -171,7 +171,36 @@ function ContenidoAdmin() {
     });
   }
 
+  function isFlagOn(key: string) {
+    const v = (values[key] ?? "").trim().toLowerCase();
+    if (!v) return true; // activo por defecto
+    return !["false", "0", "no", "off"].includes(v);
+  }
+
   function renderField(f: FieldDef) {
+    if (f.type === "switch") {
+      return (
+        <div
+          key={f.key}
+          className="flex items-start justify-between gap-4 rounded-2xl border border-border p-4"
+        >
+          <div className="space-y-1">
+            <Label htmlFor={f.key} className="text-sm font-bold">
+              {f.label}
+            </Label>
+            {f.help && <p className="text-xs text-muted-foreground">{f.help}</p>}
+          </div>
+          <Switch
+            id={f.key}
+            checked={isFlagOn(f.key)}
+            onCheckedChange={(on) =>
+              setValues((v) => ({ ...v, [f.key]: on ? "true" : "false" }))
+            }
+          />
+        </div>
+      );
+    }
+
     return (
       <div key={f.key} className="space-y-2">
         <Label htmlFor={f.key} className="text-sm font-bold">
@@ -184,10 +213,16 @@ function ContenidoAdmin() {
             id={f.key}
             rows={f.type === "text" ? 1 : 3}
             value={values[f.key] ?? ""}
-            onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+            onChange={(e) => {
+              const raw = e.target.value;
+              const next =
+                f.key === "elfsight_instagram_id" ? sanitizeWidgetId(raw) : raw;
+              setValues((v) => ({ ...v, [f.key]: next }));
+            }}
             className="resize-y"
           />
         )}
+
 
         {f.type === "image" && (
           <div className="flex flex-wrap items-center gap-4">
