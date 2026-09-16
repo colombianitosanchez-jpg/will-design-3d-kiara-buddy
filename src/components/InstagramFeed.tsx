@@ -244,7 +244,7 @@ function PhotoGallery({ photos, handle }: { photos: PortfolioPhoto[]; handle: st
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {photos.map(({ url: src, id }, i) => (
           <button
-            key={src + i}
+            key={id}
             type="button"
             onClick={() => setZoom(src)}
             className="group relative aspect-square overflow-hidden rounded-2xl border border-border bg-card shadow-sm"

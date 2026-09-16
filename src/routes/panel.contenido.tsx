@@ -142,27 +142,23 @@ function ContenidoAdmin() {
     }
   }
 
-  function parseList(raw: string | undefined): string[] {
-    if (!raw?.trim()) return [];
-    try {
-      const p = JSON.parse(raw);
-      if (Array.isArray(p)) return p.filter((x) => typeof x === "string" && x.trim());
-    } catch {
-      /* lista simple */
-    }
-    return raw.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean);
+  function parseList(raw: string | undefined): PortfolioPhoto[] {
+    return parsePhotos(raw);
   }
 
   async function uploadImages(key: string, files: File[]) {
     setUploadingKey(key);
     try {
-      const urls: string[] = [];
-      for (const f of files) urls.push(await uploadToStorage(key, f));
+      const added: PortfolioPhoto[] = [];
+      for (const f of files) {
+        const url = await uploadToStorage(key, f);
+        added.push({ id: crypto.randomUUID(), url, is_visible: true });
+      }
       setValues((v) => ({
         ...v,
-        [key]: JSON.stringify([...parseList(v[key]), ...urls]),
+        [key]: JSON.stringify([...parseList(v[key]), ...added]),
       }));
-      toast.success(`${urls.length} foto(s) subidas`);
+      toast.success(`${added.length} foto(s) subidas`);
     } catch (e) {
       toast.error("Error al subir", { description: (e as Error).message });
     } finally {
@@ -173,6 +169,15 @@ function ContenidoAdmin() {
   function removeImageAt(key: string, index: number) {
     setValues((v) => {
       const list = parseList(v[key]).filter((_, i) => i !== index);
+      return { ...v, [key]: list.length ? JSON.stringify(list) : "" };
+    });
+  }
+
+  function togglePhotoAt(key: string, index: number) {
+    setValues((v) => {
+      const list = parseList(v[key]).map((p, i) =>
+        i === index ? { ...p, is_visible: !p.is_visible } : p,
+      );
       return { ...v, [key]: list.length ? JSON.stringify(list) : "" };
     });
   }
