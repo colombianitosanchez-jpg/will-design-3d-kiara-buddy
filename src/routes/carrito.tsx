@@ -359,6 +359,20 @@ function CarritoPage() {
                 Total: <span className="text-[var(--brand-wine)]">{formatCOP(total)}</span>
               </p>
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-4 w-full"
+              disabled={sharing}
+              onClick={shareQuote}
+            >
+              {sharing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Share2 className="mr-2 h-4 w-4" />
+              )}
+              Guardar y Compartir Cotización
+            </Button>
           </div>
 
           <form onSubmit={confirm} className="rounded-3xl border border-border bg-card p-4 sm:p-6">
