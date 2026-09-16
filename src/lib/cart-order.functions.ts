@@ -29,17 +29,26 @@ export const createCartOrder = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const ids = [...new Set(data.items.map((i) => i.product_id))];
-    const { data: products, error: pErr } = await supabaseAdmin
-      .from("products")
-      .select("id,name,price_cop,active")
-      .in("id", ids);
+    const productItems = data.items.filter((i) => i.kind !== "service");
+    const serviceItems = data.items.filter((i) => i.kind === "service" && i.service_slug);
+
+    const ids = [...new Set(productItems.map((i) => i.product_id))].filter((id) =>
+      /^[0-9a-f-]{36}$/i.test(id),
+    );
+    const { data: products, error: pErr } = ids.length
+      ? await supabaseAdmin.from("products").select("id,name,price_cop,active").in("id", ids)
+      : { data: [], error: null };
     if (pErr) throw new Error(pErr.message);
 
     const available = new Map(
       (products ?? []).filter((p) => p.active).map((p) => [p.id, p] as const),
     );
-    const lines = data.items
+    const lines: {
+      product_id: string | null;
+      product_name: string;
+      quantity: number;
+      unit_price_cop: number;
+    }[] = productItems
       .filter((i) => available.has(i.product_id))
       .map((i) => {
         const p = available.get(i.product_id)!;
@@ -50,6 +59,27 @@ export const createCartOrder = createServerFn({ method: "POST" })
           unit_price_cop: p.price_cop,
         };
       });
+
+    // Los servicios cotizados se vuelven a calcular en el servidor con las
+    // respuestas del cliente: nunca se confía en el precio enviado.
+    if (serviceItems.length) {
+      const { getQuoterServices, getQuotingVars } = await import("@/lib/quoter.server");
+      const { coerceAnswers, computeQuote } = await import("@/lib/quoter-core");
+      const [services, vars] = await Promise.all([getQuoterServices(), getQuotingVars()]);
+      for (const item of serviceItems) {
+        const svc = services.find((s) => s.slug === item.service_slug);
+        if (!svc) continue;
+        const values = coerceAnswers(svc, item.answers ?? {});
+        const quote = computeQuote(svc, values, 1, vars);
+        lines.push({
+          product_id: null,
+          product_name: `Servicio: ${svc.name}`,
+          quantity: item.quantity,
+          unit_price_cop: Math.round(quote.unit_price_cop),
+        });
+      }
+    }
+
     if (!lines.length) throw new Error("Los productos del carrito ya no están disponibles");
 
     const total = lines.reduce((sum, l) => sum + l.unit_price_cop * l.quantity, 0);
