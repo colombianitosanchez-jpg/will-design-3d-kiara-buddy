@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { sanitizeWidgetId } from "@/components/InstagramFeed";
 
 export const Route = createFileRoute("/panel/contenido")({
   ssr: false,
@@ -20,7 +22,7 @@ type Row = { key: string; value: string };
 type FieldDef = {
   key: string;
   label: string;
-  type: "text" | "textarea" | "image" | "images";
+  type: "text" | "textarea" | "image" | "images" | "switch";
   help?: string;
   section: string;
   group: string;
@@ -38,8 +40,10 @@ const FIELDS: FieldDef[] = [
   { key: "hero_stat_2_v", label: "Estadística 2 · descripción", type: "text", section: "Inicio", group: "Estadísticas" },
   { key: "hero_stat_3_k", label: "Estadística 3 · valor", type: "text", section: "Inicio", group: "Estadísticas" },
   { key: "hero_stat_3_v", label: "Estadística 3 · descripción", type: "text", section: "Inicio", group: "Estadísticas" },
-  { key: "portfolio_images", label: "Fotos de portafolio", type: "images", help: "Se muestran en la sección de portafolio del inicio y en /galeria mientras no haya widget de Instagram.", section: "Inicio", group: "Portafolio (Instagram)" },
-  { key: "elfsight_instagram_id", label: "ID del widget de Instagram (Elfsight)", type: "text", help: "Pega el texto después de 'elfsight-app-'. Si está lleno, reemplaza la galería por el feed automático.", section: "Inicio", group: "Portafolio (Instagram)" },
+  { key: "show_manual_gallery", label: "Mostrar sección de Portafolio Manual (Piezas que hemos impreso)", type: "switch", help: "Se muestra si está activo y hay al menos una foto subida.", section: "Inicio", group: "Portafolio (Instagram)" },
+  { key: "show_instagram_widget", label: "Mostrar sección de Instagram en vivo", type: "switch", help: "Se muestra si está activo y el ID del widget es válido.", section: "Inicio", group: "Portafolio (Instagram)" },
+  { key: "portfolio_images", label: "Fotos de portafolio", type: "images", help: "Se muestran en la sección de portafolio del inicio y en /galeria. Ya no se ocultan al usar el widget de Instagram.", section: "Inicio", group: "Portafolio (Instagram)" },
+  { key: "elfsight_instagram_id", label: "ID del widget de Instagram (Elfsight)", type: "text", help: "Puedes pegar el ID completo ('elfsight-app-abc123'); quitamos el prefijo automáticamente.", section: "Inicio", group: "Portafolio (Instagram)" },
   { key: "about_short", label: "Descripción corta 'Nosotros'", type: "textarea", section: "Inicio", group: "Página Nosotros" },
 
   // ------------------------------------------------------------ Cotizadores
@@ -167,7 +171,36 @@ function ContenidoAdmin() {
     });
   }
 
+  function isFlagOn(key: string) {
+    const v = (values[key] ?? "").trim().toLowerCase();
+    if (!v) return true; // activo por defecto
+    return !["false", "0", "no", "off"].includes(v);
+  }
+
   function renderField(f: FieldDef) {
+    if (f.type === "switch") {
+      return (
+        <div
+          key={f.key}
+          className="flex items-start justify-between gap-4 rounded-2xl border border-border p-4"
+        >
+          <div className="space-y-1">
+            <Label htmlFor={f.key} className="text-sm font-bold">
+              {f.label}
+            </Label>
+            {f.help && <p className="text-xs text-muted-foreground">{f.help}</p>}
+          </div>
+          <Switch
+            id={f.key}
+            checked={isFlagOn(f.key)}
+            onCheckedChange={(on) =>
+              setValues((v) => ({ ...v, [f.key]: on ? "true" : "false" }))
+            }
+          />
+        </div>
+      );
+    }
+
     return (
       <div key={f.key} className="space-y-2">
         <Label htmlFor={f.key} className="text-sm font-bold">
@@ -180,10 +213,16 @@ function ContenidoAdmin() {
             id={f.key}
             rows={f.type === "text" ? 1 : 3}
             value={values[f.key] ?? ""}
-            onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+            onChange={(e) => {
+              const raw = e.target.value;
+              const next =
+                f.key === "elfsight_instagram_id" ? sanitizeWidgetId(raw) : raw;
+              setValues((v) => ({ ...v, [f.key]: next }));
+            }}
             className="resize-y"
           />
         )}
+
 
         {f.type === "image" && (
           <div className="flex flex-wrap items-center gap-4">
