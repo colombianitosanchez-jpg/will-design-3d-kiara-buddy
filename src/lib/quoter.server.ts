@@ -1,7 +1,16 @@
 // Lectura del cotizador desde el servidor (Kiara y server functions).
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { normalizeField, normalizeService, type QuoterService } from "@/lib/quoter-core";
+import { normalizeField, normalizeService, type QuoterService, type QuoterVars } from "@/lib/quoter-core";
+
+const DEFAULT_VARS: QuoterVars = {
+  fdm_gram_cost: 80,
+  resin_ml_cost: 150,
+  machine_hour_rate: 2000,
+  labor_hour_rate: 15000,
+  default_margin: 1.5,
+  failure_rate_percentage: 15,
+};
 
 function publicClient() {
   const key = process.env['SUPABASE_PUBLISHABLE_KEY']!;
