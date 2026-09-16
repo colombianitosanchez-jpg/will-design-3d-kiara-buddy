@@ -170,7 +170,15 @@ function PagosPage() {
           name: form.name,
           type: form.type,
           instructions: form.instructions,
-          qr_image_url: form.qr_image_url,
+          qr_image_url: usesQr(form.type) ? form.qr_image_url : "",
+          config: {
+            ...(isRedirectFlow(form.type) && form.payment_url.trim()
+              ? { payment_url: form.payment_url.trim() }
+              : {}),
+            ...(form.type === "cash_on_delivery" && form.allowed_zones.trim()
+              ? { allowed_zones: form.allowed_zones.trim() }
+              : {}),
+          },
           display_order: form.display_order,
           is_active: form.is_active,
           credentials: form.credentials.filter((c) => c.key.trim() && c.value.trim()),
