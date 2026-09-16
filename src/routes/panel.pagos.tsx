@@ -26,6 +26,12 @@ import {
   type AdminPaymentMethod,
   type PaymentMethodType,
 } from "@/lib/payment-methods.functions";
+import {
+  PAYMENT_TYPE_OPTIONS,
+  isRedirectFlow,
+  paymentTypeLabel,
+  usesQr,
+} from "@/lib/payment-types";
 
 export const Route = createFileRoute("/panel/pagos")({
   ssr: false,
