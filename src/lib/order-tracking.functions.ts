@@ -45,11 +45,18 @@ export const getOrderByToken = createServerFn({ method: "GET" })
       order.payment_method_id
         ? supabaseAdmin
             .from("payment_methods")
-            .select("instructions, type, qr_image_url")
+            .select("instructions, type, qr_image_url, config")
             .eq("id", order.payment_method_id)
             .maybeSingle()
         : Promise.resolve({ data: null }),
     ]);
+
+    const pm = (method?.data ?? null) as {
+      type?: string;
+      instructions?: string;
+      qr_image_url?: string | null;
+      config?: { payment_url?: string; allowed_zones?: string } | null;
+    } | null;
 
     return {
       reference: order.id.slice(0, 8).toUpperCase(),
@@ -58,10 +65,11 @@ export const getOrderByToken = createServerFn({ method: "GET" })
       status: order.status,
       payment_status: order.payment_status,
       payment_method_name: order.payment_method_name,
-      payment_method_type:
-        (method?.data as { type?: "manual_transfer" | "gateway" } | null)?.type ?? null,
-      payment_instructions: (method?.data as { instructions?: string } | null)?.instructions ?? "",
-      qr_image_url: (method?.data as { qr_image_url?: string | null } | null)?.qr_image_url ?? null,
+      payment_method_type: pm?.type ?? null,
+      payment_instructions: pm?.instructions ?? "",
+      qr_image_url: pm?.qr_image_url ?? null,
+      payment_url: pm?.config?.payment_url ?? null,
+      allowed_zones: pm?.config?.allowed_zones ?? null,
       payment_reference: order.payment_reference,
       payment_note: order.payment_note,
       customer_name: order.customer_name,
