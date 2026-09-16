@@ -242,6 +242,7 @@ async function buildInternalContext(): Promise<string> {
       .limit(20),
     knowledge(["internal_team", "all"]),
     quoterBlock(),
+    paymentBlock(true),
   ]);
 
   const inventory = (products ?? []).map((p) => {
