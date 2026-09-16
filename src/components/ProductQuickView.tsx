@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { FileDropzone3D, FILE_3D_WA_NOTE } from "@/components/FileDropzone3D";
+import { FileDropzone3D, file3dWaNote, type Dims3D } from "@/components/FileDropzone3D";
 import { ProductButtons } from "@/components/ProductButtons";
 import { ShareButton } from "@/components/ShareButton";
 import { formatCOP, gradientKeyFor, type Product } from "@/lib/catalog";
@@ -32,6 +32,7 @@ export function ProductQuickView({
   onOpenChange: (open: boolean) => void;
 }) {
   const [fileName, setFileName] = useState<string | null>(null);
+  const [dims, setDims] = useState<Dims3D | null>(null);
   const gradient = GRADIENTS[gradientKeyFor(product.category?.slug)];
 
   return (
@@ -73,19 +74,31 @@ export function ProductQuickView({
               <DialogDescription className="text-sm">{product.short}</DialogDescription>
             </DialogHeader>
 
-            <p className="text-2xl font-black text-[var(--brand-wine)]">
-              {formatCOP(product.price_cop)}
-            </p>
+            {product.quote_only ? (
+              <p className="text-lg font-bold text-[var(--brand-teal-deep)]">Sujeto a cotización</p>
+            ) : (
+              <p className="text-2xl font-black text-[var(--brand-wine)]">
+                {formatCOP(product.price_cop)}
+              </p>
+            )}
 
             {product.accepts_3d_file && (
-              <FileDropzone3D fileName={fileName} onFileChange={setFileName} className="mt-1" />
+              <FileDropzone3D
+                fileName={fileName}
+                onFileChange={(name, d) => {
+                  setFileName(name);
+                  setDims(d ?? null);
+                }}
+                className="mt-1"
+              />
             )}
 
             {product.custom_buttons.length > 0 && (
               <ProductButtons
                 product={product}
                 buttons={product.custom_buttons}
-                extraWhatsappNote={fileName ? FILE_3D_WA_NOTE : undefined}
+                extraWhatsappNote={file3dWaNote(fileName, dims)}
+                quoteOnly={product.quote_only}
               />
             )}
 
