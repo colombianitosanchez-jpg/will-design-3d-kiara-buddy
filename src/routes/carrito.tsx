@@ -16,6 +16,7 @@ import {
 } from "@/lib/payment-methods.functions";
 import {
   PAYMENT_GROUPS,
+  isManualFlow,
   isRedirectFlow,
   paymentGroup,
   usesQr,
