@@ -54,6 +54,13 @@ function readStorage(): CartItem[] {
         price_cop: Number(i.price_cop) || 0,
         image_url: typeof i.image_url === "string" ? i.image_url : null,
         quantity: Math.min(MAX_QTY, Math.max(1, Number(i.quantity) || 1)),
+        kind: i.kind === "service" ? ("service" as const) : ("product" as const),
+        service_slug: typeof i.service_slug === "string" ? i.service_slug : undefined,
+        answers:
+          i.answers && typeof i.answers === "object" && !Array.isArray(i.answers)
+            ? (i.answers as Record<string, string>)
+            : undefined,
+        detail: typeof i.detail === "string" ? i.detail : undefined,
       }));
   } catch {
     return [];
