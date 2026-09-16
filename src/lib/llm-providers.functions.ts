@@ -32,11 +32,16 @@ const upsertSchema = z.object({
 });
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
-  const { data, error } = await context.supabase.rpc("has_role", {
-    _user_id: context.userId,
-    _role: "admin",
-  });
-  if (error || !data) throw new Error("Forbidden: se requiere rol de administrador");
+  const { data } = await context.supabase
+    .from("user_roles")
+    .select("role, is_active")
+    .eq("user_id", context.userId)
+    .maybeSingle();
+  const role = String((data as { role?: string } | null)?.role ?? "");
+  const active = (data as { is_active?: boolean } | null)?.is_active !== false;
+  if (!data || !active || role !== "super_admin") {
+    throw new Error("Solo un Super Admin puede gestionar la configuración de IA");
+  }
 }
 
 /** Lista los proveedores (sin exponer la clave, solo si existe o no). */
