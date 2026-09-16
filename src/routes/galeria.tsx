@@ -24,11 +24,11 @@ function GaleriaPage() {
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20">
           <span className="chip-teal">Portafolio</span>
           <h1 className="mt-3 text-4xl font-black sm:text-5xl md:text-6xl">
-            Piezas que{" "}
-            <span style={{ color: "var(--brand-orange)" }}>hemos impreso</span>
+            Nuestro{" "}
+            <span style={{ color: "var(--brand-orange)" }}>portafolio</span>
           </h1>
           <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-            Nuestro portafolio se actualiza en tiempo real desde Instagram.
+            Proyectos reales del taller y las últimas publicaciones de Instagram, en un solo lugar.
           </p>
         </div>
       </section>

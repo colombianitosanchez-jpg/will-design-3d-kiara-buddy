@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { sanitizeWidgetId } from "@/components/InstagramFeed";
 
 export const Route = createFileRoute("/panel/contenido")({
@@ -22,10 +23,11 @@ type Row = { key: string; value: string };
 type FieldDef = {
   key: string;
   label: string;
-  type: "text" | "textarea" | "image" | "images" | "switch";
+  type: "text" | "textarea" | "image" | "images" | "switch" | "select";
   help?: string;
   section: string;
   group: string;
+  options?: { value: string; label: string }[];
 };
 
 const FIELDS: FieldDef[] = [
@@ -42,6 +44,10 @@ const FIELDS: FieldDef[] = [
   { key: "hero_stat_3_v", label: "Estadística 3 · descripción", type: "text", section: "Inicio", group: "Estadísticas" },
   { key: "show_manual_gallery", label: "Mostrar sección de Portafolio Manual (Piezas que hemos impreso)", type: "switch", help: "Se muestra si está activo y hay al menos una foto subida.", section: "Inicio", group: "Portafolio (Instagram)" },
   { key: "show_instagram_widget", label: "Mostrar sección de Instagram en vivo", type: "switch", help: "Se muestra si está activo y el ID del widget es válido.", section: "Inicio", group: "Portafolio (Instagram)" },
+  { key: "portfolio_display_order", label: "Orden de visualización", type: "select", help: "Decide qué sección del portafolio aparece primero en la página.", section: "Inicio", group: "Portafolio (Instagram)", options: [
+    { value: "manual_first", label: "Fotos manuales primero, luego Instagram" },
+    { value: "instagram_first", label: "Instagram primero, luego fotos manuales" },
+  ] },
   { key: "portfolio_images", label: "Fotos de portafolio", type: "images", help: "Se muestran en la sección de portafolio del inicio y en /galeria. Ya no se ocultan al usar el widget de Instagram.", section: "Inicio", group: "Portafolio (Instagram)" },
   { key: "elfsight_instagram_id", label: "ID del widget de Instagram (Elfsight)", type: "text", help: "Puedes pegar el ID completo ('elfsight-app-abc123'); quitamos el prefijo automáticamente.", section: "Inicio", group: "Portafolio (Instagram)" },
   { key: "about_short", label: "Descripción corta 'Nosotros'", type: "textarea", section: "Inicio", group: "Página Nosotros" },
@@ -221,6 +227,24 @@ function ContenidoAdmin() {
             }}
             className="resize-y"
           />
+        )}
+
+        {f.type === "select" && f.options && (
+          <Select
+            value={(values[f.key] ?? "") || f.options[0].value}
+            onValueChange={(val) => setValues((v) => ({ ...v, [f.key]: val }))}
+          >
+            <SelectTrigger id={f.key} className="max-w-md">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {f.options.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         )}
 
 

@@ -128,6 +128,41 @@ export function InstagramFeed() {
   const scriptStatus = useElfsightScript(wantsWidget, cleanWidgetId);
   const showWidget = wantsWidget && scriptStatus !== "error";
 
+  const instagramFirst =
+    (content?.portfolio_display_order ?? "").trim() === "instagram_first";
+
+  const manualBlock = showManual ? (
+    <ManualGallery key="manual" photos={photos} handle={handle} />
+  ) : null;
+
+  const widgetBlock = showWidget ? (
+    <div key="instagram">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="max-w-xl">
+          <span className="chip-teal">Portafolio en vivo</span>
+          <h2 className="mt-3 text-3xl font-black sm:text-4xl md:text-5xl">
+            Directo desde nuestro Instagram
+          </h2>
+          <p className="mt-3 text-muted-foreground">
+            Las últimas publicaciones de{" "}
+            <strong className="text-foreground">@{handle}</strong> — se actualizan
+            automáticamente.
+          </p>
+        </div>
+        <a href={instagramUrl} target="_blank" rel="noreferrer" className="btn-outline">
+          <Instagram className="h-4 w-4" />@{handle}
+        </a>
+      </div>
+      <div className="mt-10 min-h-[240px]">
+        {scriptStatus === "ready" && (
+          <div className={`elfsight-app-${cleanWidgetId}`} data-elfsight-app-lazy />
+        )}
+      </div>
+    </div>
+  ) : null;
+
+  const blocks = instagramFirst ? [widgetBlock, manualBlock] : [manualBlock, widgetBlock];
+
   return (
     <section
       id="portafolio"
@@ -135,33 +170,7 @@ export function InstagramFeed() {
       style={{ background: "color-mix(in oklab, var(--brand-teal) 6%, white)" }}
     >
       <div className="mx-auto max-w-7xl space-y-12 px-4 py-16 sm:px-6 md:py-24">
-        {showManual && <ManualGallery photos={photos} handle={handle} />}
-
-        {showWidget && (
-          <div>
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <div className="max-w-xl">
-                <span className="chip-teal">Portafolio en vivo</span>
-                <h2 className="mt-3 text-3xl font-black sm:text-4xl md:text-5xl">
-                  Directo desde nuestro Instagram
-                </h2>
-                <p className="mt-3 text-muted-foreground">
-                  Las últimas publicaciones de{" "}
-                  <strong className="text-foreground">@{handle}</strong> — se actualizan
-                  automáticamente.
-                </p>
-              </div>
-              <a href={instagramUrl} target="_blank" rel="noreferrer" className="btn-outline">
-                <Instagram className="h-4 w-4" />@{handle}
-              </a>
-            </div>
-            <div className="mt-10 min-h-[240px]">
-              {scriptStatus === "ready" && (
-                <div className={`elfsight-app-${cleanWidgetId}`} data-elfsight-app-lazy />
-              )}
-            </div>
-          </div>
-        )}
+        {blocks}
 
         {!showManual && !showWidget && (
           <PortfolioTeaser instagramUrl={instagramUrl} handle={handle} />
