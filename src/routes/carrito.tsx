@@ -60,6 +60,8 @@ function CarritoPage() {
     payment_method_name: string | null;
     payment_method_type: string | null;
     qr_image_url: string | null;
+    payment_url: string | null;
+    allowed_zones: string | null;
   } | null>(null);
   const [form, setForm] = useState({
     customer_name: "",
