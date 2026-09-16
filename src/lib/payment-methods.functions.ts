@@ -116,11 +116,14 @@ export const listPublicPaymentMethods = createServerFn({ method: "GET" }).handle
 
   const { data, error } = await client
     .from("payment_methods")
-    .select("id, name, type, instructions, display_order, qr_image_url")
+    .select("id, name, type, instructions, display_order, qr_image_url, config")
     .eq("is_active", true)
     .order("display_order", { ascending: true });
   if (error) return [] as PublicPaymentMethod[];
-  return (data ?? []) as PublicPaymentMethod[];
+  return (data ?? []).map((m) => ({
+    ...m,
+    config: (m.config ?? {}) as PaymentMethodConfig,
+  })) as PublicPaymentMethod[];
 });
 
 /** Lista completa para el Panel (Super Admin). No devuelve valores de credenciales. */
