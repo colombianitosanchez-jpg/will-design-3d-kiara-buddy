@@ -10,6 +10,14 @@ export type QuoterOption = {
 
 export type QuoterInputType = "slider" | "select" | "toggle" | "number" | "text";
 
+/** Origen del costo unitario: número fijo del campo o una variable global. */
+export type QuoterPriceSource =
+  | "fixed"
+  | "fdm_gram_cost"
+  | "resin_ml_cost"
+  | "machine_hour_rate"
+  | "labor_hour_rate";
+
 export type QuoterField = {
   id: string;
   service_id: string;
@@ -23,11 +31,22 @@ export type QuoterField = {
   default_value: string;
   unit: string;
   price_per_unit_cop: number;
+  price_source: QuoterPriceSource;
   multiplier: number;
   options: QuoterOption[];
   is_required: boolean;
   is_active: boolean;
   sort_order: number;
+};
+
+/** Variables globales del cotizador que pueden alimentar el costo de un campo. */
+export type QuoterVars = {
+  fdm_gram_cost: number;
+  resin_ml_cost: number;
+  machine_hour_rate: number;
+  labor_hour_rate: number;
+  default_margin: number;
+  failure_rate_percentage: number;
 };
 
 export type QuoterService = {
