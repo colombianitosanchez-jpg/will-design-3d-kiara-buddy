@@ -21,9 +21,13 @@ import {
   Plus,
   type LucideIcon,
 } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
+import { toast } from "sonner";
 import kiaraAsset from "@/assets/kiara.asset.json";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 import { useSiteContent } from "@/hooks/use-site-content";
+import { useCart } from "@/lib/cart";
+import { quotingVarsQuery } from "@/lib/quoting-vars";
 
 import { supabase } from "@/integrations/supabase/client";
 import { createQuoteRequest } from "@/lib/quotes.functions";
