@@ -139,6 +139,70 @@ function QuoterAdmin() {
   );
 }
 
+/** Variables globales que alimentan los precios de todos los servicios. */
+function GlobalVarsCard({ onMsg }: { onMsg: (m: string) => void }) {
+  const qc = useQueryClient();
+  const { data } = useQuery(quotingVarsQuery());
+  const [draft, setDraft] = useState<QuotingVars>(DEFAULT_QUOTING_VARS);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (data) setDraft(data.vars);
+  }, [data]);
+
+  async function save() {
+    if (!data?.id) {
+      onMsg("Error: no encontramos la fila de ajustes.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await saveQuotingVars(data.id, draft);
+      onMsg("Variables globales guardadas.");
+      void qc.invalidateQueries({ queryKey: ["admin_settings", "quoting_vars"] });
+    } catch (err) {
+      onMsg(`Error: ${(err as Error).message}`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="mt-6 rounded-3xl border border-border bg-card p-5">
+      <h2 className="text-lg font-black">Variables globales</h2>
+      <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+        Costos base de todo el taller. Cualquier pregunta del cotizador puede tomar su costo de aquí
+        en vez de un número fijo, así actualizas precios en un solo lugar.
+      </p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {QUOTING_VAR_LABELS.map((v) => (
+          <L key={v.key} label={v.label}>
+            <input
+              type="number"
+              step="0.01"
+              value={draft[v.key]}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, [v.key]: Number(e.target.value) || 0 }))
+              }
+              className={inputCls}
+            />
+            <span className="mt-1 block text-[11px] text-muted-foreground">{v.help}</span>
+          </L>
+        ))}
+      </div>
+      <button
+        onClick={save}
+        disabled={saving}
+        className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--brand-wine)] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+      >
+        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+        Guardar variables
+      </button>
+    </div>
+  );
+}
+
+
 function ServiceCard({
   service,
   open,
