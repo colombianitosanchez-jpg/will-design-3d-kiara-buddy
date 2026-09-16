@@ -120,7 +120,13 @@ function CarritoPage() {
     try {
       const res = await submit({
         data: {
-          items: items.map((i) => ({ product_id: i.product_id, quantity: i.quantity })),
+          items: items.map((i) => ({
+            product_id: i.product_id,
+            quantity: i.quantity,
+            kind: i.kind ?? "product",
+            ...(i.service_slug ? { service_slug: i.service_slug } : {}),
+            ...(i.answers ? { answers: i.answers } : {}),
+          })),
           ...form,
           payment_method_id: methodId || null,
         },
