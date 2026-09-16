@@ -147,7 +147,9 @@ export function InstagramFeed() {
   const instagramUrl = contact.instagram_url;
 
   const cleanWidgetId = sanitizeWidgetId(content?.elfsight_instagram_id || ENV_WIDGET_ID);
-  const photos = parseImages(content?.portfolio_images);
+  const photos = parsePhotos(content?.portfolio_images).filter(
+    (photo) => photo.is_visible !== false,
+  );
 
   const showManual = isOn(content?.show_manual_gallery) && photos.length > 0;
   const wantsWidget = isOn(content?.show_instagram_widget) && cleanWidgetId.length > 0;
@@ -216,7 +218,7 @@ export function InstagramFeed() {
   );
 }
 
-function ManualGallery({ photos, handle }: { photos: string[]; handle: string }) {
+function ManualGallery({ photos, handle }: { photos: PortfolioPhoto[]; handle: string }) {
   return (
     <div>
       <div className="max-w-xl">
@@ -235,12 +237,12 @@ function ManualGallery({ photos, handle }: { photos: string[]; handle: string })
   );
 }
 
-function PhotoGallery({ photos, handle }: { photos: string[]; handle: string }) {
+function PhotoGallery({ photos, handle }: { photos: PortfolioPhoto[]; handle: string }) {
   const [zoom, setZoom] = useState<string | null>(null);
   return (
     <>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {photos.map((src, i) => (
+        {photos.map(({ url: src, id }, i) => (
           <button
             key={src + i}
             type="button"
