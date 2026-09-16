@@ -116,6 +116,8 @@ function QuoterAdmin() {
 
       {msg && <p className="mt-3 text-xs font-semibold text-muted-foreground">{msg}</p>}
 
+      <GlobalVarsCard onMsg={setMsg} />
+
       <div className="mt-6 space-y-4">
         {(services ?? []).map((s) => (
           <ServiceCard
@@ -528,6 +530,7 @@ function FieldEditor({
         default_value: d.default_value,
         unit: d.unit,
         price_per_unit_cop: d.price_per_unit_cop,
+        price_source: d.price_source ?? "fixed",
         multiplier: d.multiplier || 1,
         options: d.options,
         is_active: d.is_active,
