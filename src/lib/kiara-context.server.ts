@@ -131,9 +131,59 @@ async function quoterBlock(): Promise<string> {
   return `## SERVICIOS COTIZABLES (usa la herramienta quote_service con estos slugs)\n${lines.join("\n")}`;
 }
 
+const PAYMENT_TYPE_TEXT: Record<string, string> = {
+  manual_transfer: "transferencia manual / QR (Nequi, banco)",
+  gateway: "pasarela de pago en línea",
+  gateway_redirect: "pasarela en línea (PSE / tarjetas)",
+  cash_on_delivery: "pago contra entrega",
+  cash_point: "pago en punto de efectivo (Efecty, etc.)",
+  crypto: "criptomonedas",
+};
+
+/**
+ * Formas de pago tal como están configuradas en Panel → Pagos.
+ * Nunca incluye credenciales ni enlaces privados de checkout.
+ */
+async function paymentBlock(isInternal: boolean): Promise<string> {
+  const { data } = await supabaseAdmin
+    .from("payment_methods")
+    .select("name, type, instructions, is_active")
+    .order("display_order", { ascending: true });
+
+  const rows = data ?? [];
+  const active = rows.filter((m) => m.is_active !== false);
+  if (!active.length && !isInternal) return "";
+
+  const line = (m: (typeof rows)[number]) => {
+    const kind = PAYMENT_TYPE_TEXT[String(m.type)] ?? String(m.type);
+    const info = String(m.instructions ?? "").trim();
+    return `- ${m.name} — ${kind}${info ? `\n  Instrucciones: ${info}` : ""}`;
+  };
+
+  const parts: string[] = [];
+  if (active.length) {
+    parts.push(`## FORMAS DE PAGO ACTIVAS\n${active.map(line).join("\n")}`);
+  } else {
+    parts.push("## FORMAS DE PAGO ACTIVAS\n- Ninguna configurada por ahora.");
+  }
+
+  if (isInternal) {
+    const off = rows.filter((m) => m.is_active === false);
+    if (off.length) {
+      parts.push(
+        `## FORMAS DE PAGO DESACTIVADAS (no ofrecer al cliente)\n${off
+          .map((m) => `- ${m.name} — ${PAYMENT_TYPE_TEXT[String(m.type)] ?? String(m.type)}`)
+          .join("\n")}`,
+      );
+    }
+  }
+
+  return parts.join("\n\n");
+}
+
 /** MODO PÚBLICO: solo catálogo activo + conocimiento público. Nada de pedidos/clientes/costos. */
 async function buildPublicContext(): Promise<string> {
-  const [{ data: products }, kb, quoter] = await Promise.all([
+  const [{ data: products }, kb, quoter, payments] = await Promise.all([
     supabaseAdmin
       .from("products")
       .select("name, slug, price_cop, short, stock, categories(name), brands(name)")
@@ -142,6 +192,7 @@ async function buildPublicContext(): Promise<string> {
       .limit(80),
     knowledge(["public_web", "all"]),
     quoterBlock(),
+    paymentBlock(false),
   ]);
 
   const catalog = (products ?? []).map((p) => {
