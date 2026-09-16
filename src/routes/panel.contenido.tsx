@@ -229,6 +229,24 @@ function ContenidoAdmin() {
           />
         )}
 
+        {f.type === "select" && f.options && (
+          <Select
+            value={(values[f.key] ?? "") || f.options[0].value}
+            onValueChange={(val) => setValues((v) => ({ ...v, [f.key]: val }))}
+          >
+            <SelectTrigger id={f.key} className="max-w-md">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {f.options.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
 
         {f.type === "image" && (
           <div className="flex flex-wrap items-center gap-4">
