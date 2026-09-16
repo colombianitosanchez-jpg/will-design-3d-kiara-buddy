@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { sanitizeWidgetId } from "@/components/InstagramFeed";
 
 export const Route = createFileRoute("/panel/contenido")({
   ssr: false,
