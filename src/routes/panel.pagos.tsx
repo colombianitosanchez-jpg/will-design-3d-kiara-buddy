@@ -223,9 +223,11 @@ function PagosPage() {
       type: m.type,
       instructions: m.instructions,
       qr_image_url: m.qr_image_url ?? "",
+      payment_url: m.config?.payment_url ?? "",
+      allowed_zones: m.config?.allowed_zones ?? "",
       display_order: m.display_order,
       is_active: m.is_active,
-      credentials: [{ key: m.type === "gateway" ? "api_key" : "numero", value: "" }],
+      credentials: [{ key: isRedirectFlow(m.type) ? "api_key" : "numero", value: "" }],
     });
     setShowCreds(false);
   }
