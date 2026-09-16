@@ -207,6 +207,9 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
 
   const contact = getContactInfo(content);
   const saveQuote = useServerFn(createQuoteRequest);
+  const { data: quotingVars } = useQuery(quotingVarsQuery());
+  const { addItem } = useCart();
+
 
   const [serviceId, setServiceId] = useState<string | null>(null);
   const [values, setValues] = useState<QuoterValues>({});
