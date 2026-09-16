@@ -651,8 +651,24 @@ function FieldEditor({
                     type="number"
                     value={d.price_per_unit_cop}
                     onChange={(e) => set("price_per_unit_cop", Number(e.target.value) || 0)}
-                    className={inputCls}
+                    disabled={d.price_source !== "fixed"}
+                    className={`${inputCls} disabled:opacity-50`}
                   />
+                </L>
+                <L label="¿De dónde sale el costo?">
+                  <select
+                    value={d.price_source ?? "fixed"}
+                    onChange={(e) =>
+                      set("price_source", e.target.value as QuoterField["price_source"])
+                    }
+                    className={inputCls}
+                  >
+                    {PRICE_SOURCE_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
                 </L>
               </>
             )}
