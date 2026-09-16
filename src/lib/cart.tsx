@@ -9,12 +9,18 @@ import {
 } from "react";
 
 export type CartItem = {
+  /** Clave del artículo: id del producto, o "svc:<slug>:<hash>" para servicios cotizados. */
   product_id: string;
   slug: string;
   name: string;
   price_cop: number;
   image_url: string | null;
   quantity: number;
+  /** "service" cuando la línea viene del cotizador (no es un producto de la tienda). */
+  kind?: "product" | "service";
+  service_slug?: string;
+  answers?: Record<string, string>;
+  detail?: string;
 };
 
 const STORAGE_KEY = "wd3d_cart_v1";

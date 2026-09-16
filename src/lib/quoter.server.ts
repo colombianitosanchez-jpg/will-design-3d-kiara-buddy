@@ -40,3 +40,22 @@ export async function getQuoterServices(): Promise<QuoterService[]> {
   const fields = (fld.data ?? []).map((r) => normalizeField(r as Record<string, unknown>));
   return (svc.data ?? []).map((r) => normalizeService(r as Record<string, unknown>, fields));
 }
+
+/** Variables globales del cotizador leídas en el servidor. */
+export async function getQuotingVars(): Promise<QuoterVars> {
+  const sb = publicClient();
+  const { data } = await sb.from("admin_settings").select("id, quoting_vars").limit(1).maybeSingle();
+  const raw = ((data as { quoting_vars?: unknown } | null)?.quoting_vars ?? {}) as Record<string, unknown>;
+  const num = (k: keyof QuoterVars) => {
+    const n = Number(raw[k]);
+    return Number.isFinite(n) ? n : DEFAULT_VARS[k];
+  };
+  return {
+    fdm_gram_cost: num("fdm_gram_cost"),
+    resin_ml_cost: num("resin_ml_cost"),
+    machine_hour_rate: num("machine_hour_rate"),
+    labor_hour_rate: num("labor_hour_rate"),
+    default_margin: num("default_margin"),
+    failure_rate_percentage: num("failure_rate_percentage"),
+  };
+}
