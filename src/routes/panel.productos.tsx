@@ -47,6 +47,7 @@ type Product = {
   show_whatsapp: boolean;
   hide_default_cta: boolean;
   accepts_3d_file: boolean;
+  quote_only: boolean;
   custom_share_text: string | null;
   custom_buttons: ProductButton[];
   category_id: string | null;
@@ -928,6 +929,14 @@ function ProductModal({
               aria-label="Solicitar archivo 3D al cliente (STL/OBJ/STEP) antes de cotizar"
             />
             Solicitar archivo 3D al cliente (STL/OBJ/STEP) antes de cotizar
+          </label>
+          <label className="inline-flex items-center gap-2 text-sm">
+            <Switch
+              checked={!!form.quote_only}
+              onCheckedChange={(checked) => set("quote_only", checked)}
+              aria-label="Solo cotización (ocultar precio)"
+            />
+            Solo cotización (ocultar precio)
           </label>
           <label className="inline-flex items-center gap-2 text-sm">
             <input
