@@ -21,9 +21,13 @@ import {
   Plus,
   type LucideIcon,
 } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
+import { toast } from "sonner";
 import kiaraAsset from "@/assets/kiara.asset.json";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 import { useSiteContent } from "@/hooks/use-site-content";
+import { useCart } from "@/lib/cart";
+import { quotingVarsQuery } from "@/lib/quoting-vars";
 
 import { supabase } from "@/integrations/supabase/client";
 import { createQuoteRequest } from "@/lib/quotes.functions";
@@ -203,6 +207,9 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
 
   const contact = getContactInfo(content);
   const saveQuote = useServerFn(createQuoteRequest);
+  const { data: quotingVars } = useQuery(quotingVarsQuery());
+  const { addItem } = useCart();
+
 
   const [serviceId, setServiceId] = useState<string | null>(null);
   const [values, setValues] = useState<QuoterValues>({});
@@ -222,9 +229,31 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
   );
 
   const result = useMemo(
-    () => (service ? computeQuote(service, values, quantity) : null),
-    [service, values, quantity],
+    () => (service ? computeQuote(service, values, quantity, quotingVars?.vars) : null),
+    [service, values, quantity, quotingVars],
   );
+
+  /** Agrega el servicio cotizado al carrito como una línea de servicio. */
+  function addQuoteToCart() {
+    if (!service || !result) return;
+    const answers: Record<string, string> = { ...values };
+    const key = `svc:${service.slug}:${JSON.stringify(answers)}`;
+    addItem(
+      {
+        product_id: key,
+        slug: service.slug,
+        name: `Servicio: ${service.name}`,
+        price_cop: result.unit_price_cop,
+        image_url: null,
+        kind: "service",
+        service_slug: service.slug,
+        answers,
+        detail: result.answers.map((a) => `${a.label}: ${a.value}`).join(" · ").slice(0, 600),
+      },
+      result.quantity,
+    );
+    toast.success("Servicio agregado a tu carrito");
+  }
 
   function pick(s: QuoterService) {
     setServiceId(s.id);
@@ -613,6 +642,14 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
                 </p>
               )}
             </div>
+
+            <button
+              type="button"
+              onClick={addQuoteToCart}
+              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-[var(--brand-teal-deep)] px-5 py-2.5 text-sm font-black text-[var(--brand-teal-deep)] transition hover:bg-muted"
+            >
+              <ShoppingCart className="h-4 w-4" /> Agregar al carrito
+            </button>
 
             <p className="mt-4 text-[11px] text-muted-foreground">
               Es un estimado automático. Confirmamos el precio final al revisar tu archivo o idea.

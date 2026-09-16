@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
+import { Loader2, Minus, Plus, Share2, ShoppingCart, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { useCart } from "@/lib/cart";
 import { formatCOP, getContactInfo, waLink } from "@/lib/catalog";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { createCartOrder } from "@/lib/cart-order.functions";
+import { saveQuote } from "@/lib/saved-quotes.functions";
 import {
   listPublicPaymentMethods,
   type PublicPaymentMethod,
@@ -51,7 +52,9 @@ function CarritoPage() {
   const { items, total, count, setQuantity, removeItem, clear } = useCart();
   const submit = useServerFn(createCartOrder);
   const loadMethods = useServerFn(listPublicPaymentMethods);
+  const persistQuote = useServerFn(saveQuote);
   const [sending, setSending] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [methods, setMethods] = useState<PublicPaymentMethod[]>([]);
   const [methodId, setMethodId] = useState<string>("");
   const [done, setDone] = useState<{
@@ -113,6 +116,45 @@ function CarritoPage() {
     return undefined;
   }, [done]);
 
+  /** Guarda el carrito como cotización y comparte el enlace. */
+  async function shareQuote() {
+    if (!items.length) return;
+    setSharing(true);
+    try {
+      const res = await persistQuote({
+        data: {
+          items: items.map((i) => ({
+            kind: i.kind ?? "product",
+            product_id: i.product_id,
+            slug: i.slug,
+            name: i.name,
+            price_cop: i.price_cop,
+            quantity: i.quantity,
+            image_url: i.image_url,
+            ...(i.service_slug ? { service_slug: i.service_slug } : {}),
+            ...(i.detail ? { detail: i.detail } : {}),
+            ...(i.answers ? { answers: i.answers } : {}),
+          })),
+        },
+      });
+      const url = `${window.location.origin}/cotizacion/${res.id}`;
+      if (typeof navigator !== "undefined" && navigator.share) {
+        try {
+          await navigator.share({ title: "Cotización Will Design 3D", url });
+          return;
+        } catch {
+          /* el usuario canceló: seguimos con el portapapeles */
+        }
+      }
+      await navigator.clipboard?.writeText(url);
+      toast.success("Enlace de la cotización copiado");
+    } catch (err) {
+      toast.error((err as Error).message || "No pudimos guardar la cotización");
+    } finally {
+      setSharing(false);
+    }
+  }
+
   async function confirm(e: React.FormEvent) {
     e.preventDefault();
     if (!items.length) return;
@@ -120,7 +162,13 @@ function CarritoPage() {
     try {
       const res = await submit({
         data: {
-          items: items.map((i) => ({ product_id: i.product_id, quantity: i.quantity })),
+          items: items.map((i) => ({
+            product_id: i.product_id,
+            quantity: i.quantity,
+            kind: i.kind ?? "product",
+            ...(i.service_slug ? { service_slug: i.service_slug } : {}),
+            ...(i.answers ? { answers: i.answers } : {}),
+          })),
           ...form,
           payment_method_id: methodId || null,
         },
@@ -311,6 +359,20 @@ function CarritoPage() {
                 Total: <span className="text-[var(--brand-wine)]">{formatCOP(total)}</span>
               </p>
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-4 w-full"
+              disabled={sharing}
+              onClick={shareQuote}
+            >
+              {sharing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Share2 className="mr-2 h-4 w-4" />
+              )}
+              Guardar y Compartir Cotización
+            </Button>
           </div>
 
           <form onSubmit={confirm} className="rounded-3xl border border-border bg-card p-4 sm:p-6">

@@ -10,6 +10,14 @@ export type QuoterOption = {
 
 export type QuoterInputType = "slider" | "select" | "toggle" | "number" | "text";
 
+/** Origen del costo unitario: número fijo del campo o una variable global. */
+export type QuoterPriceSource =
+  | "fixed"
+  | "fdm_gram_cost"
+  | "resin_ml_cost"
+  | "machine_hour_rate"
+  | "labor_hour_rate";
+
 export type QuoterField = {
   id: string;
   service_id: string;
@@ -23,11 +31,22 @@ export type QuoterField = {
   default_value: string;
   unit: string;
   price_per_unit_cop: number;
+  price_source: QuoterPriceSource;
   multiplier: number;
   options: QuoterOption[];
   is_required: boolean;
   is_active: boolean;
   sort_order: number;
+};
+
+/** Variables globales del cotizador que pueden alimentar el costo de un campo. */
+export type QuoterVars = {
+  fdm_gram_cost: number;
+  resin_ml_cost: number;
+  machine_hour_rate: number;
+  labor_hour_rate: number;
+  default_margin: number;
+  failure_rate_percentage: number;
 };
 
 export type QuoterService = {
@@ -70,6 +89,7 @@ export function normalizeField(row: Record<string, unknown>): QuoterField {
     default_value: String(row['default_value'] ?? ""),
     unit: String(row['unit'] ?? ""),
     price_per_unit_cop: num(row['price_per_unit_cop']),
+    price_source: (String(row['price_source'] ?? "fixed") || "fixed") as QuoterPriceSource,
     multiplier: num(row['multiplier'], 1) || 1,
     options: rawOptions
       .filter((o): o is Record<string, unknown> => Boolean(o) && typeof o === "object")
@@ -147,11 +167,24 @@ export function isOn(value: string | undefined) {
   return v === "si" || v === "sí" || v === "true" || v === "1" || v === "yes";
 }
 
+/**
+ * Costo unitario de un campo: su número fijo o la variable global elegida
+ * (con el porcentaje de fallo aplicado a esos costos globales).
+ */
+export function unitCostFor(field: QuoterField, vars?: QuoterVars): number {
+  const src = field.price_source ?? "fixed";
+  if (src === "fixed" || !vars) return num(field.price_per_unit_cop);
+  const base = num((vars as unknown as Record<string, unknown>)[src], num(field.price_per_unit_cop));
+  const failure = num(vars.failure_rate_percentage);
+  return base * (1 + failure / 100);
+}
+
 /** Precio en vivo: (base + recargos) × multiplicadores + margen, con mínimo y cantidad. */
 export function computeQuote(
   service: QuoterService,
   values: QuoterValues,
   quantity = 1,
+  vars?: QuoterVars,
 ): QuoterResult {
   const lines: QuoterLine[] = [];
   const answers: { label: string; value: string }[] = [];
@@ -166,7 +199,7 @@ export function computeQuote(
 
     if (f.input_type === "slider" || f.input_type === "number") {
       const v = num(raw);
-      const amount = v * num(f.price_per_unit_cop);
+      const amount = v * unitCostFor(f, vars);
       answers.push({ label: f.label, value: `${v}${f.unit ? ` ${f.unit}` : ""}` });
       if (amount) {
         add += amount;
@@ -175,6 +208,7 @@ export function computeQuote(
       if (f.multiplier !== 1) multiplier *= f.multiplier;
       continue;
     }
+
 
     if (f.input_type === "select") {
       const opt = f.options.find((o) => o.value === raw) ?? null;

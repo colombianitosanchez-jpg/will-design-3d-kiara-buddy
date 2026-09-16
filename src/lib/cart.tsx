@@ -9,12 +9,18 @@ import {
 } from "react";
 
 export type CartItem = {
+  /** Clave del artículo: id del producto, o "svc:<slug>:<hash>" para servicios cotizados. */
   product_id: string;
   slug: string;
   name: string;
   price_cop: number;
   image_url: string | null;
   quantity: number;
+  /** "service" cuando la línea viene del cotizador (no es un producto de la tienda). */
+  kind?: "product" | "service";
+  service_slug?: string;
+  answers?: Record<string, string>;
+  detail?: string;
 };
 
 const STORAGE_KEY = "wd3d_cart_v1";
@@ -48,6 +54,13 @@ function readStorage(): CartItem[] {
         price_cop: Number(i.price_cop) || 0,
         image_url: typeof i.image_url === "string" ? i.image_url : null,
         quantity: Math.min(MAX_QTY, Math.max(1, Number(i.quantity) || 1)),
+        kind: i.kind === "service" ? ("service" as const) : ("product" as const),
+        service_slug: typeof i.service_slug === "string" ? i.service_slug : undefined,
+        answers:
+          i.answers && typeof i.answers === "object" && !Array.isArray(i.answers)
+            ? (i.answers as Record<string, string>)
+            : undefined,
+        detail: typeof i.detail === "string" ? i.detail : undefined,
       }));
   } catch {
     return [];

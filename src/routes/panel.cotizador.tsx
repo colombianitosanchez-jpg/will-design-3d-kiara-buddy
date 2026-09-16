@@ -13,6 +13,14 @@ import {
   type QuoterValues,
 } from "@/lib/quoter";
 import {
+  DEFAULT_QUOTING_VARS,
+  PRICE_SOURCE_OPTIONS,
+  QUOTING_VAR_LABELS,
+  quotingVarsQuery,
+  saveQuotingVars,
+  type QuotingVars,
+} from "@/lib/quoting-vars";
+import {
   Loader2,
   Plus,
   Save,
@@ -116,6 +124,8 @@ function QuoterAdmin() {
 
       {msg && <p className="mt-3 text-xs font-semibold text-muted-foreground">{msg}</p>}
 
+      <GlobalVarsCard onMsg={setMsg} />
+
       <div className="mt-6 space-y-4">
         {(services ?? []).map((s) => (
           <ServiceCard
@@ -136,6 +146,70 @@ function QuoterAdmin() {
     </>
   );
 }
+
+/** Variables globales que alimentan los precios de todos los servicios. */
+function GlobalVarsCard({ onMsg }: { onMsg: (m: string) => void }) {
+  const qc = useQueryClient();
+  const { data } = useQuery(quotingVarsQuery());
+  const [draft, setDraft] = useState<QuotingVars>(DEFAULT_QUOTING_VARS);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (data) setDraft(data.vars);
+  }, [data]);
+
+  async function save() {
+    if (!data?.id) {
+      onMsg("Error: no encontramos la fila de ajustes.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await saveQuotingVars(data.id, draft);
+      onMsg("Variables globales guardadas.");
+      void qc.invalidateQueries({ queryKey: ["admin_settings", "quoting_vars"] });
+    } catch (err) {
+      onMsg(`Error: ${(err as Error).message}`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="mt-6 rounded-3xl border border-border bg-card p-5">
+      <h2 className="text-lg font-black">Variables globales</h2>
+      <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+        Costos base de todo el taller. Cualquier pregunta del cotizador puede tomar su costo de aquí
+        en vez de un número fijo, así actualizas precios en un solo lugar.
+      </p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {QUOTING_VAR_LABELS.map((v) => (
+          <L key={v.key} label={v.label}>
+            <input
+              type="number"
+              step="0.01"
+              value={draft[v.key]}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, [v.key]: Number(e.target.value) || 0 }))
+              }
+              className={inputCls}
+            />
+            <span className="mt-1 block text-[11px] text-muted-foreground">{v.help}</span>
+          </L>
+        ))}
+      </div>
+      <button
+        onClick={save}
+        disabled={saving}
+        className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--brand-wine)] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+      >
+        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+        Guardar variables
+      </button>
+    </div>
+  );
+}
+
 
 function ServiceCard({
   service,
@@ -528,6 +602,7 @@ function FieldEditor({
         default_value: d.default_value,
         unit: d.unit,
         price_per_unit_cop: d.price_per_unit_cop,
+        price_source: d.price_source ?? "fixed",
         multiplier: d.multiplier || 1,
         options: d.options,
         is_active: d.is_active,
@@ -651,8 +726,24 @@ function FieldEditor({
                     type="number"
                     value={d.price_per_unit_cop}
                     onChange={(e) => set("price_per_unit_cop", Number(e.target.value) || 0)}
-                    className={inputCls}
+                    disabled={d.price_source !== "fixed"}
+                    className={`${inputCls} disabled:opacity-50`}
                   />
+                </L>
+                <L label="¿De dónde sale el costo?">
+                  <select
+                    value={d.price_source ?? "fixed"}
+                    onChange={(e) =>
+                      set("price_source", e.target.value as QuoterField["price_source"])
+                    }
+                    className={inputCls}
+                  >
+                    {PRICE_SOURCE_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
                 </L>
               </>
             )}

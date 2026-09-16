@@ -40,6 +40,7 @@ import { Route as PanelCotizacionesRouteImport } from './routes/panel.cotizacion
 import { Route as PanelContenidoRouteImport } from './routes/panel.contenido'
 import { Route as PanelConocimientoRouteImport } from './routes/panel.conocimiento'
 import { Route as PanelCarruselRouteImport } from './routes/panel.carrusel'
+import { Route as CotizacionIdRouteImport } from './routes/cotizacion.$id'
 import { Route as ApiKiaraRouteImport } from './routes/api/kiara'
 import { Route as ApiCalculateQuoteRouteImport } from './routes/api/calculate-quote'
 import { Route as AdminServiciosRouteImport } from './routes/admin.servicios'
@@ -205,6 +206,11 @@ const PanelCarruselRoute = PanelCarruselRouteImport.update({
   path: '/carrusel',
   getParentRoute: () => PanelRoute,
 } as any)
+const CotizacionIdRoute = CotizacionIdRouteImport.update({
+  id: '/cotizacion/$id',
+  path: '/cotizacion/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiKiaraRoute = ApiKiaraRouteImport.update({
   id: '/api/kiara',
   path: '/api/kiara',
@@ -274,6 +280,7 @@ export interface FileRoutesByFullPath {
   '/admin/servicios': typeof AdminServiciosRoute
   '/api/calculate-quote': typeof ApiCalculateQuoteRoute
   '/api/kiara': typeof ApiKiaraRoute
+  '/cotizacion/$id': typeof CotizacionIdRoute
   '/panel/carrusel': typeof PanelCarruselRoute
   '/panel/conocimiento': typeof PanelConocimientoRoute
   '/panel/contenido': typeof PanelContenidoRoute
@@ -313,6 +320,7 @@ export interface FileRoutesByTo {
   '/admin/servicios': typeof AdminServiciosRoute
   '/api/calculate-quote': typeof ApiCalculateQuoteRoute
   '/api/kiara': typeof ApiKiaraRoute
+  '/cotizacion/$id': typeof CotizacionIdRoute
   '/panel/carrusel': typeof PanelCarruselRoute
   '/panel/conocimiento': typeof PanelConocimientoRoute
   '/panel/contenido': typeof PanelContenidoRoute
@@ -356,6 +364,7 @@ export interface FileRoutesById {
   '/admin/servicios': typeof AdminServiciosRoute
   '/api/calculate-quote': typeof ApiCalculateQuoteRoute
   '/api/kiara': typeof ApiKiaraRoute
+  '/cotizacion/$id': typeof CotizacionIdRoute
   '/panel/carrusel': typeof PanelCarruselRoute
   '/panel/conocimiento': typeof PanelConocimientoRoute
   '/panel/contenido': typeof PanelContenidoRoute
@@ -400,6 +409,7 @@ export interface FileRouteTypes {
     | '/admin/servicios'
     | '/api/calculate-quote'
     | '/api/kiara'
+    | '/cotizacion/$id'
     | '/panel/carrusel'
     | '/panel/conocimiento'
     | '/panel/contenido'
@@ -439,6 +449,7 @@ export interface FileRouteTypes {
     | '/admin/servicios'
     | '/api/calculate-quote'
     | '/api/kiara'
+    | '/cotizacion/$id'
     | '/panel/carrusel'
     | '/panel/conocimiento'
     | '/panel/contenido'
@@ -481,6 +492,7 @@ export interface FileRouteTypes {
     | '/admin/servicios'
     | '/api/calculate-quote'
     | '/api/kiara'
+    | '/cotizacion/$id'
     | '/panel/carrusel'
     | '/panel/conocimiento'
     | '/panel/contenido'
@@ -519,6 +531,7 @@ export interface RootRouteChildren {
   TiendaRoute: typeof TiendaRouteWithChildren
   ApiCalculateQuoteRoute: typeof ApiCalculateQuoteRoute
   ApiKiaraRoute: typeof ApiKiaraRoute
+  CotizacionIdRoute: typeof CotizacionIdRoute
   PedidoTokenRoute: typeof PedidoTokenRoute
   ApiPublicHooksPaymentWebhookRoute: typeof ApiPublicHooksPaymentWebhookRoute
   ApiPublicHooksProcessNotificationsRoute: typeof ApiPublicHooksProcessNotificationsRoute
@@ -743,6 +756,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelCarruselRouteImport
       parentRoute: typeof PanelRoute
     }
+    '/cotizacion/$id': {
+      id: '/cotizacion/$id'
+      path: '/cotizacion/$id'
+      fullPath: '/cotizacion/$id'
+      preLoaderRoute: typeof CotizacionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/kiara': {
       id: '/api/kiara'
       path: '/api/kiara'
@@ -894,6 +914,7 @@ const rootRouteChildren: RootRouteChildren = {
   TiendaRoute: TiendaRouteWithChildren,
   ApiCalculateQuoteRoute: ApiCalculateQuoteRoute,
   ApiKiaraRoute: ApiKiaraRoute,
+  CotizacionIdRoute: CotizacionIdRoute,
   PedidoTokenRoute: PedidoTokenRoute,
   ApiPublicHooksPaymentWebhookRoute: ApiPublicHooksPaymentWebhookRoute,
   ApiPublicHooksProcessNotificationsRoute:

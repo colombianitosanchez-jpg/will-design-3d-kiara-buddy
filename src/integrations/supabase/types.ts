@@ -18,18 +18,21 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          quoting_vars: Json
           sidebar_order: Json
           updated_at: string
         }
         Insert: {
           created_at?: string
           id?: string
+          quoting_vars?: Json
           sidebar_order?: Json
           updated_at?: string
         }
         Update: {
           created_at?: string
           id?: string
+          quoting_vars?: Json
           sidebar_order?: Json
           updated_at?: string
         }
@@ -869,6 +872,7 @@ export type Database = {
           multiplier: number
           options: Json
           price_per_unit_cop: number
+          price_source: string
           service_id: string
           sort_order: number
           step_value: number
@@ -890,6 +894,7 @@ export type Database = {
           multiplier?: number
           options?: Json
           price_per_unit_cop?: number
+          price_source?: string
           service_id: string
           sort_order?: number
           step_value?: number
@@ -911,6 +916,7 @@ export type Database = {
           multiplier?: number
           options?: Json
           price_per_unit_cop?: number
+          price_source?: string
           service_id?: string
           sort_order?: number
           step_value?: number
@@ -1069,6 +1075,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      saved_quotes: {
+        Row: {
+          created_at: string
+          id: string
+          items: Json
+          total_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          items?: Json
+          total_price?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          items?: Json
+          total_price?: number
+        }
+        Relationships: []
       }
       site_content: {
         Row: {
