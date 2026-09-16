@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Upload, Save } from "lucide-react";
+import { Loader2, Upload, Save, Eye, EyeOff } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { sanitizeWidgetId } from "@/components/InstagramFeed";
+import { sanitizeWidgetId, parsePhotos, type PortfolioPhoto } from "@/components/InstagramFeed";
 
 export const Route = createFileRoute("/panel/contenido")({
   ssr: false,
@@ -288,9 +288,31 @@ function ContenidoAdmin() {
         {f.type === "images" && (
           <div>
             <div className="flex flex-wrap gap-3">
-              {parseList(values[f.key]).map((src, idx) => (
-                <div key={src + idx} className="relative">
-                  <img src={src} alt="" className="h-20 w-20 rounded-xl object-cover" />
+              {parseList(values[f.key]).map((photo, idx) => (
+                <div key={photo.id} className="relative">
+                  <img
+                    src={photo.url}
+                    alt=""
+                    className={`h-20 w-20 rounded-xl object-cover ${photo.is_visible ? "" : "opacity-50"}`}
+                  />
+                  {!photo.is_visible && (
+                    <span className="absolute bottom-1 left-1 rounded-md bg-foreground/80 px-1.5 py-0.5 text-[10px] font-bold text-background">
+                      Oculto
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => togglePhotoAt(f.key, idx)}
+                    aria-label={photo.is_visible ? "Ocultar foto" : "Mostrar foto"}
+                    title={photo.is_visible ? "Ocultar foto" : "Mostrar foto"}
+                    className="absolute -left-2 -top-2 rounded-full border border-border bg-card p-1 shadow"
+                  >
+                    {photo.is_visible ? (
+                      <Eye className="h-3.5 w-3.5" />
+                    ) : (
+                      <EyeOff className="h-3.5 w-3.5" />
+                    )}
+                  </button>
                   <button
                     type="button"
                     onClick={() => removeImageAt(f.key, idx)}
