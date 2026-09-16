@@ -109,5 +109,8 @@ export const createCartOrder = createServerFn({ method: "POST" })
       public_token: order.public_token as string,
       payment_instructions: paymentMethod?.instructions ?? "",
       payment_method_name: paymentMethod?.name ?? null,
+      payment_method_type: paymentMethod?.type ?? null,
+      payment_url: paymentMethod?.payment_url ?? null,
+      allowed_zones: paymentMethod?.allowed_zones ?? null,
     };
   });
