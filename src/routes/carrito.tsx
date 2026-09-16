@@ -143,6 +143,31 @@ function CarritoPage() {
     }
   }
 
+  if (done && isRedirectFlow(done.payment_method_type) && done.payment_url) {
+    return (
+      <section className="mx-auto max-w-2xl px-4 py-20 text-center sm:px-6">
+        <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
+        <h1 className="mt-4 text-2xl font-black">Te llevamos a pagar…</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Tu pedido {done.order_id.slice(0, 8).toUpperCase()} quedó registrado. Estamos abriendo{" "}
+          {done.payment_method_name ?? "la plataforma de pago"} para completar el pago.
+        </p>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <a href={done.payment_url} className="btn-primary inline-flex text-sm">
+            Abrir la página de pago
+          </a>
+          <Link
+            to="/pedido/$token"
+            params={{ token: done.public_token }}
+            className="text-sm font-semibold underline"
+          >
+            Ver mi pedido
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
   if (done) {
     return (
       <section className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6">
@@ -153,6 +178,12 @@ function CarritoPage() {
         <p className="mt-1 text-xs text-muted-foreground">
           Referencia: {done.order_id.slice(0, 8).toUpperCase()}
         </p>
+        {done.payment_method_type === "cash_on_delivery" && (
+          <p className="mx-auto mt-4 max-w-xl rounded-2xl bg-muted/50 p-3 text-sm">
+            Pagas al recibir tu pedido.
+            {done.allowed_zones ? ` Cobertura: ${done.allowed_zones}.` : ""}
+          </p>
+        )}
         {done.payment_instructions && (
           <div className="mx-auto mt-6 max-w-xl rounded-3xl border border-border bg-muted/40 p-5 text-left">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
