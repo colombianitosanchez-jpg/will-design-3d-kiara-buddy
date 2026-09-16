@@ -26,6 +26,12 @@ import {
   type AdminPaymentMethod,
   type PaymentMethodType,
 } from "@/lib/payment-methods.functions";
+import {
+  PAYMENT_TYPE_OPTIONS,
+  isRedirectFlow,
+  paymentTypeLabel,
+  usesQr,
+} from "@/lib/payment-types";
 
 export const Route = createFileRoute("/panel/pagos")({
   ssr: false,
@@ -49,6 +55,8 @@ type FormState = {
   type: PaymentMethodType;
   instructions: string;
   qr_image_url: string;
+  payment_url: string;
+  allowed_zones: string;
   display_order: number;
   is_active: boolean;
   credentials: CredRow[];
@@ -59,6 +67,8 @@ const emptyForm: FormState = {
   type: "manual_transfer",
   instructions: "",
   qr_image_url: "",
+  payment_url: "",
+  allowed_zones: "",
   display_order: 0,
   is_active: false,
   credentials: [{ key: "numero", value: "" }],
@@ -160,7 +170,15 @@ function PagosPage() {
           name: form.name,
           type: form.type,
           instructions: form.instructions,
-          qr_image_url: form.qr_image_url,
+          qr_image_url: usesQr(form.type) ? form.qr_image_url : "",
+          config: {
+            ...(isRedirectFlow(form.type) && form.payment_url.trim()
+              ? { payment_url: form.payment_url.trim() }
+              : {}),
+            ...(form.type === "cash_on_delivery" && form.allowed_zones.trim()
+              ? { allowed_zones: form.allowed_zones.trim() }
+              : {}),
+          },
           display_order: form.display_order,
           is_active: form.is_active,
           credentials: form.credentials.filter((c) => c.key.trim() && c.value.trim()),
@@ -205,9 +223,11 @@ function PagosPage() {
       type: m.type,
       instructions: m.instructions,
       qr_image_url: m.qr_image_url ?? "",
+      payment_url: m.config?.payment_url ?? "",
+      allowed_zones: m.config?.allowed_zones ?? "",
       display_order: m.display_order,
       is_active: m.is_active,
-      credentials: [{ key: m.type === "gateway" ? "api_key" : "numero", value: "" }],
+      credentials: [{ key: isRedirectFlow(m.type) ? "api_key" : "numero", value: "" }],
     });
     setShowCreds(false);
   }
@@ -258,13 +278,19 @@ function PagosPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="manual_transfer">Transferencia manual</SelectItem>
-                    <SelectItem value="gateway">Pasarela de pago</SelectItem>
+                    {PAYMENT_TYPE_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                    {form.type === "gateway" && (
+                      <SelectItem value="gateway">Pasarela de pago (antiguo)</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </label>
               <label className="md:col-span-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Instrucciones para el cliente
+                Instrucciones para el cliente {!usesQr(form.type) && "(opcional)"}
                 <Textarea
                   rows={3}
                   value={form.instructions}
@@ -274,6 +300,37 @@ function PagosPage() {
                 />
               </label>
 
+              {isRedirectFlow(form.type) && (
+                <label className="md:col-span-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  URL de pago / Link de checkout
+                  <Input
+                    required
+                    type="url"
+                    value={form.payment_url}
+                    onChange={(e) => setForm({ ...form, payment_url: e.target.value })}
+                    placeholder="https://checkout.wompi.co/l/xxxxx"
+                    className="mt-1"
+                  />
+                  <span className="mt-1 block text-xs font-normal normal-case tracking-normal text-muted-foreground">
+                    Al confirmar el pedido, el cliente se abrirá automáticamente en esta página para
+                    completar el pago.
+                  </span>
+                </label>
+              )}
+
+              {form.type === "cash_on_delivery" && (
+                <label className="md:col-span-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Zonas permitidas
+                  <Input
+                    value={form.allowed_zones}
+                    onChange={(e) => setForm({ ...form, allowed_zones: e.target.value })}
+                    placeholder="Ej: Solo Bogotá"
+                    className="mt-1"
+                  />
+                </label>
+              )}
+
+              {usesQr(form.type) && (
               <div className="md:col-span-2">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Código QR (opcional)
@@ -333,6 +390,7 @@ function PagosPage() {
                   }}
                 />
               </div>
+              )}
 
               <div className="md:col-span-2">
                 <div className="flex items-center justify-between">
@@ -454,11 +512,12 @@ function PagosPage() {
               <div className="min-w-0 flex-1">
                 <p className="font-bold">{m.name}</p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {m.type === "gateway" ? "Pasarela" : "Transferencia manual"} ·{" "}
-                  {m.instructions || "sin instrucciones"}
+                  {paymentTypeLabel(m.type)} ·{" "}
+                  {m.config?.allowed_zones || m.instructions || "sin instrucciones"}
                 </p>
               </div>
               {m.qr_image_url && <Badge variant="secondary">Con QR</Badge>}
+              {m.config?.payment_url && <Badge variant="secondary">Con enlace de pago</Badge>}
               {m.has_credentials ? (
                 <Badge variant="secondary">Credenciales guardadas</Badge>
               ) : (

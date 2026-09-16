@@ -14,6 +14,13 @@ import {
   listPublicPaymentMethods,
   type PublicPaymentMethod,
 } from "@/lib/payment-methods.functions";
+import {
+  PAYMENT_GROUPS,
+  isManualFlow,
+  isRedirectFlow,
+  paymentGroup,
+  usesQr,
+} from "@/lib/payment-types";
 
 export const Route = createFileRoute("/carrito")({
   ssr: false,
@@ -54,6 +61,8 @@ function CarritoPage() {
     payment_method_name: string | null;
     payment_method_type: string | null;
     qr_image_url: string | null;
+    payment_url: string | null;
+    allowed_zones: string | null;
   } | null>(null);
   const [form, setForm] = useState({
     customer_name: "",
@@ -86,13 +95,23 @@ function CarritoPage() {
   const { content } = useSiteContent();
   const whatsapp = getContactInfo(content).whatsapp;
 
-  function receiptWaUrl(reference: string) {
-    return waLink(
-      whatsapp,
-      `Hola, acabo de realizar el pedido #${reference} en Will Design 3D. Adjunto el comprobante de pago.`,
-    );
+  function receiptWaUrl(reference: string, type: string | null) {
+    const text =
+      type === "cash_on_delivery"
+        ? `Hola, acabo de realizar el pedido #${reference}. El método es Pago Contra Entrega.`
+        : `Hola, acabo de realizar el pedido #${reference} en Will Design 3D. Adjunto el comprobante de pago.`;
+    return waLink(whatsapp, text);
   }
 
+  // Para pasarelas y cripto: al confirmar, el navegador sale al enlace de pago externo.
+  useEffect(() => {
+    if (done && isRedirectFlow(done.payment_method_type) && done.payment_url) {
+      const url = done.payment_url;
+      const t = window.setTimeout(() => window.location.assign(url), 1200);
+      return () => window.clearTimeout(t);
+    }
+    return undefined;
+  }, [done]);
 
   async function confirm(e: React.FormEvent) {
     e.preventDefault();
@@ -112,8 +131,10 @@ function CarritoPage() {
         public_token: res.public_token,
         payment_instructions: res.payment_instructions,
         payment_method_name: res.payment_method_name,
-        payment_method_type: selectedMethod?.type ?? null,
+        payment_method_type: res.payment_method_type ?? selectedMethod?.type ?? null,
         qr_image_url: selectedMethod?.qr_image_url ?? null,
+        payment_url: res.payment_url ?? null,
+        allowed_zones: res.allowed_zones ?? null,
       });
       toast.success("¡Pedido enviado! Te contactaremos muy pronto.");
     } catch (err) {
@@ -121,6 +142,31 @@ function CarritoPage() {
     } finally {
       setSending(false);
     }
+  }
+
+  if (done && isRedirectFlow(done.payment_method_type) && done.payment_url) {
+    return (
+      <section className="mx-auto max-w-2xl px-4 py-20 text-center sm:px-6">
+        <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
+        <h1 className="mt-4 text-2xl font-black">Te llevamos a pagar…</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Tu pedido {done.order_id.slice(0, 8).toUpperCase()} quedó registrado. Estamos abriendo{" "}
+          {done.payment_method_name ?? "la plataforma de pago"} para completar el pago.
+        </p>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <a href={done.payment_url} className="btn-primary inline-flex text-sm">
+            Abrir la página de pago
+          </a>
+          <Link
+            to="/pedido/$token"
+            params={{ token: done.public_token }}
+            className="text-sm font-semibold underline"
+          >
+            Ver mi pedido
+          </Link>
+        </div>
+      </section>
+    );
   }
 
   if (done) {
@@ -133,6 +179,12 @@ function CarritoPage() {
         <p className="mt-1 text-xs text-muted-foreground">
           Referencia: {done.order_id.slice(0, 8).toUpperCase()}
         </p>
+        {done.payment_method_type === "cash_on_delivery" && (
+          <p className="mx-auto mt-4 max-w-xl rounded-2xl bg-muted/50 p-3 text-sm">
+            Pagas al recibir tu pedido.
+            {done.allowed_zones ? ` Cobertura: ${done.allowed_zones}.` : ""}
+          </p>
+        )}
         {done.payment_instructions && (
           <div className="mx-auto mt-6 max-w-xl rounded-3xl border border-border bg-muted/40 p-5 text-left">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -149,9 +201,12 @@ function CarritoPage() {
           </div>
         )}
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          {done.payment_method_type === "manual_transfer" && (
+          {isManualFlow(done.payment_method_type) && (
             <a
-              href={receiptWaUrl(done.order_id.slice(0, 8).toUpperCase())}
+              href={receiptWaUrl(
+                done.order_id.slice(0, 8).toUpperCase(),
+                done.payment_method_type,
+              )}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-xl bg-[#25D366] px-5 py-2.5 text-sm font-bold text-white shadow transition hover:brightness-95"
@@ -293,29 +348,58 @@ function CarritoPage() {
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   ¿Cómo quieres pagar?
                 </p>
-                <RadioGroup value={methodId} onValueChange={setMethodId} className="mt-2 space-y-2">
-                  {methods.map((m) => (
-                    <div
-                      key={m.id}
-                      className="flex items-center gap-3 rounded-xl border border-border p-3"
-                    >
-                      <RadioGroupItem value={m.id} id={`pm-${m.id}`} />
-                      <Label htmlFor={`pm-${m.id}`} className="cursor-pointer text-sm font-semibold">
-                        {m.name}
-                      </Label>
+                <RadioGroup value={methodId} onValueChange={setMethodId} className="mt-2 space-y-4">
+                  {PAYMENT_GROUPS.filter((g) =>
+                    methods.some((m) => paymentGroup(m.type) === g.group),
+                  ).map((g) => (
+                    <div key={g.group} className="space-y-2">
+                      <p className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
+                        <g.icon className="h-4 w-4" aria-hidden="true" />
+                        {g.label}
+                      </p>
+                      {methods
+                        .filter((m) => paymentGroup(m.type) === g.group)
+                        .map((m) => (
+                          <div
+                            key={m.id}
+                            className="flex items-center gap-3 rounded-xl border border-border p-3"
+                          >
+                            <RadioGroupItem value={m.id} id={`pm-${m.id}`} />
+                            <Label
+                              htmlFor={`pm-${m.id}`}
+                              className="cursor-pointer text-sm font-semibold"
+                            >
+                              {m.name}
+                            </Label>
+                          </div>
+                        ))}
                     </div>
                   ))}
                 </RadioGroup>
-                {selectedMethod?.type === "manual_transfer" && selectedMethod.qr_image_url && (
+                {usesQr(selectedMethod?.type) && selectedMethod?.qr_image_url && (
                   <img
                     src={selectedMethod.qr_image_url}
                     alt={`Código QR para pagar con ${selectedMethod.name}`}
                     className="mx-auto mt-3 w-full max-w-[250px] rounded-xl border border-border object-contain shadow-sm"
                   />
                 )}
-                {selectedMethod?.type === "manual_transfer" && selectedMethod.instructions && (
+                {selectedMethod?.instructions && (
                   <p className="mt-2 whitespace-pre-line rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
                     {selectedMethod.instructions}
+                  </p>
+                )}
+                {selectedMethod?.type === "cash_on_delivery" && (
+                  <p className="mt-2 rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
+                    Pagas al recibir tu pedido.
+                    {selectedMethod.config?.allowed_zones
+                      ? ` Cobertura: ${selectedMethod.config.allowed_zones}.`
+                      : ""}
+                  </p>
+                )}
+                {isRedirectFlow(selectedMethod?.type) && (
+                  <p className="mt-2 rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
+                    Al confirmar el pedido te llevaremos a {selectedMethod?.name} para completar el
+                    pago de forma segura.
                   </p>
                 )}
               </div>
