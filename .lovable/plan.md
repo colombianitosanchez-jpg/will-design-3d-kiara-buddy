@@ -1,29 +1,52 @@
-# Fix: lógica de renderizado del widget de Elfsight en el portafolio
+# Portafolio: galería manual e Instagram conviviendo + widget de Elfsight arreglado
 
-## Archivo afectado
-`src/components/InstagramFeed.tsx` (único archivo; no se toca ruteo, panel ni base de datos).
+Hoy el feed de Instagram **reemplaza** la galería manual, y si el ID de Elfsight está mal escrito o el script no carga, la sección queda vacía. El plan arregla las dos cosas.
 
-## Cambios
+## 1. Interruptores independientes (sin cambios en la base de datos)
 
-### 1. Saneamiento del ID del widget
-- Nueva función helper `sanitizeWidgetId(raw?: string | null): string` que recorta espacios y elimina el prefijo `elfsight-app-` con `.replace(/^elfsight-app-/, '')`.
-- Se aplica sobre `content?.elfsight_instagram_id` y sobre `VITE_ELFSIGHT_INSTAGRAM_ID` antes de usarlos. Así, si en el Panel se pega el ID completo (`elfsight-app-abc123`) o solo el sufijo (`abc123`), ambos funcionan.
-- `cleanWidgetId = sanitizeWidgetId(...)` reemplaza al actual `widgetId`.
+Los ajustes del sitio ya son una tabla de clave/valor, así que solo se añaden dos claves nuevas de texto (`"true"` / `"false"`), sin migración:
 
-### 2. Carga del script con `defer` y detección de éxito/fallo
-- `useElfsightScript` pasa a `s.defer = true` en lugar de `s.async` (el script oficial se sigue inyectando dinámicamente desde `https://static.elfsight.com/platform/platform.js`; si ya existe, solo se re-dispara `initApps`).
-- El hook devuelve además un estado `status: "loading" | "ready" | "error"`:
-  - `ready` → el script cargó (`load` event + reintento de `initApps`).
-  - `error` → el script falló al cargar (`error` event) o no respondió tras un timeout razonable (~8 s).
+- `show_manual_gallery` — mostrar "Piezas que hemos impreso". Por defecto: sí.
+- `show_instagram_widget` — mostrar "Directo desde nuestro Instagram". Por defecto: sí.
 
-### 3. Lógica de fallback
-Orden de renderizado dentro de la sección:
-1. Si `cleanWidgetId` es válido (no vacío) **y** `status === "ready"` → renderizar el widget: `<div className={`elfsight-app-${cleanWidgetId}`} data-elfsight-app-lazy />`.
-2. Si `cleanWidgetId` es válido pero el script todavía carga → mantener un contenedor con altura mínima (evita salto de layout); aún no se oculta la galería.
-3. Si el script falla (`status === "error"`) o el ID está vacío → mostrar `PhotoGallery` (fotos del panel) o `PortfolioTeaser` como hasta ahora.
+Ambas por defecto activas cuando el valor está vacío, para que nada desaparezca al publicar el cambio.
 
-Resultado: la galería manual solo se oculta cuando el widget de Elfsight está realmente listo; si Elfsight falla (bloqueo de red, ID malo), el visitante siempre ve fotos.
+## 2. Panel → Contenido → Portafolio (Instagram)
 
-## No se cambia
-- Estructura de la sección, textos, CMS (`site_content`), ni el aviso de desarrollo.
-- La galería de fotos y el teaser siguen funcionando igual como fallback.
+- Nuevo tipo de campo `switch` en el editor de contenido, renderizado con el `Switch` de shadcn/ui.
+- Dos interruptores nuevos al principio del grupo:
+  - "Mostrar sección de Portafolio Manual (Piezas que hemos impreso)"
+  - "Mostrar sección de Instagram en vivo"
+- El campo del ID de Elfsight se limpia automáticamente al escribir/pegar: se quita el prefijo `elfsight-app-` (incluso repetido) y los espacios. Ayuda actualizada: pegar el ID completo también funciona.
+- El subidor de fotos manuales se mantiene igual (subir varias, vista previa, quitar una por una).
+
+## 3. Página pública del portafolio
+
+`src/components/InstagramFeed.tsx` se reorganiza en dos bloques independientes dentro de la misma sección, separados con `gap-12`/`space-y-12`, sin espacios en blanco cuando uno está apagado:
+
+**Bloque A — Galería manual "Piezas que hemos impreso"**
+- Se muestra solo si `show_manual_gallery` está activo **y** hay al menos 1 foto.
+- Cuadrícula actual con hover y visor ampliado (lightbox) tal cual está hoy.
+
+**Bloque B — "Directo desde nuestro Instagram"**
+- Se muestra solo si `show_instagram_widget` está activo **y** hay un ID válido.
+- Contenedor `<div className={`elfsight-app-${cleanId}`} data-elfsight-app-lazy />`.
+- Encabezado, texto y botón "@will_design2020" se mueven aquí (hoy están en la cabecera común).
+
+**Si no queda nada visible** (ambos apagados o sin contenido): se muestra el aviso actual que invita a ver Instagram, para no dejar la página vacía.
+
+## 4. Arreglo del widget de Elfsight
+
+- Helper `sanitizeWidgetId(raw)`: recorta espacios y elimina el prefijo `elfsight-app-` con `.replace(/^elfsight-app-/, '')` (repetido hasta que no quede). Se aplica tanto al valor del panel como a la variable de entorno.
+- El script oficial `https://static.elfsight.com/platform/platform.js` se inyecta con `defer`, y si ya existe se vuelve a lanzar `initApps()` (necesario al navegar entre páginas).
+- El hook devuelve un estado `loading | ready | error`:
+  - `ready` → el widget se renderiza.
+  - `error` (fallo de carga o sin respuesta tras ~8 s) → el bloque de Instagram no se muestra; la galería manual sigue visible como respaldo.
+- La galería manual **nunca** se oculta por la existencia del ID de Elfsight.
+
+## Detalles técnicos
+
+- Archivos: `src/components/InstagramFeed.tsx` (refactor en `ManualGallery` + `InstagramWidgetBlock`), `src/routes/panel.contenido.tsx` (tipo `switch`, sanitizado del ID, dos campos nuevos).
+- Lectura de flags con el hook existente `useSiteContent` / `siteContentQuery`; helper `isOn(key, defaultTrue)` que trata `""` como activo y `"false"`/`"0"`/`"no"` como apagado.
+- El guardado del panel ya hace `upsert` de todas las claves con `onConflict: "key"`, así que las nuevas se crean solas al guardar.
+- Sin cambios en `/galeria`, `/` ni en el enrutado; `InstagramFeed` conserva su nombre y su `id="portafolio"`.
