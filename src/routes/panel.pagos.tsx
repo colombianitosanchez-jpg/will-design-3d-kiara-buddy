@@ -512,11 +512,12 @@ function PagosPage() {
               <div className="min-w-0 flex-1">
                 <p className="font-bold">{m.name}</p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {m.type === "gateway" ? "Pasarela" : "Transferencia manual"} ·{" "}
-                  {m.instructions || "sin instrucciones"}
+                  {paymentTypeLabel(m.type)} ·{" "}
+                  {m.config?.allowed_zones || m.instructions || "sin instrucciones"}
                 </p>
               </div>
               {m.qr_image_url && <Badge variant="secondary">Con QR</Badge>}
+              {m.config?.payment_url && <Badge variant="secondary">Con enlace de pago</Badge>}
               {m.has_credentials ? (
                 <Badge variant="secondary">Credenciales guardadas</Badge>
               ) : (
