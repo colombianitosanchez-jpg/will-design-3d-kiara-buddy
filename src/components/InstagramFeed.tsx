@@ -12,13 +12,34 @@ declare global {
   }
 }
 
+/** Quita espacios y el prefijo "elfsight-app-" (incluso repetido). */
+export function sanitizeWidgetId(raw?: string | null): string {
+  let id = (raw ?? "").trim();
+  let prev = "";
+  while (id !== prev) {
+    prev = id;
+    id = id.replace(/^elfsight-app-/, "").trim();
+  }
+  return id;
+}
+
+type ScriptStatus = "idle" | "loading" | "ready" | "error";
+
 /**
- * Carga platform.js y, en navegaciones cliente (cuando el script ya existe),
- * re-inicializa el widget para que vuelva a renderizarse en cada montaje.
+ * Carga platform.js con defer y, en navegaciones cliente (cuando el script ya
+ * existe), re-inicializa el widget para que vuelva a renderizarse.
  */
-function useElfsightScript(enabled: boolean, widgetId: string) {
+function useElfsightScript(enabled: boolean, widgetId: string): ScriptStatus {
+  const [status, setStatus] = useState<ScriptStatus>("idle");
+
   useEffect(() => {
-    if (!enabled || typeof document === "undefined") return;
+    if (!enabled || typeof document === "undefined") {
+      setStatus("idle");
+      return;
+    }
+
+    setStatus("loading");
+    let cancelled = false;
 
     const retrigger = () => {
       try {
@@ -28,22 +49,47 @@ function useElfsightScript(enabled: boolean, widgetId: string) {
       }
     };
 
-    const existing = document.querySelector<HTMLScriptElement>('script[data-elfsight="1"]');
-    if (existing) {
-      // El script ya está en la página: forzamos la re-inicialización.
+    const markReady = () => {
+      if (!cancelled) setStatus("ready");
       retrigger();
-      const t = window.setTimeout(retrigger, 400);
-      return () => window.clearTimeout(t);
+    };
+
+    const existing = document.querySelector<HTMLScriptElement>('script[data-elfsight="1"]');
+    let script: HTMLScriptElement;
+
+    if (existing) {
+      script = existing;
+      if (window.eapps) {
+        markReady();
+      } else {
+        script.addEventListener("load", markReady);
+        script.addEventListener("error", () => !cancelled && setStatus("error"));
+      }
+    } else {
+      script = document.createElement("script");
+      script.src = "https://static.elfsight.com/platform/platform.js";
+      script.defer = true;
+      script.dataset.elfsight = "1";
+      script.addEventListener("load", markReady);
+      script.addEventListener("error", () => !cancelled && setStatus("error"));
+      document.body.appendChild(script);
     }
 
-    const s = document.createElement("script");
-    s.src = "https://static.elfsight.com/platform/platform.js";
-    s.async = true;
-    s.dataset.elfsight = "1";
-    s.addEventListener("load", retrigger);
-    document.body.appendChild(s);
-    return () => s.removeEventListener("load", retrigger);
+    // Reintento tardío + timeout de seguridad si el script nunca responde.
+    const retryTimer = window.setTimeout(retrigger, 600);
+    const failTimer = window.setTimeout(() => {
+      if (!cancelled && !window.eapps) setStatus("error");
+    }, 8000);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(retryTimer);
+      window.clearTimeout(failTimer);
+      script.removeEventListener("load", markReady);
+    };
   }, [enabled, widgetId]);
+
+  return status;
 }
 
 function parseImages(raw: string | undefined): string[] {
@@ -60,16 +106,27 @@ function parseImages(raw: string | undefined): string[] {
     .filter(Boolean);
 }
 
+/** Los interruptores del panel están activos por defecto cuando el valor está vacío. */
+function isOn(value: string | undefined, defaultTrue = true): boolean {
+  const v = (value ?? "").trim().toLowerCase();
+  if (!v) return defaultTrue;
+  return !["false", "0", "no", "off"].includes(v);
+}
+
 export function InstagramFeed() {
   const { data: content } = useQuery(siteContentQuery());
   const contact = getContactInfo(content);
   const handle = contact.instagram_handle.replace(/^@/, "");
   const instagramUrl = contact.instagram_url;
 
-  const widgetId = (content?.elfsight_instagram_id?.trim() || ENV_WIDGET_ID || "").trim();
+  const cleanWidgetId = sanitizeWidgetId(content?.elfsight_instagram_id || ENV_WIDGET_ID);
   const photos = parseImages(content?.portfolio_images);
 
-  useElfsightScript(Boolean(widgetId), widgetId);
+  const showManual = isOn(content?.show_manual_gallery) && photos.length > 0;
+  const wantsWidget = isOn(content?.show_instagram_widget) && cleanWidgetId.length > 0;
+
+  const scriptStatus = useElfsightScript(wantsWidget, cleanWidgetId);
+  const showWidget = wantsWidget && scriptStatus !== "error";
 
   return (
     <section
@@ -77,44 +134,68 @@ export function InstagramFeed() {
       className="border-y border-border"
       style={{ background: "color-mix(in oklab, var(--brand-teal) 6%, white)" }}
     >
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="max-w-xl">
-            <span className="chip-teal">Portafolio en vivo</span>
-            <h2 className="mt-3 text-3xl font-black sm:text-4xl md:text-5xl">
-              Directo desde nuestro Instagram
-            </h2>
-            <p className="mt-3 text-muted-foreground">
-              Las últimas publicaciones de{" "}
-              <strong className="text-foreground">@{handle}</strong> — se
-              actualizan automáticamente.
-            </p>
-          </div>
-          <a href={instagramUrl} target="_blank" rel="noreferrer" className="btn-outline">
-            <Instagram className="h-4 w-4" />@{handle}
-          </a>
-        </div>
+      <div className="mx-auto max-w-7xl space-y-12 px-4 py-16 sm:px-6 md:py-24">
+        {showManual && <ManualGallery photos={photos} handle={handle} />}
 
-        <div className="mt-10">
-          {widgetId ? (
-            <div className={`elfsight-app-${widgetId}`} data-elfsight-app-lazy />
-          ) : photos.length > 0 ? (
-            <PhotoGallery photos={photos} handle={handle} />
-          ) : (
-            <PortfolioTeaser instagramUrl={instagramUrl} handle={handle} />
-          )}
-        </div>
+        {showWidget && (
+          <div>
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div className="max-w-xl">
+                <span className="chip-teal">Portafolio en vivo</span>
+                <h2 className="mt-3 text-3xl font-black sm:text-4xl md:text-5xl">
+                  Directo desde nuestro Instagram
+                </h2>
+                <p className="mt-3 text-muted-foreground">
+                  Las últimas publicaciones de{" "}
+                  <strong className="text-foreground">@{handle}</strong> — se actualizan
+                  automáticamente.
+                </p>
+              </div>
+              <a href={instagramUrl} target="_blank" rel="noreferrer" className="btn-outline">
+                <Instagram className="h-4 w-4" />@{handle}
+              </a>
+            </div>
+            <div className="mt-10 min-h-[240px]">
+              {scriptStatus === "ready" && (
+                <div className={`elfsight-app-${cleanWidgetId}`} data-elfsight-app-lazy />
+              )}
+            </div>
+          </div>
+        )}
+
+        {!showManual && !showWidget && (
+          <PortfolioTeaser instagramUrl={instagramUrl} handle={handle} />
+        )}
 
         {/* Solo visible en desarrollo: nunca se muestra al público. */}
-        {import.meta.env.DEV && !widgetId && (
-          <p className="mt-6 rounded-2xl border border-dashed border-border bg-card p-4 text-xs text-muted-foreground">
-            <strong>Nota de desarrollo (no visible en producción):</strong> sube fotos en
-            Panel → Contenido → «Fotos de portafolio», o pega el ID del widget de Elfsight
-            en «ID del widget de Instagram (Elfsight)» para activar el feed automático.
+        {import.meta.env.DEV && !showManual && !showWidget && (
+          <p className="rounded-2xl border border-dashed border-border bg-card p-4 text-xs text-muted-foreground">
+            <strong>Nota de desarrollo (no visible en producción):</strong> activa los
+            interruptores y sube fotos en Panel → Contenido → «Portafolio (Instagram)», o pega
+            el ID del widget de Elfsight para activar el feed automático.
           </p>
         )}
       </div>
     </section>
+  );
+}
+
+function ManualGallery({ photos, handle }: { photos: string[]; handle: string }) {
+  return (
+    <div>
+      <div className="max-w-xl">
+        <span className="chip-teal">Portafolio</span>
+        <h2 className="mt-3 text-3xl font-black sm:text-4xl md:text-5xl">
+          Piezas que hemos impreso
+        </h2>
+        <p className="mt-3 text-muted-foreground">
+          Una selección de proyectos de impresión 3D de gran formato hechos en nuestro taller.
+        </p>
+      </div>
+      <div className="mt-10">
+        <PhotoGallery photos={photos} handle={handle} />
+      </div>
+    </div>
   );
 }
 
