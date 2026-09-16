@@ -205,6 +205,7 @@ async function buildPublicContext(): Promise<string> {
   const blocks: string[] = [];
   if (quoter) blocks.push(quoter);
   if (catalog.length) blocks.push(`## CATÁLOGO PÚBLICO\n${catalog.join("\n")}`);
+  if (payments) blocks.push(payments);
   if (kb.length) blocks.push(`## PREGUNTAS FRECUENTES E INFORMACIÓN PÚBLICA\n${kb.join("\n\n")}`);
   if (!blocks.length) return "";
   return `\n\n[INFORMACIÓN PÚBLICA DE WILL DESIGN 3D]\n${trimBlock(blocks)}\n[FIN DE LA INFORMACIÓN PÚBLICA]`;
