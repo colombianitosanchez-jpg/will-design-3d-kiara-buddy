@@ -55,6 +55,8 @@ type FormState = {
   type: PaymentMethodType;
   instructions: string;
   qr_image_url: string;
+  payment_url: string;
+  allowed_zones: string;
   display_order: number;
   is_active: boolean;
   credentials: CredRow[];
@@ -65,6 +67,8 @@ const emptyForm: FormState = {
   type: "manual_transfer",
   instructions: "",
   qr_image_url: "",
+  payment_url: "",
+  allowed_zones: "",
   display_order: 0,
   is_active: false,
   credentials: [{ key: "numero", value: "" }],
