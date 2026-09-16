@@ -643,6 +643,14 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
               )}
             </div>
 
+            <button
+              type="button"
+              onClick={addQuoteToCart}
+              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-[var(--brand-teal-deep)] px-5 py-2.5 text-sm font-black text-[var(--brand-teal-deep)] transition hover:bg-muted"
+            >
+              <ShoppingCart className="h-4 w-4" /> Agregar al carrito
+            </button>
+
             <p className="mt-4 text-[11px] text-muted-foreground">
               Es un estimado automático. Confirmamos el precio final al revisar tu archivo o idea.
             </p>
