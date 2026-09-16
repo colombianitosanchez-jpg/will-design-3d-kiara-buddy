@@ -161,6 +161,10 @@ export const savePaymentMethod = createServerFn({ method: "POST" })
     const creds: Record<string, string> = {};
     for (const c of data.credentials) if (c.value.trim()) creds[c.key] = c.value.trim();
 
+    const cfg: PaymentMethodConfig = {};
+    if (data.config?.payment_url) cfg.payment_url = data.config.payment_url;
+    if (data.config?.allowed_zones) cfg.allowed_zones = data.config.allowed_zones;
+
     const base = {
       name: data.name,
       type: data.type,
@@ -168,6 +172,7 @@ export const savePaymentMethod = createServerFn({ method: "POST" })
       qr_image_url: data.qr_image_url || null,
       display_order: data.display_order,
       is_active: data.is_active,
+      config: cfg,
     };
 
     if (data.id) {
