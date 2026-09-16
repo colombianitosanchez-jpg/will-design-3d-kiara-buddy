@@ -14,6 +14,12 @@ import {
   listPublicPaymentMethods,
   type PublicPaymentMethod,
 } from "@/lib/payment-methods.functions";
+import {
+  PAYMENT_GROUPS,
+  isRedirectFlow,
+  paymentGroup,
+  usesQr,
+} from "@/lib/payment-types";
 
 export const Route = createFileRoute("/carrito")({
   ssr: false,
