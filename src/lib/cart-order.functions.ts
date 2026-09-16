@@ -52,15 +52,30 @@ export const createCartOrder = createServerFn({ method: "POST" })
     const total = lines.reduce((sum, l) => sum + l.unit_price_cop * l.quantity, 0);
 
     // El método de pago se vuelve a validar en el servidor: debe existir y estar activo.
-    let paymentMethod: { id: string; name: string; instructions: string } | null = null;
+    let paymentMethod: {
+      id: string;
+      name: string;
+      instructions: string;
+      type: string;
+      payment_url: string | null;
+      allowed_zones: string | null;
+    } | null = null;
     if (data.payment_method_id) {
       const { data: pm } = await supabaseAdmin
         .from("payment_methods")
-        .select("id, name, instructions, is_active")
+        .select("id, name, instructions, is_active, type, config")
         .eq("id", data.payment_method_id)
         .maybeSingle();
       if (!pm || !pm.is_active) throw new Error("El método de pago ya no está disponible");
-      paymentMethod = { id: pm.id, name: pm.name, instructions: pm.instructions };
+      const cfg = (pm.config ?? {}) as { payment_url?: string; allowed_zones?: string };
+      paymentMethod = {
+        id: pm.id,
+        name: pm.name,
+        instructions: pm.instructions,
+        type: pm.type as string,
+        payment_url: cfg.payment_url ?? null,
+        allowed_zones: cfg.allowed_zones ?? null,
+      };
     }
 
     const { data: order, error: oErr } = await supabaseAdmin
