@@ -116,6 +116,45 @@ function CarritoPage() {
     return undefined;
   }, [done]);
 
+  /** Guarda el carrito como cotización y comparte el enlace. */
+  async function shareQuote() {
+    if (!items.length) return;
+    setSharing(true);
+    try {
+      const res = await persistQuote({
+        data: {
+          items: items.map((i) => ({
+            kind: i.kind ?? "product",
+            product_id: i.product_id,
+            slug: i.slug,
+            name: i.name,
+            price_cop: i.price_cop,
+            quantity: i.quantity,
+            image_url: i.image_url,
+            ...(i.service_slug ? { service_slug: i.service_slug } : {}),
+            ...(i.detail ? { detail: i.detail } : {}),
+            ...(i.answers ? { answers: i.answers } : {}),
+          })),
+        },
+      });
+      const url = `${window.location.origin}/cotizacion/${res.id}`;
+      if (typeof navigator !== "undefined" && navigator.share) {
+        try {
+          await navigator.share({ title: "Cotización Will Design 3D", url });
+          return;
+        } catch {
+          /* el usuario canceló: seguimos con el portapapeles */
+        }
+      }
+      await navigator.clipboard?.writeText(url);
+      toast.success("Enlace de la cotización copiado");
+    } catch (err) {
+      toast.error((err as Error).message || "No pudimos guardar la cotización");
+    } finally {
+      setSharing(false);
+    }
+  }
+
   async function confirm(e: React.FormEvent) {
     e.preventDefault();
     if (!items.length) return;
