@@ -94,13 +94,23 @@ function CarritoPage() {
   const { content } = useSiteContent();
   const whatsapp = getContactInfo(content).whatsapp;
 
-  function receiptWaUrl(reference: string) {
-    return waLink(
-      whatsapp,
-      `Hola, acabo de realizar el pedido #${reference} en Will Design 3D. Adjunto el comprobante de pago.`,
-    );
+  function receiptWaUrl(reference: string, type: string | null) {
+    const text =
+      type === "cash_on_delivery"
+        ? `Hola, acabo de realizar el pedido #${reference}. El método es Pago Contra Entrega.`
+        : `Hola, acabo de realizar el pedido #${reference} en Will Design 3D. Adjunto el comprobante de pago.`;
+    return waLink(whatsapp, text);
   }
 
+  // Para pasarelas y cripto: al confirmar, el navegador sale al enlace de pago externo.
+  useEffect(() => {
+    if (done && isRedirectFlow(done.payment_method_type) && done.payment_url) {
+      const url = done.payment_url;
+      const t = window.setTimeout(() => window.location.assign(url), 1200);
+      return () => window.clearTimeout(t);
+    }
+    return undefined;
+  }, [done]);
 
   async function confirm(e: React.FormEvent) {
     e.preventDefault();
@@ -120,8 +130,10 @@ function CarritoPage() {
         public_token: res.public_token,
         payment_instructions: res.payment_instructions,
         payment_method_name: res.payment_method_name,
-        payment_method_type: selectedMethod?.type ?? null,
+        payment_method_type: res.payment_method_type ?? selectedMethod?.type ?? null,
         qr_image_url: selectedMethod?.qr_image_url ?? null,
+        payment_url: res.payment_url ?? null,
+        allowed_zones: res.allowed_zones ?? null,
       });
       toast.success("¡Pedido enviado! Te contactaremos muy pronto.");
     } catch (err) {
