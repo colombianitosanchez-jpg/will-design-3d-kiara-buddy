@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { formatCOP, getContactInfo, waLink } from "@/lib/catalog";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { getOrderByToken, reportPayment, type TrackedOrder } from "@/lib/order-tracking.functions";
+import { isManualFlow, isRedirectFlow } from "@/lib/payment-types";
 
 export const Route = createFileRoute("/pedido/$token")({
   ssr: false,
