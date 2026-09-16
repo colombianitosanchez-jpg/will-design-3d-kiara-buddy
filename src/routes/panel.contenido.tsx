@@ -22,7 +22,7 @@ type Row = { key: string; value: string };
 type FieldDef = {
   key: string;
   label: string;
-  type: "text" | "textarea" | "image" | "images";
+  type: "text" | "textarea" | "image" | "images" | "switch";
   help?: string;
   section: string;
   group: string;
@@ -40,8 +40,10 @@ const FIELDS: FieldDef[] = [
   { key: "hero_stat_2_v", label: "Estadística 2 · descripción", type: "text", section: "Inicio", group: "Estadísticas" },
   { key: "hero_stat_3_k", label: "Estadística 3 · valor", type: "text", section: "Inicio", group: "Estadísticas" },
   { key: "hero_stat_3_v", label: "Estadística 3 · descripción", type: "text", section: "Inicio", group: "Estadísticas" },
-  { key: "portfolio_images", label: "Fotos de portafolio", type: "images", help: "Se muestran en la sección de portafolio del inicio y en /galeria mientras no haya widget de Instagram.", section: "Inicio", group: "Portafolio (Instagram)" },
-  { key: "elfsight_instagram_id", label: "ID del widget de Instagram (Elfsight)", type: "text", help: "Pega el texto después de 'elfsight-app-'. Si está lleno, reemplaza la galería por el feed automático.", section: "Inicio", group: "Portafolio (Instagram)" },
+  { key: "show_manual_gallery", label: "Mostrar sección de Portafolio Manual (Piezas que hemos impreso)", type: "switch", help: "Se muestra si está activo y hay al menos una foto subida.", section: "Inicio", group: "Portafolio (Instagram)" },
+  { key: "show_instagram_widget", label: "Mostrar sección de Instagram en vivo", type: "switch", help: "Se muestra si está activo y el ID del widget es válido.", section: "Inicio", group: "Portafolio (Instagram)" },
+  { key: "portfolio_images", label: "Fotos de portafolio", type: "images", help: "Se muestran en la sección de portafolio del inicio y en /galeria. Ya no se ocultan al usar el widget de Instagram.", section: "Inicio", group: "Portafolio (Instagram)" },
+  { key: "elfsight_instagram_id", label: "ID del widget de Instagram (Elfsight)", type: "text", help: "Puedes pegar el ID completo ('elfsight-app-abc123'); quitamos el prefijo automáticamente.", section: "Inicio", group: "Portafolio (Instagram)" },
   { key: "about_short", label: "Descripción corta 'Nosotros'", type: "textarea", section: "Inicio", group: "Página Nosotros" },
 
   // ------------------------------------------------------------ Cotizadores
