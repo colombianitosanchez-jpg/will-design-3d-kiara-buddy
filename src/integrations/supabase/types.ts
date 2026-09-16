@@ -623,6 +623,7 @@ export type Database = {
       }
       payment_methods: {
         Row: {
+          config: Json
           created_at: string
           credentials: Json
           display_order: number
@@ -635,6 +636,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          config?: Json
           created_at?: string
           credentials?: Json
           display_order?: number
@@ -647,6 +649,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          config?: Json
           created_at?: string
           credentials?: Json
           display_order?: number
@@ -1146,7 +1149,13 @@ export type Database = {
         | "enviado"
         | "entregado"
         | "cancelado"
-      payment_method_type: "manual_transfer" | "gateway"
+      payment_method_type:
+        | "manual_transfer"
+        | "gateway"
+        | "gateway_redirect"
+        | "cash_on_delivery"
+        | "cash_point"
+        | "crypto"
       payment_status:
         | "esperando_pago"
         | "comprobante_enviado"
@@ -1287,7 +1296,14 @@ export const Constants = {
         "entregado",
         "cancelado",
       ],
-      payment_method_type: ["manual_transfer", "gateway"],
+      payment_method_type: [
+        "manual_transfer",
+        "gateway",
+        "gateway_redirect",
+        "cash_on_delivery",
+        "cash_point",
+        "crypto",
+      ],
       payment_status: [
         "esperando_pago",
         "comprobante_enviado",
