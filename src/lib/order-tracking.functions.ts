@@ -8,9 +8,11 @@ export type TrackedOrder = {
   status: string;
   payment_status: "esperando_pago" | "comprobante_enviado" | "pagado" | "rechazado";
   payment_method_name: string | null;
-  payment_method_type: "manual_transfer" | "gateway" | null;
+  payment_method_type: string | null;
   payment_instructions: string;
   qr_image_url: string | null;
+  payment_url: string | null;
+  allowed_zones: string | null;
   payment_reference: string | null;
   payment_note: string | null;
   customer_name: string;
