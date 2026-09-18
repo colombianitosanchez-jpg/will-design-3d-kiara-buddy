@@ -29,6 +29,45 @@ function shouldFallback(status: number) {
   return status === 429 || status >= 500 || status === 401 || status === 403 || status === 400 || status === 404;
 }
 
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/**
+ * Llama al proveedor reintentando ante corte de red, tiempo agotado o error 5xx.
+ * El corte de tiempo aplica solo hasta recibir cabeceras: el stream no se corta.
+ */
+async function fetchWithRetry(
+  endpoint: string,
+  init: RequestInit,
+  opts: { attempts?: number; delayMs?: number; timeoutMs?: number } = {},
+): Promise<{ res: Response | null; error: string | null }> {
+  const attempts = opts.attempts ?? 3;
+  const delayMs = opts.delayMs ?? 1000;
+  const timeoutMs = opts.timeoutMs ?? 20_000;
+  let error: string | null = null;
+
+  for (let i = 0; i < attempts; i++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(endpoint, { ...init, signal: controller.signal });
+      clearTimeout(timer);
+      if (res.status >= 500 && i < attempts - 1) {
+        error = `HTTP ${res.status}`;
+        await sleep(delayMs);
+        continue;
+      }
+      return { res, error: null };
+    } catch (e) {
+      clearTimeout(timer);
+      error = (e as Error).name === "AbortError" ? "timeout" : (e as Error).message;
+      if (i < attempts - 1) await sleep(delayMs);
+    }
+  }
+  return { res: null, error };
+}
+
 
 export const Route = createFileRoute("/api/kiara")({
   server: {
