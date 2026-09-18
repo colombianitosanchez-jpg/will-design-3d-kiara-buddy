@@ -26,7 +26,7 @@ export function KiaraWidget() {
     : customMessage ||
       "¡Hola! Soy Kiara 🐾 ¿Qué vamos a imprimir hoy? Pregúntame por precios, materiales o servicios.";
 
-  const { messages, sending, send, reset } = useKiaraChat(greeting);
+  const { messages, sending, slow, send, reset } = useKiaraChat(greeting);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -130,7 +130,7 @@ export function KiaraWidget() {
             ))}
 
             {sending && (
-              <div className="flex justify-start">
+              <div className="flex flex-col items-start gap-1">
                 <div className="rounded-2xl rounded-bl-sm bg-muted px-3 py-2 text-sm text-muted-foreground">
                   <span className="inline-flex gap-1">
                     <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current" />
@@ -138,6 +138,11 @@ export function KiaraWidget() {
                     <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:240ms]" />
                   </span>
                 </div>
+                {slow && (
+                  <p className="px-1 text-[11px] text-muted-foreground">
+                    Kiara está despertando… dame un segundito 🐾
+                  </p>
+                )}
               </div>
             )}
           </div>
