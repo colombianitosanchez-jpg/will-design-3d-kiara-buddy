@@ -27,6 +27,7 @@ export function useKiaraChat(initialGreeting: string) {
       const ensureReply = () => {
         if (started) return;
         started = true;
+        setSlow(false);
         setMessages((prev) => [
           ...prev,
           { id: replyId, role: "assistant", content: "", createdAt: Date.now() },
