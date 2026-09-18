@@ -6,6 +6,7 @@ export function useKiaraChat(initialGreeting: string) {
     createMessage("assistant", initialGreeting),
   ]);
   const [sending, setSending] = useState(false);
+  const [slow, setSlow] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const send = useCallback(
@@ -16,7 +17,9 @@ export function useKiaraChat(initialGreeting: string) {
       const next = [...messages, userMsg];
       setMessages(next);
       setSending(true);
+      setSlow(false);
       setError(null);
+
 
       const replyId = createMessage("assistant", "").id;
       let started = false;
