@@ -62,6 +62,7 @@ export function useKiaraChat(initialGreeting: string) {
         ]);
       } finally {
         setSending(false);
+        setSlow(false);
       }
     },
     [messages, sending],
@@ -70,7 +71,8 @@ export function useKiaraChat(initialGreeting: string) {
   const reset = useCallback((greeting: string) => {
     setMessages([createMessage("assistant", greeting)]);
     setError(null);
+    setSlow(false);
   }, []);
 
-  return { messages, sending, error, send, reset };
+  return { messages, sending, slow, error, send, reset };
 }
