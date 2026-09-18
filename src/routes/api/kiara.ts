@@ -155,17 +155,16 @@ export const Route = createFileRoute("/api/kiara")({
 
         for (const p of list) {
           const temp = Number.isFinite(Number(p.temperature)) ? Number(p.temperature) : 0.2;
-          const controller = new AbortController();
-          const timer = setTimeout(() => controller.abort(), 25_000);
           const endpoint = `${p.base_url.replace(/\/+$/, "")}/chat/completions`;
           const authHeaders = {
             "Content-Type": "application/json",
             ...(p.api_key ? { Authorization: `Bearer ${p.api_key}` } : {}),
           };
-          try {
-            const upstream = await fetch(endpoint, {
+
+          const { res: upstream, error } = await fetchWithRetry(
+            endpoint,
+            {
               method: "POST",
-              signal: controller.signal,
               headers: authHeaders,
               body: JSON.stringify({
                 model: p.model,
@@ -176,24 +175,31 @@ export const Route = createFileRoute("/api/kiara")({
                 tools: KIARA_TOOLS,
                 tool_choice: "auto",
               }),
-            });
+            },
+            { attempts: 3, delayMs: 1000 },
+          );
 
-            if (!upstream.ok || !upstream.body) {
-              const detail = upstream.ok ? "sin cuerpo" : `HTTP ${upstream.status}`;
-              failures.push(`${p.name}: ${detail}`);
-              console.error(`[kiara] proveedor "${p.name}" falló (${detail}), pasando al siguiente`);
-              clearTimeout(timer);
-              if (!upstream.ok && !shouldFallback(upstream.status)) continue;
-              continue;
-            }
+          if (!upstream) {
+            failures.push(`${p.name}: ${error ?? "sin respuesta"}`);
+            console.error(`[kiara] proveedor "${p.name}" falló (${error}), pasando al siguiente`);
+            continue;
+          }
 
-            // El primero que responde gana: se reenvía su stream, se ejecutan las
-            // herramientas y el resultado se devuelve al modelo (segunda pasada)
-            // para que redacte con las cifras exactas del motor de precios.
-            const stream = interceptToolStream(upstream.body, {
-              onFinish: () => clearTimeout(timer),
-              followUp: async (call, resultJson) => {
-                const res = await fetch(endpoint, {
+          if (!upstream.ok || !upstream.body) {
+            const detail = upstream.ok ? "sin cuerpo" : `HTTP ${upstream.status}`;
+            failures.push(`${p.name}: ${detail}`);
+            console.error(`[kiara] proveedor "${p.name}" falló (${detail}), pasando al siguiente`);
+            continue;
+          }
+
+          // El primero que responde gana: se reenvía su stream, se ejecutan las
+          // herramientas y el resultado se devuelve al modelo (segunda pasada)
+          // para que redacte con las cifras exactas del motor de precios.
+          const stream = interceptToolStream(upstream.body, {
+            followUp: async (call, resultJson) => {
+              const { res, error: followErr } = await fetchWithRetry(
+                endpoint,
+                {
                   method: "POST",
                   headers: authHeaders,
                   body: JSON.stringify({
@@ -217,35 +223,31 @@ export const Route = createFileRoute("/api/kiara")({
                       },
                       { role: "tool", tool_call_id: call.id, name: call.name, content: resultJson },
                     ],
-
                   }),
-                });
-                if (!res.ok || !res.body) {
-                  console.error(`[kiara] 2a pasada falló en ${p.name}: HTTP ${res.status} ${await res.text().catch(() => "")}`);
-                  return null;
-                }
-                return res.body;
-              },
-            });
+                },
+                { attempts: 2, delayMs: 1000 },
+              );
+              if (!res || !res.ok || !res.body) {
+                console.error(
+                  `[kiara] 2a pasada falló en ${p.name}: ${followErr ?? `HTTP ${res?.status}`}`,
+                );
+                return null;
+              }
+              return res.body;
+            },
+          });
 
-
-            return new Response(stream, {
-              status: 200,
-              headers: {
-                "Content-Type": "text/event-stream; charset=utf-8",
-                "Cache-Control": "no-cache, no-transform",
-                Connection: "keep-alive",
-                "X-Kiara-Provider": p.name,
-              },
-            });
-
-          } catch (e) {
-            clearTimeout(timer);
-            const msg = (e as Error).name === "AbortError" ? "timeout" : (e as Error).message;
-            failures.push(`${p.name}: ${msg}`);
-            console.error(`[kiara] proveedor "${p.name}" error de red (${msg}), pasando al siguiente`);
-          }
+          return new Response(stream, {
+            status: 200,
+            headers: {
+              "Content-Type": "text/event-stream; charset=utf-8",
+              "Cache-Control": "no-cache, no-transform",
+              Connection: "keep-alive",
+              "X-Kiara-Provider": p.name,
+            },
+          });
         }
+
 
         console.error(`[kiara] todos los proveedores fallaron: ${failures.join(" | ")}`);
         return Response.json(
