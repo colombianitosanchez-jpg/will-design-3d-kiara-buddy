@@ -48,6 +48,7 @@ export function useKiaraChat(initialGreeting: string) {
             ensureReply();
             setMessages((prev) => prev.map((m) => (m.id === replyId ? { ...m, tool } : m)));
           },
+          () => setSlow(true),
         );
       } catch (e) {
 
