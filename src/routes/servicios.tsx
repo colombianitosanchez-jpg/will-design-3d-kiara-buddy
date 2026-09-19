@@ -211,10 +211,7 @@ function ServiciosPage() {
                   </div>
                   <h3 className="mt-4 text-xl font-black">{c.title}</h3>
                   <p className="mt-2 text-sm text-muted-foreground">{c.lead}</p>
-                  <Link to="/contacto" className="btn-primary mt-5 text-sm">
-                    Quiero inscribirme
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
+                  <CursoCta cursoId={c.id} />
                 </article>
               );
             })}
@@ -222,5 +219,26 @@ function ServiciosPage() {
         </div>
       </section>
     </>
+  );
+}
+
+/** Botón del curso: usa el cotizador si hay un servicio con ancla "cursos-3d". */
+function CursoCta({ cursoId }: { cursoId: string }) {
+  const { data: quoterServices } = useQuery(quoterServicesQuery());
+  const q = (quoterServices ?? []).find((s) => s.site_anchor === "cursos-3d") ?? null;
+  return q ? (
+    <Link
+      to="/cotizador"
+      search={{ servicio: q.slug }}
+      className="btn-primary mt-5 text-sm"
+    >
+      Cotizar el curso
+      <ArrowRight className="h-4 w-4" />
+    </Link>
+  ) : (
+    <Link to="/contacto" className="btn-primary mt-5 text-sm">
+      Quiero inscribirme
+      <ArrowRight className="h-4 w-4" />
+    </Link>
   );
 }
