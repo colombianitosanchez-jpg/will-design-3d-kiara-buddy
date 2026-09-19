@@ -1,20 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ShareButton } from "@/components/ShareButton";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Boxes,
-  Wrench,
-  PenTool,
-  Sparkles,
-  Ruler,
-  ShoppingBag,
-  ArrowRight,
-  CheckCircle2,
-  ScanLine,
-  GraduationCap,
-} from "lucide-react";
+import { ArrowRight, CheckCircle2, GraduationCap } from "lucide-react";
 import { KiaraTip } from "@/components/KiaraTip";
 import { quoterServicesQuery, formatCOP } from "@/lib/quoter";
+import {
+  siteServicesQuery,
+  SITE_SERVICE_ICONS,
+  type SiteService,
+} from "@/lib/site-services";
 
 export const Route = createFileRoute("/servicios")({
   head: () => ({
@@ -31,122 +25,6 @@ export const Route = createFileRoute("/servicios")({
   }),
   component: ServiciosPage,
 });
-
-const services = [
-  {
-    id: "impresion-3d",
-    icon: Boxes,
-    title: "Impresión 3D a Pedido",
-    color: "orange",
-    lead:
-      "Producimos tus piezas en FDM y resina, con especialidad en gran formato (50×50 cm o más).",
-    bullets: [
-      "FDM: PLA, PETG, ABS, TPU, PA, PC",
-      "Resina MSLA hasta 12K para alto detalle",
-      "Volumen de producción y prototipos únicos",
-      "Cotización por WhatsApp con archivo o boceto",
-    ],
-    kiaraTip:
-      "Si tu archivo aún no está optimizado, avísanos: revisamos huecos y grosores gratis.",
-  },
-  {
-    id: "modelado-3d",
-    icon: PenTool,
-    title: "Diseño 3D Personalizado",
-    color: "teal",
-    lead:
-      "Modelamos desde cero usando tus referencias, planos o fotografías. Ideal si no tienes archivo.",
-    bullets: [
-      "Modelado paramétrico e ingeniería inversa",
-      "Escultura orgánica para figuras y arte",
-      "Optimización de piezas para impresión",
-      "Entregamos STL/OBJ/STEP",
-    ],
-    kiaraTip:
-      "Cuéntanos función y tamaño primero — un buen diseño ahorra horas de impresión.",
-  },
-  {
-    id: "servicio-tecnico",
-    icon: Wrench,
-    title: "Mantenimiento y Reparación",
-    color: "wine",
-    lead:
-      "Servicio técnico especializado para impresoras FDM y de resina de cualquier marca.",
-    bullets: [
-      "Diagnóstico y calibración completa",
-      "Cambio de hotend, boquillas, correas y termistores",
-      "Nivelación automática y firmware",
-      "Servicio en taller o a domicilio en Bogotá",
-    ],
-    kiaraTip:
-      "Un mantenimiento cada 500 h de impresión evita el 80 % de las fallas comunes.",
-  },
-  {
-    id: "escaneo-3d",
-    icon: ScanLine,
-    title: "Escaneo 3D",
-    color: "teal",
-    lead:
-      "Digitalizamos objetos, espacios y piezas reales para obtener modelos 3D listos para editar o imprimir.",
-    bullets: [
-      "Escaneo de objetos pequeños con alta precisión",
-      "Escaneo de espacios y ambientes (tours 3D)",
-      "Limpieza y reparación de malla",
-      "Entrega en STL/OBJ y ingeniería inversa",
-    ],
-    kiaraTip:
-      "Si la pieza es brillante u oscura, la tratamos con spray mate para que el escáner la lea mejor.",
-  },
-  {
-    id: "upgrades",
-    icon: Sparkles,
-    title: "Upgrades y Modding",
-    color: "orange",
-    lead:
-      "Lleva tu impresora al siguiente nivel: velocidad, calidad y confiabilidad.",
-    bullets: [
-      "Klipper y placas silenciosas",
-      "Cambio a extrusor directo",
-      "Boquillas de acero endurecido y bimetálicas",
-      "Cámara y sensores de filamento",
-    ],
-    kiaraTip:
-      "Antes de comprar una impresora nueva, pregúntanos por un upgrade — a veces basta.",
-  },
-  {
-    id: "postprocesado",
-    icon: Ruler,
-    title: "Post-procesado y Acabados",
-    color: "teal",
-    lead:
-      "Convertimos una pieza recién impresa en un producto terminado profesional.",
-    bullets: [
-      "Lijado y masillado",
-      "Aplicación de primer y pintura",
-      "Acabados metalizados, mate o brillo",
-      "Ensamble y montaje final",
-    ],
-    kiaraTip:
-      "El acabado Premium multiplica el impacto visual — pídelo si vas a exhibir la pieza.",
-  },
-  {
-    id: "prototipado",
-    icon: ShoppingBag,
-    title: "Prototipado Industrial",
-    color: "wine",
-    lead:
-      "De la idea al prototipo funcional para validar diseño, ergonomía y mercado.",
-    bullets: [
-      "Iteraciones rápidas de diseño",
-      "Prototipos funcionales y estéticos",
-      "Materiales técnicos según requerimiento",
-      "Asesoría para producción a escala",
-    ],
-    kiaraTip:
-      "Comienza con un prototipo pequeño en PLA — validas la forma antes de invertir más.",
-  },
-];
-
 
 const cursos = [
   {
@@ -179,11 +57,85 @@ const colorFor = (a: string) =>
       ? "var(--brand-teal)"
       : "var(--brand-wine)";
 
-function ServiciosPage() {
+function ServiceArticle({ s, i }: { s: SiteService; i: number }) {
   const { data: quoterServices } = useQuery(quoterServicesQuery());
-  /** Servicio del cotizador vinculado a esta sección (Panel → Cotizador → Ancla). */
-  const quoterFor = (anchor: string) =>
-    (quoterServices ?? []).find((s) => s.site_anchor === anchor) ?? null;
+  const c = colorFor(s.color);
+  const Icon = SITE_SERVICE_ICONS[s.icon] ?? SITE_SERVICE_ICONS["boxes"];
+  const flip = i % 2 === 1;
+  const q = (quoterServices ?? []).find((qs) => qs.site_anchor === s.slug) ?? null;
+
+  return (
+    <article
+      id={s.slug}
+      className={`scroll-mt-24 grid items-start gap-8 md:grid-cols-2 ${flip ? "md:[&>div:first-child]:order-2" : ""}`}
+    >
+      <div>
+        <div
+          className="grid h-14 w-14 place-items-center rounded-2xl"
+          style={{
+            background: `color-mix(in oklab, ${c} 15%, white)`,
+            color: c,
+          }}
+        >
+          <Icon className="h-7 w-7" />
+        </div>
+        <h2 className="mt-4 text-2xl font-black sm:text-3xl">{s.title}</h2>
+        <p className="mt-3 text-muted-foreground">{s.lead}</p>
+        <ul className="mt-5 space-y-2">
+          {s.bullets.map((b) => (
+            <li key={b} className="flex items-start gap-2 text-sm">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" style={{ color: c }} />
+              <span>{b}</span>
+            </li>
+          ))}
+        </ul>
+        {q ? (
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <Link
+              to="/cotizador"
+              search={{ servicio: q.slug }}
+              className="btn-primary text-sm"
+            >
+              Cotizar en línea
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            {q.min_price_cop > 0 && (
+              <span className="text-xs font-semibold text-muted-foreground">
+                Desde {formatCOP(q.min_price_cop)}
+              </span>
+            )}
+          </div>
+        ) : (
+          <Link to="/contacto" className="btn-primary mt-6 text-sm">
+            Cotizar este servicio
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        )}
+      </div>
+      <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+        {s.image_url ? (
+          <img
+            src={s.image_url}
+            alt={s.title}
+            loading="lazy"
+            className="mb-4 aspect-[4/3] w-full rounded-2xl object-cover"
+          />
+        ) : (
+          <div
+            className="mb-4 aspect-[4/3] w-full rounded-2xl"
+            style={{
+              background: `linear-gradient(135deg, color-mix(in oklab, ${c} 30%, white), color-mix(in oklab, ${c} 70%, white))`,
+            }}
+          />
+        )}
+        {s.kiara_tip && <KiaraTip tip={s.kiara_tip} />}
+      </div>
+    </article>
+  );
+}
+
+function ServiciosPage() {
+  const { data: services, isLoading } = useQuery(siteServicesQuery());
 
   return (
     <>
@@ -209,78 +161,24 @@ function ServiciosPage() {
       </section>
 
       <section className="mx-auto max-w-7xl space-y-14 px-4 py-14 sm:px-6 md:py-20">
-        {services.map((s, i) => {
-          const c = colorFor(s.color);
-          const flip = i % 2 === 1;
-          return (
-            <article
-              key={s.id}
-              id={s.id}
-              className={`scroll-mt-24 grid items-start gap-8 md:grid-cols-2 ${flip ? "md:[&>div:first-child]:order-2" : ""}`}
-            >
-              <div>
-                <div
-                  className="grid h-14 w-14 place-items-center rounded-2xl"
-                  style={{
-                    background: `color-mix(in oklab, ${c} 15%, white)`,
-                    color: c,
-                  }}
-                >
-                  <s.icon className="h-7 w-7" />
-                </div>
-                <h2 className="mt-4 text-2xl font-black sm:text-3xl">
-                  {s.title}
-                </h2>
-                <p className="mt-3 text-muted-foreground">{s.lead}</p>
-                <ul className="mt-5 space-y-2">
-                  {s.bullets.map((b) => (
-                    <li key={b} className="flex items-start gap-2 text-sm">
-                      <CheckCircle2
-                        className="mt-0.5 h-4 w-4 shrink-0"
-                        style={{ color: c }}
-                      />
-                      <span>{b}</span>
-                    </li>
-                  ))}
-                </ul>
-                {(() => {
-                  const q = quoterFor(s.id);
-                  return q ? (
-                    <div className="mt-6 flex flex-wrap items-center gap-3">
-                      <Link
-                        to="/cotizador"
-                        search={{ servicio: q.slug }}
-                        className="btn-primary text-sm"
-                      >
-                        Cotizar en línea
-                        <ArrowRight className="h-4 w-4" />
-                      </Link>
-                      {q.min_price_cop > 0 && (
-                        <span className="text-xs font-semibold text-muted-foreground">
-                          Desde {formatCOP(q.min_price_cop)}
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <Link to="/contacto" className="btn-primary mt-6 text-sm">
-                      Cotizar este servicio
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  );
-                })()}
-              </div>
-              <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-                <div
-                  className="mb-4 aspect-[4/3] w-full rounded-2xl"
-                  style={{
-                    background: `linear-gradient(135deg, color-mix(in oklab, ${c} 30%, white), color-mix(in oklab, ${c} 70%, white))`,
-                  }}
-                />
-                <KiaraTip tip={s.kiaraTip} />
-              </div>
-            </article>
-          );
-        })}
+        {isLoading && (
+          <div className="grid gap-8 md:grid-cols-2">
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-64 animate-pulse rounded-3xl border border-border bg-muted/40"
+              />
+            ))}
+          </div>
+        )}
+        {!isLoading && (services ?? []).length === 0 && (
+          <p className="rounded-2xl bg-muted p-6 text-sm text-muted-foreground">
+            Muy pronto publicaremos el detalle de nuestros servicios.
+          </p>
+        )}
+        {(services ?? []).map((s, i) => (
+          <ServiceArticle key={s.id} s={s} i={i} />
+        ))}
       </section>
 
       <section className="border-t border-border bg-muted/30">
@@ -313,24 +211,10 @@ function ServiciosPage() {
                   </div>
                   <h3 className="mt-4 text-xl font-black">{c.title}</h3>
                   <p className="mt-2 text-sm text-muted-foreground">{c.lead}</p>
-                  {(() => {
-                    const q = quoterFor("cursos-3d");
-                    return q ? (
-                      <Link
-                        to="/cotizador"
-                        search={{ servicio: q.slug }}
-                        className="btn-primary mt-5 text-sm"
-                      >
-                        Cotizar el curso
-                        <ArrowRight className="h-4 w-4" />
-                      </Link>
-                    ) : (
-                      <Link to="/contacto" className="btn-primary mt-5 text-sm">
-                        Quiero inscribirme
-                        <ArrowRight className="h-4 w-4" />
-                      </Link>
-                    );
-                  })()}
+                  <Link to="/contacto" className="btn-primary mt-5 text-sm">
+                    Quiero inscribirme
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
                 </article>
               );
             })}
