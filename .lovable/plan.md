@@ -15,11 +15,16 @@ La página /servicios hoy tiene los 7 servicios escritos en el código. Los move
 
 ## 3. Panel
 
-- Nueva página `/panel/servicios` (solo Super Admin): lista de servicios con agregar, editar (título, lead, viñetas una por línea, color, icono, tip, imagen con URL o subida al bucket site-media con URL firmada), mostrar/ocultar (ojo) y reordenar con flechas, igual que en el Cotizador.
+- Nueva página `/panel/servicios` (solo Super Admin): lista de servicios con agregar, editar (título, lead, viñetas una por línea, color, icono, tip, imagen con URL o subida al bucket site-media con URL firmada), mostrar/ocultar (ojo) y **reordenar arrastrando y soltando con @dnd-kit** (ya instalado; mismos sensores táctiles y guardado del nuevo orden que el menú del panel), no flechas.
 - `src/routes/panel.tsx`: nueva entrada "Servicios" (icono Wrench, solo Super Admin) en el menú lateral.
 - `/admin/servicios`: el botón "próximamente" pasa a un enlace a /panel/servicios.
 
-## 4. Verificación
+## 4. Kiara lee los servicios (contexto vivo)
+
+- `src/lib/kiara-context.server.ts`: nuevo bloque `siteServicesBlock()` que lee de `site_services` los servicios activos (título, lead, viñetas y tip de Kiara) y se agrega al System Prompt de /api/kiara en los dos modos (público e interno), junto al bloque existente de servicios cotizables.
+- Como el contexto se arma en cada mensaje leyendo la base de datos, cualquier edición en /panel/servicios (texto, viñetas o tip) llega a Kiara de inmediato, sin tocar la Base de Conocimiento.
+
+## 5. Verificación
 
 - Typecheck + build.
-- Playwright: /servicios muestra los 7 servicios; en el panel se agrega, edita, oculta y reordena uno de prueba, y se ve reflejado en la página pública. Datos de prueba eliminados al final.
+- Playwright: /servicios muestra los 7 servicios; en el panel se agrega, edita, oculta y reordena (arrastrando) uno de prueba, y se ve reflejado en la página pública; una consulta a Kiara menciona los servicios del panel. Datos de prueba eliminados al final.
