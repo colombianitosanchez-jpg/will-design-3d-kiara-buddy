@@ -36,11 +36,7 @@ export const Route = createFileRoute("/panel/productos")({
   component: ProductosAdmin,
 });
 
-type ProductAttrRow = {
-  product_id: string;
-  attribute_id: string;
-  attribute_value_id: string | null;
-};
+type ProductAttrRow = { product_id: string; attribute_id: string; attribute_value_id: string | null };
 
 type Product = {
   id: string;
@@ -93,6 +89,7 @@ const empty: Omit<Product, "id"> = {
   stock: 0,
 };
 
+
 function slugify(s: string) {
   return s
     .toLowerCase()
@@ -103,11 +100,7 @@ function slugify(s: string) {
 }
 
 function formatCOP(n: number) {
-  return n.toLocaleString("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
-  });
+  return n.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
 }
 
 function ProductosAdmin() {
@@ -145,22 +138,15 @@ function ProductosAdmin() {
         .from("categories")
         .select("id,name,slug,sort_order,parent_id,is_active,image_url")
         .order("sort_order"),
-      supabase
-        .from("brands")
-        .select("id,name,slug,logo_url,is_active,sort_order")
-        .order("sort_order"),
+      supabase.from("brands").select("id,name,slug,logo_url,is_active,sort_order").order("sort_order"),
       supabase
         .from("attributes")
         .select(
           "id,slug,name,input_type,is_filterable,sort_order,values:attribute_values(id,attribute_id,slug,label,color_hex,sort_order)",
         )
         .order("sort_order"),
-      supabase
-        .from("category_attributes")
-        .select("id,category_id,attribute_id,is_required,sort_order"),
-      supabase
-        .from("product_attribute_values")
-        .select("product_id,attribute_id,attribute_value_id"),
+      supabase.from("category_attributes").select("id,category_id,attribute_id,is_required,sort_order"),
+      supabase.from("product_attribute_values").select("product_id,attribute_id,attribute_value_id"),
     ]);
     setProducts(
       ((p.data as any[]) ?? []).map((r) => ({
@@ -182,6 +168,7 @@ function ProductosAdmin() {
     setLoading(false);
   }
 
+
   useEffect(() => {
     load();
   }, []);
@@ -199,8 +186,7 @@ function ProductosAdmin() {
         <div>
           <h1 className="text-3xl font-black">Productos</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {visibleProducts.length} de {products.length} producto{products.length === 1 ? "" : "s"}{" "}
-            en el catálogo.
+            {visibleProducts.length} de {products.length} producto{products.length === 1 ? "" : "s"} en el catálogo.
           </p>
         </div>
         <button
@@ -253,10 +239,7 @@ function ProductosAdmin() {
               <tbody>
                 {visibleProducts.map((p) => {
                   const cat = p.category_id
-                    ? categoryPath(
-                        categories.find((c) => c.id === p.category_id)?.slug,
-                        categories,
-                      ) || "—"
+                    ? (categoryPath(categories.find((c) => c.id === p.category_id)?.slug, categories) || "—")
                     : "—";
                   const br = brands.find((b) => b.id === p.brand_id)?.name ?? "—";
 
@@ -264,11 +247,7 @@ function ProductosAdmin() {
                     <tr key={p.id} className="border-t border-border">
                       <td className="px-4 py-3">
                         {p.image_url ? (
-                          <img
-                            src={p.image_url}
-                            alt=""
-                            className="h-12 w-12 rounded-lg object-cover"
-                          />
+                          <img src={p.image_url} alt="" className="h-12 w-12 rounded-lg object-cover" />
                         ) : (
                           <div className="h-12 w-12 rounded-lg bg-muted" />
                         )}
@@ -281,9 +260,7 @@ function ProductosAdmin() {
                       <td className="px-4 py-3">
                         <span
                           className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                            p.active
-                              ? "bg-green-100 text-green-700"
-                              : "bg-muted text-muted-foreground"
+                            p.active ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"
                           }`}
                         >
                           {p.active ? "Activo" : "Oculto"}
@@ -331,6 +308,7 @@ function ProductosAdmin() {
           }}
         />
       )}
+
     </>
   );
 }
@@ -406,9 +384,7 @@ function ProductModal({
       ? categories.find((c) => c.id === form.category_id)?.name
       : null;
     const asChild =
-      parentName && confirm(`¿Crear “${name}” como subcategoría de “${parentName}”?`)
-        ? form.category_id
-        : null;
+      parentName && confirm(`¿Crear “${name}” como subcategoría de “${parentName}”?`) ? form.category_id : null;
     const { data, error } = await supabase
       .from("categories")
       .insert({ name, slug: slugifyValue(name), parent_id: asChild })
@@ -431,19 +407,20 @@ function ProductModal({
     set("brand_id", data.id);
   }
 
+
   async function uploadToStorage(file: File): Promise<string> {
-    const path = `${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-    const up = await supabase.storage.from("product-images").upload(path, file, {
-      cacheControl: "3600",
-      upsert: false,
-    });
-    if (up.error) throw up.error;
-    // signed URL 10 years
-    const signed = await supabase.storage
-      .from("product-images")
-      .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-    if (signed.error) throw signed.error;
-    return signed.data.signedUrl;
+      const path = `${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      const up = await supabase.storage.from("product-images").upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+      if (up.error) throw up.error;
+      // signed URL 10 years
+      const signed = await supabase.storage
+        .from("product-images")
+        .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+      if (signed.error) throw signed.error;
+      return signed.data.signedUrl;
   }
 
   async function uploadImage(file: File) {
@@ -492,11 +469,7 @@ function ProductModal({
         accepts_3d_file: !!form.accepts_3d_file,
         quote_only: !!form.quote_only,
         custom_share_text: form.custom_share_text?.trim() ? form.custom_share_text.trim() : null,
-        custom_buttons: buttons.map((b) => ({
-          ...b,
-          text: b.text.trim(),
-          action_value: b.action_value.trim(),
-        })),
+        custom_buttons: buttons.map((b) => ({ ...b, text: b.text.trim(), action_value: b.action_value.trim() })),
         category_id: form.category_id || null,
         brand_id: form.brand_id || null,
         short: form.short ?? "",
@@ -519,11 +492,7 @@ function ProductModal({
         const { error } = await supabase.from("products").update(payload).eq("id", id);
         if (error) throw error;
       } else {
-        const { data, error } = await supabase
-          .from("products")
-          .insert(payload)
-          .select("id")
-          .single();
+        const { data, error } = await supabase.from("products").insert(payload).select("id").single();
         if (error) throw error;
         id = data.id;
       }
@@ -542,6 +511,7 @@ function ProductModal({
         if (error) throw error;
       }
       onSaved();
+
     } catch (e) {
       alert((e as Error).message);
     } finally {
@@ -707,6 +677,7 @@ function ProductModal({
           </p>
         )}
 
+
         <Field label="Descripción corta">
           <textarea
             rows={2}
@@ -739,9 +710,7 @@ function ProductModal({
             coverIndex={0}
             onSetCover={(url) => set("image_url", url)}
             onChange={(urls) => {
-              const cover = urls.includes(form.image_url ?? "")
-                ? form.image_url
-                : (urls[0] ?? null);
+              const cover = urls.includes(form.image_url ?? "") ? form.image_url : (urls[0] ?? null);
               setForm((fm) => ({
                 ...fm,
                 image_url: cover ?? null,
@@ -750,6 +719,7 @@ function ProductModal({
             }}
           />
         </Field>
+
 
         <Field label="Especificaciones técnicas (tecnología, volumen, material…)">
           <div className="grid gap-2">
@@ -780,9 +750,7 @@ function ProductModal({
             ))}
             <button
               type="button"
-              onClick={() =>
-                setForm((fm) => ({ ...fm, specs: [...(fm.specs ?? []), { label: "", value: "" }] }))
-              }
+              onClick={() => setForm((fm) => ({ ...fm, specs: [...(fm.specs ?? []), { label: "", value: "" }] }))}
               className="justify-self-start rounded-full border border-border px-4 py-1.5 text-xs font-semibold hover:bg-muted"
             >
               + Añadir especificación
@@ -845,9 +813,7 @@ function ProductModal({
                     Estilo
                     <select
                       value={b.variant}
-                      onChange={(e) =>
-                        updateButton(i, { variant: e.target.value as ProductButton["variant"] })
-                      }
+                      onChange={(e) => updateButton(i, { variant: e.target.value as ProductButton["variant"] })}
                       className={inputCls}
                     >
                       {BUTTON_VARIANTS.map((v) => (
@@ -861,9 +827,7 @@ function ProductModal({
                     Ancho
                     <select
                       value={b.width}
-                      onChange={(e) =>
-                        updateButton(i, { width: e.target.value as ProductButton["width"] })
-                      }
+                      onChange={(e) => updateButton(i, { width: e.target.value as ProductButton["width"] })}
                       className={inputCls}
                     >
                       {BUTTON_WIDTHS.map((w) => (
@@ -877,9 +841,7 @@ function ProductModal({
                     Alineación
                     <select
                       value={b.position}
-                      onChange={(e) =>
-                        updateButton(i, { position: e.target.value as ProductButton["position"] })
-                      }
+                      onChange={(e) => updateButton(i, { position: e.target.value as ProductButton["position"] })}
                       className={inputCls}
                     >
                       {BUTTON_POSITIONS.map((p) => (
@@ -910,15 +872,11 @@ function ProductModal({
                   </label>
                   {(b.action_type === "link" || b.action_type === "whatsapp") && (
                     <label className="text-xs font-semibold text-muted-foreground">
-                      {b.action_type === "link"
-                        ? "URL o ruta de destino"
-                        : "Número de WhatsApp (opcional)"}
+                      {b.action_type === "link" ? "URL o ruta de destino" : "Número de WhatsApp (opcional)"}
                       <input
                         value={b.action_value}
                         onChange={(e) => updateButton(i, { action_value: e.target.value })}
-                        placeholder={
-                          b.action_type === "link" ? "/cotizador o https://…" : "573156724474"
-                        }
+                        placeholder={b.action_type === "link" ? "/cotizador o https://…" : "573156724474"}
                         className={inputCls}
                       />
                     </label>
@@ -947,6 +905,8 @@ function ProductModal({
             </button>
           </div>
         </Field>
+
+
 
         <div className="mt-4 flex flex-wrap gap-6">
           <label className="inline-flex items-center gap-2 text-sm">

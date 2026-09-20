@@ -4,6 +4,7 @@
 import { computeQuote, coerceAnswersDetailed, formatCOP } from "@/lib/quoter-core";
 import { getQuoterServices } from "@/lib/quoter.server";
 
+
 export const KIARA_TOOLS = [
   {
     type: "function" as const,
@@ -22,7 +23,7 @@ export const KIARA_TOOLS = [
           answers: {
             type: "object",
             description:
-              'Respuestas por clave o etiqueta de la pregunta, por ejemplo {"peso_gramos": 120, "material": "PETG", "urgente": "si"}.',
+              "Respuestas por clave o etiqueta de la pregunta, por ejemplo {\"peso_gramos\": 120, \"material\": \"PETG\", \"urgente\": \"si\"}.",
           },
           quantity: { type: "number", description: "Cantidad de unidades" },
         },
@@ -42,13 +43,9 @@ export const KIARA_TOOLS = [
         properties: {
           query: {
             type: "string",
-            description:
-              "Texto de búsqueda: nombre, marca, categoría o tipo (por ejemplo impresora, PLA, resina).",
+            description: "Texto de búsqueda: nombre, marca, categoría o tipo (por ejemplo impresora, PLA, resina).",
           },
-          max_price_cop: {
-            type: "number",
-            description: "Precio máximo en COP si el cliente da presupuesto",
-          },
+          max_price_cop: { type: "number", description: "Precio máximo en COP si el cliente da presupuesto" },
         },
         required: ["query"],
       },
@@ -203,26 +200,24 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
     };
   }
 
+
+
+
   if (name === "search_products") {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const q = String(args.query ?? "")
-      .trim()
-      .slice(0, 80);
+    const q = String(args.query ?? "").trim().slice(0, 80);
     const maxPrice = Number(args.max_price_cop);
 
     let builder = supabaseAdmin
       .from("products")
       .select("name, slug, price_cop, short, stock, image_url, categories(name), brands(name)")
       .eq("active", true);
-    if (Number.isFinite(maxPrice) && maxPrice > 0)
-      builder = builder.lte("price_cop", Math.round(maxPrice));
+    if (Number.isFinite(maxPrice) && maxPrice > 0) builder = builder.lte("price_cop", Math.round(maxPrice));
 
     const { data: all } = await builder.order("featured", { ascending: false }).limit(200);
     const rows = (all ?? []) as ProductRow[];
 
-    const terms = slugify(q)
-      .split("-")
-      .filter((t) => t.length >= 3);
+    const terms = slugify(q).split("-").filter((t) => t.length >= 3);
     const score = (p: ProductRow) => {
       const hay = slugify(
         [p.name, p.short, p.categories?.name, p.brands?.name].filter(Boolean).join(" "),
@@ -300,15 +295,7 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
           .from("products")
           .select("id, name, slug, price_cop, active")
           .in("slug", slugs)
-      : {
-          data: [] as {
-            id: string;
-            name: string;
-            slug: string;
-            price_cop: number | null;
-            active: boolean;
-          }[],
-        };
+      : { data: [] as { id: string; name: string; slug: string; price_cop: number | null; active: boolean }[] };
 
     const bySlug = new Map(
       (catalog ?? []).filter((p) => p.active).map((p) => [p.slug, p] as const),
@@ -335,8 +322,7 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
         customer_phone: args.customer_phone ? String(args.customer_phone).slice(0, 40) : null,
         shipping_address: String(args.shipping_address ?? "").slice(0, 300) || "Por confirmar",
         shipping_city: args.shipping_city ? String(args.shipping_city).slice(0, 120) : null,
-        notes:
-          `Pedido creado por Kiara. ${args.notes ? String(args.notes).slice(0, 800) : ""}`.trim(),
+        notes: `Pedido creado por Kiara. ${args.notes ? String(args.notes).slice(0, 800) : ""}`.trim(),
         total_cop: total,
         status: "pendiente" as const,
       })
@@ -367,6 +353,7 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
   }
 
   return { text: "", data: null, result: { error: "herramienta_desconocida" } };
+
 }
 
 export type ToolFollowUp = (
@@ -521,5 +508,6 @@ export function interceptToolStream(
         opts.onFinish?.();
       }
     },
+
   });
 }

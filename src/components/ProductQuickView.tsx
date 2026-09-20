@@ -16,8 +16,10 @@ import { formatCOP, gradientKeyFor, type Product } from "@/lib/catalog";
 const GRADIENTS: Record<string, string> = {
   orange:
     "linear-gradient(135deg, color-mix(in oklab, var(--brand-orange) 35%, white), color-mix(in oklab, var(--brand-orange) 75%, white))",
-  teal: "linear-gradient(135deg, color-mix(in oklab, var(--brand-teal) 35%, white), color-mix(in oklab, var(--brand-teal) 75%, white))",
-  wine: "linear-gradient(135deg, color-mix(in oklab, var(--brand-wine) 35%, white), color-mix(in oklab, var(--brand-wine) 70%, white))",
+  teal:
+    "linear-gradient(135deg, color-mix(in oklab, var(--brand-teal) 35%, white), color-mix(in oklab, var(--brand-teal) 75%, white))",
+  wine:
+    "linear-gradient(135deg, color-mix(in oklab, var(--brand-wine) 35%, white), color-mix(in oklab, var(--brand-wine) 70%, white))",
 };
 
 export function ProductQuickView({
@@ -61,9 +63,7 @@ export function ProductQuickView({
                 </p>
               )}
               <div className="flex items-start justify-between gap-2">
-                <DialogTitle className="text-xl font-bold leading-tight">
-                  {product.name}
-                </DialogTitle>
+                <DialogTitle className="text-xl font-bold leading-tight">{product.name}</DialogTitle>
                 <ShareButton
                   title={product.name}
                   text={product.custom_share_text}

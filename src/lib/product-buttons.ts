@@ -101,11 +101,7 @@ export function validateProductButtons(buttons: ProductButton[]): string | null 
     if (!b.text.trim()) return `El botón ${n} necesita un texto.`;
     if (b.action_type === "link" && !b.action_value.trim())
       return `El botón ${n} necesita la URL o ruta de destino.`;
-    if (
-      b.action_type === "whatsapp" &&
-      b.action_value.trim() &&
-      b.action_value.replace(/\D/g, "").length < 7
-    )
+    if (b.action_type === "whatsapp" && b.action_value.trim() && b.action_value.replace(/\D/g, "").length < 7)
       return `El número de WhatsApp del botón ${n} no parece válido.`;
   }
   return null;

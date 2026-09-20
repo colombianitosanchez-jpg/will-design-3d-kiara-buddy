@@ -1,4 +1,10 @@
-import { createFileRoute, Outlet, Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Outlet,
+  Link,
+  useNavigate,
+  useRouterState,
+} from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   LayoutDashboard,
@@ -17,7 +23,6 @@ import {
   LogOut,
   ShieldCheck,
   GalleryHorizontal,
-  Wrench,
   Lock,
   Unlock,
   GripVertical,
@@ -51,16 +56,10 @@ export const Route = createFileRoute("/panel")({
   head: () => ({
     meta: [
       { title: "Panel del equipo · Will Design 3D" },
-      {
-        name: "description",
-        content: "Panel privado para gestionar productos, pedidos, contenido y menú del sitio.",
-      },
+      { name: "description", content: "Panel privado para gestionar productos, pedidos, contenido y menú del sitio." },
       { name: "robots", content: "noindex, nofollow" },
       { property: "og:title", content: "Panel del equipo · Will Design 3D" },
-      {
-        property: "og:description",
-        content: "Panel privado de gestión del sitio. Acceso restringido al equipo.",
-      },
+      { property: "og:description", content: "Panel privado de gestión del sitio. Acceso restringido al equipo." },
     ],
   }),
   component: PanelLayout,
@@ -76,73 +75,29 @@ type PanelLink = {
 };
 
 const ALL_LINKS: PanelLink[] = [
-  {
-    key: "inicio",
-    to: "/panel",
-    label: "Inicio",
-    icon: LayoutDashboard,
-    exact: true,
-    superOnly: false,
-  },
+  { key: "inicio", to: "/panel", label: "Inicio", icon: LayoutDashboard, exact: true, superOnly: false },
   { key: "productos", to: "/panel/productos", label: "Productos", icon: Package, superOnly: false },
   { key: "pedidos", to: "/panel/pedidos", label: "Pedidos", icon: ShoppingCart, superOnly: false },
-  {
-    key: "conocimiento",
-    to: "/panel/conocimiento",
-    label: "Base de Conocimiento",
-    icon: BookOpen,
-    superOnly: false,
-  },
-  {
-    key: "taxonomia",
-    to: "/panel/taxonomia",
-    label: "Categorías y marcas",
-    icon: Tags,
-    superOnly: true,
-  },
+  { key: "conocimiento", to: "/panel/conocimiento", label: "Base de Conocimiento", icon: BookOpen, superOnly: false },
+  { key: "taxonomia", to: "/panel/taxonomia", label: "Categorías y marcas", icon: Tags, superOnly: true },
   { key: "pagos", to: "/panel/pagos", label: "Métodos de pago", icon: CreditCard, superOnly: true },
-  {
-    key: "cotizador",
-    to: "/panel/cotizador",
-    label: "Cotizador",
-    icon: Calculator,
-    superOnly: true,
-  },
-  {
-    key: "servicios",
-    to: "/panel/servicios",
-    label: "Servicios web",
-    icon: Wrench,
-    superOnly: true,
-  },
-  {
-    key: "cotizaciones",
-    to: "/panel/cotizaciones",
-    label: "Reglas de precios",
-    icon: SlidersHorizontal,
-    superOnly: true,
-  },
-  {
-    key: "notificaciones",
-    to: "/panel/notificaciones",
-    label: "Notificaciones",
-    icon: BellRing,
-    superOnly: true,
-  },
+  { key: "cotizador", to: "/panel/cotizador", label: "Cotizador", icon: Calculator, superOnly: true },
+  { key: "cotizaciones", to: "/panel/cotizaciones", label: "Reglas de precios", icon: SlidersHorizontal, superOnly: true },
+  { key: "notificaciones", to: "/panel/notificaciones", label: "Notificaciones", icon: BellRing, superOnly: true },
   { key: "menu", to: "/panel/menu", label: "Menú de navegación", icon: ListTree, superOnly: true },
   { key: "contenido", to: "/panel/contenido", label: "Contenido", icon: FileText, superOnly: true },
-  {
-    key: "carrusel",
-    to: "/panel/carrusel",
-    label: "Carrusel",
-    icon: GalleryHorizontal,
-    superOnly: true,
-  },
+  { key: "carrusel", to: "/panel/carrusel", label: "Carrusel", icon: GalleryHorizontal, superOnly: true },
   { key: "llm", to: "/panel/llm", label: "Configuración de LLM", icon: Bot, superOnly: true },
   { key: "equipo", to: "/panel/equipo", label: "Equipo", icon: UsersRound, superOnly: true },
 ];
 
-function SortableItem({ link, variant }: { link: PanelLink; variant: "desktop" | "mobile" }) {
+function SortableItem({
+  link,
+  variant,
+}: {
+  link: PanelLink;
+  variant: "desktop" | "mobile";
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: link.key,
   });
@@ -195,7 +150,10 @@ function PanelLayout() {
   );
 
   /** Orden global completo (incluye módulos no visibles para el rol actual). */
-  const fullOrder = useMemo(() => sortByOrder(ALL_LINKS, order ?? []).map((l) => l.key), [order]);
+  const fullOrder = useMemo(
+    () => sortByOrder(ALL_LINKS, order ?? []).map((l) => l.key),
+    [order],
+  );
 
   const sortedLinks = useMemo(() => sortByOrder(ALL_LINKS, order ?? []), [order]);
   const links = sortedLinks.filter((l) => isSuperAdmin || !l.superOnly);
@@ -226,9 +184,7 @@ function PanelLayout() {
 
   if (loading || !user) {
     return (
-      <div className="mx-auto max-w-xl px-4 py-16 text-sm text-muted-foreground">
-        Cargando panel…
-      </div>
+      <div className="mx-auto max-w-xl px-4 py-16 text-sm text-muted-foreground">Cargando panel…</div>
     );
   }
 
@@ -240,14 +196,12 @@ function PanelLayout() {
             <ShieldCheck className="h-10 w-10 text-[var(--brand-orange)]" />
             <CardTitle className="mt-2 text-2xl font-black">Cuenta en revisión</CardTitle>
             <CardDescription>
-              Tu cuenta está en revisión. Contacta al administrador de Will Design 3D para obtener
-              acceso.
+              Tu cuenta está en revisión. Contacta al administrador de Will Design 3D para obtener acceso.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-xs text-muted-foreground">
-              {user.email} · estado:{" "}
-              {role === "pending" ? "pendiente" : !isActive ? "inactiva" : role}
+              {user.email} · estado: {role === "pending" ? "pendiente" : !isActive ? "inactiva" : role}
             </p>
             <Button variant="outline" className="w-full" onClick={handleSignOut}>
               Cerrar sesión
@@ -265,15 +219,8 @@ function PanelLayout() {
       <aside className="hidden w-56 shrink-0 md:block">
         <div className="sticky top-24 space-y-1 rounded-3xl border border-border bg-card p-3">
           {dragEnabled ? (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={links.map((l) => l.key)}
-                strategy={verticalListSortingStrategy}
-              >
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={links.map((l) => l.key)} strategy={verticalListSortingStrategy}>
                 <div className="space-y-1">
                   {links.map((l) => (
                     <SortableItem key={l.key} link={l} variant="desktop" />
@@ -310,9 +257,7 @@ function PanelLayout() {
               onClick={() => setEditMode((v) => !v)}
               aria-pressed={editMode}
               className={`mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition ${
-                editMode
-                  ? "bg-[var(--brand-orange)] text-white"
-                  : "text-muted-foreground hover:bg-muted"
+                editMode ? "bg-[var(--brand-orange)] text-white" : "text-muted-foreground hover:bg-muted"
               }`}
             >
               {editMode ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
@@ -340,15 +285,8 @@ function PanelLayout() {
         {/* mobile nav */}
         <div className="mb-4 md:hidden">
           {dragEnabled ? (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={links.map((l) => l.key)}
-                strategy={horizontalListSortingStrategy}
-              >
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={links.map((l) => l.key)} strategy={horizontalListSortingStrategy}>
                 <div className="flex flex-wrap gap-2">
                   {links.map((l) => (
                     <SortableItem key={l.key} link={l} variant="mobile" />
@@ -379,9 +317,7 @@ function PanelLayout() {
               onClick={() => setEditMode((v) => !v)}
               aria-pressed={editMode}
               className={`mt-2 flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${
-                editMode
-                  ? "bg-[var(--brand-orange)] text-white"
-                  : "border border-border text-muted-foreground"
+                editMode ? "bg-[var(--brand-orange)] text-white" : "border border-border text-muted-foreground"
               }`}
             >
               {editMode ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}

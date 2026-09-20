@@ -1,17 +1,26 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Eye, MessageCircle } from "lucide-react";
-import { formatCOP, getContactInfo, gradientKeyFor, waLink, type Product } from "@/lib/catalog";
+import {
+  formatCOP,
+  getContactInfo,
+  gradientKeyFor,
+  waLink,
+  type Product,
+} from "@/lib/catalog";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { ProductButtons } from "@/components/ProductButtons";
 import { ProductQuickView } from "@/components/ProductQuickView";
 import { ShareButton } from "@/components/ShareButton";
 
+
 const GRADIENTS: Record<string, string> = {
   orange:
     "linear-gradient(135deg, color-mix(in oklab, var(--brand-orange) 35%, white), color-mix(in oklab, var(--brand-orange) 75%, white))",
-  teal: "linear-gradient(135deg, color-mix(in oklab, var(--brand-teal) 35%, white), color-mix(in oklab, var(--brand-teal) 75%, white))",
-  wine: "linear-gradient(135deg, color-mix(in oklab, var(--brand-wine) 35%, white), color-mix(in oklab, var(--brand-wine) 70%, white))",
+  teal:
+    "linear-gradient(135deg, color-mix(in oklab, var(--brand-teal) 35%, white), color-mix(in oklab, var(--brand-teal) 75%, white))",
+  wine:
+    "linear-gradient(135deg, color-mix(in oklab, var(--brand-wine) 35%, white), color-mix(in oklab, var(--brand-wine) 70%, white))",
 };
 
 export function ProductCard({ product }: { product: Product }) {
@@ -25,7 +34,9 @@ export function ProductCard({ product }: { product: Product }) {
   const [quickOpen, setQuickOpen] = useState(false);
 
   return (
-    <article className="group flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
+    <article
+      className="group flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+    >
       <Link
         to="/tienda/$slug"
         params={{ slug: product.slug }}

@@ -30,7 +30,9 @@ function AdminLive() {
         .from("user_roles")
         .select("role")
         .eq("user_id", userData.user.id);
-      const allowed = data?.some((r) => r.role === "admin" || r.role === "staff");
+      const allowed = data?.some(
+        (r) => r.role === "admin" || r.role === "staff",
+      );
       setStatus(allowed ? "ok" : "denied");
     })();
   }, []);
@@ -49,10 +51,13 @@ function AdminLive() {
         <div className="max-w-md rounded-3xl border border-border bg-card p-6 text-center shadow-xl">
           <h1 className="text-lg font-black">Acceso restringido</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Necesitas una cuenta con rol de administrador o staff para gestionar la transmisión en
-            vivo.
+            Necesitas una cuenta con rol de administrador o staff para gestionar
+            la transmisión en vivo.
           </p>
-          <Link to="/auth" className="btn-primary mt-4 inline-flex justify-center">
+          <Link
+            to="/auth"
+            className="btn-primary mt-4 inline-flex justify-center"
+          >
             Iniciar sesión
           </Link>
         </div>
@@ -81,7 +86,10 @@ function LivePanel() {
     <div className="min-h-screen bg-background p-4 sm:p-8">
       <div className="mx-auto max-w-2xl">
         <div className="flex items-center gap-3">
-          <Radio className="h-8 w-8" style={{ color: "var(--brand-orange)" }} />
+          <Radio
+            className="h-8 w-8"
+            style={{ color: "var(--brand-orange)" }}
+          />
           <div>
             <h1 className="text-2xl font-black">Transmisión en vivo</h1>
             <p className="text-sm text-muted-foreground">
@@ -163,8 +171,8 @@ function LivePanel() {
           </form>
 
           <p className="mt-6 rounded-xl bg-muted p-3 text-xs text-muted-foreground">
-            ℹ️ Este estado se guarda por navegador. Para sincronizarlo entre dispositivos podemos
-            moverlo a la base de datos más adelante.
+            ℹ️ Este estado se guarda por navegador. Para sincronizarlo entre
+            dispositivos podemos moverlo a la base de datos más adelante.
           </p>
         </div>
       </div>

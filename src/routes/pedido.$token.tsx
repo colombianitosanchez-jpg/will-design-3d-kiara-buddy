@@ -129,9 +129,7 @@ function SeguimientoPage() {
             </p>
           )}
           {order.payment_note && (
-            <p className="mt-2 rounded-xl bg-red-50 p-3 text-xs text-red-700">
-              {order.payment_note}
-            </p>
+            <p className="mt-2 rounded-xl bg-red-50 p-3 text-xs text-red-700">{order.payment_note}</p>
           )}
         </div>
         <div className="rounded-3xl border border-border bg-card p-5">

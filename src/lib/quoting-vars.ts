@@ -30,11 +30,7 @@ export const PRICE_SOURCE_OPTIONS: { value: string; label: string }[] = [
 ];
 
 export const QUOTING_VAR_LABELS: { key: keyof QuotingVars; label: string; help: string }[] = [
-  {
-    key: "fdm_gram_cost",
-    label: "Costo por gramo (FDM)",
-    help: "Filamento + desperdicio, en COP.",
-  },
+  { key: "fdm_gram_cost", label: "Costo por gramo (FDM)", help: "Filamento + desperdicio, en COP." },
   { key: "resin_ml_cost", label: "Costo por ml (resina)", help: "Resina por mililitro, en COP." },
   { key: "machine_hour_rate", label: "Hora de máquina", help: "Desgaste y energía por hora." },
   { key: "labor_hour_rate", label: "Hora de mano de obra", help: "Tiempo del equipo por hora." },

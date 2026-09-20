@@ -25,16 +25,10 @@ export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
       { title: "Administración interna · Will Design 3D" },
-      {
-        name: "description",
-        content: "Área privada de administración del taller. Acceso restringido al equipo.",
-      },
+      { name: "description", content: "Área privada de administración del taller. Acceso restringido al equipo." },
       { name: "robots", content: "noindex, nofollow" },
       { property: "og:title", content: "Administración interna · Will Design 3D" },
-      {
-        property: "og:description",
-        content: "Área privada de administración. Acceso restringido al equipo.",
-      },
+      { property: "og:description", content: "Área privada de administración. Acceso restringido al equipo." },
     ],
   }),
 
@@ -52,7 +46,7 @@ function AdminLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [roles, setRoles] = useState<Role[] | null>(null);
   const [email, setEmail] = useState("");
-
+  
   const [mobileOpen, setMobileOpen] = useState(false);
 
   async function refreshRole() {
@@ -80,6 +74,7 @@ function AdminLayout() {
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
+
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -155,10 +150,7 @@ function AdminLayout() {
       </button>
       <div className="mt-3 border-t border-border pt-3">
         <p className="text-[11px] text-muted-foreground">{email}</p>
-        <p
-          className="mt-1 text-[10px] font-bold uppercase tracking-wider"
-          style={{ color: isAdmin ? "var(--brand-orange)" : "var(--brand-teal-deep)" }}
-        >
+        <p className="mt-1 text-[10px] font-bold uppercase tracking-wider" style={{ color: isAdmin ? "var(--brand-orange)" : "var(--brand-teal-deep)" }}>
           {isAdmin ? "Super Admin" : "Empleado"}
         </p>
       </div>

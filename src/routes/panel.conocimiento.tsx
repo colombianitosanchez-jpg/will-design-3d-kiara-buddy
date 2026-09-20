@@ -110,9 +110,9 @@ function KnowledgeAdmin() {
         <div>
           <h1 className="text-3xl font-black">Base de Conocimiento</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Todo lo que guardes aquí se le entrega a Kiara antes de responder: procedimientos, notas
-            de inventario, manuales de impresoras, precios internos. Elige si el documento es solo
-            para el equipo, solo para el público o para ambos.
+            Todo lo que guardes aquí se le entrega a Kiara antes de responder: procedimientos,
+            notas de inventario, manuales de impresoras, precios internos. Elige si el documento
+            es solo para el equipo, solo para el público o para ambos.
           </p>
         </div>
         <button
@@ -128,8 +128,8 @@ function KnowledgeAdmin() {
       <div className="mt-6 overflow-hidden rounded-3xl border border-border bg-card">
         {rows.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">
-            Aún no hay documentos. Añade el primero para que Kiara responda con datos reales de la
-            empresa.
+            Aún no hay documentos. Añade el primero para que Kiara responda con datos reales de
+            la empresa.
           </div>
         ) : (
           <table className="w-full text-sm">

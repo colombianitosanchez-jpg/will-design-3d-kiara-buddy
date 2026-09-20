@@ -16,10 +16,7 @@ export const Route = createFileRoute("/login")({
       { name: "description", content: "Acceso privado al panel de gestión de Will Design 3D." },
       { name: "robots", content: "noindex, nofollow" },
       { property: "og:title", content: "Acceso del equipo · Will Design 3D" },
-      {
-        property: "og:description",
-        content: "Acceso privado al panel de gestión de Will Design 3D.",
-      },
+      { property: "og:description", content: "Acceso privado al panel de gestión de Will Design 3D." },
     ],
   }),
   component: LoginPage,
@@ -53,8 +50,7 @@ function LoginPage() {
         });
         if (error) throw error;
         toast.success("Cuenta creada", {
-          description:
-            "Revisa tu correo si se requiere confirmación. Un administrador debe activar tu acceso.",
+          description: "Revisa tu correo si se requiere confirmación. Un administrador debe activar tu acceso.",
         });
       }
     } catch (err) {

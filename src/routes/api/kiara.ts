@@ -26,14 +26,7 @@ type Provider = {
 
 /** Códigos que deben provocar el salto al siguiente proveedor de la cascada. */
 function shouldFallback(status: number) {
-  return (
-    status === 429 ||
-    status >= 500 ||
-    status === 401 ||
-    status === 403 ||
-    status === 400 ||
-    status === 404
-  );
+  return status === 429 || status >= 500 || status === 401 || status === 403 || status === 400 || status === 404;
 }
 
 function sleep(ms: number) {
@@ -75,6 +68,7 @@ async function fetchWithRetry(
   return { res: null, error };
 }
 
+
 export const Route = createFileRoute("/api/kiara")({
   server: {
     handlers: {
@@ -87,11 +81,14 @@ export const Route = createFileRoute("/api/kiara")({
         }
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { resolveAuthBoundary, buildKiaraSystemPrompt } =
-          await import("@/lib/kiara-context.server");
+        const { resolveAuthBoundary, buildKiaraSystemPrompt } = await import(
+          "@/lib/kiara-context.server"
+        );
 
         // ── Firewall: solo un JWT válido con rol admin/staff activa el modo interno ──
-        const { isInternalTeam } = await resolveAuthBoundary(request.headers.get("authorization"));
+        const { isInternalTeam } = await resolveAuthBoundary(
+          request.headers.get("authorization"),
+        );
 
         const { data: contentRows } = await supabaseAdmin
           .from("site_content")
@@ -101,8 +98,9 @@ export const Route = createFileRoute("/api/kiara")({
         (contentRows ?? []).forEach((r) => (content[r.key] = r.value));
 
         // Dos caminos aislados: el modo público nunca consulta pedidos, clientes ni costos.
-        const { KIARA_TOOLS, TOOL_INSTRUCTIONS, interceptToolStream } =
-          await import("@/lib/kiara-tools.server");
+        const { KIARA_TOOLS, TOOL_INSTRUCTIONS, interceptToolStream } = await import(
+          "@/lib/kiara-tools.server"
+        );
 
         // Dos caminos aislados: el modo público nunca consulta pedidos, clientes ni costos.
         const basePrompt = await buildKiaraSystemPrompt(isInternalTeam, {
@@ -110,6 +108,10 @@ export const Route = createFileRoute("/api/kiara")({
           internalPrompt: content.kiara_prompt_internal,
         });
         const systemPrompt = basePrompt + TOOL_INSTRUCTIONS;
+
+
+
+
 
         const { data: providers } = await supabaseAdmin
           .from("llm_providers")
@@ -120,7 +122,10 @@ export const Route = createFileRoute("/api/kiara")({
 
         const list = (providers ?? []) as Provider[];
         if (list.length === 0) {
-          return Response.json({ error: "Sin proveedores de IA configurados" }, { status: 503 });
+          return Response.json(
+            { error: "Sin proveedores de IA configurados" },
+            { status: 503 },
+          );
         }
 
         // El prompt, la temperatura y el modelo salen del panel (Configuración de LLM).
@@ -146,6 +151,7 @@ export const Route = createFileRoute("/api/kiara")({
           "Si el resultado indica datos faltantes, pide justo esos datos.";
 
         const failures: string[] = [];
+
 
         for (const p of list) {
           const temp = Number.isFinite(Number(p.temperature)) ? Number(p.temperature) : 0.2;
@@ -242,8 +248,12 @@ export const Route = createFileRoute("/api/kiara")({
           });
         }
 
+
         console.error(`[kiara] todos los proveedores fallaron: ${failures.join(" | ")}`);
-        return Response.json({ error: "Ningún proveedor de IA disponible" }, { status: 503 });
+        return Response.json(
+          { error: "Ningún proveedor de IA disponible" },
+          { status: 503 },
+        );
       },
     },
   },

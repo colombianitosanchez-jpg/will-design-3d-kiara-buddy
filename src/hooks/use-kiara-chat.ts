@@ -20,6 +20,7 @@ export function useKiaraChat(initialGreeting: string) {
       setSlow(false);
       setError(null);
 
+
       const replyId = createMessage("assistant", "").id;
       let started = false;
 
@@ -50,6 +51,7 @@ export function useKiaraChat(initialGreeting: string) {
           () => setSlow(true),
         );
       } catch (e) {
+
         setError((e as Error).message);
         setMessages((prev) => [
           ...prev.filter((m) => m.id !== replyId || m.content.trim()),

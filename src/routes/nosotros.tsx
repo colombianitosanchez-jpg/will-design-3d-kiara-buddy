@@ -15,10 +15,7 @@ export const Route = createFileRoute("/nosotros")({
           "Somos Will Design 3D, un taller especializado en impresión 3D de gran formato en Bogotá. Diseño, producción y asesoría con Kiara al mando.",
       },
       { property: "og:title", content: "Nosotros — Will Design 3D" },
-      {
-        property: "og:description",
-        content: "Taller de impresión 3D en Bogotá. Diseño, producción, asesoría y mucho ❤️.",
-      },
+      { property: "og:description", content: "Taller de impresión 3D en Bogotá. Diseño, producción, asesoría y mucho ❤️." },
     ],
   }),
   component: NosotrosPage,
@@ -36,7 +33,8 @@ function NosotrosPage() {
           <div>
             <span className="chip-teal">Nuestra historia</span>
             <h1 className="mt-3 text-4xl font-black sm:text-5xl md:text-6xl">
-              Un taller 3D con <span style={{ color: "var(--brand-orange)" }}>alma</span>
+              Un taller 3D con{" "}
+              <span style={{ color: "var(--brand-orange)" }}>alma</span>
             </h1>
             <p className="mt-4 max-w-2xl text-lg text-muted-foreground whitespace-pre-line">
               {about}
@@ -80,7 +78,10 @@ function NosotrosPage() {
                 ? "var(--brand-teal)"
                 : "var(--brand-wine)";
           return (
-            <article key={c.title} className="rounded-3xl border border-border bg-card p-6">
+            <article
+              key={c.title}
+              className="rounded-3xl border border-border bg-card p-6"
+            >
               <div
                 className="grid h-12 w-12 place-items-center rounded-2xl"
                 style={{
@@ -113,9 +114,10 @@ function NosotrosPage() {
               Kiara, nuestra directora de operaciones 🐾
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Pastora alemana de pura raza, aficionada a robar filamento y certificada en levantar
-              el ánimo del equipo. Supervisa cada impresión, aunque su método favorito de control de
-              calidad sea olfatear las piezas al terminar.
+              Pastora alemana de pura raza, aficionada a robar filamento y
+              certificada en levantar el ánimo del equipo. Supervisa cada
+              impresión, aunque su método favorito de control de calidad sea
+              olfatear las piezas al terminar.
             </p>
           </div>
         </div>
@@ -125,11 +127,15 @@ function NosotrosPage() {
         <div className="grid gap-8 md:grid-cols-2">
           <div>
             <span className="chip-teal">Nuestro taller</span>
-            <h2 className="mt-3 text-3xl font-black">Equipo profesional en Bogotá</h2>
+            <h2 className="mt-3 text-3xl font-black">
+              Equipo profesional en Bogotá
+            </h2>
             <ul className="mt-6 space-y-3 text-sm">
               <li className="flex items-start gap-3">
                 <Wrench className="mt-0.5 h-5 w-5 text-[var(--brand-orange)]" />
-                <span>Impresoras FDM de gran formato hasta 500×500×500 mm.</span>
+                <span>
+                  Impresoras FDM de gran formato hasta 500×500×500 mm.
+                </span>
               </li>
               <li className="flex items-start gap-3">
                 <Wrench className="mt-0.5 h-5 w-5 text-[var(--brand-teal)]" />

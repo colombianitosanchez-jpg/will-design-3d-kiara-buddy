@@ -43,11 +43,7 @@ export const Route = createFileRoute("/tienda/")({
           "Catálogo de impresoras 3D, filamentos, resinas, repuestos, escáners 3D, lápices y cámaras 3D. Asesoría técnica incluida.",
       },
       { property: "og:title", content: "Tienda 3D — Will Design 3D" },
-      {
-        property: "og:description",
-        content:
-          "Impresoras, filamentos, resinas, repuestos y accesorios 3D con asesoría técnica en Bogotá.",
-      },
+      { property: "og:description", content: "Impresoras, filamentos, resinas, repuestos y accesorios 3D con asesoría técnica en Bogotá." },
       { property: "og:url", content: "https://will-design-3d.lovable.app/tienda" },
     ],
     links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/tienda" }],
@@ -156,11 +152,7 @@ function TiendaPage() {
   })();
   const emptyWaLink = waLink(
     contact.whatsapp,
-    `Hola Will Design 3D, quiero saber cuándo llegan productos ${[
-      brandLabel,
-      catLabel,
-      ...attrLabels,
-    ]
+    `Hola Will Design 3D, quiero saber cuándo llegan productos ${[brandLabel, catLabel, ...attrLabels]
       .filter(Boolean)
       .join(" / ")}`,
   );
@@ -170,11 +162,7 @@ function TiendaPage() {
 
   const setBrand = (slug: string | null) =>
     navigate({
-      search: {
-        categoria: categoria ?? undefined,
-        marca: slug ?? undefined,
-        atributo: atributo ?? undefined,
-      },
+      search: { categoria: categoria ?? undefined, marca: slug ?? undefined, atributo: atributo ?? undefined },
     });
 
   const toggleAttr = (f: AttrFilter) => {
@@ -348,12 +336,7 @@ function TiendaPage() {
                   {emptyMessage} Escríbenos por WhatsApp y te avisamos apenas lleguen.
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-3">
-                  <a
-                    href={emptyWaLink}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn-primary text-sm"
-                  >
+                  <a href={emptyWaLink} target="_blank" rel="noreferrer" className="btn-primary text-sm">
                     <MessageCircle className="h-4 w-4" /> Consultar por WhatsApp
                   </a>
                   <button

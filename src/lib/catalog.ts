@@ -2,6 +2,7 @@ import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { parseProductButtons, type ProductButton } from "@/lib/product-buttons";
 
+
 export type Category = {
   id: string;
   slug: string;
@@ -92,6 +93,7 @@ const PRODUCT_SELECT =
   "category:categories(id,slug,name,parent_id),brand:brands(id,name,slug)," +
   "attribute_links:product_attribute_values(text_value,attribute:attributes(slug,name),value:attribute_values(slug,label,color_hex))";
 
+
 function normalize(row: any): Product {
   let specs: ProductSpec[] = [];
   try {
@@ -102,8 +104,7 @@ function normalize(row: any): Product {
   }
   let images: string[] = [];
   try {
-    if (Array.isArray(row.images))
-      images = row.images.filter((x: unknown) => typeof x === "string");
+    if (Array.isArray(row.images)) images = row.images.filter((x: unknown) => typeof x === "string");
     else if (typeof row.images === "string") images = JSON.parse(row.images);
   } catch {
     images = [];
@@ -130,6 +131,7 @@ function normalize(row: any): Product {
     custom_share_text: row.custom_share_text ?? null,
     custom_buttons: parseProductButtons(row.custom_buttons),
   } as Product;
+
 }
 
 export async function fetchProducts(): Promise<Product[]> {
@@ -219,17 +221,9 @@ export async function fetchSiteContent(): Promise<Record<string, string>> {
 export const productsQuery = () =>
   queryOptions({ queryKey: ["products"], queryFn: fetchProducts, staleTime: 30_000 });
 export const featuredProductsQuery = () =>
-  queryOptions({
-    queryKey: ["products", "featured"],
-    queryFn: fetchFeaturedProducts,
-    staleTime: 30_000,
-  });
+  queryOptions({ queryKey: ["products", "featured"], queryFn: fetchFeaturedProducts, staleTime: 30_000 });
 export const productBySlugQuery = (slug: string) =>
-  queryOptions({
-    queryKey: ["products", slug],
-    queryFn: () => fetchProductBySlug(slug),
-    staleTime: 30_000,
-  });
+  queryOptions({ queryKey: ["products", slug], queryFn: () => fetchProductBySlug(slug), staleTime: 30_000 });
 export const categoriesQuery = () =>
   queryOptions({ queryKey: ["categories"], queryFn: fetchCategories, staleTime: 5 * 60_000 });
 export const brandsQuery = () =>
@@ -272,7 +266,9 @@ export function getContactInfo(content: Record<string, string> | undefined) {
 
 export function waLink(whatsapp: string, text?: string) {
   const num = whatsapp.replace(/\D/g, "") || DEFAULT_CONTACT.whatsapp;
-  return text ? `https://wa.me/${num}?text=${encodeURIComponent(text)}` : `https://wa.me/${num}`;
+  return text
+    ? `https://wa.me/${num}?text=${encodeURIComponent(text)}`
+    : `https://wa.me/${num}`;
 }
 
 export function formatCOP(value: number): string {
@@ -284,9 +280,7 @@ export function formatCOP(value: number): string {
 }
 
 // Gradient fallback by category slug (usa la raíz de la rama)
-export function gradientKeyFor(
-  categorySlug: string | null | undefined,
-): "orange" | "teal" | "wine" {
+export function gradientKeyFor(categorySlug: string | null | undefined): "orange" | "teal" | "wine" {
   const s = categorySlug ?? "";
   if (s.startsWith("impresoras") || s.startsWith("lapices")) return "orange";
   if (s.startsWith("filamentos") || s.startsWith("repuestos") || s.startsWith("escaners"))
@@ -410,26 +404,17 @@ export function resolveStoreFilter(
   if (!raw) return { categorySlug: null, branch: [], unknown: false };
   const exact = categories.find((c) => c.slug === raw);
   if (exact)
-    return {
-      categorySlug: exact.slug,
-      branch: categoryBranchSlugs(exact.slug, categories),
-      unknown: false,
-    };
+    return { categorySlug: exact.slug, branch: categoryBranchSlugs(exact.slug, categories), unknown: false };
   const byName = categories.find((c) => slugify(c.name) === raw);
   if (byName)
-    return {
-      categorySlug: byName.slug,
-      branch: categoryBranchSlugs(byName.slug, categories),
-      unknown: false,
-    };
+    return { categorySlug: byName.slug, branch: categoryBranchSlugs(byName.slug, categories), unknown: false };
   return { categorySlug: raw, branch: [raw], unknown: true };
 }
 
 export function productMatchesAttrs(product: Product, filters: AttrFilter[]): boolean {
   return filters.every((f) =>
     product.attributes.some(
-      (a) =>
-        a.attribute_slug === f.attribute && (a.value_slug ?? slugify(a.value_label)) === f.value,
+      (a) => a.attribute_slug === f.attribute && (a.value_slug ?? slugify(a.value_label)) === f.value,
     ),
   );
 }

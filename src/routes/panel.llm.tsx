@@ -2,7 +2,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Plus, Save, Trash2, ArrowUp, ArrowDown, Zap, KeyRound, X } from "lucide-react";
+import {
+  Loader2,
+  Plus,
+  Save,
+  Trash2,
+  ArrowUp,
+  ArrowDown,
+  Zap,
+  KeyRound,
+  X,
+} from "lucide-react";
 import {
   listLlmProviders,
   saveLlmProvider,
@@ -188,9 +198,9 @@ function LlmAdmin() {
         <div>
           <h1 className="text-3xl font-black">Configuración de LLM</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Kiara intenta responder con el proveedor de prioridad 1. Si se agota la cuota (error
-            429) o el servidor falla, salta automáticamente al siguiente. Funciona con cualquier API
-            compatible con OpenAI (OpenRouter, proxies, servidores locales).
+            Kiara intenta responder con el proveedor de prioridad 1. Si se agota la cuota
+            (error 429) o el servidor falla, salta automáticamente al siguiente. Funciona con
+            cualquier API compatible con OpenAI (OpenRouter, proxies, servidores locales).
           </p>
         </div>
         <button
@@ -227,7 +237,9 @@ function LlmAdmin() {
                   <td className="px-4 py-3">
                     <p className="font-bold">{r.name}</p>
                     <p className="break-all text-xs text-muted-foreground">{r.base_url}</p>
-                    {results[r.id] && <p className="mt-1 text-xs font-semibold">{results[r.id]}</p>}
+                    {results[r.id] && (
+                      <p className="mt-1 text-xs font-semibold">{results[r.id]}</p>
+                    )}
                   </td>
                   <td className="px-4 py-3">{r.model}</td>
                   <td className="px-4 py-3">
@@ -346,8 +358,9 @@ function LlmAdmin() {
       <div className="mt-8 rounded-3xl border border-border bg-card p-5">
         <h2 className="text-lg font-black">Instrucciones de Kiara (doble persona)</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          El primer texto se usa con visitantes del sitio. El segundo se usa cuando quien escribe
-          tiene sesión del equipo. Si los dejas vacíos se usan las instrucciones por defecto.
+          El primer texto se usa con visitantes del sitio. El segundo se usa cuando quien
+          escribe tiene sesión del equipo. Si los dejas vacíos se usan las instrucciones por
+          defecto.
         </p>
         <label className="mt-4 block text-sm font-bold">Atención al cliente (público)</label>
         <textarea
@@ -449,7 +462,9 @@ function LlmAdmin() {
                     max={2}
                     step={0.05}
                     value={draft.temperature}
-                    onChange={(e) => setDraft({ ...draft, temperature: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setDraft({ ...draft, temperature: Number(e.target.value) })
+                    }
                     className="mt-2 w-full accent-[var(--brand-orange)]"
                   />
                 </div>
@@ -490,7 +505,9 @@ function LlmAdmin() {
                     min={1}
                     max={99}
                     value={draft.priority}
-                    onChange={(e) => setDraft({ ...draft, priority: Number(e.target.value) || 1 })}
+                    onChange={(e) =>
+                      setDraft({ ...draft, priority: Number(e.target.value) || 1 })
+                    }
                     className="mt-1 w-full rounded-2xl border border-input bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
                   />
                 </div>
