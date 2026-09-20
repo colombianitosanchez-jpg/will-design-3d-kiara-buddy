@@ -93,15 +93,9 @@ export function ProductCard({ product }: { product: Product }) {
         </div>
       </Link>
       <div className="flex min-h-12 items-center justify-between gap-3 px-4 pb-2">
-        {product.quote_only ? (
-          <span className="text-sm font-bold text-[var(--brand-teal-deep)]">
-            Sujeto a cotización
-          </span>
-        ) : (
-          <span className="text-lg font-black text-[var(--brand-wine)]">
-            {formatCOP(product.price_cop)}
-          </span>
-        )}
+        <span className="text-lg font-black text-[var(--brand-wine)]">
+          {formatCOP(product.price_cop)}
+        </span>
         {!product.hide_default_cta && (
           <div className="flex min-w-0 items-center justify-end gap-1.5">
             <Link
@@ -128,12 +122,7 @@ export function ProductCard({ product }: { product: Product }) {
         )}
       </div>
       {product.custom_buttons.length > 0 && (
-        <ProductButtons
-          product={product}
-          buttons={product.custom_buttons}
-          className="px-4 pb-4"
-          quoteOnly={product.quote_only}
-        />
+        <ProductButtons product={product} buttons={product.custom_buttons} className="px-4 pb-4" />
       )}
       {product.custom_buttons.length === 0 && <div className="pb-2" />}
 

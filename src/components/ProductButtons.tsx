@@ -19,14 +19,11 @@ export function ProductButtons({
   buttons,
   className = "",
   extraWhatsappNote,
-  quoteOnly = false,
 }: {
   product: Product;
   buttons: ProductButton[];
   className?: string;
   extraWhatsappNote?: string;
-  /** Producto "solo cotización": se desactivan las acciones de compra. */
-  quoteOnly?: boolean;
 }) {
   const router = useRouter();
   const { addItem } = useCart();
@@ -34,9 +31,6 @@ export function ProductButtons({
   const fallbackWhatsapp = getContactInfo(content).whatsapp;
 
   if (!buttons.length) return null;
-
-  const isCartAction = (b: ProductButton) =>
-    b.action_type === "add_to_cart" || b.action_type === "checkout";
 
   function cartPayload() {
     return {
@@ -99,12 +93,9 @@ export function ProductButtons({
               size="sm"
               variant={b.variant}
               className={b.width === "full" ? "w-full" : "w-auto"}
-              disabled={quoteOnly && isCartAction(b)}
-              title={quoteOnly && isCartAction(b) ? "Producto sujeto a cotización" : undefined}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                if (quoteOnly && isCartAction(b)) return;
                 handleButtonAction(b);
               }}
             >

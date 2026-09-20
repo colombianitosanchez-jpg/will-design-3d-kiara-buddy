@@ -779,7 +779,6 @@ export type Database = {
           kiara_tip: string
           name: string
           price_cop: number
-          quote_only: boolean
           short: string
           show_whatsapp: boolean
           sku: string | null
@@ -806,7 +805,6 @@ export type Database = {
           kiara_tip?: string
           name: string
           price_cop?: number
-          quote_only?: boolean
           short?: string
           show_whatsapp?: boolean
           sku?: string | null
@@ -833,7 +831,6 @@ export type Database = {
           kiara_tip?: string
           name?: string
           price_cop?: number
-          quote_only?: boolean
           short?: string
           show_whatsapp?: boolean
           sku?: string | null

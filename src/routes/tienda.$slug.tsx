@@ -19,7 +19,7 @@ import {
 import { KiaraTip } from "@/components/KiaraTip";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductButtons } from "@/components/ProductButtons";
-import { FileDropzone3D, file3dWaNote, type Dims3D } from "@/components/FileDropzone3D";
+import { FileDropzone3D, FILE_3D_WA_NOTE } from "@/components/FileDropzone3D";
 
 export const Route = createFileRoute("/tienda/$slug")({
   loader: async ({ params, context }) => {
@@ -142,7 +142,6 @@ function ProductPage() {
   const [activeImage, setActiveImage] = useState(0);
   const [orderOpen, setOrderOpen] = useState(false);
   const [file3dName, setFile3dName] = useState<string | null>(null);
-  const [file3dDims, setFile3dDims] = useState<Dims3D | null>(null);
 
 
   return (
@@ -248,15 +247,9 @@ function ProductPage() {
           </div>
 
 
-          {product.quote_only ? (
-            <p className="mt-6 text-2xl font-black text-[var(--brand-teal-deep)]">
-              Sujeto a cotización
-            </p>
-          ) : (
-            <p className="mt-6 text-4xl font-black text-[var(--brand-wine)]">
-              {formatCOP(product.price_cop)}
-            </p>
-          )}
+          <p className="mt-6 text-4xl font-black text-[var(--brand-wine)]">
+            {formatCOP(product.price_cop)}
+          </p>
           <p className="text-xs text-muted-foreground">
             {product.stock > 0
               ? `Disponible · ${product.stock} en stock`
@@ -264,15 +257,13 @@ function ProductPage() {
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            {!product.quote_only && (
-              <button type="button" onClick={() => setOrderOpen(true)} className="btn-primary">
-                <ShoppingBag className="h-4 w-4" />
-                Solicitar pedido
-              </button>
-            )}
+            <button type="button" onClick={() => setOrderOpen(true)} className="btn-primary">
+              <ShoppingBag className="h-4 w-4" />
+              Solicitar pedido
+            </button>
             <a href={waHref} target="_blank" rel="noreferrer" className="btn-outline">
               <MessageCircle className="h-4 w-4" />
-              {product.quote_only ? "Pedir cotización por WhatsApp" : "Consultar por WhatsApp"}
+              Consultar por WhatsApp
             </a>
             <Link
               to="/cotizador"
@@ -287,10 +278,7 @@ function ProductPage() {
           {product.accepts_3d_file && (
             <FileDropzone3D
               fileName={file3dName}
-              onFileChange={(name, d) => {
-                setFile3dName(name);
-                setFile3dDims(d ?? null);
-              }}
+              onFileChange={setFile3dName}
               className="mt-6 max-w-md"
             />
           )}
@@ -300,8 +288,7 @@ function ProductPage() {
               product={product}
               buttons={product.custom_buttons}
               className="mt-4"
-              extraWhatsappNote={file3dWaNote(file3dName, file3dDims)}
-              quoteOnly={product.quote_only}
+              extraWhatsappNote={file3dName ? FILE_3D_WA_NOTE : undefined}
             />
           )}
 

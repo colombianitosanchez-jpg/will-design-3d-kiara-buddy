@@ -36,19 +36,12 @@ export const createCartOrder = createServerFn({ method: "POST" })
       /^[0-9a-f-]{36}$/i.test(id),
     );
     const { data: products, error: pErr } = ids.length
-      ? await supabaseAdmin
-          .from("products")
-          .select("id,name,price_cop,active,quote_only")
-          .in("id", ids)
+      ? await supabaseAdmin.from("products").select("id,name,price_cop,active").in("id", ids)
       : { data: [], error: null };
     if (pErr) throw new Error(pErr.message);
 
-    if ((products ?? []).some((p) => p.quote_only)) {
-      throw new Error("Hay productos que solo se venden por cotización: escríbenos para cotizarlos");
-    }
-
     const available = new Map(
-      (products ?? []).filter((p) => p.active && !p.quote_only).map((p) => [p.id, p] as const),
+      (products ?? []).filter((p) => p.active).map((p) => [p.id, p] as const),
     );
     const lines: {
       product_id: string | null;

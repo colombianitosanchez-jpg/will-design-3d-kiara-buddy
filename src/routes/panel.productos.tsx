@@ -47,7 +47,6 @@ type Product = {
   show_whatsapp: boolean;
   hide_default_cta: boolean;
   accepts_3d_file: boolean;
-  quote_only: boolean;
   custom_share_text: string | null;
   custom_buttons: ProductButton[];
   category_id: string | null;
@@ -72,7 +71,6 @@ const empty: Omit<Product, "id"> = {
   show_whatsapp: false,
   hide_default_cta: false,
   accepts_3d_file: false,
-  quote_only: false,
   custom_share_text: null,
   custom_buttons: [],
   category_id: null,
@@ -155,7 +153,6 @@ function ProductosAdmin() {
         specs: Array.isArray(r.specs) ? r.specs : [],
         hide_default_cta: !!r.hide_default_cta,
         accepts_3d_file: !!r.accepts_3d_file,
-        quote_only: !!r.quote_only,
         custom_share_text: r.custom_share_text ?? null,
         custom_buttons: parseProductButtons(r.custom_buttons),
       })) as Product[],
@@ -467,7 +464,6 @@ function ProductModal({
         show_whatsapp: !!form.show_whatsapp,
         hide_default_cta: !!form.hide_default_cta,
         accepts_3d_file: !!form.accepts_3d_file,
-        quote_only: !!form.quote_only,
         custom_share_text: form.custom_share_text?.trim() ? form.custom_share_text.trim() : null,
         custom_buttons: buttons.map((b) => ({ ...b, text: b.text.trim(), action_value: b.action_value.trim() })),
         category_id: form.category_id || null,
@@ -932,14 +928,6 @@ function ProductModal({
               aria-label="Solicitar archivo 3D al cliente (STL/OBJ/STEP) antes de cotizar"
             />
             Solicitar archivo 3D al cliente (STL/OBJ/STEP) antes de cotizar
-          </label>
-          <label className="inline-flex items-center gap-2 text-sm">
-            <Switch
-              checked={!!form.quote_only}
-              onCheckedChange={(checked) => set("quote_only", checked)}
-              aria-label="Solo cotización (ocultar precio)"
-            />
-            Solo cotización (ocultar precio)
           </label>
           <label className="inline-flex items-center gap-2 text-sm">
             <input
