@@ -3,17 +3,7 @@ import { ShareButton } from "@/components/ShareButton";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import {
-  ArrowLeft,
-  Calculator,
-  MessageCircle,
-  ShieldCheck,
-  Truck,
-  Loader2,
-  ShoppingBag,
-  X,
-  CheckCircle2,
-} from "lucide-react";
+import { ArrowLeft, Calculator, MessageCircle, ShieldCheck, Truck, Loader2, ShoppingBag, X, CheckCircle2 } from "lucide-react";
 import { createOrderRequest } from "@/lib/orders.functions";
 import {
   formatCOP,
@@ -49,10 +39,7 @@ export const Route = createFileRoute("/tienda/$slug")({
     }
     const p = loaderData.product;
     const url = `https://will-design-3d.lovable.app/tienda/${params.slug}`;
-    const base = (p.short || p.description || "")
-      .replace(/<[^>]*>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
+    const base = (p.short || p.description || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
     const description = (
       base.length >= 50
         ? base
@@ -126,8 +113,10 @@ function ProductNotFound() {
 const GRADIENTS: Record<string, string> = {
   orange:
     "linear-gradient(135deg, color-mix(in oklab, var(--brand-orange) 30%, white), color-mix(in oklab, var(--brand-orange) 75%, white))",
-  teal: "linear-gradient(135deg, color-mix(in oklab, var(--brand-teal) 30%, white), color-mix(in oklab, var(--brand-teal) 75%, white))",
-  wine: "linear-gradient(135deg, color-mix(in oklab, var(--brand-wine) 30%, white), color-mix(in oklab, var(--brand-wine) 70%, white))",
+  teal:
+    "linear-gradient(135deg, color-mix(in oklab, var(--brand-teal) 30%, white), color-mix(in oklab, var(--brand-teal) 75%, white))",
+  wine:
+    "linear-gradient(135deg, color-mix(in oklab, var(--brand-wine) 30%, white), color-mix(in oklab, var(--brand-wine) 70%, white))",
 };
 
 function ProductPage() {
@@ -154,6 +143,7 @@ function ProductPage() {
   const [orderOpen, setOrderOpen] = useState(false);
   const [file3dName, setFile3dName] = useState<string | null>(null);
   const [file3dDims, setFile3dDims] = useState<Dims3D | null>(null);
+
 
   return (
     <>
@@ -229,6 +219,7 @@ function ProductPage() {
             <p className="mt-3 text-muted-foreground">{product.description}</p>
           )}
 
+
           <div className="mt-4 flex flex-wrap gap-2 text-xs">
             {product.category?.name && (
               <span className="rounded-full bg-muted px-3 py-1 font-semibold text-muted-foreground">
@@ -256,6 +247,7 @@ function ProductPage() {
             )}
           </div>
 
+
           {product.quote_only ? (
             <p className="mt-6 text-2xl font-black text-[var(--brand-teal-deep)]">
               Sujeto a cotización
@@ -282,7 +274,11 @@ function ProductPage() {
               <MessageCircle className="h-4 w-4" />
               {product.quote_only ? "Pedir cotización por WhatsApp" : "Consultar por WhatsApp"}
             </a>
-            <Link to="/cotizador" search={{ servicio: "impresion-fdm" }} className="btn-outline">
+            <Link
+              to="/cotizador"
+              search={{ servicio: "impresion-fdm" }}
+              className="btn-outline"
+            >
               <Calculator className="h-4 w-4" />
               Cotizar una impresión
             </Link>
@@ -344,7 +340,9 @@ function ProductPage() {
         </div>
       </section>
 
-      {orderOpen && <OrderRequestModal product={product} onClose={() => setOrderOpen(false)} />}
+      {orderOpen && (
+        <OrderRequestModal product={product} onClose={() => setOrderOpen(false)} />
+      )}
 
       {related.length > 0 && (
         <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
@@ -387,9 +385,7 @@ function OrderRequestModal({ product, onClose }: { product: Product; onClose: ()
     setSending(true);
     setError(null);
     try {
-      await submit({
-        data: { ...form, product_id: product.id, quantity: Number(form.quantity) || 1 },
-      });
+      await submit({ data: { ...form, product_id: product.id, quantity: Number(form.quantity) || 1 } });
       setDone(true);
     } catch (err) {
       setError((err as Error).message || "No pudimos enviar tu solicitud.");

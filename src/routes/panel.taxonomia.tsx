@@ -35,10 +35,7 @@ function TaxonomiaAdmin() {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [attributes, setAttributes] = useState<Attribute[]>([]);
   const [catAttrs, setCatAttrs] = useState<CategoryAttribute[]>([]);
-  const [counts, setCounts] = useState<{
-    cat: Record<string, number>;
-    brand: Record<string, number>;
-  }>({
+  const [counts, setCounts] = useState<{ cat: Record<string, number>; brand: Record<string, number> }>({
     cat: {},
     brand: {},
   });
@@ -51,19 +48,14 @@ function TaxonomiaAdmin() {
         .from("categories")
         .select("id,slug,name,sort_order,parent_id,is_active,image_url")
         .order("sort_order"),
-      supabase
-        .from("brands")
-        .select("id,name,slug,logo_url,is_active,sort_order")
-        .order("sort_order"),
+      supabase.from("brands").select("id,name,slug,logo_url,is_active,sort_order").order("sort_order"),
       supabase
         .from("attributes")
         .select(
           "id,slug,name,input_type,is_filterable,sort_order,values:attribute_values(id,attribute_id,slug,label,color_hex,sort_order)",
         )
         .order("sort_order"),
-      supabase
-        .from("category_attributes")
-        .select("id,category_id,attribute_id,is_required,sort_order"),
+      supabase.from("category_attributes").select("id,category_id,attribute_id,is_required,sort_order"),
       supabase.from("products").select("category_id,brand_id"),
     ]);
     setCategories((c.data as Category[]) ?? []);
@@ -71,9 +63,7 @@ function TaxonomiaAdmin() {
     setAttributes(
       ((a.data as any[]) ?? []).map((x) => ({
         ...x,
-        values: (x.values ?? []).sort(
-          (m: AttributeValue, n: AttributeValue) => m.sort_order - n.sort_order,
-        ),
+        values: (x.values ?? []).sort((m: AttributeValue, n: AttributeValue) => m.sort_order - n.sort_order),
       })) as Attribute[],
     );
     setCatAttrs((ca.data as CategoryAttribute[]) ?? []);
@@ -205,10 +195,7 @@ function CategoriesTab({
       : `¿Eliminar la categoría “${c.name}”?`;
     if (!confirm(msg)) return;
     setBusy(c.id);
-    const { error } = await supabase
-      .from("categories")
-      .delete()
-      .in("id", [...kids, c.id]);
+    const { error } = await supabase.from("categories").delete().in("id", [...kids, c.id]);
     setBusy(null);
     if (error) return alert(error.message);
     reload();
@@ -218,9 +205,7 @@ function CategoriesTab({
     <>
       <div className="mt-6 flex justify-end">
         <button
-          onClick={() =>
-            setEditing({ name: "", slug: "", parent_id: null, sort_order: 0, is_active: true })
-          }
+          onClick={() => setEditing({ name: "", slug: "", parent_id: null, sort_order: 0, is_active: true })}
           className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-orange)] px-5 py-2.5 text-sm font-bold text-white hover:opacity-90"
         >
           <Plus className="h-4 w-4" /> Añadir categoría
@@ -250,16 +235,9 @@ function CategoriesTab({
                 return (
                   <tr key={c.id} className="border-t border-border">
                     <td className="px-4 py-3">
-                      <div
-                        className="flex items-center gap-2"
-                        style={{ paddingLeft: `${depth * 18}px` }}
-                      >
-                        {depth > 0 && (
-                          <CornerDownRight className="h-3.5 w-3.5 text-muted-foreground" />
-                        )}
-                        <span className={depth === 0 ? "font-bold" : "font-semibold"}>
-                          {c.name}
-                        </span>
+                      <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 18}px` }}>
+                        {depth > 0 && <CornerDownRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                        <span className={depth === 0 ? "font-bold" : "font-semibold"}>{c.name}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">{c.slug}</td>
@@ -268,12 +246,7 @@ function CategoriesTab({
                     </td>
                     <td className="px-4 py-3 text-right">{counts[c.id] ?? 0}</td>
                     <td className="px-4 py-3">
-                      <Switch
-                        on={c.is_active}
-                        disabled={busy === c.id}
-                        onClick={() => toggleActive(c)}
-                        label={c.name}
-                      />
+                      <Switch on={c.is_active} disabled={busy === c.id} onClick={() => toggleActive(c)} label={c.name} />
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
@@ -376,11 +349,7 @@ function CategoryModal({
         const { error } = await supabase.from("categories").update(payload).eq("id", id);
         if (error) throw error;
       } else {
-        const { data, error } = await supabase
-          .from("categories")
-          .insert(payload)
-          .select("id")
-          .single();
+        const { data, error } = await supabase.from("categories").insert(payload).select("id").single();
         if (error) throw error;
         id = data.id;
       }
@@ -407,12 +376,7 @@ function CategoryModal({
   }
 
   return (
-    <Modal
-      title={form.id ? "Editar categoría" : "Nueva categoría"}
-      onClose={onClose}
-      onSubmit={save}
-      saving={saving}
-    >
+    <Modal title={form.id ? "Editar categoría" : "Nueva categoría"} onClose={onClose} onSubmit={save} saving={saving}>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Nombre" required>
           <input
@@ -467,9 +431,7 @@ function CategoryModal({
               <button
                 key={a.id}
                 type="button"
-                onClick={() =>
-                  setSelected((s) => (on ? s.filter((x) => x !== a.id) : [...s, a.id]))
-                }
+                onClick={() => setSelected((s) => (on ? s.filter((x) => x !== a.id) : [...s, a.id]))}
                 className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
                   on ? "bg-[var(--brand-teal-deep)] text-white" : "bg-muted hover:bg-muted/70"
                 }`}
@@ -513,9 +475,7 @@ function BrandsTab({
 
   async function remove(b: Brand) {
     if ((counts[b.id] ?? 0) > 0) {
-      alert(
-        `“${b.name}” tiene ${counts[b.id]} producto(s). Reasigna esos productos antes de borrarla.`,
-      );
+      alert(`“${b.name}” tiene ${counts[b.id]} producto(s). Reasigna esos productos antes de borrarla.`);
       return;
     }
     if (!confirm(`¿Eliminar la marca “${b.name}”?`)) return;
@@ -525,10 +485,7 @@ function BrandsTab({
   }
 
   async function toggle(b: Brand) {
-    const { error } = await supabase
-      .from("brands")
-      .update({ is_active: !b.is_active })
-      .eq("id", b.id);
+    const { error } = await supabase.from("brands").update({ is_active: !b.is_active }).eq("id", b.id);
     if (error) return alert(error.message);
     reload();
   }
@@ -662,23 +619,14 @@ function BrandModal({
   }
 
   return (
-    <Modal
-      title={form.id ? "Editar marca" : "Nueva marca"}
-      onClose={onClose}
-      onSubmit={save}
-      saving={saving}
-    >
+    <Modal title={form.id ? "Editar marca" : "Nueva marca"} onClose={onClose} onSubmit={save} saving={saving}>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Nombre" required>
           <input
             required
             value={form.name ?? ""}
             onChange={(e) =>
-              setForm((f) => ({
-                ...f,
-                name: e.target.value,
-                slug: f.id ? f.slug : slugify(e.target.value),
-              }))
+              setForm((f) => ({ ...f, name: e.target.value, slug: f.id ? f.slug : slugify(e.target.value) }))
             }
             className={inputCls}
           />
@@ -742,9 +690,7 @@ function AttributesTab({ attributes, reload }: { attributes: Attribute[]; reload
     <>
       <div className="mt-6 flex justify-end">
         <button
-          onClick={() =>
-            setEditing({ name: "", slug: "", is_filterable: true, sort_order: 0, values: [] })
-          }
+          onClick={() => setEditing({ name: "", slug: "", is_filterable: true, sort_order: 0, values: [] })}
           className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-orange)] px-5 py-2.5 text-sm font-bold text-white hover:opacity-90"
         >
           <Plus className="h-4 w-4" /> Añadir atributo
@@ -790,9 +736,7 @@ function AttributesTab({ attributes, reload }: { attributes: Attribute[]; reload
                   {v.label}
                 </span>
               ))}
-              {a.values.length === 0 && (
-                <span className="text-xs text-muted-foreground">Sin opciones</span>
-              )}
+              {a.values.length === 0 && <span className="text-xs text-muted-foreground">Sin opciones</span>}
             </div>
           </div>
         ))}
@@ -851,11 +795,7 @@ function AttributeModal({
         const { error } = await supabase.from("attributes").update(payload).eq("id", id);
         if (error) throw error;
       } else {
-        const { data, error } = await supabase
-          .from("attributes")
-          .insert(payload)
-          .select("id")
-          .single();
+        const { data, error } = await supabase.from("attributes").insert(payload).select("id").single();
         if (error) throw error;
         id = data.id;
       }
@@ -899,11 +839,7 @@ function AttributeModal({
             required
             value={form.name ?? ""}
             onChange={(e) =>
-              setForm((f) => ({
-                ...f,
-                name: e.target.value,
-                slug: f.id ? f.slug : slugify(e.target.value),
-              }))
+              setForm((f) => ({ ...f, name: e.target.value, slug: f.id ? f.slug : slugify(e.target.value) }))
             }
             className={inputCls}
             placeholder="Color"
@@ -937,11 +873,7 @@ function AttributeModal({
                   setValues((list) =>
                     list.map((x, j) =>
                       j === i
-                        ? {
-                            ...x,
-                            label: e.target.value,
-                            slug: x.id ? x.slug : slugify(e.target.value),
-                          }
+                        ? { ...x, label: e.target.value, slug: x.id ? x.slug : slugify(e.target.value) }
                         : x,
                     ),
                   )
@@ -953,9 +885,7 @@ function AttributeModal({
                 type="color"
                 value={v.color_hex ?? "#cccccc"}
                 onChange={(e) =>
-                  setValues((list) =>
-                    list.map((x, j) => (j === i ? { ...x, color_hex: e.target.value } : x)),
-                  )
+                  setValues((list) => list.map((x, j) => (j === i ? { ...x, color_hex: e.target.value } : x)))
                 }
                 className="mt-1 h-9 w-12 rounded-lg border border-input"
                 aria-label="Color opcional"
@@ -1074,10 +1004,7 @@ function Modal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4">
-      <form
-        onSubmit={onSubmit}
-        className="my-8 w-full max-w-xl rounded-3xl bg-background p-6 shadow-2xl"
-      >
+      <form onSubmit={onSubmit} className="my-8 w-full max-w-xl rounded-3xl bg-background p-6 shadow-2xl">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-black">{title}</h2>
           <button type="button" onClick={onClose} className="rounded-full p-2 hover:bg-muted">

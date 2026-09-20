@@ -131,7 +131,8 @@ export const PRODUCTS: Product[] = [
     color: "Rojo",
     price: 145000,
     short: "TPU 95A flexible para juntas, mangos y calzado.",
-    description: "Elastómero termoplástico con excelente memoria. Requiere extrusor directo.",
+    description:
+      "Elastómero termoplástico con excelente memoria. Requiere extrusor directo.",
     specs: [
       { label: "Dureza", value: "95 Shore A" },
       { label: "Peso", value: "500 g" },
@@ -162,7 +163,8 @@ export const PRODUCTS: Product[] = [
     category: "repuestos",
     price: 89000,
     short: "Hotend compatible con la mayoría de impresoras FDM.",
-    description: "Bloque calefactor completo con boquilla 0.4 mm, heatbreak titanio y termistor.",
+    description:
+      "Bloque calefactor completo con boquilla 0.4 mm, heatbreak titanio y termistor.",
     specs: [
       { label: "Boquilla", value: "0.4 mm (intercambiable)" },
       { label: "Temp. máx.", value: "300 °C" },
@@ -195,7 +197,9 @@ export const PRODUCTS: Product[] = [
     short: "Lápiz 3D para creaciones manuales y decoración.",
     description:
       "Pantalla LCD, control de temperatura y velocidad. Compatible con PLA y ABS 1.75 mm.",
-    specs: [{ label: "Filamento", value: "PLA/ABS 1.75 mm" }],
+    specs: [
+      { label: "Filamento", value: "PLA/ABS 1.75 mm" },
+    ],
     kiaraTip: "Regalo perfecto para niños creativos (con supervisión).",
     image: "orange",
   },
@@ -206,7 +210,8 @@ export const PRODUCTS: Product[] = [
     brand: "Matterport",
     price: 24900000,
     short: "Captura espacios completos en 3D con precisión LiDAR.",
-    description: "Cámara profesional para tours virtuales, planos y modelos 3D de espacios reales.",
+    description:
+      "Cámara profesional para tours virtuales, planos y modelos 3D de espacios reales.",
     specs: [
       { label: "Tecnología", value: "LiDAR" },
       { label: "Alcance", value: "100 m" },

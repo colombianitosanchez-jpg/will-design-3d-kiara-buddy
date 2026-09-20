@@ -9,7 +9,9 @@ async function uploadToStorage(file: File, bucket: string): Promise<string> {
     upsert: false,
   });
   if (up.error) throw up.error;
-  const signed = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+  const signed = await supabase.storage
+    .from(bucket)
+    .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
   if (signed.error) throw signed.error;
   return signed.data.signedUrl;
 }

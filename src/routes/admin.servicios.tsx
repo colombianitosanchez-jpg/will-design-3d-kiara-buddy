@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Wrench, Printer, Sparkles, Package2, PencilRuler, Settings } from "lucide-react";
 
 export const Route = createFileRoute("/admin/servicios")({
@@ -24,12 +24,13 @@ function ServiciosAdmin() {
             Servicios que ofrece Will Design 3D en la web pública.
           </p>
         </div>
-        <Link
-          to="/panel/servicios"
-          className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-orange)] px-5 py-2.5 text-sm font-bold text-white"
+        <button
+          disabled
+          className="inline-flex items-center gap-2 rounded-full bg-muted px-5 py-2.5 text-sm font-bold text-muted-foreground"
+          title="Próximamente"
         >
-          <Wrench className="h-4 w-4" /> Editar servicios en el panel
-        </Link>
+          <Wrench className="h-4 w-4" /> Editar servicios (próximamente)
+        </button>
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -43,8 +44,7 @@ function ServiciosAdmin() {
       </div>
 
       <p className="mt-6 rounded-2xl bg-muted p-4 text-xs text-muted-foreground">
-        La edición de servicios se hace en <strong>Panel → Servicios web</strong> (solo Super
-        Admin).
+        Solo el <strong>Super Admin</strong> puede editar servicios. Los empleados ven únicamente Inventario y Pedidos.
       </p>
     </>
   );

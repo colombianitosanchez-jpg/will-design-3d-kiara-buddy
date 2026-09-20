@@ -49,6 +49,7 @@ export function RichTextEditor({
     if (next !== current && !(next === "" && current === "<p></p>")) {
       editor.commands.setContent(next, { emitUpdate: false });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, value]);
 
   if (!editor) {
@@ -70,96 +71,44 @@ export function RichTextEditor({
   return (
     <div className="mt-1 overflow-hidden rounded-xl border border-input bg-background focus-within:ring-2 focus-within:ring-ring">
       <div className="flex flex-wrap items-center gap-1 border-b border-border bg-muted/40 px-2 py-1.5">
-        <button
-          type="button"
-          aria-label="Negrita"
-          className={btn(editor.isActive("bold"))}
-          onClick={() => editor.chain().focus().toggleBold().run()}
-        >
+        <button type="button" aria-label="Negrita" className={btn(editor.isActive("bold"))} onClick={() => editor.chain().focus().toggleBold().run()}>
           <Bold className="h-4 w-4" />
         </button>
-        <button
-          type="button"
-          aria-label="Cursiva"
-          className={btn(editor.isActive("italic"))}
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-        >
+        <button type="button" aria-label="Cursiva" className={btn(editor.isActive("italic"))} onClick={() => editor.chain().focus().toggleItalic().run()}>
           <Italic className="h-4 w-4" />
         </button>
         <span className="mx-1 h-5 w-px bg-border" />
-        <button
-          type="button"
-          aria-label="Título"
-          className={btn(editor.isActive("heading", { level: 2 }))}
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        >
+        <button type="button" aria-label="Título" className={btn(editor.isActive("heading", { level: 2 }))} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
           <Heading2 className="h-4 w-4" />
         </button>
-        <button
-          type="button"
-          aria-label="Subtítulo"
-          className={btn(editor.isActive("heading", { level: 3 }))}
-          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-        >
+        <button type="button" aria-label="Subtítulo" className={btn(editor.isActive("heading", { level: 3 }))} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>
           <Heading3 className="h-4 w-4" />
         </button>
         <span className="mx-1 h-5 w-px bg-border" />
-        <button
-          type="button"
-          aria-label="Lista"
-          className={btn(editor.isActive("bulletList"))}
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-        >
+        <button type="button" aria-label="Lista" className={btn(editor.isActive("bulletList"))} onClick={() => editor.chain().focus().toggleBulletList().run()}>
           <List className="h-4 w-4" />
         </button>
-        <button
-          type="button"
-          aria-label="Lista numerada"
-          className={btn(editor.isActive("orderedList"))}
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        >
+        <button type="button" aria-label="Lista numerada" className={btn(editor.isActive("orderedList"))} onClick={() => editor.chain().focus().toggleOrderedList().run()}>
           <ListOrdered className="h-4 w-4" />
         </button>
-        <button
-          type="button"
-          aria-label="Cita"
-          className={btn(editor.isActive("blockquote"))}
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
-        >
+        <button type="button" aria-label="Cita" className={btn(editor.isActive("blockquote"))} onClick={() => editor.chain().focus().toggleBlockquote().run()}>
           <Quote className="h-4 w-4" />
         </button>
         <span className="mx-1 h-5 w-px bg-border" />
-        <button
-          type="button"
-          aria-label="Quitar formato"
-          className={btn(false)}
-          onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()}
-        >
+        <button type="button" aria-label="Quitar formato" className={btn(false)} onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()}>
           <Eraser className="h-4 w-4" />
         </button>
-        <button
-          type="button"
-          aria-label="Deshacer"
-          className={btn(false)}
-          onClick={() => editor.chain().focus().undo().run()}
-        >
+        <button type="button" aria-label="Deshacer" className={btn(false)} onClick={() => editor.chain().focus().undo().run()}>
           <Undo2 className="h-4 w-4" />
         </button>
-        <button
-          type="button"
-          aria-label="Rehacer"
-          className={btn(false)}
-          onClick={() => editor.chain().focus().redo().run()}
-        >
+        <button type="button" aria-label="Rehacer" className={btn(false)} onClick={() => editor.chain().focus().redo().run()}>
           <Redo2 className="h-4 w-4" />
         </button>
       </div>
 
       <div className="px-3 py-2 text-sm">
         {editor.isEmpty && placeholder && (
-          <p className="pointer-events-none absolute text-sm text-muted-foreground">
-            {placeholder}
-          </p>
+          <p className="pointer-events-none absolute text-sm text-muted-foreground">{placeholder}</p>
         )}
         <EditorContent editor={editor} />
       </div>

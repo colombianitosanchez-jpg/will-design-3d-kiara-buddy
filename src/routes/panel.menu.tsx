@@ -86,10 +86,7 @@ function MenuAdmin() {
         .from("categories")
         .select("id,slug,name,sort_order,parent_id,is_active,image_url")
         .order("sort_order"),
-      supabase
-        .from("brands")
-        .select("id,name,slug,logo_url,is_active,sort_order")
-        .order("sort_order"),
+      supabase.from("brands").select("id,name,slug,logo_url,is_active,sort_order").order("sort_order"),
       supabase
         .from("attributes")
         .select(
@@ -162,10 +159,7 @@ function MenuAdmin() {
       : `¿Eliminar “${row.label}” del menú?`;
     if (!confirm(msg)) return;
     setBusy(row.id);
-    const { error } = await supabase
-      .from("menu_items")
-      .delete()
-      .in("id", [...kids, row.id]);
+    const { error } = await supabase.from("menu_items").delete().in("id", [...kids, row.id]);
     setBusy(null);
     if (error) return alert(error.message);
     load();
@@ -189,9 +183,7 @@ function MenuAdmin() {
       let created = 0;
       for (const { category } of nodes) {
         if (existing.has(category.id)) continue;
-        const parentMenuId = category.parent_id
-          ? (menuByCategory.get(category.parent_id) ?? null)
-          : null;
+        const parentMenuId = category.parent_id ? (menuByCategory.get(category.parent_id) ?? null) : null;
         const siblings = rows.filter((r) => (r.parent_id ?? null) === parentMenuId);
         const { data, error } = await supabase
           .from("menu_items")
@@ -210,11 +202,7 @@ function MenuAdmin() {
         menuByCategory.set(category.id, data.id);
         created++;
       }
-      alert(
-        created
-          ? `Se añadieron ${created} ítem(s) al menú.`
-          : "El menú ya cubre todas las categorías.",
-      );
+      alert(created ? `Se añadieron ${created} ítem(s) al menú.` : "El menú ya cubre todas las categorías.");
       load();
     } catch (e) {
       alert((e as Error).message);
@@ -239,11 +227,7 @@ function MenuAdmin() {
             disabled={generating}
             className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2.5 text-sm font-bold hover:bg-muted disabled:opacity-60"
           >
-            {generating ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4" />
-            )}
+            {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             Generar desde catálogo
           </button>
           <button
@@ -287,16 +271,9 @@ function MenuAdmin() {
                   return (
                     <tr key={node.id} className="border-t border-border">
                       <td className="px-4 py-3">
-                        <div
-                          className="flex items-center gap-2"
-                          style={{ paddingLeft: `${depth * 18}px` }}
-                        >
-                          {depth > 0 && (
-                            <CornerDownRight className="h-3.5 w-3.5 text-muted-foreground" />
-                          )}
-                          <span className={depth === 0 ? "font-bold" : "font-semibold"}>
-                            {node.label}
-                          </span>
+                        <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 18}px` }}>
+                          {depth > 0 && <CornerDownRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                          <span className={depth === 0 ? "font-bold" : "font-semibold"}>{node.label}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-xs">
@@ -307,9 +284,7 @@ function MenuAdmin() {
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">
-                        {href ?? "— grupo —"}
-                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">{href ?? "— grupo —"}</td>
                       <td className="px-4 py-3">
                         <button
                           onClick={() => toggleActive(node)}
@@ -398,9 +373,7 @@ function hasProductsInBranch(
     if (depth > 20) return 0;
     return (
       (counts[id] ?? 0) +
-      categories
-        .filter((c) => c.parent_id === id)
-        .reduce((sum, c) => sum + walk(c.id, depth + 1), 0)
+      categories.filter((c) => c.parent_id === id).reduce((sum, c) => sum + walk(c.id, depth + 1), 0)
     );
   };
   return walk(categoryId) > 0;
@@ -460,10 +433,7 @@ function MenuModal({
         display_order: Number(form.display_order) || 0,
         is_active: form.is_active ?? true,
         target_kind: kind,
-        category_id:
-          kind === "category" || kind === "category_brand" || kind === "attribute"
-            ? form.category_id || null
-            : null,
+        category_id: kind === "category" || kind === "category_brand" || kind === "attribute" ? form.category_id || null : null,
         brand_id: kind === "category_brand" ? form.brand_id || null : null,
         attribute_value_id: kind === "attribute" ? form.attribute_value_id || null : null,
         service_anchor: kind === "service" ? form.service_anchor || null : null,
@@ -522,10 +492,7 @@ function MenuModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4">
-      <form
-        onSubmit={save}
-        className="my-8 w-full max-w-xl rounded-3xl bg-background p-6 shadow-2xl"
-      >
+      <form onSubmit={save} className="my-8 w-full max-w-xl rounded-3xl bg-background p-6 shadow-2xl">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-black">{form.id ? "Editar ítem" : "Nuevo ítem"}</h2>
           <button type="button" onClick={onClose} className="rounded-full p-2 hover:bg-muted">
@@ -593,18 +560,13 @@ function MenuModal({
         </Field>
 
         {(kind === "category" || kind === "category_brand" || kind === "attribute") && (
-          <Field
-            label={kind === "attribute" ? "Categoría (opcional)" : "Categoría"}
-            required={kind !== "attribute"}
-          >
+          <Field label={kind === "attribute" ? "Categoría (opcional)" : "Categoría"} required={kind !== "attribute"}>
             <select
               value={form.category_id ?? ""}
               onChange={(e) => set("category_id", e.target.value || null)}
               className={inputCls}
             >
-              <option value="">
-                — {kind === "attribute" ? "Todo el catálogo" : "Selecciona"} —
-              </option>
+              <option value="">— {kind === "attribute" ? "Todo el catálogo" : "Selecciona"} —</option>
               {categoryOptions.map(({ category: c, depth }) => (
                 <option key={c.id} value={c.id}>
                   {"— ".repeat(depth)}

@@ -29,13 +29,7 @@ function PricingPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const [test, setTest] = useState({
-    grams: 120,
-    hours: 4,
-    material: "PLA",
-    finish: "Basico",
-    quantity: 1,
-  });
+  const [test, setTest] = useState({ grams: 120, hours: 4, material: "PLA", finish: "Basico", quantity: 1 });
 
   async function load() {
     setLoading(true);
@@ -74,7 +68,10 @@ function PricingPage() {
     load();
   }, []);
 
-  const preview = useMemo(() => (rules ? calcQuote(rules, test) : null), [rules, test]);
+  const preview = useMemo(
+    () => (rules ? calcQuote(rules, test) : null),
+    [rules, test],
+  );
 
   async function save() {
     if (!rules) return;
@@ -95,29 +92,19 @@ function PricingPage() {
       })
       .eq("id", rules.id);
     setSaving(false);
-    setMsg(
-      error
-        ? `Error: ${error.message}`
-        : "Reglas guardadas. Kiara y el cotizador ya usan estos precios.",
-    );
+    setMsg(error ? `Error: ${error.message}` : "Reglas guardadas. Kiara y el cotizador ya usan estos precios.");
   }
 
   function setNum(key: keyof PricingRules, value: string) {
     setRules((r) => (r ? { ...r, [key]: Number(value) || 0 } : r));
   }
 
-  function setMult(
-    field: "material_multipliers" | "finish_multipliers",
-    key: string,
-    value: string,
-  ) {
+  function setMult(field: "material_multipliers" | "finish_multipliers", key: string, value: string) {
     setRules((r) => (r ? { ...r, [field]: { ...r[field], [key]: Number(value) || 0 } } : r));
   }
 
   function addMult(field: "material_multipliers" | "finish_multipliers") {
-    const name = window.prompt(
-      field === "material_multipliers" ? "Nombre del material" : "Nombre del acabado",
-    );
+    const name = window.prompt(field === "material_multipliers" ? "Nombre del material" : "Nombre del acabado");
     if (!name?.trim()) return;
     setRules((r) => (r ? { ...r, [field]: { ...r[field], [name.trim()]: 1 } } : r));
   }
@@ -142,17 +129,9 @@ function PricingPage() {
   const numFields: [keyof PricingRules, string, string][] = [
     ["base_price_per_gram_cop", "Precio por gramo (COP)", "Costo base del material por gramo."],
     ["machine_hour_cop", "Hora de máquina (COP)", "Cuánto cobras por cada hora de impresión."],
-    [
-      "setup_fee_cop",
-      "Costo de preparación (COP)",
-      "Valor fijo por preparar el archivo y la máquina.",
-    ],
+    ["setup_fee_cop", "Costo de preparación (COP)", "Valor fijo por preparar el archivo y la máquina."],
     ["margin_percent", "Margen de ganancia (%)", "Porcentaje que se suma al costo."],
-    [
-      "min_price_cop",
-      "Precio mínimo (COP)",
-      "Ninguna cotización quedará por debajo de este valor.",
-    ],
+    ["min_price_cop", "Precio mínimo (COP)", "Ninguna cotización quedará por debajo de este valor."],
   ];
 
   return (

@@ -22,11 +22,13 @@ export function SiteFooter() {
               className="h-10 w-10 rounded-lg object-cover"
             />
             <p className="text-base font-black">
-              Will Design <span style={{ color: "var(--brand-orange)" }}>3D</span>
+              Will Design{" "}
+              <span style={{ color: "var(--brand-orange)" }}>3D</span>
             </p>
           </div>
           <p className="mt-3 text-sm text-muted-foreground">
-            Tu socio integral en impresión 3D en Colombia. Diseño, producción y asesoría técnica.
+            Tu socio integral en impresión 3D en Colombia. Diseño, producción y
+            asesoría técnica.
           </p>
           <p className="mt-4 text-sm font-medium">
             Supervisado por Kiara <span aria-hidden>🐾</span>
@@ -62,7 +64,9 @@ export function SiteFooter() {
         </div>
 
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Tienda</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Tienda
+          </p>
           <ul className="mt-3 space-y-2 text-sm">
             <li>
               <Link to="/tienda" className="hover:underline">
@@ -132,9 +136,7 @@ export function SiteFooter() {
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-4 text-xs text-muted-foreground sm:flex-row sm:px-6">
           <p>© {new Date().getFullYear()} Will Design 3D. Todos los derechos reservados.</p>
           <p className="flex items-center gap-3">
-            <Link to="/panel" className="hover:underline">
-              Panel
-            </Link>
+            <Link to="/panel" className="hover:underline">Panel</Link>
             <span>· Hecho con 🐾 en Bogotá</span>
           </p>
         </div>

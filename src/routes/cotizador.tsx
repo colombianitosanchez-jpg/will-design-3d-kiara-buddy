@@ -37,7 +37,8 @@ function CotizadorPage() {
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 md:py-16">
           <span className="chip-teal">Cotizador en línea</span>
           <h1 className="mt-3 text-4xl font-black sm:text-5xl">
-            Calcula tu proyecto <span style={{ color: "var(--brand-orange)" }}>en tiempo real</span>
+            Calcula tu proyecto{" "}
+            <span style={{ color: "var(--brand-orange)" }}>en tiempo real</span>
           </h1>
           <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
             Desde un rollo de filamento hasta una pieza de gran formato: elige el servicio, mueve

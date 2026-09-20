@@ -177,7 +177,10 @@ export const savePaymentMethod = createServerFn({ method: "POST" })
 
     if (data.id) {
       const patch = Object.keys(creds).length ? { ...base, credentials: creds } : base;
-      const { error } = await supabaseAdmin.from("payment_methods").update(patch).eq("id", data.id);
+      const { error } = await supabaseAdmin
+        .from("payment_methods")
+        .update(patch)
+        .eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true as const, id: data.id };
     }
