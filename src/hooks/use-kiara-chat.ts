@@ -6,7 +6,6 @@ export function useKiaraChat(initialGreeting: string) {
     createMessage("assistant", initialGreeting),
   ]);
   const [sending, setSending] = useState(false);
-  const [slow, setSlow] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const send = useCallback(
@@ -17,9 +16,7 @@ export function useKiaraChat(initialGreeting: string) {
       const next = [...messages, userMsg];
       setMessages(next);
       setSending(true);
-      setSlow(false);
       setError(null);
-
 
       const replyId = createMessage("assistant", "").id;
       let started = false;
@@ -27,7 +24,6 @@ export function useKiaraChat(initialGreeting: string) {
       const ensureReply = () => {
         if (started) return;
         started = true;
-        setSlow(false);
         setMessages((prev) => [
           ...prev,
           { id: replyId, role: "assistant", content: "", createdAt: Date.now() },
@@ -48,7 +44,6 @@ export function useKiaraChat(initialGreeting: string) {
             ensureReply();
             setMessages((prev) => prev.map((m) => (m.id === replyId ? { ...m, tool } : m)));
           },
-          () => setSlow(true),
         );
       } catch (e) {
 
@@ -62,7 +57,6 @@ export function useKiaraChat(initialGreeting: string) {
         ]);
       } finally {
         setSending(false);
-        setSlow(false);
       }
     },
     [messages, sending],
@@ -71,8 +65,7 @@ export function useKiaraChat(initialGreeting: string) {
   const reset = useCallback((greeting: string) => {
     setMessages([createMessage("assistant", greeting)]);
     setError(null);
-    setSlow(false);
   }, []);
 
-  return { messages, sending, slow, error, send, reset };
+  return { messages, sending, error, send, reset };
 }
