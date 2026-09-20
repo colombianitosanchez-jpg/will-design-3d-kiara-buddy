@@ -5,10 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/auth")({
   ssr: false,
   head: () => ({
-    meta: [
-      { title: "Acceso al panel · Will Design 3D" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Acceso al panel · Will Design 3D" }, { name: "robots", content: "noindex" }],
   }),
   component: AuthPage,
 });
@@ -43,7 +40,9 @@ function AuthPage() {
           options: { emailRedirectTo: `${window.location.origin}/panel` },
         });
         if (error) throw error;
-        setMsg("Revisa tu correo para confirmar la cuenta (o inicia sesión si el email ya está activo).");
+        setMsg(
+          "Revisa tu correo para confirmar la cuenta (o inicia sesión si el email ya está activo).",
+        );
       }
     } catch (err) {
       setMsg((err as Error).message);
@@ -64,7 +63,9 @@ function AuthPage() {
 
         <form onSubmit={submit} className="mt-6 space-y-4">
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Correo</label>
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Correo
+            </label>
             <input
               type="email"
               required
@@ -75,7 +76,9 @@ function AuthPage() {
             />
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contraseña</label>
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Contraseña
+            </label>
             <input
               type="password"
               required
@@ -106,7 +109,9 @@ function AuthPage() {
           >
             {mode === "login" ? "Crear cuenta nueva" : "Ya tengo cuenta"}
           </button>
-          <Link to="/" className="text-muted-foreground hover:underline">Volver</Link>
+          <Link to="/" className="text-muted-foreground hover:underline">
+            Volver
+          </Link>
         </div>
 
         <p className="mt-6 text-xs text-muted-foreground">

@@ -194,7 +194,8 @@ export const testLlmProvider = createServerFn({ method: "POST" })
         ok: false,
         status: 0,
         ms: Date.now() - started,
-        message: (e as Error).name === "AbortError" ? "Tiempo de espera agotado" : (e as Error).message,
+        message:
+          (e as Error).name === "AbortError" ? "Tiempo de espera agotado" : (e as Error).message,
       };
     } finally {
       clearTimeout(timer);

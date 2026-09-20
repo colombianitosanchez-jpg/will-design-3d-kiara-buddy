@@ -75,33 +75,33 @@ function num(v: unknown, fallback = 0) {
 }
 
 export function normalizeField(row: Record<string, unknown>): QuoterField {
-  const rawOptions = Array.isArray(row['options']) ? (row['options'] as unknown[]) : [];
+  const rawOptions = Array.isArray(row["options"]) ? (row["options"] as unknown[]) : [];
   return {
-    id: String(row['id']),
-    service_id: String(row['service_id']),
-    key: String(row['key']),
-    label: String(row['label'] ?? ""),
-    help: String(row['help'] ?? ""),
-    input_type: String(row['input_type'] ?? "slider") as QuoterInputType,
-    min_value: num(row['min_value']),
-    max_value: num(row['max_value'], 100),
-    step_value: num(row['step_value'], 1) || 1,
-    default_value: String(row['default_value'] ?? ""),
-    unit: String(row['unit'] ?? ""),
-    price_per_unit_cop: num(row['price_per_unit_cop']),
-    price_source: (String(row['price_source'] ?? "fixed") || "fixed") as QuoterPriceSource,
-    multiplier: num(row['multiplier'], 1) || 1,
+    id: String(row["id"]),
+    service_id: String(row["service_id"]),
+    key: String(row["key"]),
+    label: String(row["label"] ?? ""),
+    help: String(row["help"] ?? ""),
+    input_type: String(row["input_type"] ?? "slider") as QuoterInputType,
+    min_value: num(row["min_value"]),
+    max_value: num(row["max_value"], 100),
+    step_value: num(row["step_value"], 1) || 1,
+    default_value: String(row["default_value"] ?? ""),
+    unit: String(row["unit"] ?? ""),
+    price_per_unit_cop: num(row["price_per_unit_cop"]),
+    price_source: (String(row["price_source"] ?? "fixed") || "fixed") as QuoterPriceSource,
+    multiplier: num(row["multiplier"], 1) || 1,
     options: rawOptions
       .filter((o): o is Record<string, unknown> => Boolean(o) && typeof o === "object")
       .map((o) => ({
-        label: String(o['label'] ?? o['value'] ?? ""),
-        value: String(o['value'] ?? o['label'] ?? ""),
-        multiplier: num(o['multiplier'], 1) || 1,
-        add_cop: num(o['add_cop']),
+        label: String(o["label"] ?? o["value"] ?? ""),
+        value: String(o["value"] ?? o["label"] ?? ""),
+        multiplier: num(o["multiplier"], 1) || 1,
+        add_cop: num(o["add_cop"]),
       })),
-    is_required: Boolean(row['is_required']),
-    is_active: row['is_active'] !== false,
-    sort_order: num(row['sort_order']),
+    is_required: Boolean(row["is_required"]),
+    is_active: row["is_active"] !== false,
+    sort_order: num(row["sort_order"]),
   };
 }
 
@@ -110,23 +110,23 @@ export function normalizeService(
   fields: QuoterField[],
 ): QuoterService {
   return {
-    id: String(row['id']),
-    slug: String(row['slug']),
-    name: String(row['name'] ?? ""),
-    tagline: String(row['tagline'] ?? ""),
-    description: String(row['description'] ?? ""),
-    icon: String(row['icon'] ?? "printer"),
-    site_anchor: String(row['site_anchor'] ?? ""),
-    base_price_cop: num(row['base_price_cop']),
-    gastos_extra_cop: num(row['gastos_extra_cop']),
-    min_price_cop: num(row['min_price_cop']),
-    margin_percent: num(row['margin_percent']),
-    allow_quantity: row['allow_quantity'] !== false,
-    allow_file: row['allow_file'] !== false,
-    is_active: row['is_active'] !== false,
-    sort_order: num(row['sort_order']),
+    id: String(row["id"]),
+    slug: String(row["slug"]),
+    name: String(row["name"] ?? ""),
+    tagline: String(row["tagline"] ?? ""),
+    description: String(row["description"] ?? ""),
+    icon: String(row["icon"] ?? "printer"),
+    site_anchor: String(row["site_anchor"] ?? ""),
+    base_price_cop: num(row["base_price_cop"]),
+    gastos_extra_cop: num(row["gastos_extra_cop"]),
+    min_price_cop: num(row["min_price_cop"]),
+    margin_percent: num(row["margin_percent"]),
+    allow_quantity: row["allow_quantity"] !== false,
+    allow_file: row["allow_file"] !== false,
+    is_active: row["is_active"] !== false,
+    sort_order: num(row["sort_order"]),
     fields: fields
-      .filter((f) => f.service_id === String(row['id']))
+      .filter((f) => f.service_id === String(row["id"]))
       .sort((a, b) => a.sort_order - b.sort_order || a.label.localeCompare(b.label)),
   };
 }
@@ -174,7 +174,10 @@ export function isOn(value: string | undefined) {
 export function unitCostFor(field: QuoterField, vars?: QuoterVars): number {
   const src = field.price_source ?? "fixed";
   if (src === "fixed" || !vars) return num(field.price_per_unit_cop);
-  const base = num((vars as unknown as Record<string, unknown>)[src], num(field.price_per_unit_cop));
+  const base = num(
+    (vars as unknown as Record<string, unknown>)[src],
+    num(field.price_per_unit_cop),
+  );
   const failure = num(vars.failure_rate_percentage);
   return base * (1 + failure / 100);
 }
@@ -208,7 +211,6 @@ export function computeQuote(
       if (f.multiplier !== 1) multiplier *= f.multiplier;
       continue;
     }
-
 
     if (f.input_type === "select") {
       const opt = f.options.find((o) => o.value === raw) ?? null;
@@ -245,7 +247,8 @@ export function computeQuote(
   const min = num(service.min_price_cop);
   const extra = num(service.gastos_extra_cop);
   const unit = Math.max(min, withMargin) + extra;
-  if (extra > 0) lines.push({ label: "Gastos extra", detail: "Montaje y post-procesado", amount: extra });
+  if (extra > 0)
+    lines.push({ label: "Gastos extra", detail: "Montaje y post-procesado", amount: extra });
   const qty = Math.max(1, Math.round(num(quantity, 1)));
 
   return {
@@ -290,8 +293,13 @@ export function coerceAnswersDetailed(
     const fuzzy = (f: QuoterField) => {
       if (key.length < 4) return false;
       const words = (s: string) => norm(s).split(" ");
-      return words(f.key).includes(key) || words(f.label).includes(key) ||
-        key.split(" ").some((w) => w.length >= 4 && (words(f.key).includes(w) || words(f.label).includes(w)));
+      return (
+        words(f.key).includes(key) ||
+        words(f.label).includes(key) ||
+        key
+          .split(" ")
+          .some((w) => w.length >= 4 && (words(f.key).includes(w) || words(f.label).includes(w)))
+      );
     };
     const field =
       service.fields.find((f) => norm(f.key) === key) ??
@@ -319,7 +327,11 @@ export function coerceAnswersDetailed(
       continue;
     }
     if (field.input_type === "slider" || field.input_type === "number") {
-      const n = Number(String(val).replace(/[^0-9.,-]/g, "").replace(",", "."));
+      const n = Number(
+        String(val)
+          .replace(/[^0-9.,-]/g, "")
+          .replace(",", "."),
+      );
       if (!Number.isFinite(n)) continue;
       values[field.key] = String(n);
       matched.add(field.key);
@@ -339,7 +351,6 @@ export function coerceAnswersDetailed(
     return f.is_required && !f.default_value;
   });
 
-
   return { values, matchedKeys: [...matched], missingRequired };
 }
 
@@ -349,7 +360,6 @@ export function coerceAnswers(
 ): QuoterValues {
   return coerceAnswersDetailed(service, input).values;
 }
-
 
 export function formatCOP(n: number) {
   return (Number(n) || 0).toLocaleString("es-CO", {

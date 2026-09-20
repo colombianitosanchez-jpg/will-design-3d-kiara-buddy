@@ -192,7 +192,11 @@ function FieldControl({
   return (
     <label className="block">
       <span className="text-sm font-bold">{field.label}</span>
-      <input value={value} onChange={(e) => onChange(e.target.value)} className={`mt-2 ${inputCls}`} />
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={`mt-2 ${inputCls}`}
+      />
       {field.help && <p className="mt-1 text-xs text-muted-foreground">{field.help}</p>}
     </label>
   );
@@ -209,7 +213,6 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
   const saveQuote = useServerFn(createQuoteRequest);
   const { data: quotingVars } = useQuery(quotingVarsQuery());
   const { addItem } = useCart();
-
 
   const [serviceId, setServiceId] = useState<string | null>(null);
   const [values, setValues] = useState<QuoterValues>({});
@@ -248,7 +251,10 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
         kind: "service",
         service_slug: service.slug,
         answers,
-        detail: result.answers.map((a) => `${a.label}: ${a.value}`).join(" · ").slice(0, 600),
+        detail: result.answers
+          .map((a) => `${a.label}: ${a.value}`)
+          .join(" · ")
+          .slice(0, 600),
       },
       result.quantity,
     );
@@ -268,7 +274,6 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
     if (!initialServiceSlug || serviceId) return;
     const match = (services ?? []).find((s) => s.slug === initialServiceSlug);
     if (match) pick(match);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialServiceSlug, services, serviceId]);
 
   function pickFile(list: FileList | null) {
@@ -317,8 +322,8 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
           estimated_total_cop: result.total_cop,
           design_state: service.name,
           size_label: resumen.slice(0, 160),
-          material: String(values['material'] ?? values['tipo'] ?? ""),
-          finish: String(values['acabado'] ?? values['trabajo'] ?? ""),
+          material: String(values["material"] ?? values["tipo"] ?? ""),
+          finish: String(values["acabado"] ?? values["trabajo"] ?? ""),
           notes: notes.slice(0, 1000),
           file_name,
           file_path,
@@ -364,7 +369,6 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
         </p>
       </div>
 
-
       {/* Paso 1: elegir servicio */}
       {!service && (
         <div className="mt-10">
@@ -395,7 +399,8 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
                     )}
                     <p className="mt-2 text-sm text-muted-foreground">{s.description}</p>
                     <span className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-[var(--brand-wine)]">
-                      Cotizar <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                      Cotizar{" "}
+                      <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
                     </span>
                   </button>
                 );
@@ -447,8 +452,8 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
                 className="rounded-2xl border border-border px-4 py-3 text-sm"
                 style={{ background: "color-mix(in oklab, var(--brand-orange) 10%, white)" }}
               >
-                <strong>{service.name}.</strong> {service.description} Ajusta los valores y yo calculo
-                el precio 🐾
+                <strong>{service.name}.</strong> {service.description} Ajusta los valores y yo
+                calculo el precio 🐾
               </div>
             </div>
 
@@ -538,7 +543,11 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
                     {file && (
                       <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs font-semibold">
                         <CheckCircle2 className="h-4 w-4 text-green-600" /> {file.name}
-                        <button type="button" onClick={() => setFile(null)} aria-label="Quitar archivo">
+                        <button
+                          type="button"
+                          onClick={() => setFile(null)}
+                          aria-label="Quitar archivo"
+                        >
                           <X className="h-3.5 w-3.5" />
                         </button>
                       </p>
@@ -567,11 +576,23 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
               <div className="grid gap-3 sm:grid-cols-3">
                 <label className="block">
                   <span className="text-sm font-bold">Nombre</span>
-                  <input name="name" required minLength={2} maxLength={120} className={`mt-2 ${inputCls}`} />
+                  <input
+                    name="name"
+                    required
+                    minLength={2}
+                    maxLength={120}
+                    className={`mt-2 ${inputCls}`}
+                  />
                 </label>
                 <label className="block">
                   <span className="text-sm font-bold">Correo</span>
-                  <input name="email" type="email" required maxLength={160} className={`mt-2 ${inputCls}`} />
+                  <input
+                    name="email"
+                    type="email"
+                    required
+                    maxLength={160}
+                    className={`mt-2 ${inputCls}`}
+                  />
                 </label>
                 <label className="block">
                   <span className="text-sm font-bold">WhatsApp</span>
@@ -616,7 +637,10 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
 
             <div className="mt-4 space-y-1 border-t border-dashed border-border pt-3 text-xs">
               {result.lines.map((l, i) => (
-                <div key={`${l.label}-${i}`} className="flex justify-between gap-3 text-muted-foreground">
+                <div
+                  key={`${l.label}-${i}`}
+                  className="flex justify-between gap-3 text-muted-foreground"
+                >
                   <span>
                     {l.label}
                     {l.detail ? ` · ${l.detail}` : ""}

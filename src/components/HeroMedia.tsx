@@ -86,14 +86,7 @@ export function HeroMedia({ fallbackImage }: { fallbackImage: string }) {
         {slides.map((item) => {
           const media =
             item.media_type === "video" ? (
-              <video
-                src={item.media_url}
-                autoPlay
-                loop
-                muted
-                playsInline
-                className={MEDIA_CLASS}
-              />
+              <video src={item.media_url} autoPlay loop muted playsInline className={MEDIA_CLASS} />
             ) : (
               <img src={item.media_url} alt="Slide" className={MEDIA_CLASS} />
             );

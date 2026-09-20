@@ -19,7 +19,6 @@ export const Route = createFileRoute("/api/public/hooks/process-notifications")(
           return new Response("Unauthorized", { status: 401 });
         }
 
-
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
         const { data: cfg } = await supabaseAdmin

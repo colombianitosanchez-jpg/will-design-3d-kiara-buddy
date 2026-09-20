@@ -74,7 +74,6 @@ export async function sendChat(
   onTool?: (tool: KiaraTool) => void,
   onSlow?: () => void,
 ): Promise<string> {
-
   const { data: sessionData } = await supabase.auth.getSession();
   const token = sessionData.session?.access_token;
 
@@ -130,13 +129,11 @@ export async function sendChat(
     throw new Error(`Kiara no disponible (${res.status})`);
   }
 
-
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
   let full = "";
   let sawTool = false;
-
 
   while (true) {
     const { done, value } = await reader.read();
@@ -175,5 +172,4 @@ export async function sendChat(
 
   if (!full.trim() && !sawTool) throw new Error("Respuesta vacía del proveedor");
   return full;
-
 }

@@ -1,14 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Boxes,
-  Sparkles,
-  ShoppingBag,
-  PenTool,
-  Wrench,
-  ArrowRight,
-  Ruler,
-} from "lucide-react";
+import { Boxes, Sparkles, ShoppingBag, PenTool, Wrench, ArrowRight, Ruler } from "lucide-react";
 import heroImg from "@/assets/hero.jpg";
 import { Quoter } from "@/components/Quoter";
 import { InstagramFeed } from "@/components/InstagramFeed";
@@ -18,7 +10,6 @@ import { productsQuery, siteContentQuery } from "@/lib/catalog";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { heroCarouselQuery } from "@/lib/hero-carousel";
 import { HeroMedia } from "@/components/HeroMedia";
-
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -114,7 +105,6 @@ function Hero() {
     { k: getText("hero_stat_3_k", "+200"), v: getText("hero_stat_3_v", "proyectos") },
   ];
 
-
   return (
     <section id="inicio" className="relative overflow-hidden">
       <div
@@ -134,9 +124,7 @@ function Hero() {
           <h1 className="mt-4 text-4xl font-black leading-[1.05] sm:text-5xl md:text-6xl">
             {title}
           </h1>
-          <p className="mt-5 max-w-xl text-base text-muted-foreground sm:text-lg">
-            {subtitle}
-          </p>
+          <p className="mt-5 max-w-xl text-base text-muted-foreground sm:text-lg">{subtitle}</p>
           <div className="mt-7 flex flex-wrap items-center gap-3">
             <Link to="/cotizador" className="btn-primary">
               Cotizar Proyecto
@@ -180,7 +168,6 @@ function Hero() {
   );
 }
 
-
 function Services() {
   const ref = useScrollReveal<HTMLElement>();
   const colorFor = (a: string) =>
@@ -195,12 +182,11 @@ function Services() {
         <span className="chip-teal">Nuestros servicios</span>
         <h2 className="mt-3 text-3xl font-black sm:text-4xl md:text-5xl">
           Todo lo que necesitas para{" "}
-          <span style={{ color: "var(--brand-orange)" }}>materializar</span> tu
-          idea
+          <span style={{ color: "var(--brand-orange)" }}>materializar</span> tu idea
         </h2>
         <p className="mt-3 text-muted-foreground">
-          Desde el modelado inicial hasta el acabado final — un servicio integral
-          para creadores, empresas y makers.
+          Desde el modelado inicial hasta el acabado final — un servicio integral para creadores,
+          empresas y makers.
         </p>
       </div>
 
@@ -212,11 +198,7 @@ function Services() {
               key={s.title}
               className="group relative overflow-hidden rounded-3xl border border-border bg-card p-6 transition hover:-translate-y-1 hover:shadow-xl"
             >
-              <div
-                aria-hidden
-                className="absolute inset-x-0 top-0 h-1"
-                style={{ background: c }}
-              />
+              <div aria-hidden className="absolute inset-x-0 top-0 h-1" style={{ background: c }} />
               <div
                 className="grid h-12 w-12 place-items-center rounded-2xl"
                 style={{
@@ -296,18 +278,15 @@ function FeaturedProducts() {
           </div>
         ) : (
           <div className="mt-10 rounded-3xl border border-dashed border-border bg-card p-10 text-center">
-            <ShoppingBag
-              className="mx-auto h-10 w-10"
-              style={{ color: "var(--brand-orange)" }}
-            />
+            <ShoppingBag className="mx-auto h-10 w-10" style={{ color: "var(--brand-orange)" }} />
             <h3 className="mt-4 text-lg font-bold">
               {isError
                 ? "No pudimos cargar el catálogo en este momento"
                 : "Estamos cargando nuevos productos"}
             </h3>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              Escríbenos y te asesoramos con impresoras, filamentos y resinas
-              disponibles bajo pedido.
+              Escríbenos y te asesoramos con impresoras, filamentos y resinas disponibles bajo
+              pedido.
             </p>
             <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
               <Link to="/tienda" className="btn-primary text-sm">

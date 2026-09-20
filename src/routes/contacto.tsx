@@ -5,7 +5,6 @@ import { z } from "zod";
 import { MessageCircle, Instagram, MapPin, Mail, Send } from "lucide-react";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 
-
 export const Route = createFileRoute("/contacto")({
   head: () => ({
     meta: [
@@ -16,7 +15,10 @@ export const Route = createFileRoute("/contacto")({
           "Escríbenos por WhatsApp o correo. Impresión 3D, diseño, mantenimiento y venta de equipos en Bogotá.",
       },
       { property: "og:title", content: "Contacto — Will Design 3D" },
-      { property: "og:description", content: "Contáctanos por WhatsApp, Instagram o correo. Estamos en Bogotá." },
+      {
+        property: "og:description",
+        content: "Contáctanos por WhatsApp, Instagram o correo. Estamos en Bogotá.",
+      },
       { property: "og:url", content: "https://will-design-3d.lovable.app/contacto" },
     ],
     links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/contacto" }],
@@ -80,19 +82,16 @@ function ContactoPage() {
     window.open(waLink(contact.whatsapp, msg), "_blank");
   };
 
-
   return (
     <>
       <section className="border-b border-border bg-muted/30">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20">
           <span className="chip-teal">Contacto</span>
           <h1 className="mt-3 text-4xl font-black sm:text-5xl md:text-6xl">
-            Hablemos de tu{" "}
-            <span style={{ color: "var(--brand-orange)" }}>proyecto</span>
+            Hablemos de tu <span style={{ color: "var(--brand-orange)" }}>proyecto</span>
           </h1>
           <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-            Escríbenos por el canal que prefieras. Solemos responder el mismo
-            día hábil.
+            Escríbenos por el canal que prefieras. Solemos responder el mismo día hábil.
           </p>
         </div>
       </section>
@@ -193,7 +192,6 @@ function ContactoPage() {
           </div>
         </div>
 
-
         <form
           onSubmit={onSubmit}
           className="rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8"
@@ -204,12 +202,7 @@ function ContactoPage() {
           </p>
 
           <div className="mt-6 grid gap-4">
-            <Field
-              label="Nombre"
-              name="name"
-              placeholder="Tu nombre"
-              error={errors.name}
-            />
+            <Field label="Nombre" name="name" placeholder="Tu nombre" error={errors.name} />
             <Field
               label="Correo o teléfono"
               name="contact"
@@ -231,11 +224,7 @@ function ContactoPage() {
                 className="rounded-xl border border-input bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-ring"
                 placeholder="Cuéntanos tu proyecto…"
               />
-              {errors.message && (
-                <span className="text-xs text-destructive">
-                  {errors.message}
-                </span>
-              )}
+              {errors.message && <span className="text-xs text-destructive">{errors.message}</span>}
             </label>
 
             <button type="submit" className="btn-primary mt-2 w-full py-3">

@@ -86,13 +86,9 @@ function QuotePage() {
               <FileText className="h-4 w-4" /> Cotización
             </p>
             <h1 className="mt-1 text-3xl font-black">Will Design 3D</h1>
-            <p className="text-xs text-muted-foreground">
-              Impresión 3D en Bogotá · {date}
-            </p>
+            <p className="text-xs text-muted-foreground">Impresión 3D en Bogotá · {date}</p>
           </div>
-          <p className="text-xs text-muted-foreground">
-            N.º {quote.id.slice(0, 8).toUpperCase()}
-          </p>
+          <p className="text-xs text-muted-foreground">N.º {quote.id.slice(0, 8).toUpperCase()}</p>
         </div>
 
         <ul className="divide-y divide-border">
@@ -100,9 +96,7 @@ function QuotePage() {
             <li key={`${i.product_id}-${idx}`} className="flex flex-wrap items-start gap-3 py-4">
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold">{i.name}</p>
-                {i.detail && (
-                  <p className="mt-0.5 text-xs text-muted-foreground">{i.detail}</p>
-                )}
+                {i.detail && <p className="mt-0.5 text-xs text-muted-foreground">{i.detail}</p>}
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   {formatCOP(i.price_cop)} c/u × {i.quantity}
                 </p>
