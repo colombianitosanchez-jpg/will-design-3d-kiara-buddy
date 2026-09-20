@@ -16,13 +16,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 const NAV_AFTER = [
   { to: "/galeria", label: "Galería" },
@@ -32,8 +26,7 @@ const NAV_AFTER = [
 
 const linkClass =
   "rounded-full px-3 py-2 text-sm font-medium text-foreground/80 transition hover:bg-muted hover:text-foreground";
-const activeLinkClass =
-  "rounded-full px-3 py-2 text-sm font-semibold bg-muted text-foreground";
+const activeLinkClass = "rounded-full px-3 py-2 text-sm font-semibold bg-muted text-foreground";
 
 /** Recursive renderer for dropdown content (desktop). */
 function MenuNode({ node, onNavigate }: { node: MenuNodeData; onNavigate?: () => void }) {
@@ -140,9 +133,7 @@ function MobileNode({
           className="flex w-full items-center justify-between rounded-lg py-2 pr-3 text-left text-sm font-medium hover:bg-muted"
         >
           {node.label}
-          <ChevronDown
-            className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
-          />
+          <ChevronDown className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`} />
         </button>
         {expanded && (
           <div className="flex flex-col gap-1">
@@ -203,13 +194,7 @@ function CartLink({ className }: { className?: string }) {
   );
 }
 
-function WhatsAppLink({
-  url,
-  className,
-}: {
-  url: string;
-  className?: string;
-}) {
+function WhatsAppLink({ url, className }: { url: string; className?: string }) {
   return (
     <a
       href={url}
@@ -240,8 +225,7 @@ function MobileNav({ roots, whatsappUrl }: { roots: MenuNodeData[]; whatsappUrl:
       <SheetContent side="right" className="flex w-3/4 max-w-sm flex-col">
         <SheetHeader className="text-left">
           <SheetTitle className="text-base font-black tracking-tight">
-            Will Design{" "}
-            <span style={{ color: "var(--brand-orange)" }}>3D</span>
+            Will Design <span style={{ color: "var(--brand-orange)" }}>3D</span>
           </SheetTitle>
         </SheetHeader>
         <nav className="mt-6 flex flex-col gap-1 overflow-y-auto">
@@ -292,10 +276,7 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-        <Link
-          to="/"
-          className="flex flex-shrink-0 min-w-max items-center gap-3 whitespace-nowrap"
-        >
+        <Link to="/" className="flex flex-shrink-0 min-w-max items-center gap-3 whitespace-nowrap">
           <img
             src={logoAsset.url}
             alt="Will Design 3D"
@@ -305,8 +286,7 @@ export function SiteHeader() {
           />
           <div className="leading-tight">
             <p className="text-base font-black tracking-tight sm:text-lg">
-              Will Design{" "}
-              <span style={{ color: "var(--brand-orange)" }}>3D</span>
+              Will Design <span style={{ color: "var(--brand-orange)" }}>3D</span>
             </p>
             <p className="hidden text-[11px] text-muted-foreground sm:block">
               Impresión 3D · Bogotá

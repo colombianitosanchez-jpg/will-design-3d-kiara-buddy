@@ -251,10 +251,7 @@ function CarritoPage() {
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           {isManualFlow(done.payment_method_type) && (
             <a
-              href={receiptWaUrl(
-                done.order_id.slice(0, 8).toUpperCase(),
-                done.payment_method_type,
-              )}
+              href={receiptWaUrl(done.order_id.slice(0, 8).toUpperCase(), done.payment_method_type)}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-xl bg-[#25D366] px-5 py-2.5 text-sm font-bold text-white shadow transition hover:brightness-95"
@@ -284,7 +281,9 @@ function CarritoPage() {
     <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <h1 className="text-3xl font-black sm:text-4xl">Tu carrito</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        {count === 0 ? "Todavía no has añadido productos." : `${count} artículo${count === 1 ? "" : "s"} listo${count === 1 ? "" : "s"} para pedir.`}
+        {count === 0
+          ? "Todavía no has añadido productos."
+          : `${count} artículo${count === 1 ? "" : "s"} listo${count === 1 ? "" : "s"} para pedir.`}
       </p>
 
       {items.length === 0 ? (
@@ -304,7 +303,11 @@ function CarritoPage() {
               {items.map((i) => (
                 <li key={i.product_id} className="flex flex-wrap items-center gap-4 py-4">
                   {i.image_url ? (
-                    <img src={i.image_url} alt={i.name} className="h-16 w-16 rounded-xl object-cover" />
+                    <img
+                      src={i.image_url}
+                      alt={i.name}
+                      className="h-16 w-16 rounded-xl object-cover"
+                    />
                   ) : (
                     <div className="h-16 w-16 rounded-xl bg-muted" />
                   )}
@@ -382,27 +385,57 @@ function CarritoPage() {
             </p>
             <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Nombre completo *
-              <input required value={form.customer_name} onChange={(e) => set("customer_name", e.target.value)} className={inputCls} />
+              <input
+                required
+                value={form.customer_name}
+                onChange={(e) => set("customer_name", e.target.value)}
+                className={inputCls}
+              />
             </label>
             <label className="mt-3 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Correo *
-              <input required type="email" value={form.customer_email} onChange={(e) => set("customer_email", e.target.value)} className={inputCls} />
+              <input
+                required
+                type="email"
+                value={form.customer_email}
+                onChange={(e) => set("customer_email", e.target.value)}
+                className={inputCls}
+              />
             </label>
             <label className="mt-3 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               WhatsApp / teléfono
-              <input value={form.customer_phone} onChange={(e) => set("customer_phone", e.target.value)} className={inputCls} placeholder="+57 300 000 0000" />
+              <input
+                value={form.customer_phone}
+                onChange={(e) => set("customer_phone", e.target.value)}
+                className={inputCls}
+                placeholder="+57 300 000 0000"
+              />
             </label>
             <label className="mt-3 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Dirección de envío *
-              <input required value={form.shipping_address} onChange={(e) => set("shipping_address", e.target.value)} className={inputCls} />
+              <input
+                required
+                value={form.shipping_address}
+                onChange={(e) => set("shipping_address", e.target.value)}
+                className={inputCls}
+              />
             </label>
             <label className="mt-3 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Ciudad
-              <input value={form.shipping_city} onChange={(e) => set("shipping_city", e.target.value)} className={inputCls} />
+              <input
+                value={form.shipping_city}
+                onChange={(e) => set("shipping_city", e.target.value)}
+                className={inputCls}
+              />
             </label>
             <label className="mt-3 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Notas
-              <textarea rows={3} value={form.notes} onChange={(e) => set("notes", e.target.value)} className={inputCls} />
+              <textarea
+                rows={3}
+                value={form.notes}
+                onChange={(e) => set("notes", e.target.value)}
+                className={inputCls}
+              />
             </label>
 
             {methods.length > 0 && (

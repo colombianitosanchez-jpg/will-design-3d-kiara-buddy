@@ -44,7 +44,9 @@ export const createCartOrder = createServerFn({ method: "POST" })
     if (pErr) throw new Error(pErr.message);
 
     if ((products ?? []).some((p) => p.quote_only)) {
-      throw new Error("Hay productos que solo se venden por cotización: escríbenos para cotizarlos");
+      throw new Error(
+        "Hay productos que solo se venden por cotización: escríbenos para cotizarlos",
+      );
     }
 
     const available = new Map(

@@ -12,8 +12,7 @@ export function LiveBanner() {
       rel="noreferrer"
       className="block w-full text-white shadow-md"
       style={{
-        background:
-          "linear-gradient(90deg, #dc2626, var(--brand-orange, #ea580c))",
+        background: "linear-gradient(90deg, #dc2626, var(--brand-orange, #ea580c))",
       }}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-center gap-3 px-4 py-2 text-sm font-bold sm:text-base">
@@ -24,9 +23,7 @@ export function LiveBanner() {
         <Radio className="h-4 w-4" aria-hidden />
         <span>
           ¡Estamos <span className="underline">EN VIVO</span> en {platform}!
-          <span className="ml-2 hidden sm:inline">
-            Haz clic aquí para unirte →
-          </span>
+          <span className="ml-2 hidden sm:inline">Haz clic aquí para unirte →</span>
         </span>
       </div>
     </a>

@@ -61,7 +61,11 @@ const statusColors: Record<Order["status"], string> = {
 };
 
 function formatCOP(n: number) {
-  return n.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+  return n.toLocaleString("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  });
 }
 
 function PedidosAdmin() {
@@ -201,7 +205,11 @@ function QuotesTab() {
                       className="rounded-lg p-1 hover:bg-muted"
                       aria-label="Ver detalle"
                     >
-                      {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      {isOpen ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
                     </button>
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-semibold">{q.customer_name}</p>
@@ -290,7 +298,9 @@ function QuotesTab() {
                         <p>
                           <strong>Archivo:</strong> {q.file_name ? q.file_name : "sin adjunto"}
                         </p>
-                        {q.notes && <p className="italic text-muted-foreground">Notas: {q.notes}</p>}
+                        {q.notes && (
+                          <p className="italic text-muted-foreground">Notas: {q.notes}</p>
+                        )}
                       </div>
                     </div>
                   )}
@@ -344,7 +354,10 @@ function OrdersTab() {
   }
 
   async function onRejectPayment(id: string) {
-    const note = prompt("¿Qué mensaje verá el cliente?", "No encontramos ese pago. Verifica la referencia.");
+    const note = prompt(
+      "¿Qué mensaje verá el cliente?",
+      "No encontramos ese pago. Verifica la referencia.",
+    );
     if (note === null) return;
     try {
       await doReject({ data: { order_id: id, note } });
@@ -385,9 +398,7 @@ function OrdersTab() {
             <Loader2 className="h-4 w-4 animate-spin" /> Cargando…
           </div>
         ) : filtered.length === 0 ? (
-          <div className="py-16 text-center text-sm text-muted-foreground">
-            No hay pedidos aún.
-          </div>
+          <div className="py-16 text-center text-sm text-muted-foreground">No hay pedidos aún.</div>
         ) : (
           <ul className="divide-y divide-border">
             {filtered.map((o) => {
@@ -400,7 +411,11 @@ function OrdersTab() {
                       onClick={() => setOpen((s) => ({ ...s, [o.id]: !s[o.id] }))}
                       className="rounded-lg p-1 hover:bg-muted"
                     >
-                      {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      {isOpen ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
                     </button>
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-semibold">{o.customer_name}</p>
@@ -409,7 +424,9 @@ function OrdersTab() {
                       </p>
                     </div>
                     <p className="font-bold">{formatCOP(o.total_cop)}</p>
-                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusColors[o.status]}`}>
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${statusColors[o.status]}`}
+                    >
                       {o.status}
                     </span>
                     <span
@@ -433,12 +450,18 @@ function OrdersTab() {
                   {isOpen && (
                     <div className="mt-4 grid gap-4 rounded-2xl bg-muted/40 p-4 md:grid-cols-2">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Envío</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Envío
+                        </p>
                         <p className="mt-1 text-sm">{o.shipping_address}</p>
                         {o.shipping_city && <p className="text-sm">{o.shipping_city}</p>}
-                        {o.customer_phone && <p className="mt-2 text-sm">Tel: {o.customer_phone}</p>}
+                        {o.customer_phone && (
+                          <p className="mt-2 text-sm">Tel: {o.customer_phone}</p>
+                        )}
                         {o.notes && (
-                          <p className="mt-2 text-sm italic text-muted-foreground">Notas: {o.notes}</p>
+                          <p className="mt-2 text-sm italic text-muted-foreground">
+                            Notas: {o.notes}
+                          </p>
                         )}
                       </div>
                       <div className="md:col-span-2 rounded-xl border border-border bg-background p-3">
@@ -458,7 +481,9 @@ function OrdersTab() {
                           </p>
                         )}
                         {o.payment_note && (
-                          <p className="text-sm italic text-muted-foreground">Nota: {o.payment_note}</p>
+                          <p className="text-sm italic text-muted-foreground">
+                            Nota: {o.payment_note}
+                          </p>
                         )}
                         {o.payment_status !== "pagado" && (
                           <div className="mt-3 flex flex-wrap gap-2">
@@ -478,7 +503,9 @@ function OrdersTab() {
                         )}
                       </div>
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Items</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Items
+                        </p>
                         <ul className="mt-1 space-y-1 text-sm">
                           {orderItems.length === 0 ? (
                             <li className="text-muted-foreground">—</li>
@@ -488,7 +515,9 @@ function OrdersTab() {
                                 <span>
                                   {it.quantity} × {it.product_name}
                                 </span>
-                                <span className="font-semibold">{formatCOP(it.unit_price_cop * it.quantity)}</span>
+                                <span className="font-semibold">
+                                  {formatCOP(it.unit_price_cop * it.quantity)}
+                                </span>
                               </li>
                             ))
                           )}
