@@ -240,7 +240,6 @@ function ActiveToggle({
       .from("site_services")
       .update({ is_active: !service.is_active })
       .eq("id", service.id);
-    onMsg(error ? `Error: ${error.message}` : undefined ?? "");
     if (error) toast.error(error.message);
     onChanged();
   }
