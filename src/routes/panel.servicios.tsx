@@ -139,7 +139,9 @@ function ServiciosAdmin() {
       {services && (
         <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
           <GripVertical className="h-3.5 w-3.5" />
-          {savingOrder ? "Guardando nuevo orden…" : "Usa el tirador de cada tarjeta para reordenar."}
+          {savingOrder
+            ? "Guardando nuevo orden…"
+            : "Usa el tirador de cada tarjeta para reordenar."}
         </p>
       )}
 
@@ -323,7 +325,9 @@ function ServiceForm({
         contentType: file.type || undefined,
       });
       if (up.error) throw up.error;
-      const signed = await supabase.storage.from(HERO_MEDIA_BUCKET).createSignedUrl(path, TEN_YEARS);
+      const signed = await supabase.storage
+        .from(HERO_MEDIA_BUCKET)
+        .createSignedUrl(path, TEN_YEARS);
       if (signed.error) throw signed.error;
       setImageUrl(signed.data.signedUrl);
       toast.success("Imagen subida. Recuerda guardar los cambios.");
@@ -367,11 +371,19 @@ function ServiceForm({
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block text-xs font-semibold text-muted-foreground">
           Título
-          <input value={title} onChange={(e) => setTitle(e.target.value)} className={`mt-1 ${inputCls}`} />
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className={`mt-1 ${inputCls}`}
+          />
         </label>
         <label className="block text-xs font-semibold text-muted-foreground">
           Icono
-          <select value={icon} onChange={(e) => setIcon(e.target.value)} className={`mt-1 ${selectCls}`}>
+          <select
+            value={icon}
+            onChange={(e) => setIcon(e.target.value)}
+            className={`mt-1 ${selectCls}`}
+          >
             {SITE_SERVICE_ICON_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
@@ -455,7 +467,11 @@ function ServiceForm({
             disabled={uploading}
             className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-xs font-bold disabled:opacity-60"
           >
-            {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UploadCloud className="h-3.5 w-3.5" />}
+            {uploading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <UploadCloud className="h-3.5 w-3.5" />
+            )}
             Subir imagen
           </button>
           {imageUrl && (

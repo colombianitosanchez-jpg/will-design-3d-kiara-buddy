@@ -8,8 +8,6 @@ import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 import { useKiaraChat } from "@/hooks/use-kiara-chat";
 import { KiaraQuoteCard, KiaraOrderCard, KiaraProductsCard } from "@/components/KiaraToolCards";
 
-
-
 export function KiaraWidget() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -19,7 +17,6 @@ export function KiaraWidget() {
   const kiaraImg = content?.kiara_image_url?.trim() || kiaraAsset.url;
   const contact = getContactInfo(content);
   const whatsappUrl = waLink(contact.whatsapp, "Hola Kiara, quiero cotizar un proyecto");
-
 
   const greeting = isLive
     ? `¡Guau! Mis humanos están EN VIVO en ${platform} ahora mismo. ¿Quieres el enlace?`
@@ -123,9 +120,7 @@ export function KiaraWidget() {
                 )}
                 {m.tool?.name === "quote_service" && <KiaraQuoteCard quote={m.tool.data} />}
                 {m.tool?.name === "create_order" && <KiaraOrderCard order={m.tool.data} />}
-                {m.tool?.name === "search_products" && (
-                  <KiaraProductsCard products={m.tool.data} />
-                )}
+                {m.tool?.name === "search_products" && <KiaraProductsCard products={m.tool.data} />}
               </div>
             ))}
 

@@ -4,11 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, CheckCircle2, GraduationCap } from "lucide-react";
 import { KiaraTip } from "@/components/KiaraTip";
 import { quoterServicesQuery, formatCOP } from "@/lib/quoter";
-import {
-  siteServicesQuery,
-  SITE_SERVICE_ICONS,
-  type SiteService,
-} from "@/lib/site-services";
+import { siteServicesQuery, SITE_SERVICE_ICONS, type SiteService } from "@/lib/site-services";
 
 export const Route = createFileRoute("/servicios")({
   head: () => ({
@@ -20,7 +16,11 @@ export const Route = createFileRoute("/servicios")({
           "Impresión 3D a pedido, diseño personalizado, mantenimiento de impresoras, upgrades, post-procesado y prototipado industrial en Bogotá.",
       },
       { property: "og:title", content: "Servicios de Impresión 3D — Will Design 3D" },
-      { property: "og:description", content: "Impresión 3D a pedido, diseño personalizado, mantenimiento, upgrades y post-procesado profesional en Bogotá." },
+      {
+        property: "og:description",
+        content:
+          "Impresión 3D a pedido, diseño personalizado, mantenimiento, upgrades y post-procesado profesional en Bogotá.",
+      },
     ],
   }),
   component: ServiciosPage,
@@ -30,32 +30,25 @@ const cursos = [
   {
     id: "cursos-3d-modelado",
     title: "Curso de Modelado 3D",
-    lead:
-      "Aprende a modelar tus propias piezas desde cero: de la idea al archivo listo para imprimir.",
+    lead: "Aprende a modelar tus propias piezas desde cero: de la idea al archivo listo para imprimir.",
     color: "orange",
   },
   {
     id: "cursos-3d-impresion",
     title: "Curso de Impresión 3D",
-    lead:
-      "Domina el laminado, materiales y parámetros para lograr impresiones limpias y consistentes.",
+    lead: "Domina el laminado, materiales y parámetros para lograr impresiones limpias y consistentes.",
     color: "teal",
   },
   {
     id: "cursos-3d-mantenimiento",
     title: "Curso de Mantenimiento de Impresoras",
-    lead:
-      "Calibración, limpieza y reparación: mantén tu impresora funcionando como el primer día.",
+    lead: "Calibración, limpieza y reparación: mantén tu impresora funcionando como el primer día.",
     color: "wine",
   },
 ];
 
 const colorFor = (a: string) =>
-  a === "orange"
-    ? "var(--brand-orange)"
-    : a === "teal"
-      ? "var(--brand-teal)"
-      : "var(--brand-wine)";
+  a === "orange" ? "var(--brand-orange)" : a === "teal" ? "var(--brand-teal)" : "var(--brand-wine)";
 
 function ServiceArticle({ s, i }: { s: SiteService; i: number }) {
   const { data: quoterServices } = useQuery(quoterServicesQuery());
@@ -91,11 +84,7 @@ function ServiceArticle({ s, i }: { s: SiteService; i: number }) {
         </ul>
         {q ? (
           <div className="mt-6 flex flex-wrap items-center gap-3">
-            <Link
-              to="/cotizador"
-              search={{ servicio: q.slug }}
-              className="btn-primary text-sm"
-            >
+            <Link to="/cotizador" search={{ servicio: q.slug }} className="btn-primary text-sm">
               Cotizar en línea
               <ArrowRight className="h-4 w-4" />
             </Link>
@@ -147,8 +136,7 @@ function ServiciosPage() {
             <span style={{ color: "var(--brand-orange)" }}>impresión 3D</span>
           </h1>
           <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-            Diseño, producción, acabados y soporte técnico bajo un mismo techo
-            en Bogotá.
+            Diseño, producción, acabados y soporte técnico bajo un mismo techo en Bogotá.
           </p>
           <ShareButton
             title="Servicios de Impresión 3D — Will Design 3D"
@@ -227,11 +215,7 @@ function CursoCta({ cursoId }: { cursoId: string }) {
   const { data: quoterServices } = useQuery(quoterServicesQuery());
   const q = (quoterServices ?? []).find((s) => s.site_anchor === "cursos-3d") ?? null;
   return q ? (
-    <Link
-      to="/cotizador"
-      search={{ servicio: q.slug }}
-      className="btn-primary mt-5 text-sm"
-    >
+    <Link to="/cotizador" search={{ servicio: q.slug }} className="btn-primary mt-5 text-sm">
       Cotizar el curso
       <ArrowRight className="h-4 w-4" />
     </Link>

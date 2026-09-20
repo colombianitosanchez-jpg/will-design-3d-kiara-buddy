@@ -148,7 +148,9 @@ function PagosPage() {
       <Card>
         <CardHeader>
           <CardTitle>Acceso restringido</CardTitle>
-          <CardDescription>Solo un Super Admin puede configurar los métodos de pago.</CardDescription>
+          <CardDescription>
+            Solo un Super Admin puede configurar los métodos de pago.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Link to="/panel" className="text-sm font-semibold underline">
@@ -331,65 +333,65 @@ function PagosPage() {
               )}
 
               {usesQr(form.type) && (
-              <div className="md:col-span-2">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Código QR (opcional)
-                </p>
-                <div className="mt-1 flex flex-wrap items-center gap-2">
-                  <Input
-                    value={form.qr_image_url}
-                    onChange={(e) => setForm({ ...form, qr_image_url: e.target.value })}
-                    placeholder="Pega una URL pública de la imagen del QR…"
-                    className="min-w-[240px] flex-1"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={uploadingQr}
-                    onClick={() => qrInputRef.current?.click()}
-                  >
-                    {uploadingQr ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <UploadCloud className="mr-2 h-4 w-4" />
-                    )}
-                    Subir imagen
-                  </Button>
-                  {form.qr_image_url && (
+                <div className="md:col-span-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Código QR (opcional)
+                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <Input
+                      value={form.qr_image_url}
+                      onChange={(e) => setForm({ ...form, qr_image_url: e.target.value })}
+                      placeholder="Pega una URL pública de la imagen del QR…"
+                      className="min-w-[240px] flex-1"
+                    />
                     <Button
                       type="button"
                       variant="outline"
-                      size="icon"
-                      aria-label="Quitar QR"
-                      onClick={() => setForm({ ...form, qr_image_url: "" })}
+                      disabled={uploadingQr}
+                      onClick={() => qrInputRef.current?.click()}
                     >
-                      <X className="h-4 w-4" />
+                      {uploadingQr ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <UploadCloud className="mr-2 h-4 w-4" />
+                      )}
+                      Subir imagen
                     </Button>
+                    {form.qr_image_url && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        aria-label="Quitar QR"
+                        onClick={() => setForm({ ...form, qr_image_url: "" })}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Sube la imagen o pega la URL (por ejemplo de Imgur). El cliente la verá en el
+                    carrito al elegir este método.
+                  </p>
+                  {form.qr_image_url && (
+                    <img
+                      src={form.qr_image_url}
+                      alt="Vista previa del código QR"
+                      className="mt-2 h-32 w-32 rounded-xl border border-border object-contain shadow-sm"
+                    />
                   )}
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Sube la imagen o pega la URL (por ejemplo de Imgur). El cliente la verá en el
-                  carrito al elegir este método.
-                </p>
-                {form.qr_image_url && (
-                  <img
-                    src={form.qr_image_url}
-                    alt="Vista previa del código QR"
-                    className="mt-2 h-32 w-32 rounded-xl border border-border object-contain shadow-sm"
+                  <input
+                    ref={qrInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      e.target.value = "";
+                      if (f) void handleQrUpload(f);
+                    }}
                   />
-                )}
-                <input
-                  ref={qrInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    e.target.value = "";
-                    if (f) void handleQrUpload(f);
-                  }}
-                />
-              </div>
+                </div>
               )}
 
               <div className="md:col-span-2">
@@ -451,7 +453,10 @@ function PagosPage() {
                     variant="outline"
                     size="sm"
                     onClick={() =>
-                      setForm({ ...form, credentials: [...form.credentials, { key: "", value: "" }] })
+                      setForm({
+                        ...form,
+                        credentials: [...form.credentials, { key: "", value: "" }],
+                      })
                     }
                   >
                     <Plus className="mr-2 h-4 w-4" /> Añadir credencial
@@ -465,9 +470,7 @@ function PagosPage() {
                   type="number"
                   min={0}
                   value={form.display_order}
-                  onChange={(e) =>
-                    setForm({ ...form, display_order: Number(e.target.value) || 0 })
-                  }
+                  onChange={(e) => setForm({ ...form, display_order: Number(e.target.value) || 0 })}
                   className="mt-1 w-28"
                 />
               </label>

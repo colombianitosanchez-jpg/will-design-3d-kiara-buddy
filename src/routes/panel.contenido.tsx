@@ -10,7 +10,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { sanitizeWidgetId, parsePhotos, type PortfolioPhoto } from "@/components/InstagramFeed";
 
 export const Route = createFileRoute("/panel/contenido")({
@@ -32,46 +38,254 @@ type FieldDef = {
 
 const FIELDS: FieldDef[] = [
   // ---------------------------------------------------------------- Inicio
-  { key: "hero_title", label: "Título del hero", type: "textarea", section: "Inicio", group: "Hero" },
-  { key: "hero_subtitle", label: "Subtítulo del hero", type: "textarea", section: "Inicio", group: "Hero" },
-  { key: "hero_image_url", label: "Imagen del hero", type: "image", help: "Foto principal a la derecha del título.", section: "Inicio", group: "Hero" },
-  { key: "hero_badge_title", label: "Etiqueta flotante (pieza destacada)", type: "text", help: "Ej: Escultura 1.8 m — PLA reforzado", section: "Inicio", group: "Hero" },
-  { key: "hero_stat_1_k", label: "Estadística 1 · valor", type: "text", help: "Ej: 50×50", section: "Inicio", group: "Estadísticas" },
-  { key: "hero_stat_1_v", label: "Estadística 1 · descripción", type: "text", help: "Ej: cm mínimo", section: "Inicio", group: "Estadísticas" },
-  { key: "hero_stat_2_k", label: "Estadística 2 · valor", type: "text", section: "Inicio", group: "Estadísticas" },
-  { key: "hero_stat_2_v", label: "Estadística 2 · descripción", type: "text", section: "Inicio", group: "Estadísticas" },
-  { key: "hero_stat_3_k", label: "Estadística 3 · valor", type: "text", section: "Inicio", group: "Estadísticas" },
-  { key: "hero_stat_3_v", label: "Estadística 3 · descripción", type: "text", section: "Inicio", group: "Estadísticas" },
-  { key: "show_manual_gallery", label: "Mostrar sección de Portafolio Manual (Piezas que hemos impreso)", type: "switch", help: "Se muestra si está activo y hay al menos una foto subida.", section: "Inicio", group: "Portafolio (Instagram)" },
-  { key: "show_instagram_widget", label: "Mostrar sección de Instagram en vivo", type: "switch", help: "Se muestra si está activo y el ID del widget es válido.", section: "Inicio", group: "Portafolio (Instagram)" },
-  { key: "portfolio_display_order", label: "Orden de visualización", type: "select", help: "Decide qué sección del portafolio aparece primero en la página.", section: "Inicio", group: "Portafolio (Instagram)", options: [
-    { value: "manual_first", label: "Fotos manuales primero, luego Instagram" },
-    { value: "instagram_first", label: "Instagram primero, luego fotos manuales" },
-  ] },
-  { key: "portfolio_images", label: "Fotos de portafolio", type: "images", help: "Se muestran en la sección de portafolio del inicio y en /galeria. Ya no se ocultan al usar el widget de Instagram.", section: "Inicio", group: "Portafolio (Instagram)" },
-  { key: "elfsight_instagram_id", label: "ID del widget de Instagram (Elfsight)", type: "text", help: "Puedes pegar el ID completo ('elfsight-app-abc123'); quitamos el prefijo automáticamente.", section: "Inicio", group: "Portafolio (Instagram)" },
-  { key: "about_short", label: "Descripción corta 'Nosotros'", type: "textarea", section: "Inicio", group: "Página Nosotros" },
+  {
+    key: "hero_title",
+    label: "Título del hero",
+    type: "textarea",
+    section: "Inicio",
+    group: "Hero",
+  },
+  {
+    key: "hero_subtitle",
+    label: "Subtítulo del hero",
+    type: "textarea",
+    section: "Inicio",
+    group: "Hero",
+  },
+  {
+    key: "hero_image_url",
+    label: "Imagen del hero",
+    type: "image",
+    help: "Foto principal a la derecha del título.",
+    section: "Inicio",
+    group: "Hero",
+  },
+  {
+    key: "hero_badge_title",
+    label: "Etiqueta flotante (pieza destacada)",
+    type: "text",
+    help: "Ej: Escultura 1.8 m — PLA reforzado",
+    section: "Inicio",
+    group: "Hero",
+  },
+  {
+    key: "hero_stat_1_k",
+    label: "Estadística 1 · valor",
+    type: "text",
+    help: "Ej: 50×50",
+    section: "Inicio",
+    group: "Estadísticas",
+  },
+  {
+    key: "hero_stat_1_v",
+    label: "Estadística 1 · descripción",
+    type: "text",
+    help: "Ej: cm mínimo",
+    section: "Inicio",
+    group: "Estadísticas",
+  },
+  {
+    key: "hero_stat_2_k",
+    label: "Estadística 2 · valor",
+    type: "text",
+    section: "Inicio",
+    group: "Estadísticas",
+  },
+  {
+    key: "hero_stat_2_v",
+    label: "Estadística 2 · descripción",
+    type: "text",
+    section: "Inicio",
+    group: "Estadísticas",
+  },
+  {
+    key: "hero_stat_3_k",
+    label: "Estadística 3 · valor",
+    type: "text",
+    section: "Inicio",
+    group: "Estadísticas",
+  },
+  {
+    key: "hero_stat_3_v",
+    label: "Estadística 3 · descripción",
+    type: "text",
+    section: "Inicio",
+    group: "Estadísticas",
+  },
+  {
+    key: "show_manual_gallery",
+    label: "Mostrar sección de Portafolio Manual (Piezas que hemos impreso)",
+    type: "switch",
+    help: "Se muestra si está activo y hay al menos una foto subida.",
+    section: "Inicio",
+    group: "Portafolio (Instagram)",
+  },
+  {
+    key: "show_instagram_widget",
+    label: "Mostrar sección de Instagram en vivo",
+    type: "switch",
+    help: "Se muestra si está activo y el ID del widget es válido.",
+    section: "Inicio",
+    group: "Portafolio (Instagram)",
+  },
+  {
+    key: "portfolio_display_order",
+    label: "Orden de visualización",
+    type: "select",
+    help: "Decide qué sección del portafolio aparece primero en la página.",
+    section: "Inicio",
+    group: "Portafolio (Instagram)",
+    options: [
+      { value: "manual_first", label: "Fotos manuales primero, luego Instagram" },
+      { value: "instagram_first", label: "Instagram primero, luego fotos manuales" },
+    ],
+  },
+  {
+    key: "portfolio_images",
+    label: "Fotos de portafolio",
+    type: "images",
+    help: "Se muestran en la sección de portafolio del inicio y en /galeria. Ya no se ocultan al usar el widget de Instagram.",
+    section: "Inicio",
+    group: "Portafolio (Instagram)",
+  },
+  {
+    key: "elfsight_instagram_id",
+    label: "ID del widget de Instagram (Elfsight)",
+    type: "text",
+    help: "Puedes pegar el ID completo ('elfsight-app-abc123'); quitamos el prefijo automáticamente.",
+    section: "Inicio",
+    group: "Portafolio (Instagram)",
+  },
+  {
+    key: "about_short",
+    label: "Descripción corta 'Nosotros'",
+    type: "textarea",
+    section: "Inicio",
+    group: "Página Nosotros",
+  },
 
   // ------------------------------------------------------------ Cotizadores
-  { key: "quoter_badge", label: "Etiqueta superior", type: "text", help: "Ej: Cotizador", section: "Cotizadores", group: "Encabezado del cotizador" },
-  { key: "quoter_title", label: "Título del cotizador", type: "textarea", help: "Se muestra arriba del selector de servicio.", section: "Cotizadores", group: "Encabezado del cotizador" },
-  { key: "quoter_subtitle", label: "Instrucciones para el cliente", type: "textarea", help: "Ej: Elige qué necesitas, mueve los deslizadores y verás el precio estimado al instante.", section: "Cotizadores", group: "Encabezado del cotizador" },
-  { key: "quoter_service_label", label: "Texto del paso 'elegir servicio'", type: "text", help: "Ej: Selecciona el servicio", section: "Cotizadores", group: "Encabezado del cotizador" },
-  { key: "quoter_disclaimer", label: "Aviso legal del precio estimado", type: "textarea", help: "Ej: El valor final se confirma tras revisar tu archivo.", section: "Cotizadores", group: "Encabezado del cotizador" },
+  {
+    key: "quoter_badge",
+    label: "Etiqueta superior",
+    type: "text",
+    help: "Ej: Cotizador",
+    section: "Cotizadores",
+    group: "Encabezado del cotizador",
+  },
+  {
+    key: "quoter_title",
+    label: "Título del cotizador",
+    type: "textarea",
+    help: "Se muestra arriba del selector de servicio.",
+    section: "Cotizadores",
+    group: "Encabezado del cotizador",
+  },
+  {
+    key: "quoter_subtitle",
+    label: "Instrucciones para el cliente",
+    type: "textarea",
+    help: "Ej: Elige qué necesitas, mueve los deslizadores y verás el precio estimado al instante.",
+    section: "Cotizadores",
+    group: "Encabezado del cotizador",
+  },
+  {
+    key: "quoter_service_label",
+    label: "Texto del paso 'elegir servicio'",
+    type: "text",
+    help: "Ej: Selecciona el servicio",
+    section: "Cotizadores",
+    group: "Encabezado del cotizador",
+  },
+  {
+    key: "quoter_disclaimer",
+    label: "Aviso legal del precio estimado",
+    type: "textarea",
+    help: "Ej: El valor final se confirma tras revisar tu archivo.",
+    section: "Cotizadores",
+    group: "Encabezado del cotizador",
+  },
 
   // --------------------------------------------------------------- Contacto
-  { key: "contact_whatsapp", label: "WhatsApp (solo dígitos, con país)", type: "text", help: "Ej: 573156724474 — se usa en todos los enlaces wa.me.", section: "Contacto", group: "Canales" },
-  { key: "contact_whatsapp_display", label: "WhatsApp (formato visible)", type: "text", help: "Ej: +57 315 672 4474", section: "Contacto", group: "Canales" },
-  { key: "contact_email", label: "Correo de contacto", type: "text", section: "Contacto", group: "Canales" },
-  { key: "contact_instagram_url", label: "URL de Instagram", type: "text", section: "Contacto", group: "Canales" },
-  { key: "contact_instagram_handle", label: "Usuario de Instagram (visible)", type: "text", help: "Ej: @will_design2020", section: "Contacto", group: "Canales" },
-  { key: "contact_location_text", label: "Ubicación (texto)", type: "text", help: "Ej: Bogotá, Colombia · atención por cita previa", section: "Contacto", group: "Ubicación" },
-  { key: "contact_location_short", label: "Ubicación corta (footer)", type: "text", help: "Ej: Bogotá, Colombia", section: "Contacto", group: "Ubicación" },
-  { key: "contact_map_embed_url", label: "URL del mapa (Google Maps embed)", type: "textarea", help: "Pega la URL del src del iframe de Google Maps.", section: "Contacto", group: "Ubicación" },
+  {
+    key: "contact_whatsapp",
+    label: "WhatsApp (solo dígitos, con país)",
+    type: "text",
+    help: "Ej: 573156724474 — se usa en todos los enlaces wa.me.",
+    section: "Contacto",
+    group: "Canales",
+  },
+  {
+    key: "contact_whatsapp_display",
+    label: "WhatsApp (formato visible)",
+    type: "text",
+    help: "Ej: +57 315 672 4474",
+    section: "Contacto",
+    group: "Canales",
+  },
+  {
+    key: "contact_email",
+    label: "Correo de contacto",
+    type: "text",
+    section: "Contacto",
+    group: "Canales",
+  },
+  {
+    key: "contact_instagram_url",
+    label: "URL de Instagram",
+    type: "text",
+    section: "Contacto",
+    group: "Canales",
+  },
+  {
+    key: "contact_instagram_handle",
+    label: "Usuario de Instagram (visible)",
+    type: "text",
+    help: "Ej: @will_design2020",
+    section: "Contacto",
+    group: "Canales",
+  },
+  {
+    key: "contact_location_text",
+    label: "Ubicación (texto)",
+    type: "text",
+    help: "Ej: Bogotá, Colombia · atención por cita previa",
+    section: "Contacto",
+    group: "Ubicación",
+  },
+  {
+    key: "contact_location_short",
+    label: "Ubicación corta (footer)",
+    type: "text",
+    help: "Ej: Bogotá, Colombia",
+    section: "Contacto",
+    group: "Ubicación",
+  },
+  {
+    key: "contact_map_embed_url",
+    label: "URL del mapa (Google Maps embed)",
+    type: "textarea",
+    help: "Pega la URL del src del iframe de Google Maps.",
+    section: "Contacto",
+    group: "Ubicación",
+  },
 
   // ----------------------------------------------------------------- Kiara
-  { key: "kiara_message", label: "Mensaje de Kiara (widget)", type: "textarea", section: "Kiara", group: "Asistente" },
-  { key: "kiara_image_url", label: "Foto de Kiara", type: "image", help: "Se usa en widget y página Nosotros.", section: "Kiara", group: "Asistente" },
+  {
+    key: "kiara_message",
+    label: "Mensaje de Kiara (widget)",
+    type: "textarea",
+    section: "Kiara",
+    group: "Asistente",
+  },
+  {
+    key: "kiara_image_url",
+    label: "Foto de Kiara",
+    type: "image",
+    help: "Se usa en widget y página Nosotros.",
+    section: "Kiara",
+    group: "Asistente",
+  },
 ];
 
 const SECTIONS = Array.from(new Set(FIELDS.map((f) => f.section)));
@@ -204,9 +418,7 @@ function ContenidoAdmin() {
           <Switch
             id={f.key}
             checked={isFlagOn(f.key)}
-            onCheckedChange={(on) =>
-              setValues((v) => ({ ...v, [f.key]: on ? "true" : "false" }))
-            }
+            onCheckedChange={(on) => setValues((v) => ({ ...v, [f.key]: on ? "true" : "false" }))}
           />
         </div>
       );
@@ -226,8 +438,7 @@ function ContenidoAdmin() {
             value={values[f.key] ?? ""}
             onChange={(e) => {
               const raw = e.target.value;
-              const next =
-                f.key === "elfsight_instagram_id" ? sanitizeWidgetId(raw) : raw;
+              const next = f.key === "elfsight_instagram_id" ? sanitizeWidgetId(raw) : raw;
               setValues((v) => ({ ...v, [f.key]: next }));
             }}
             className="resize-y"
@@ -251,7 +462,6 @@ function ContenidoAdmin() {
             </SelectContent>
           </Select>
         )}
-
 
         {f.type === "image" && (
           <div className="flex flex-wrap items-center gap-4">
@@ -370,7 +580,11 @@ function ContenidoAdmin() {
           </p>
         </div>
         <Button onClick={save} disabled={saving} size="lg">
-          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+          {saving ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="mr-2 h-4 w-4" />
+          )}
           {saving ? "Guardando…" : "Guardar cambios"}
         </Button>
       </div>
@@ -395,12 +609,14 @@ function ContenidoAdmin() {
                   <CardHeader>
                     <CardTitle className="text-base">{group}</CardTitle>
                     <CardDescription>
-                      {FIELDS.filter((f) => f.section === section && f.group === group).length} campos
-                      editables
+                      {FIELDS.filter((f) => f.section === section && f.group === group).length}{" "}
+                      campos editables
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    {FIELDS.filter((f) => f.section === section && f.group === group).map(renderField)}
+                    {FIELDS.filter((f) => f.section === section && f.group === group).map(
+                      renderField,
+                    )}
                   </CardContent>
                 </Card>
               ))}

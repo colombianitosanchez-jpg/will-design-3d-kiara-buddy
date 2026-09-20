@@ -110,8 +110,8 @@ function QuoterAdmin() {
         <div>
           <h1 className="text-3xl font-black">Cotizador</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Cada servicio del cotizador público se arma aquí: agrega preguntas, deslizadores y precios.
-            Los cambios se ven de inmediato en la web.
+            Cada servicio del cotizador público se arma aquí: agrega preguntas, deslizadores y
+            precios. Los cambios se ven de inmediato en la web.
           </p>
         </div>
         <button
@@ -189,9 +189,7 @@ function GlobalVarsCard({ onMsg }: { onMsg: (m: string) => void }) {
               type="number"
               step="0.01"
               value={draft[v.key]}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, [v.key]: Number(e.target.value) || 0 }))
-              }
+              onChange={(e) => setDraft((d) => ({ ...d, [v.key]: Number(e.target.value) || 0 }))}
               className={inputCls}
             />
             <span className="mt-1 block text-[11px] text-muted-foreground">{v.help}</span>
@@ -209,7 +207,6 @@ function GlobalVarsCard({ onMsg }: { onMsg: (m: string) => void }) {
     </div>
   );
 }
-
 
 function ServiceCard({
   service,
@@ -335,7 +332,11 @@ function ServiceCard({
           <div className="space-y-6">
             <div className="grid gap-4 sm:grid-cols-2">
               <L label="Nombre">
-                <input value={draft.name} onChange={(e) => set("name", e.target.value)} className={inputCls} />
+                <input
+                  value={draft.name}
+                  onChange={(e) => set("name", e.target.value)}
+                  className={inputCls}
+                />
               </L>
               <L label="Frase corta">
                 <input
@@ -353,7 +354,11 @@ function ServiceCard({
                 />
               </L>
               <L label="Ícono">
-                <select value={draft.icon} onChange={(e) => set("icon", e.target.value)} className={inputCls}>
+                <select
+                  value={draft.icon}
+                  onChange={(e) => set("icon", e.target.value)}
+                  className={inputCls}
+                >
                   {ICON_OPTIONS.map((i) => (
                     <option key={i} value={i}>
                       {i}
@@ -486,7 +491,9 @@ function ServiceCard({
             <div className="mt-4 space-y-3">
               {draft.fields.map((f) => (
                 <div key={f.id}>
-                  <span className="text-xs font-bold uppercase text-muted-foreground">{f.label}</span>
+                  <span className="text-xs font-bold uppercase text-muted-foreground">
+                    {f.label}
+                  </span>
                   {f.input_type === "select" || f.input_type === "toggle" ? (
                     <select
                       value={test[f.key] ?? ""}
@@ -518,7 +525,9 @@ function ServiceCard({
               ))}
               {draft.allow_quantity && (
                 <div>
-                  <span className="text-xs font-bold uppercase text-muted-foreground">Cantidad</span>
+                  <span className="text-xs font-bold uppercase text-muted-foreground">
+                    Cantidad
+                  </span>
                   <input
                     type="number"
                     min={1}
@@ -673,7 +682,11 @@ function FieldEditor({
         <div className="mt-4 space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <L label="Etiqueta">
-              <input value={d.label} onChange={(e) => set("label", e.target.value)} className={inputCls} />
+              <input
+                value={d.label}
+                onChange={(e) => set("label", e.target.value)}
+                className={inputCls}
+              />
             </L>
             <L label="Tipo de control">
               <select
@@ -689,7 +702,11 @@ function FieldEditor({
               </select>
             </L>
             <L label="Texto de ayuda" full>
-              <input value={d.help} onChange={(e) => set("help", e.target.value)} className={inputCls} />
+              <input
+                value={d.help}
+                onChange={(e) => set("help", e.target.value)}
+                className={inputCls}
+              />
             </L>
             {isRange && (
               <>
@@ -719,7 +736,11 @@ function FieldEditor({
                   />
                 </L>
                 <L label="Unidad (g, cm, h…)">
-                  <input value={d.unit} onChange={(e) => set("unit", e.target.value)} className={inputCls} />
+                  <input
+                    value={d.unit}
+                    onChange={(e) => set("unit", e.target.value)}
+                    className={inputCls}
+                  />
                 </L>
                 <L label="Precio por unidad (COP)">
                   <input
@@ -776,7 +797,12 @@ function FieldEditor({
                     onClick={() =>
                       set("options", [
                         ...d.options,
-                        { label: "Nueva opción", value: `opcion-${d.options.length + 1}`, multiplier: 1, add_cop: 0 },
+                        {
+                          label: "Nueva opción",
+                          value: `opcion-${d.options.length + 1}`,
+                          multiplier: 1,
+                          add_cop: 0,
+                        },
                       ])
                     }
                     className="inline-flex items-center gap-1 rounded-full bg-[var(--brand-teal-deep)] px-3 py-1 text-xs font-bold text-white"
@@ -839,7 +865,12 @@ function FieldEditor({
                     />
                     {d.input_type === "select" && (
                       <button
-                        onClick={() => set("options", d.options.filter((_, idx) => idx !== i))}
+                        onClick={() =>
+                          set(
+                            "options",
+                            d.options.filter((_, idx) => idx !== i),
+                          )
+                        }
                         className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-red-600"
                         aria-label="Quitar opción"
                       >
@@ -866,10 +897,20 @@ function FieldEditor({
   );
 }
 
-function L({ label, children, full }: { label: string; children: React.ReactNode; full?: boolean }) {
+function L({
+  label,
+  children,
+  full,
+}: {
+  label: string;
+  children: React.ReactNode;
+  full?: boolean;
+}) {
   return (
     <label className={`block ${full ? "sm:col-span-2" : ""}`}>
-      <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</span>
+      <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
       <div className="mt-1">{children}</div>
     </label>
   );

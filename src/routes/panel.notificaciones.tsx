@@ -197,7 +197,9 @@ function NotificationsPage() {
 
           <div className="mt-4 grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="text-xs font-bold uppercase text-muted-foreground">Desde (hora)</span>
+              <span className="text-xs font-bold uppercase text-muted-foreground">
+                Desde (hora)
+              </span>
               <input
                 type="number"
                 min={0}
@@ -208,7 +210,9 @@ function NotificationsPage() {
               />
             </label>
             <label className="block">
-              <span className="text-xs font-bold uppercase text-muted-foreground">Hasta (hora)</span>
+              <span className="text-xs font-bold uppercase text-muted-foreground">
+                Hasta (hora)
+              </span>
               <input
                 type="number"
                 min={1}
@@ -256,7 +260,6 @@ function NotificationsPage() {
           </div>
         </section>
         <section className="rounded-3xl border border-border bg-card p-5">
-
           <h2 className="text-lg font-bold">Mensajes por estado del pago</h2>
           <p className="mt-1 text-xs text-muted-foreground">
             En el mensaje de pago rechazado puedes usar{" "}

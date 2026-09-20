@@ -53,7 +53,11 @@ function slugify(s: string) {
 }
 
 function formatCOP(n: number) {
-  return n.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+  return n.toLocaleString("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  });
 }
 
 function InventarioAdmin() {
@@ -108,7 +112,8 @@ function InventarioAdmin() {
         <div>
           <h1 className="text-3xl font-black">Inventario</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {products.length} producto{products.length === 1 ? "" : "s"} · {filtered.length} visibles
+            {products.length} producto{products.length === 1 ? "" : "s"} · {filtered.length}{" "}
+            visibles
           </p>
         </div>
         <button
@@ -136,7 +141,9 @@ function InventarioAdmin() {
         >
           <option value="">Todas las categorías</option>
           {categories.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
           ))}
         </select>
       </div>
@@ -148,9 +155,13 @@ function InventarioAdmin() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-16 text-center text-sm text-muted-foreground">
-            {products.length === 0
-              ? <>Aún no hay productos. Haz clic en <b>Añadir producto</b>.</>
-              : "Sin resultados para tu búsqueda."}
+            {products.length === 0 ? (
+              <>
+                Aún no hay productos. Haz clic en <b>Añadir producto</b>.
+              </>
+            ) : (
+              "Sin resultados para tu búsqueda."
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -177,23 +188,33 @@ function InventarioAdmin() {
                     <tr key={p.id} className="border-t border-border">
                       <td className="px-4 py-3">
                         {p.image_url ? (
-                          <img src={p.image_url} alt="" className="h-12 w-12 rounded-lg object-cover" />
+                          <img
+                            src={p.image_url}
+                            alt=""
+                            className="h-12 w-12 rounded-lg object-cover"
+                          />
                         ) : (
                           <div className="h-12 w-12 rounded-lg bg-muted" />
                         )}
                       </td>
                       <td className="px-4 py-3 font-semibold">{p.name}</td>
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{p.sku || "—"}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                        {p.sku || "—"}
+                      </td>
                       <td className="px-4 py-3">{cat}</td>
                       <td className="px-4 py-3">{br}</td>
                       <td className="px-4 py-3 text-right">{formatCOP(p.price_cop)}</td>
-                      <td className={`px-4 py-3 text-right font-semibold ${low ? "text-red-600" : ""}`}>
+                      <td
+                        className={`px-4 py-3 text-right font-semibold ${low ? "text-red-600" : ""}`}
+                      >
                         {p.stock}
                       </td>
                       <td className="px-4 py-3">
                         <span
                           className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                            p.active ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"
+                            p.active
+                              ? "bg-green-100 text-green-700"
+                              : "bg-muted text-muted-foreground"
                           }`}
                         >
                           {p.active ? "Activo" : "Oculto"}
@@ -403,7 +424,9 @@ function ProductModal({
             >
               <option value="">— Selecciona —</option>
               {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
               ))}
             </select>
           </Field>
@@ -415,7 +438,9 @@ function ProductModal({
             >
               <option value="">— Selecciona —</option>
               {brands.map((b) => (
-                <option key={b.id} value={b.id}>{b.name}</option>
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
               ))}
             </select>
           </Field>

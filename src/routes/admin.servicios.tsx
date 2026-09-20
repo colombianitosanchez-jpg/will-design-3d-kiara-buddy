@@ -43,7 +43,8 @@ function ServiciosAdmin() {
       </div>
 
       <p className="mt-6 rounded-2xl bg-muted p-4 text-xs text-muted-foreground">
-        La edición de servicios se hace en <strong>Panel → Servicios web</strong> (solo Super Admin).
+        La edición de servicios se hace en <strong>Panel → Servicios web</strong> (solo Super
+        Admin).
       </p>
     </>
   );

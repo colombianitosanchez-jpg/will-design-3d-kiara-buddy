@@ -118,9 +118,7 @@ function CarruselAdmin() {
   }
 
   async function toggleActive(slide: HeroSlide) {
-    setSlides((s) =>
-      s.map((x) => (x.id === slide.id ? { ...x, is_active: !slide.is_active } : x)),
-    );
+    setSlides((s) => s.map((x) => (x.id === slide.id ? { ...x, is_active: !slide.is_active } : x)));
     const { error } = await supabase
       .from("hero_carousel")
       .update({ is_active: !slide.is_active })
@@ -167,7 +165,9 @@ function CarruselAdmin() {
     if (raw === undefined) return;
     const url = raw.trim();
     if (url === (slide.action_url ?? "")) return;
-    setSlides((s) => s.map((x) => (x.id === slide.id ? { ...x, action_url: url || undefined } : x)));
+    setSlides((s) =>
+      s.map((x) => (x.id === slide.id ? { ...x, action_url: url || undefined } : x)),
+    );
     const { error } = await supabase
       .from("hero_carousel")
       .update({ action_url: url || null })
@@ -320,46 +320,39 @@ function CarruselAdmin() {
                         <ImageIcon className="h-3.5 w-3.5" /> Foto
                       </>
                     )}
-                   </span>
+                  </span>
 
-                   <label className="flex items-center gap-2 text-xs font-semibold">
-                     Duración (segundos)
-                     <Input
-                       type="number"
-                       min={1}
-                       max={60}
-                       step={0.5}
-                       className="h-9 w-20"
-                       value={
-                         durations[s.id] ??
-                         String((s.duration_ms || DEFAULT_SLIDE_MS) / 1000)
-                       }
-                       onChange={(e) =>
-                         setDurations((d) => ({ ...d, [s.id]: e.target.value }))
-                       }
-                       onBlur={() => saveDuration(s)}
-                       onKeyDown={(e) => {
-                         if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                       }}
-                     />
-                    </label>
+                  <label className="flex items-center gap-2 text-xs font-semibold">
+                    Duración (segundos)
+                    <Input
+                      type="number"
+                      min={1}
+                      max={60}
+                      step={0.5}
+                      className="h-9 w-20"
+                      value={durations[s.id] ?? String((s.duration_ms || DEFAULT_SLIDE_MS) / 1000)}
+                      onChange={(e) => setDurations((d) => ({ ...d, [s.id]: e.target.value }))}
+                      onBlur={() => saveDuration(s)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                      }}
+                    />
+                  </label>
 
-                    <label className="flex min-w-[12rem] flex-1 items-center gap-2 text-xs font-semibold">
-                      URL de destino / Enlace (Opcional)
-                      <Input
-                        type="text"
-                        placeholder="/tienda"
-                        className="h-9 flex-1"
-                        value={actionUrls[s.id] ?? (s.action_url || "")}
-                        onChange={(e) =>
-                          setActionUrls((d) => ({ ...d, [s.id]: e.target.value }))
-                        }
-                        onBlur={() => saveActionUrl(s)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                        }}
-                      />
-                    </label>
+                  <label className="flex min-w-[12rem] flex-1 items-center gap-2 text-xs font-semibold">
+                    URL de destino / Enlace (Opcional)
+                    <Input
+                      type="text"
+                      placeholder="/tienda"
+                      className="h-9 flex-1"
+                      value={actionUrls[s.id] ?? (s.action_url || "")}
+                      onChange={(e) => setActionUrls((d) => ({ ...d, [s.id]: e.target.value }))}
+                      onBlur={() => saveActionUrl(s)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                      }}
+                    />
+                  </label>
 
                   <div className="ml-auto flex items-center gap-3">
                     <label className="flex items-center gap-2 text-xs font-semibold">

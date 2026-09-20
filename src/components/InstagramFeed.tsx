@@ -157,8 +157,7 @@ export function InstagramFeed() {
   const scriptStatus = useElfsightScript(wantsWidget, cleanWidgetId);
   const showWidget = wantsWidget && scriptStatus !== "error";
 
-  const instagramFirst =
-    (content?.portfolio_display_order ?? "").trim() === "instagram_first";
+  const instagramFirst = (content?.portfolio_display_order ?? "").trim() === "instagram_first";
 
   const manualBlock = showManual ? (
     <ManualGallery key="manual" photos={photos} handle={handle} />
@@ -173,9 +172,8 @@ export function InstagramFeed() {
             Directo desde nuestro Instagram
           </h2>
           <p className="mt-3 text-muted-foreground">
-            Las últimas publicaciones de{" "}
-            <strong className="text-foreground">@{handle}</strong> — se actualizan
-            automáticamente.
+            Las últimas publicaciones de <strong className="text-foreground">@{handle}</strong> — se
+            actualizan automáticamente.
           </p>
         </div>
         <a href={instagramUrl} target="_blank" rel="noreferrer" className="btn-outline">
@@ -208,9 +206,9 @@ export function InstagramFeed() {
         {/* Solo visible en desarrollo: nunca se muestra al público. */}
         {import.meta.env.DEV && !showManual && !showWidget && (
           <p className="rounded-2xl border border-dashed border-border bg-card p-4 text-xs text-muted-foreground">
-            <strong>Nota de desarrollo (no visible en producción):</strong> activa los
-            interruptores y sube fotos en Panel → Contenido → «Portafolio (Instagram)», o pega
-            el ID del widget de Elfsight para activar el feed automático.
+            <strong>Nota de desarrollo (no visible en producción):</strong> activa los interruptores
+            y sube fotos en Panel → Contenido → «Portafolio (Instagram)», o pega el ID del widget de
+            Elfsight para activar el feed automático.
           </p>
         )}
       </div>
@@ -298,8 +296,8 @@ function PortfolioTeaser({ instagramUrl, handle }: { instagramUrl: string; handl
       </div>
       <h3 className="mt-4 text-xl font-bold">Estamos preparando la galería</h3>
       <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-        Mientras tanto, mira nuestros proyectos más recientes de impresión 3D de gran
-        formato directamente en Instagram.
+        Mientras tanto, mira nuestros proyectos más recientes de impresión 3D de gran formato
+        directamente en Instagram.
       </p>
       <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
         <a href={instagramUrl} target="_blank" rel="noreferrer" className="btn-primary text-sm">

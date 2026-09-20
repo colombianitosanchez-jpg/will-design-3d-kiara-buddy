@@ -1,7 +1,12 @@
 // Lectura del cotizador desde el servidor (Kiara y server functions).
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { normalizeField, normalizeService, type QuoterService, type QuoterVars } from "@/lib/quoter-core";
+import {
+  normalizeField,
+  normalizeService,
+  type QuoterService,
+  type QuoterVars,
+} from "@/lib/quoter-core";
 
 const DEFAULT_VARS: QuoterVars = {
   fdm_gram_cost: 80,
@@ -13,8 +18,8 @@ const DEFAULT_VARS: QuoterVars = {
 };
 
 function publicClient() {
-  const key = process.env['SUPABASE_PUBLISHABLE_KEY']!;
-  return createClient<Database>(process.env['SUPABASE_URL']!, key, {
+  const key = process.env["SUPABASE_PUBLISHABLE_KEY"]!;
+  return createClient<Database>(process.env["SUPABASE_URL"]!, key, {
     auth: { persistSession: false, autoRefreshToken: false },
     global: {
       fetch: (input, init) => {
@@ -44,8 +49,15 @@ export async function getQuoterServices(): Promise<QuoterService[]> {
 /** Variables globales del cotizador leídas en el servidor. */
 export async function getQuotingVars(): Promise<QuoterVars> {
   const sb = publicClient();
-  const { data } = await sb.from("admin_settings").select("id, quoting_vars").limit(1).maybeSingle();
-  const raw = ((data as { quoting_vars?: unknown } | null)?.quoting_vars ?? {}) as Record<string, unknown>;
+  const { data } = await sb
+    .from("admin_settings")
+    .select("id, quoting_vars")
+    .limit(1)
+    .maybeSingle();
+  const raw = ((data as { quoting_vars?: unknown } | null)?.quoting_vars ?? {}) as Record<
+    string,
+    unknown
+  >;
   const num = (k: keyof QuoterVars) => {
     const n = Number(raw[k]);
     return Number.isFinite(n) ? n : DEFAULT_VARS[k];
