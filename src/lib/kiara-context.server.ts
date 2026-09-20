@@ -298,6 +298,7 @@ async function buildInternalContext(): Promise<string> {
 
   const blocks: string[] = [];
   if (quoter) blocks.push(quoter);
+  if (siteSvcs) blocks.push(siteSvcs);
   if (kb.length) blocks.push(`## MANUALES Y CONOCIMIENTO INTERNO\n${kb.join("\n\n")}`);
   if (payments) blocks.push(payments);
   if (inventory.length) blocks.push(`## INVENTARIO Y PRECIOS (stock ascendente)\n${inventory.join("\n")}`);
