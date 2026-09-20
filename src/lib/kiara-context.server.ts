@@ -211,7 +211,7 @@ async function siteServicesBlock(): Promise<string> {
 
 /** MODO PÚBLICO: solo catálogo activo + conocimiento público. Nada de pedidos/clientes/costos. */
 async function buildPublicContext(): Promise<string> {
-  const [{ data: products }, kb, quoter, payments] = await Promise.all([
+  const [{ data: products }, kb, quoter, payments, siteSvcs] = await Promise.all([
     supabaseAdmin
       .from("products")
       .select("name, slug, price_cop, short, stock, categories(name), brands(name)")
@@ -221,6 +221,7 @@ async function buildPublicContext(): Promise<string> {
     knowledge(["public_web", "all"]),
     quoterBlock(),
     paymentBlock(false),
+    siteServicesBlock(),
   ]);
 
   const catalog = (products ?? []).map((p) => {
@@ -232,6 +233,7 @@ async function buildPublicContext(): Promise<string> {
 
   const blocks: string[] = [];
   if (quoter) blocks.push(quoter);
+  if (siteSvcs) blocks.push(siteSvcs);
   if (catalog.length) blocks.push(`## CATÁLOGO PÚBLICO\n${catalog.join("\n")}`);
   if (payments) blocks.push(payments);
   if (kb.length) blocks.push(`## PREGUNTAS FRECUENTES E INFORMACIÓN PÚBLICA\n${kb.join("\n\n")}`);
@@ -248,6 +250,7 @@ async function buildInternalContext(): Promise<string> {
     kb,
     quoter,
     payments,
+    siteSvcs,
   ] = await Promise.all([
     supabaseAdmin
       .from("products")
@@ -271,6 +274,7 @@ async function buildInternalContext(): Promise<string> {
     knowledge(["internal_team", "all"]),
     quoterBlock(),
     paymentBlock(true),
+    siteServicesBlock(),
   ]);
 
   const inventory = (products ?? []).map((p) => {
