@@ -55,15 +55,6 @@ export function createMessage(role: ChatRole, content: string): ChatMessage {
   return { id: uid(), role, content, createdAt: Date.now() };
 }
 
-/** Espera antes de dar error: el servidor puede estar arrancando en frío. */
-const CONNECT_TIMEOUT_MS = 25_000;
-/** A partir de aquí avisamos que Kiara está despertando. */
-const SLOW_NOTICE_MS = 6_000;
-
-function sleep(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
 /**
  * Envía el historial y va entregando el texto por partes (streaming).
  * Devuelve el texto completo al terminar.
@@ -72,64 +63,25 @@ export async function sendChat(
   messages: ChatMessage[],
   onDelta?: (chunk: string) => void,
   onTool?: (tool: KiaraTool) => void,
-  onSlow?: () => void,
 ): Promise<string> {
 
   const { data: sessionData } = await supabase.auth.getSession();
   const token = sessionData.session?.access_token;
 
-  const payload = JSON.stringify({
-    messages: messages.slice(-20).map((m) => ({ role: m.role, content: m.content })),
+  const res = await fetch("/api/kiara", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({
+      messages: messages.slice(-20).map((m) => ({ role: m.role, content: m.content })),
+    }),
   });
-
-  // Un reintento propio: los arranques en frío suelen fallar solo la 1a vez.
-  let res: Response | null = null;
-  let lastError: unknown = null;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const controller = new AbortController();
-    // El corte aplica solo hasta la primera respuesta; el stream largo no se corta.
-    const timer = setTimeout(() => controller.abort(), CONNECT_TIMEOUT_MS);
-    const slowTimer = setTimeout(() => onSlow?.(), SLOW_NOTICE_MS);
-    try {
-      res = await fetch("/api/kiara", {
-        method: "POST",
-        signal: controller.signal,
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: payload,
-      });
-      clearTimeout(timer);
-      clearTimeout(slowTimer);
-      if (res.status >= 500 && attempt === 0) {
-        lastError = new Error(`Kiara no disponible (${res.status})`);
-        res = null;
-        await sleep(1000);
-        continue;
-      }
-      break;
-    } catch (e) {
-      clearTimeout(timer);
-      clearTimeout(slowTimer);
-      lastError = e;
-      res = null;
-      if (attempt === 0) await sleep(1000);
-    }
-  }
-
-  if (!res) {
-    throw new Error(
-      lastError && (lastError as Error).name === "AbortError"
-        ? "No pudimos conectar con Kiara, inténtalo de nuevo"
-        : `No pudimos conectar con Kiara, inténtalo de nuevo`,
-    );
-  }
 
   if (!res.ok || !res.body) {
     throw new Error(`Kiara no disponible (${res.status})`);
   }
-
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
