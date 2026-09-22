@@ -7,15 +7,23 @@ import { siteContentQuery } from "@/lib/catalog";
  * getText(key, fallback) devuelve el texto del panel o el fallback.
  */
 export function useSiteContent() {
-  const { data, isLoading } = useQuery(siteContentQuery());
+  const query = useQuery(siteContentQuery());
+  const data = query.data ?? {};
 
   const getText = useCallback(
     (key: string, fallback = "") => {
-      const value = data?.[key];
-      return value && value.trim() ? value : fallback;
+      const value = data[key]?.trim();
+      return value || fallback;
     },
     [data],
   );
 
-  return { content: data ?? {}, getText, isLoading };
+  return {
+    content: data,
+    getText,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  };
 }
