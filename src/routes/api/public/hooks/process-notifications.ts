@@ -10,12 +10,11 @@ export const Route = createFileRoute("/api/public/hooks/process-notifications")(
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const apiKey = request.headers.get("apikey");
-        const allowed = [
-          process.env["SUPABASE_ANON_KEY"],
-          process.env["SUPABASE_PUBLISHABLE_KEY"],
-        ].filter(Boolean);
-        if (!apiKey || !allowed.includes(apiKey)) {
+        // Solo el programador interno puede disparar los envíos: secreto privado,
+        // nunca la clave publicable que viaja al navegador.
+        const secret = process.env["NOTIFICATIONS_CRON_SECRET"];
+        const sent = request.headers.get("x-cron-secret");
+        if (!secret || !sent || sent !== secret) {
           return new Response("Unauthorized", { status: 401 });
         }
 

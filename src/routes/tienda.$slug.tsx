@@ -20,6 +20,19 @@ import { KiaraTip } from "@/components/KiaraTip";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductButtons } from "@/components/ProductButtons";
 import { FileDropzone3D, file3dWaNote, type Dims3D } from "@/components/FileDropzone3D";
+import DOMPurify from "isomorphic-dompurify";
+
+/** Solo etiquetas de formato seguras: nunca scripts ni atributos de eventos. */
+function sanitizeRichText(html: string | null | undefined): string {
+  return DOMPurify.sanitize(html ?? "", {
+    ALLOWED_TAGS: [
+      "p", "br", "strong", "b", "em", "i", "u", "s", "ul", "ol", "li",
+      "h1", "h2", "h3", "h4", "blockquote", "code", "pre", "span", "a",
+    ],
+    ALLOWED_ATTR: ["href", "target", "rel"],
+    ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|tel:|#|\/)/i,
+  });
+}
 
 export const Route = createFileRoute("/tienda/$slug")({
   loader: async ({ params, context }) => {
@@ -212,8 +225,8 @@ function ProductPage() {
           {/<[a-z][\s\S]*>/i.test(product.description ?? "") ? (
             <div
               className="rich-text mt-3 text-muted-foreground"
-              // Contenido creado por el equipo en el editor visual del Panel.
-              dangerouslySetInnerHTML={{ __html: product.description }}
+              // Contenido del editor visual del Panel, saneado antes de mostrarse.
+              dangerouslySetInnerHTML={{ __html: sanitizeRichText(product.description) }}
             />
           ) : (
             <p className="mt-3 text-muted-foreground">{product.description}</p>
