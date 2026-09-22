@@ -1,6 +1,20 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
+const filePathSchema = z
+  .string()
+  .trim()
+  .max(500)
+  .refine(
+    (value) =>
+      value === "" ||
+      (value.startsWith("cotizaciones/") && !value.includes("..") && !value.includes("\\")),
+    "Ruta de archivo inválida",
+  )
+  .nullable()
+  .optional()
+  .default(null);
+
 const answerSchema = z.object({
   label: z.string().trim().max(160),
   value: z.string().trim().max(300),
@@ -24,7 +38,7 @@ const schema = z.object({
   finish: z.string().trim().max(120).default(""),
   notes: z.string().trim().max(1000).optional().default(""),
   file_name: z.string().trim().max(300).nullable().optional().default(null),
-  file_path: z.string().trim().max(500).nullable().optional().default(null),
+  file_path: filePathSchema,
 });
 
 /** Guarda una cotización del Cotizador 3D para que el equipo la vea en el Panel → Pedidos. */
