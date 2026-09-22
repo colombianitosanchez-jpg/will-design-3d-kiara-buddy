@@ -1121,6 +1121,54 @@ export type Database = {
         }
         Relationships: []
       }
+      site_services: {
+        Row: {
+          bullets: Json
+          color: string
+          created_at: string
+          icon: string
+          id: string
+          image_url: string | null
+          is_active: boolean
+          kiara_tip: string
+          lead: string
+          slug: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          bullets?: Json
+          color?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          kiara_tip?: string
+          lead?: string
+          slug: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          bullets?: Json
+          color?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          kiara_tip?: string
+          lead?: string
+          slug?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
