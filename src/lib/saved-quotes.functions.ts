@@ -47,8 +47,9 @@ export const saveQuote = createServerFn({ method: "POST" })
 export const getSavedQuote = createServerFn({ method: "GET" })
   .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data }): Promise<SavedQuote | null> => {
-    const { publicServerClient } = await import("@/lib/supabase-public.server");
-    const sb = publicServerClient();
+    // La lectura ocurre solo en el servidor y exige el id exacto del enlace:
+    // el navegador no puede listar ni recorrer las cotizaciones guardadas.
+    const { supabaseAdmin: sb } = await import("@/integrations/supabase/client.server");
     const { data: row, error } = await sb
       .from("saved_quotes")
       .select("id, items, total_price, created_at")

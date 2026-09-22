@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 
 /**
  * Procesador de la cola de notificaciones de WhatsApp.
- * Llamar cada 15 minutos (pg_cron) con el header `apikey`.
+ * Llamar cada 15 minutos (pg_cron) con el header `x-cron-secret`
+ * usando el valor del secreto NOTIFICATIONS_CRON_SECRET.
  * Envía los mensajes cuya fecha programada ya pasó usando la URL de API
  * de WhatsApp configurada en Panel → Notificaciones y horarios.
  */
@@ -10,17 +11,24 @@ export const Route = createFileRoute("/api/public/hooks/process-notifications")(
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const apiKey = request.headers.get("apikey");
-        const allowed = [
-          process.env["SUPABASE_ANON_KEY"],
-          process.env["SUPABASE_PUBLISHABLE_KEY"],
-        ].filter(Boolean);
-        if (!apiKey || !allowed.includes(apiKey)) {
+        // Solo el programador interno puede disparar los envíos: secreto privado,
+        // nunca la clave publicable que viaja al navegador.
+        const cronSecret = (request.headers.get("x-cron-secret") ?? "").trim();
+        const envSecret = (process.env["NOTIFICATIONS_CRON_SECRET"] ?? "").trim();
+
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+        let authorized = Boolean(cronSecret) && Boolean(envSecret) && cronSecret === envSecret;
+        if (!authorized && cronSecret) {
+          const { data: ok } = await supabaseAdmin.rpc("verify_cron_secret", {
+            _secret: cronSecret,
+          });
+          authorized = ok === true;
+        }
+        if (!authorized) {
           return new Response("Unauthorized", { status: 401 });
         }
 
-
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
         const { data: cfg } = await supabaseAdmin
           .from("notification_settings")

@@ -22,7 +22,7 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(({ data }: { data: { session: unknown } }) => {
       if (data.session) navigate({ to: "/panel" });
     });
   }, [navigate]);

@@ -65,13 +65,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }) => {
       if (!mounted) return;
       setSession(data.session);
       void loadRole(data.session);
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event: string, next: Session | null) => {
       if (!mounted) return;
       setSession(next);
       if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
