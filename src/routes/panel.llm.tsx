@@ -87,7 +87,7 @@ function LlmAdmin() {
       .select("key, value")
       .in("key", ["kiara_prompt_public", "kiara_prompt_internal"]);
     const map: Record<string, string> = {};
-    (data ?? []).forEach((r) => (map[r.key] = r.value));
+    ((data ?? []) as { key: string; value: string }[]).forEach((r) => (map[r.key] = r.value));
     setPrompts({
       pub: map.kiara_prompt_public ?? "",
       internal: map.kiara_prompt_internal ?? "",

@@ -16,8 +16,10 @@ export async function fetchQuoterServices(includeInactive = false): Promise<Quot
   if (svc.error) throw new Error(svc.error.message);
   if (fld.error) throw new Error(fld.error.message);
 
-  const fields = (fld.data ?? []).map((r) => normalizeField(r as Record<string, unknown>));
-  return (svc.data ?? []).map((r) => normalizeService(r as Record<string, unknown>, fields));
+  const fieldRows = (fld.data ?? []) as Record<string, unknown>[];
+  const serviceRows = (svc.data ?? []) as Record<string, unknown>[];
+  const fields = fieldRows.map((r) => normalizeField(r));
+  return serviceRows.map((r) => normalizeService(r, fields));
 }
 
 export const quoterServicesQuery = (includeInactive = false) =>

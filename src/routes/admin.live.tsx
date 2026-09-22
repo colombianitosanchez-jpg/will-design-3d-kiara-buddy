@@ -30,9 +30,8 @@ function AdminLive() {
         .from("user_roles")
         .select("role")
         .eq("user_id", userData.user.id);
-      const allowed = data?.some(
-        (r) => r.role === "admin" || r.role === "staff",
-      );
+      const rows = (data ?? []) as { role: string }[];
+      const allowed = rows.some((r) => r.role === "admin" || r.role === "staff");
       setStatus(allowed ? "ok" : "denied");
     })();
   }, []);
