@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 
 /**
  * Procesador de la cola de notificaciones de WhatsApp.
- * Llamar cada 15 minutos (pg_cron) con el header `apikey`.
+ * Llamar cada 15 minutos (pg_cron) con el header `x-cron-secret`
+ * usando el valor del secreto NOTIFICATIONS_CRON_SECRET.
  * Envía los mensajes cuya fecha programada ya pasó usando la URL de API
  * de WhatsApp configurada en Panel → Notificaciones y horarios.
  */
