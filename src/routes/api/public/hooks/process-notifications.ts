@@ -13,14 +13,20 @@ export const Route = createFileRoute("/api/public/hooks/process-notifications")(
       POST: async ({ request }) => {
         // Solo el programador interno puede disparar los envíos: secreto privado,
         // nunca la clave publicable que viaja al navegador.
-        const secret = process.env["NOTIFICATIONS_CRON_SECRET"];
-        const sent = request.headers.get("x-cron-secret");
-        if (!secret || !sent || sent !== secret) {
+        const sent = (request.headers.get("x-cron-secret") ?? "").trim();
+        const envSecret = (process.env["NOTIFICATIONS_CRON_SECRET"] ?? "").trim();
+
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+        let authorized = Boolean(sent) && Boolean(envSecret) && sent === envSecret;
+        if (!authorized && sent) {
+          const { data: ok } = await supabaseAdmin.rpc("verify_cron_secret", { _secret: sent });
+          authorized = ok === true;
+        }
+        if (!authorized) {
           return new Response("Unauthorized", { status: 401 });
         }
 
-
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
         const { data: cfg } = await supabaseAdmin
           .from("notification_settings")
