@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useRouterState } from "@tanstack/react-router";
 import { MessageCircle, Radio, Send } from "lucide-react";
 import {
   Sheet,
@@ -13,9 +14,19 @@ import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 import { useKiaraChat } from "@/hooks/use-kiara-chat";
 import { KiaraQuoteCard, KiaraOrderCard, KiaraProductsCard } from "@/components/KiaraToolCards";
 
-
-
 export function KiaraWidget() {
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  });
+
+  if (pathname.startsWith("/panel")) {
+    return null;
+  }
+
+  return <KiaraWidgetContent />;
+}
+
+function KiaraWidgetContent() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const { isLive, platform, url } = useLive();
@@ -24,7 +35,6 @@ export function KiaraWidget() {
   const kiaraImg = content?.kiara_image_url?.trim() || kiaraAsset.url;
   const contact = getContactInfo(content);
   const whatsappUrl = waLink(contact.whatsapp, "Hola Kiara, quiero cotizar un proyecto");
-
 
   const greeting = isLive
     ? `¡Guau! Mis humanos están EN VIVO en ${platform} ahora mismo. ¿Quieres el enlace?`
