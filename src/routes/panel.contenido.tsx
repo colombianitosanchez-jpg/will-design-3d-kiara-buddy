@@ -34,7 +34,14 @@ const FIELDS: FieldDef[] = [
   // ---------------------------------------------------------------- Inicio
   { key: "hero_title", label: "Título del hero", type: "textarea", section: "Inicio", group: "Hero" },
   { key: "hero_subtitle", label: "Subtítulo del hero", type: "textarea", section: "Inicio", group: "Hero" },
-  { key: "hero_image_url", label: "Imagen del hero", type: "image", help: "Foto principal a la derecha del título.", section: "Inicio", group: "Hero" },
+  {
+    key: "hero_image_url",
+    label: "Imagen del hero",
+    type: "image",
+    help: "La multimedia principal se gestiona desde el módulo Carrusel. Esta imagen se usa como respaldo si no hay diapositivas activas.",
+    section: "Inicio",
+    group: "Hero",
+  },
   { key: "hero_badge_title", label: "Etiqueta flotante (pieza destacada)", type: "text", help: "Ej: Escultura 1.8 m — PLA reforzado", section: "Inicio", group: "Hero" },
   { key: "hero_stat_1_k", label: "Estadística 1 · valor", type: "text", help: "Ej: 50×50", section: "Inicio", group: "Estadísticas" },
   { key: "hero_stat_1_v", label: "Estadística 1 · descripción", type: "text", help: "Ej: cm mínimo", section: "Inicio", group: "Estadísticas" },
@@ -184,7 +191,7 @@ function ContenidoAdmin() {
 
   function isFlagOn(key: string) {
     const v = (values[key] ?? "").trim().toLowerCase();
-    if (!v) return true; // activo por defecto
+    if (!v) return true;
     return !["false", "0", "no", "off"].includes(v);
   }
 
@@ -252,7 +259,6 @@ function ContenidoAdmin() {
           </Select>
         )}
 
-
         {f.type === "image" && (
           <div className="flex flex-wrap items-center gap-4">
             {values[f.key] ? (
@@ -307,11 +313,7 @@ function ContenidoAdmin() {
                     title={photo.is_visible ? "Ocultar foto" : "Mostrar foto"}
                     className="absolute -left-2 -top-2 rounded-full border border-border bg-card p-1 shadow"
                   >
-                    {photo.is_visible ? (
-                      <Eye className="h-3.5 w-3.5" />
-                    ) : (
-                      <EyeOff className="h-3.5 w-3.5" />
-                    )}
+                    {photo.is_visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
                   </button>
                   <button
                     type="button"
