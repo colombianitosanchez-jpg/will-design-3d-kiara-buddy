@@ -1,32 +1,25 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
-import { MessageCircle, Radio, Send } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
+import { ChevronDown, MessageCircle, Radio, Send } from "lucide-react";
 import kiaraAsset from "@/assets/kiara.asset.json";
 import { useLive } from "@/lib/live-store";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 import { useKiaraChat } from "@/hooks/use-kiara-chat";
 import { KiaraQuoteCard, KiaraOrderCard, KiaraProductsCard } from "@/components/KiaraToolCards";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export function KiaraWidget() {
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   });
+  const isPanel = pathname.startsWith("/panel");
 
-  if (pathname.startsWith("/panel")) {
-    return null;
-  }
-
-  return <KiaraWidgetContent />;
+  return <KiaraWidgetContent isPanel={isPanel} />;
 }
 
-function KiaraWidgetContent() {
+function KiaraWidgetContent({ isPanel }: { isPanel: boolean }) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const { isLive, platform, url } = useLive();
@@ -67,14 +60,25 @@ function KiaraWidgetContent() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent
-          side="right"
-          className="flex w-full flex-col gap-0 p-0 sm:max-w-md"
+    <div
+      className={cn(
+        "fixed z-50 flex flex-col gap-3",
+        isPanel
+          ? "bottom-3 left-3 items-start sm:bottom-6 sm:left-6"
+          : "bottom-4 right-4 items-end sm:bottom-6 sm:right-6 max-sm:left-4",
+      )}
+    >
+      {open && (
+        <section
+          aria-label="Chat con Kiara"
+          className={cn(
+            "flex h-[500px] max-h-[80vh] w-[350px] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl",
+            isPanel
+              ? "max-sm:h-[65dvh] max-sm:max-h-[65dvh] max-sm:w-[min(22rem,calc(100vw-1.5rem))]"
+              : "max-sm:h-[85dvh] max-sm:max-h-[85dvh] max-sm:w-full max-sm:rounded-b-none max-sm:rounded-t-2xl",
+          )}
         >
-          {/* Header */}
-          <div className="flex items-center gap-2 border-b border-border bg-muted/40 px-4 py-3 pr-12">
+          <div className="flex items-center gap-2 border-b border-border bg-muted/40 px-4 py-3">
             <img
               src={kiaraImg}
               alt="Kiara"
@@ -82,12 +86,22 @@ function KiaraWidgetContent() {
               height={36}
               className="h-9 w-9 rounded-full object-cover ring-2 ring-primary"
             />
-            <div>
-              <SheetTitle className="text-sm font-bold text-foreground">Kiara 🐾</SheetTitle>
-              <SheetDescription className="text-[11px]">
+            <div className="min-w-0 flex-1">
+              <h2 className="truncate text-sm font-bold text-foreground">Kiara 🐾</h2>
+              <p className="text-[11px] text-muted-foreground">
                 {sending ? "escribiendo…" : "Asistente virtual"}
-              </SheetDescription>
+              </p>
             </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Minimizar chat con Kiara"
+              onClick={() => setOpen(false)}
+              className="h-8 w-8 shrink-0 rounded-full"
+            >
+              <ChevronDown className="h-4 w-4" />
+            </Button>
           </div>
 
           {isLive && (
@@ -101,7 +115,6 @@ function KiaraWidgetContent() {
             </a>
           )}
 
-          {/* Messages */}
           <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-3 py-3">
             {messages.map((m) => (
               <div
@@ -152,14 +165,15 @@ function KiaraWidgetContent() {
               placeholder="Escríbele a Kiara…"
               className="flex-1 rounded-full border border-input bg-background px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
             />
-            <button
+            <Button
               type="submit"
+              size="icon"
               disabled={sending || !input.trim()}
               aria-label="Enviar"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--brand-orange)] text-white transition hover:opacity-90 disabled:opacity-50"
+              className="h-9 w-9 shrink-0 rounded-full bg-[var(--brand-orange)] text-white hover:opacity-90 disabled:opacity-50"
             >
               <Send className="h-4 w-4" />
-            </button>
+            </Button>
           </form>
           <a
             href={whatsappUrl}
@@ -169,12 +183,15 @@ function KiaraWidgetContent() {
           >
             <MessageCircle className="h-3.5 w-3.5" /> Prefiero WhatsApp
           </a>
-        </SheetContent>
-      </Sheet>
+        </section>
+      )}
 
       {!open && (
         <div
-          className="pointer-events-none mr-1 max-w-[15rem] rounded-2xl rounded-br-sm bg-card px-3 py-2 text-xs font-medium text-foreground shadow-lg ring-1 ring-border sm:text-sm"
+          className={cn(
+            "pointer-events-none max-w-[15rem] rounded-2xl bg-card px-3 py-2 text-xs font-medium text-foreground shadow-lg ring-1 ring-border sm:text-sm",
+            isPanel ? "ml-1 rounded-bl-sm" : "mr-1 rounded-br-sm",
+          )}
           style={
             isLive
               ? {
@@ -188,10 +205,14 @@ function KiaraWidgetContent() {
         </div>
       )}
 
-      <button
+      <Button
+        type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label="Abrir chat con Kiara"
-        className="kiara-float group relative h-16 w-16 overflow-hidden rounded-full border-4 border-primary bg-card shadow-2xl transition hover:scale-105 sm:h-20 sm:w-20"
+        className={cn(
+          "kiara-float group relative overflow-hidden rounded-full border-4 border-primary bg-card p-0 shadow-2xl transition hover:scale-105",
+          isPanel ? "h-14 w-14 sm:h-16 sm:w-16" : "h-16 w-16 sm:h-20 sm:w-20",
+        )}
         style={{
           boxShadow:
             "0 20px 40px -10px color-mix(in oklab, var(--brand-orange) 55%, transparent)",
@@ -211,7 +232,7 @@ function KiaraWidgetContent() {
           }`}
           style={{ background: isLive ? "#dc2626" : "var(--brand-teal)" }}
         />
-      </button>
+      </Button>
     </div>
   );
 }
