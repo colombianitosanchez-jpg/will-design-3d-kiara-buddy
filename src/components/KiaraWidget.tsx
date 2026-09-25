@@ -205,34 +205,36 @@ function KiaraWidgetContent({ isPanel }: { isPanel: boolean }) {
         </div>
       )}
 
-      <Button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-label="Abrir chat con Kiara"
-        className={cn(
-          "kiara-float group relative overflow-hidden rounded-full border-4 border-primary bg-card p-0 shadow-2xl transition hover:scale-105",
-          isPanel ? "h-14 w-14 sm:h-16 sm:w-16" : "h-16 w-16 sm:h-20 sm:w-20",
-        )}
-        style={{
-          boxShadow:
-            "0 20px 40px -10px color-mix(in oklab, var(--brand-orange) 55%, transparent)",
-          borderColor: isLive ? "#dc2626" : undefined,
-        }}
-      >
-        <img
-          src={kiaraImg}
-          alt="Kiara, asistente virtual Pastor Alemán"
-          width={80}
-          height={80}
-          className="h-full w-full object-cover"
-        />
-        <span
-          className={`absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-card sm:h-5 sm:w-5 ${
-            isLive ? "animate-pulse" : ""
-          }`}
-          style={{ background: isLive ? "#dc2626" : "var(--brand-teal)" }}
-        />
-      </Button>
+      {!open && (
+        <Button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label="Abrir chat con Kiara"
+          className={cn(
+            "kiara-float group relative overflow-hidden rounded-full border-4 border-primary bg-card p-0 shadow-2xl transition hover:scale-105",
+            isPanel ? "h-14 w-14 sm:h-16 sm:w-16" : "h-16 w-16 sm:h-20 sm:w-20",
+          )}
+          style={{
+            boxShadow:
+              "0 20px 40px -10px color-mix(in oklab, var(--brand-orange) 55%, transparent)",
+            borderColor: isLive ? "#dc2626" : undefined,
+          }}
+        >
+          <img
+            src={kiaraImg}
+            alt="Kiara, asistente virtual Pastor Alemán"
+            width={80}
+            height={80}
+            className="h-full w-full object-cover"
+          />
+          <span
+            className={`absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-card sm:h-5 sm:w-5 ${
+              isLive ? "animate-pulse" : ""
+            }`}
+            style={{ background: isLive ? "#dc2626" : "var(--brand-teal)" }}
+          />
+        </Button>
+      )}
     </div>
   );
 }
