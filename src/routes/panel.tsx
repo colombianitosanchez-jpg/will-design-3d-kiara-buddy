@@ -215,7 +215,7 @@ function PanelLayout() {
   const dragEnabled = editMode && isSuperAdmin;
 
   return (
-    <div className="mx-auto flex max-w-7xl gap-6 px-4 py-8 sm:px-6">
+    <div className="mx-auto flex max-w-7xl gap-6 px-4 pb-28 pt-8 sm:px-6 sm:pb-32">
       <aside className="hidden w-56 shrink-0 md:block">
         <div className="sticky top-24 space-y-1 rounded-3xl border border-border bg-card p-3">
           {dragEnabled ? (
