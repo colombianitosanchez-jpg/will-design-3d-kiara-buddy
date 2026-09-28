@@ -123,15 +123,20 @@ export function menuHref(node: MenuItemRow): string | null {
   switch (node.target_kind as MenuTargetKind | null) {
     case "group":
       return null;
-    case "category":
-      return node.category?.slug ? storeHref({ categoria: node.category.slug }) : null;
+    case "category": {
+      const slug = node.category?.slug || node.slug || undefined;
+      return slug ? storeHref({ categoria: slug }) : "/tienda";
+    }
     case "category_brand": {
       const marca = node.brand?.slug || (node.brand?.name ? node.brand.name : undefined);
-      if (!node.category?.slug && !marca) return null;
-      return storeHref({ categoria: node.category?.slug, marca });
+      const categoria = node.category?.slug || undefined;
+      if (!categoria && !marca) return "/tienda";
+      return storeHref({ categoria, marca });
     }
     case "attribute": {
-      if (!node.value?.slug || !node.value.attribute?.slug) return null;
+      if (!node.value?.slug || !node.value.attribute?.slug) {
+        return node.category?.slug ? storeHref({ categoria: node.category.slug }) : "/tienda";
+      }
       return storeHref({
         categoria: node.category?.slug,
         atributo: `${node.value.attribute.slug}:${node.value.slug}`,
@@ -140,13 +145,14 @@ export function menuHref(node: MenuItemRow): string | null {
     case "service":
       return node.service_anchor ? `/servicios#${node.service_anchor}` : "/servicios";
     case "page":
-      return node.site_page || null;
+      return node.site_page || "/";
     case "url":
       return node.custom_url || null;
     default:
       return legacyHref(node);
   }
 }
+
 
 /** Etiqueta legible del destino, para el panel. */
 export function menuTargetLabel(node: MenuItemRow): string {
@@ -190,6 +196,15 @@ function legacyHref(node: MenuItemRow): string | null {
       return null;
   }
 }
+
+/**
+ * Enlace garantizado para ítems finales (sin hijos) del menú público:
+ * si el ítem no tiene destino resuelto, cae al catálogo filtrado por su slug.
+ */
+export function menuLeafHref(node: MenuItemRow): string {
+  return menuHref(node) ?? (node.slug ? storeHref({ categoria: node.slug }) : "/tienda");
+}
+
 
 export const menuItemsQuery = () =>
   queryOptions({ queryKey: ["menu_items"], queryFn: fetchMenuItems, staleTime: 60_000 });
