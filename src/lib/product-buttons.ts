@@ -20,7 +20,12 @@ export type ProductButton = {
   position: ButtonPosition;
   action_type: ButtonActionType;
   action_value: string;
+  /** Mensaje personalizado de WhatsApp; admite {{producto}} y {{precio}}. */
+  whatsapp_message: string;
+  /** Añade al final del mensaje el enlace de la imagen principal. */
+  include_image_link: boolean;
 };
+
 
 export const VARIANT_LABELS: Record<ButtonVariant, string> = {
   default: "Principal (naranja)",
