@@ -98,6 +98,9 @@ export function parseProductButtons(raw: unknown): ProductButton[] {
       position: pick(b.position, BUTTON_POSITIONS, "left"),
       action_type: pick(b.action_type, BUTTON_ACTIONS, "link"),
       action_value: typeof b.action_value === "string" ? b.action_value.trim() : "",
+      whatsapp_message: typeof b.whatsapp_message === "string" ? b.whatsapp_message : "",
+      include_image_link: b.include_image_link === true,
+
     }))
     .filter((b) => !!b.text);
 }
