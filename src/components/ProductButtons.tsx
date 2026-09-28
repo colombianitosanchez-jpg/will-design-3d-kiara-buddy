@@ -3,8 +3,13 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
 import { useSiteContent } from "@/hooks/use-site-content";
-import { getContactInfo, waLink, type Product } from "@/lib/catalog";
-import { type ProductButton, type ButtonPosition } from "@/lib/product-buttons";
+import { getContactInfo, waLink, formatCOP, type Product } from "@/lib/catalog";
+import {
+  buildButtonWhatsappText,
+  type ProductButton,
+  type ButtonPosition,
+} from "@/lib/product-buttons";
+
 
 const ROW_ALIGN: Record<ButtonPosition, string> = {
   left: "justify-start",
@@ -62,14 +67,20 @@ export function ProductButtons({
       }
       case "whatsapp": {
         const number = button.action_value.trim() || fallbackWhatsapp;
-        const note = extraWhatsappNote?.trim() ? ` ${extraWhatsappNote.trim()}` : "";
-        window.open(
-          waLink(number, `Hola, me interesa el producto: ${product.name}.${note}`),
-          "_blank",
-          "noopener,noreferrer",
+        const text = buildButtonWhatsappText(
+          button,
+          {
+            name: product.name,
+            image_url: product.image_url,
+            images: product.images,
+            price: formatCOP(product.price_cop),
+          },
+          extraWhatsappNote ?? "",
         );
+        window.open(waLink(number, text), "_blank", "noopener,noreferrer");
         return;
       }
+
       case "add_to_cart": {
         addItem(cartPayload());
         toast.success(`${product.name} se añadió al carrito`);

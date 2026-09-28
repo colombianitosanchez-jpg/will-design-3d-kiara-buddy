@@ -710,13 +710,15 @@ function ProductModal({
             coverIndex={0}
             onSetCover={(url) => set("image_url", url)}
             onChange={(urls) => {
-              const cover = urls.includes(form.image_url ?? "") ? form.image_url : (urls[0] ?? null);
+              // La posición 1 de la lista es siempre la portada.
+              const cover = urls[0] ?? null;
               setForm((fm) => ({
                 ...fm,
-                image_url: cover ?? null,
-                images: urls.filter((u) => u !== cover),
+                image_url: cover,
+                images: urls.slice(1),
               }));
             }}
+
           />
         </Field>
 
