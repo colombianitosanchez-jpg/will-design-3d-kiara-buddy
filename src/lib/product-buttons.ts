@@ -65,6 +65,9 @@ export function newProductButton(): ProductButton {
     position: "left",
     action_type: "add_to_cart",
     action_value: "",
+    whatsapp_message: "",
+    include_image_link: false,
+
   };
 }
 
