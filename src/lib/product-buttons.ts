@@ -100,10 +100,34 @@ export function parseProductButtons(raw: unknown): ProductButton[] {
       action_value: typeof b.action_value === "string" ? b.action_value.trim() : "",
       whatsapp_message: typeof b.whatsapp_message === "string" ? b.whatsapp_message : "",
       include_image_link: b.include_image_link === true,
-
     }))
     .filter((b) => !!b.text);
 }
+
+/**
+ * Texto final del mensaje de WhatsApp para un botón de producto.
+ * Usa el mensaje personalizado (con {{producto}} / {{precio}}) o el de sistema,
+ * y añade el enlace de la imagen principal cuando está activado.
+ */
+export function buildButtonWhatsappText(
+  button: Pick<ProductButton, "whatsapp_message" | "include_image_link">,
+  product: { name: string; image_url?: string | null; images?: string[] | null; price?: string | null },
+  extraNote = "",
+): string {
+  const custom = (button.whatsapp_message ?? "").trim();
+  const base = custom
+    ? custom
+        .replaceAll("{{producto}}", product.name)
+        .replaceAll("{{product}}", product.name)
+        .replaceAll("{{precio}}", product.price ?? "")
+    : `Hola, me interesa el producto: ${product.name}.`;
+  const cover = product.image_url || product.images?.[0] || "";
+  const parts = [base.trim()];
+  if (extraNote.trim()) parts.push(extraNote.trim());
+  if (button.include_image_link && cover) parts.push(cover);
+  return parts.join(" ");
+}
+
 
 /** Valida antes de guardar en el panel: devuelve el primer error legible o null. */
 export function validateProductButtons(buttons: ProductButton[]): string | null {
