@@ -6,7 +6,7 @@ import logoAsset from "@/assets/will_logo.asset.json";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
 import { ShareButton, DEFAULT_SHARE_TEXT } from "@/components/ShareButton";
-import { menuItemsQuery, menuHref, type MenuNodeData } from "@/lib/menu";
+import { menuItemsQuery, menuHref, menuLeafHref, type MenuNodeData } from "@/lib/menu";
 import {
   DropdownMenu,
   DropdownMenuContent,
