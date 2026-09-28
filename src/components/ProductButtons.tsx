@@ -3,8 +3,13 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
 import { useSiteContent } from "@/hooks/use-site-content";
-import { getContactInfo, waLink, type Product } from "@/lib/catalog";
-import { type ProductButton, type ButtonPosition } from "@/lib/product-buttons";
+import { getContactInfo, waLink, formatCOP, type Product } from "@/lib/catalog";
+import {
+  buildButtonWhatsappText,
+  type ProductButton,
+  type ButtonPosition,
+} from "@/lib/product-buttons";
+
 
 const ROW_ALIGN: Record<ButtonPosition, string> = {
   left: "justify-start",
