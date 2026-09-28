@@ -62,7 +62,16 @@ export function ImageDropzone({
     if (j < 0 || j >= next.length) return;
     [next[i], next[j]] = [next[j], next[i]];
     onChange(next);
+    if (onSetCover && (i === 0 || j === 0)) onSetCover(next[0]);
   }
+
+  /** Estrella: mueve la imagen al inicio del array y la marca como portada. */
+  function setCover(url: string) {
+    const next = [url, ...images.filter((u) => u !== url)];
+    onChange(next);
+    onSetCover?.(url);
+  }
+
 
   return (
     <div className="mt-1 space-y-3">
