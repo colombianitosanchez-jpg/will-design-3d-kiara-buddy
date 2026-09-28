@@ -416,6 +416,81 @@ export type Database = {
           },
         ]
       }
+      message_templates: {
+        Row: {
+          ask_for_file: boolean
+          created_at: string
+          id: string
+          include_image: boolean
+          is_active: boolean
+          message_text: string
+          platform: string
+          product_id: string | null
+          target_audience: string
+          title: string
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          ask_for_file?: boolean
+          created_at?: string
+          id?: string
+          include_image?: boolean
+          is_active?: boolean
+          message_text: string
+          platform?: string
+          product_id?: string | null
+          target_audience?: string
+          title: string
+          trigger_type?: string
+          updated_at?: string
+        }
+        Update: {
+          ask_for_file?: boolean
+          created_at?: string
+          id?: string
+          include_image?: boolean
+          is_active?: boolean
+          message_text?: string
+          platform?: string
+          product_id?: string | null
+          target_audience?: string
+          title?: string
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      messaging_settings: {
+        Row: {
+          business_hours_end: number
+          business_hours_start: number
+          id: string
+          is_hours_active: boolean
+          telegram_username_or_group: string
+          updated_at: string
+          whatsapp_phone: string
+        }
+        Insert: {
+          business_hours_end?: number
+          business_hours_start?: number
+          id?: string
+          is_hours_active?: boolean
+          telegram_username_or_group?: string
+          updated_at?: string
+          whatsapp_phone?: string
+        }
+        Update: {
+          business_hours_end?: number
+          business_hours_start?: number
+          id?: string
+          is_hours_active?: boolean
+          telegram_username_or_group?: string
+          updated_at?: string
+          whatsapp_phone?: string
+        }
+        Relationships: []
+      }
       notification_settings: {
         Row: {
           created_at: string
