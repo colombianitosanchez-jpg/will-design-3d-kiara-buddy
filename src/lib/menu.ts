@@ -197,5 +197,14 @@ function legacyHref(node: MenuItemRow): string | null {
   }
 }
 
+/**
+ * Enlace garantizado para ítems finales (sin hijos) del menú público:
+ * si el ítem no tiene destino resuelto, cae al catálogo filtrado por su slug.
+ */
+export function menuLeafHref(node: MenuItemRow): string {
+  return menuHref(node) ?? (node.slug ? storeHref({ categoria: node.slug }) : "/tienda");
+}
+
+
 export const menuItemsQuery = () =>
   queryOptions({ queryKey: ["menu_items"], queryFn: fetchMenuItems, staleTime: 60_000 });
