@@ -35,23 +35,23 @@ const linkClass =
 const activeLinkClass =
   "rounded-full px-3 py-2 text-sm font-semibold bg-muted text-foreground";
 
-/** Recursive renderer for dropdown content (desktop). */
+/** Submenú recursivo (escritorio). Se abre al pasar el cursor. */
 function MenuNode({ node, onNavigate }: { node: MenuNodeData; onNavigate?: () => void }) {
   const href = menuHref(node);
+
   if (node.children.length > 0) {
     return (
       <DropdownMenuSub>
         <DropdownMenuSubTrigger className="text-sm font-medium">
-          {node.label}
+          {href ? (
+            <a href={href} onClick={onNavigate} className="flex-1">
+              {node.label}
+            </a>
+          ) : (
+            node.label
+          )}
         </DropdownMenuSubTrigger>
         <DropdownMenuSubContent className="min-w-48">
-          {href && (
-            <DropdownMenuItem asChild className="text-sm font-semibold">
-              <a href={href} onClick={onNavigate}>
-                Ver todo: {node.label}
-              </a>
-            </DropdownMenuItem>
-          )}
           {node.children.map((child) => (
             <MenuNode key={child.id} node={child} onNavigate={onNavigate} />
           ))}
@@ -60,16 +60,9 @@ function MenuNode({ node, onNavigate }: { node: MenuNodeData; onNavigate?: () =>
     );
   }
 
-  if (!href) {
-    return (
-      <DropdownMenuItem disabled className="text-sm">
-        {node.label}
-      </DropdownMenuItem>
-    );
-  }
   return (
     <DropdownMenuItem asChild className="text-sm">
-      <a href={href} onClick={onNavigate}>
+      <a href={menuLeafHref(node)} onClick={onNavigate}>
         {node.label}
       </a>
     </DropdownMenuItem>
@@ -81,31 +74,38 @@ function DesktopRoot({ node }: { node: MenuNodeData }) {
   const href = menuHref(node);
 
   if (node.children.length === 0) {
-    if (!href) {
-      return <span className={`${linkClass} opacity-60`}>{node.label}</span>;
-    }
     return (
-      <a href={href} className={linkClass}>
+      <a href={menuLeafHref(node)} className={linkClass}>
         {node.label}
       </a>
     );
   }
 
   return (
-    <div onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
-      <DropdownMenu open={open} onOpenChange={setOpen}>
-        <DropdownMenuTrigger className={`${linkClass} inline-flex items-center gap-1 outline-none`}>
-          {node.label}
-          <ChevronDown className="h-3.5 w-3.5" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" sideOffset={6} className="min-w-52">
-          {href && (
-            <DropdownMenuItem asChild className="text-sm font-semibold">
+    <div
+      className="relative"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
+        <DropdownMenuTrigger asChild>
+          <div className={`${linkClass} inline-flex cursor-pointer items-center gap-1 outline-none`}>
+            {href ? (
               <a href={href} onClick={() => setOpen(false)}>
-                Ver todo: {node.label}
+                {node.label}
               </a>
-            </DropdownMenuItem>
-          )}
+            ) : (
+              <span>{node.label}</span>
+            )}
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+          </div>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="start"
+          sideOffset={4}
+          className="min-w-52 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+          onCloseAutoFocus={(e) => e.preventDefault()}
+        >
           {node.children.map((child) => (
             <MenuNode key={child.id} node={child} onNavigate={() => setOpen(false)} />
           ))}
@@ -115,7 +115,7 @@ function DesktopRoot({ node }: { node: MenuNodeData }) {
   );
 }
 
-/** Recursive accordion renderer (mobile). */
+/** Acordeón recursivo (móvil): el texto navega, el chevron despliega. */
 function MobileNode({
   node,
   depth = 0,
@@ -132,30 +132,40 @@ function MobileNode({
   if (node.children.length > 0) {
     return (
       <div>
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          aria-expanded={expanded}
-          style={pad}
-          className="flex w-full items-center justify-between rounded-lg py-2 pr-3 text-left text-sm font-medium hover:bg-muted"
-        >
-          {node.label}
-          <ChevronDown
-            className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
-          />
-        </button>
+        <div className="flex items-center rounded-lg hover:bg-muted">
+          {href ? (
+            <a
+              href={href}
+              onClick={onNavigate}
+              style={pad}
+              className="flex-1 py-2 pr-2 text-left text-sm font-medium"
+            >
+              {node.label}
+            </a>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              style={pad}
+              className="flex-1 py-2 pr-2 text-left text-sm font-medium"
+            >
+              {node.label}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            aria-label={`Desplegar ${node.label}`}
+            className="px-3 py-2"
+          >
+            <ChevronDown
+              className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
+            />
+          </button>
+        </div>
         {expanded && (
           <div className="flex flex-col gap-1">
-            {href && (
-              <a
-                href={href}
-                onClick={onNavigate}
-                style={{ paddingLeft: `${12 + (depth + 1) * 14}px` }}
-                className="block rounded-lg py-2 pr-3 text-sm font-semibold hover:bg-muted"
-              >
-                Ver todo: {node.label}
-              </a>
-            )}
             {node.children.map((child) => (
               <MobileNode key={child.id} node={child} depth={depth + 1} onNavigate={onNavigate} />
             ))}
@@ -165,17 +175,9 @@ function MobileNode({
     );
   }
 
-  if (!href) {
-    return (
-      <span style={pad} className="block py-2 pr-3 text-sm text-muted-foreground">
-        {node.label}
-      </span>
-    );
-  }
-
   return (
     <a
-      href={href}
+      href={menuLeafHref(node)}
       onClick={onNavigate}
       style={pad}
       className="block rounded-lg py-2 pr-3 text-sm font-medium hover:bg-muted"
@@ -184,6 +186,7 @@ function MobileNode({
     </a>
   );
 }
+
 
 function CartLink({ className }: { className?: string }) {
   const { count: cartCount } = useCart();
