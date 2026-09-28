@@ -127,30 +127,37 @@ export function ImageDropzone({
               }`}
             >
               <img src={url} alt="" className="aspect-square w-full object-cover" />
-              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-black/55 px-1 py-1 opacity-0 transition group-hover:opacity-100">
+              {i === coverIndex && (
+                <span className="absolute left-1 top-1 rounded-full bg-[var(--brand-orange)] px-2 py-0.5 text-[10px] font-bold text-white">
+                  Portada
+                </span>
+              )}
+              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-black/55 px-1 py-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
                 <button
                   type="button"
                   aria-label="Mover izquierda"
+                  disabled={i === 0}
                   onClick={() => move(i, -1)}
-                  className="px-1 text-xs font-bold text-white"
+                  className="px-1 text-xs font-bold text-white disabled:opacity-30"
                 >
                   ←
                 </button>
-                {onSetCover && (
-                  <button
-                    type="button"
-                    aria-label="Usar como portada"
-                    onClick={() => onSetCover(url)}
-                    className="px-1 text-white"
-                  >
-                    <Star className="h-3.5 w-3.5" />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  aria-label="Usar como portada"
+                  onClick={() => setCover(url)}
+                  className="px-1 text-white"
+                >
+                  <Star
+                    className={`h-3.5 w-3.5 ${i === coverIndex ? "fill-[var(--brand-orange)] text-[var(--brand-orange)]" : ""}`}
+                  />
+                </button>
                 <button
                   type="button"
                   aria-label="Mover derecha"
+                  disabled={i === images.length - 1}
                   onClick={() => move(i, 1)}
-                  className="px-1 text-xs font-bold text-white"
+                  className="px-1 text-xs font-bold text-white disabled:opacity-30"
                 >
                   →
                 </button>
@@ -158,12 +165,17 @@ export function ImageDropzone({
               <button
                 type="button"
                 aria-label="Quitar imagen"
-                onClick={() => onChange(images.filter((_, j) => j !== i))}
+                onClick={() => {
+                  const next = images.filter((_, j) => j !== i);
+                  onChange(next);
+                  if (onSetCover && i === 0) onSetCover(next[0] ?? "");
+                }}
                 className="absolute right-1 top-1 rounded-full bg-red-600 p-1 text-white"
               >
                 <X className="h-3 w-3" />
               </button>
             </div>
+
           ))}
         </div>
       )}
