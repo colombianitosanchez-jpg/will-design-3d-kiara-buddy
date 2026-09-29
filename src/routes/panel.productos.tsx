@@ -5,6 +5,8 @@ import { Plus, Pencil, Trash2, Loader2, X, Search } from "lucide-react";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { ImageDropzone } from "@/components/ImageDropzone";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+
 import {
   ACTION_LABELS,
   BUTTON_ACTIONS,
@@ -885,10 +887,36 @@ function ProductModal({
                   )}
                 </div>
                 {b.action_type === "whatsapp" && (
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Si lo dejas vacío usamos el WhatsApp general del sitio.
-                  </p>
+                  <div className="mt-2 space-y-3">
+                    <p className="text-xs text-muted-foreground">
+                      Si lo dejas vacío usamos el WhatsApp general del sitio.
+                    </p>
+                    <label className="block text-xs font-semibold text-muted-foreground">
+                      Mensaje personalizado de WhatsApp
+                      <Textarea
+                        value={b.whatsapp_message}
+                        onChange={(e) => updateButton(i, { whatsapp_message: e.target.value })}
+                        placeholder="Hola Will Design 3D, me interesa el producto {{producto}}..."
+                        rows={3}
+                        className="mt-1"
+                      />
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      Puedes usar {"{{producto}}"} y {"{{precio}}"}; si lo dejas vacío enviamos el
+                      mensaje estándar.
+                    </p>
+                    <label className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted/30 px-3 py-2">
+                      <span className="text-xs font-semibold">
+                        Incluir enlace de la imagen principal en el mensaje
+                      </span>
+                      <Switch
+                        checked={b.include_image_link}
+                        onCheckedChange={(v) => updateButton(i, { include_image_link: v })}
+                      />
+                    </label>
+                  </div>
                 )}
+
                 {(b.action_type === "add_to_cart" || b.action_type === "checkout") && (
                   <p className="mt-2 text-xs text-muted-foreground">
                     {b.action_type === "add_to_cart"
