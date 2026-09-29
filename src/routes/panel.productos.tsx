@@ -907,13 +907,18 @@ function ProductModal({
                     </p>
                     <label className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted/30 px-3 py-2">
                       <span className="text-xs font-semibold">
-                        Incluir enlace de la imagen principal en el mensaje
+                        Incluir la foto del producto en el mensaje
+                        <span className="mt-0.5 block font-normal text-muted-foreground">
+                          Añade el enlace de la ficha del producto; WhatsApp muestra la foto, el
+                          nombre y el precio como vista previa.
+                        </span>
                       </span>
                       <Switch
                         checked={b.include_image_link}
                         onCheckedChange={(v) => updateButton(i, { include_image_link: v })}
                       />
                     </label>
+
                   </div>
                 )}
 
