@@ -71,12 +71,14 @@ export function ProductButtons({
           button,
           {
             name: product.name,
+            slug: product.slug,
             image_url: product.image_url,
             images: product.images,
             price: formatCOP(product.price_cop),
           },
           extraWhatsappNote ?? "",
         );
+
         window.open(waLink(number, text), "_blank", "noopener,noreferrer");
         return;
       }
