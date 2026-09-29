@@ -5,6 +5,8 @@ import { Plus, Pencil, Trash2, Loader2, X, Search } from "lucide-react";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { ImageDropzone } from "@/components/ImageDropzone";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+
 import {
   ACTION_LABELS,
   BUTTON_ACTIONS,
