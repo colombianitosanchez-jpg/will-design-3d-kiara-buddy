@@ -9,101 +9,51 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TiendaRouteImport } from './routes/tienda'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as ServiciosRouteImport } from './routes/servicios'
-import { Route as PanelRouteImport } from './routes/panel'
-import { Route as NosotrosRouteImport } from './routes/nosotros'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as GaleriaRouteImport } from './routes/galeria'
-import { Route as CotizadorRouteImport } from './routes/cotizador'
-import { Route as ContactoRouteImport } from './routes/contacto'
-import { Route as CarritoRouteImport } from './routes/carrito'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as TiendaIndexRouteImport } from './routes/tienda.index'
-import { Route as PanelIndexRouteImport } from './routes/panel.index'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CarritoRouteImport } from './routes/carrito'
+import { Route as ContactoRouteImport } from './routes/contacto'
+import { Route as CotizadorRouteImport } from './routes/cotizador'
+import { Route as GaleriaRouteImport } from './routes/galeria'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as NosotrosRouteImport } from './routes/nosotros'
+import { Route as PanelRouteImport } from './routes/panel'
+import { Route as ServiciosRouteImport } from './routes/servicios'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as TiendaRouteImport } from './routes/tienda'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
-import { Route as TiendaSlugRouteImport } from './routes/tienda.$slug'
-import { Route as PedidoTokenRouteImport } from './routes/pedido.$token'
-import { Route as PanelTaxonomiaRouteImport } from './routes/panel.taxonomia'
-import { Route as PanelProductosRouteImport } from './routes/panel.productos'
-import { Route as PanelPedidosRouteImport } from './routes/panel.pedidos'
-import { Route as PanelPagosRouteImport } from './routes/panel.pagos'
-import { Route as PanelNotificacionesRouteImport } from './routes/panel.notificaciones'
-import { Route as PanelMenuRouteImport } from './routes/panel.menu'
-import { Route as PanelLlmRouteImport } from './routes/panel.llm'
-import { Route as PanelEquipoRouteImport } from './routes/panel.equipo'
-import { Route as PanelCotizadorRouteImport } from './routes/panel.cotizador'
-import { Route as PanelCotizacionesRouteImport } from './routes/panel.cotizaciones'
-import { Route as PanelContenidoRouteImport } from './routes/panel.contenido'
-import { Route as PanelConocimientoRouteImport } from './routes/panel.conocimiento'
-import { Route as PanelCarruselRouteImport } from './routes/panel.carrusel'
-import { Route as CotizacionIdRouteImport } from './routes/cotizacion.$id'
-import { Route as ApiKiaraRouteImport } from './routes/api/kiara'
-import { Route as ApiCalculateQuoteRouteImport } from './routes/api/calculate-quote'
-import { Route as AdminServiciosRouteImport } from './routes/admin.servicios'
-import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
-import { Route as AdminLiveRouteImport } from './routes/admin.live'
-import { Route as AdminInventarioRouteImport } from './routes/admin.inventario'
 import { Route as AdminClientesRouteImport } from './routes/admin.clientes'
-import { Route as ApiPublicHooksProcessNotificationsRouteImport } from './routes/api/public/hooks/process-notifications'
+import { Route as AdminInventarioRouteImport } from './routes/admin.inventario'
+import { Route as AdminLiveRouteImport } from './routes/admin.live'
+import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
+import { Route as AdminServiciosRouteImport } from './routes/admin.servicios'
+import { Route as ApiCalculateQuoteRouteImport } from './routes/api/calculate-quote'
+import { Route as ApiKiaraRouteImport } from './routes/api/kiara'
+import { Route as CotizacionIdRouteImport } from './routes/cotizacion.$id'
+import { Route as PanelIndexRouteImport } from './routes/panel.index'
+import { Route as PanelCarruselRouteImport } from './routes/panel.carrusel'
+import { Route as PanelConocimientoRouteImport } from './routes/panel.conocimiento'
+import { Route as PanelContenidoRouteImport } from './routes/panel.contenido'
+import { Route as PanelCotizacionesRouteImport } from './routes/panel.cotizaciones'
+import { Route as PanelCotizadorRouteImport } from './routes/panel.cotizador'
+import { Route as PanelEquipoRouteImport } from './routes/panel.equipo'
+import { Route as PanelLlmRouteImport } from './routes/panel.llm'
+import { Route as PanelMenuRouteImport } from './routes/panel.menu'
+import { Route as PanelNotificacionesRouteImport } from './routes/panel.notificaciones'
+import { Route as PanelPagosRouteImport } from './routes/panel.pagos'
+import { Route as PanelPedidosRouteImport } from './routes/panel.pedidos'
+import { Route as PanelProductosRouteImport } from './routes/panel.productos'
+import { Route as PanelTaxonomiaRouteImport } from './routes/panel.taxonomia'
+import { Route as PedidoTokenRouteImport } from './routes/pedido.$token'
+import { Route as TiendaIndexRouteImport } from './routes/tienda.index'
+import { Route as TiendaSlugRouteImport } from './routes/tienda.$slug'
 import { Route as ApiPublicHooksPaymentWebhookRouteImport } from './routes/api/public/hooks/payment-webhook'
+import { Route as ApiPublicHooksProcessNotificationsRouteImport } from './routes/api/public/hooks/process-notifications'
 
-const TiendaRoute = TiendaRouteImport.update({
-  id: '/tienda',
-  path: '/tienda',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ServiciosRoute = ServiciosRouteImport.update({
-  id: '/servicios',
-  path: '/servicios',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PanelRoute = PanelRouteImport.update({
-  id: '/panel',
-  path: '/panel',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NosotrosRoute = NosotrosRouteImport.update({
-  id: '/nosotros',
-  path: '/nosotros',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GaleriaRoute = GaleriaRouteImport.update({
-  id: '/galeria',
-  path: '/galeria',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CotizadorRoute = CotizadorRouteImport.update({
-  id: '/cotizador',
-  path: '/cotizador',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContactoRoute = ContactoRouteImport.update({
-  id: '/contacto',
-  path: '/contacto',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CarritoRoute = CarritoRouteImport.update({
-  id: '/carrito',
-  path: '/carrito',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -111,134 +61,64 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TiendaIndexRoute = TiendaIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => TiendaRoute,
+const CarritoRoute = CarritoRouteImport.update({
+  id: '/carrito',
+  path: '/carrito',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const PanelIndexRoute = PanelIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => PanelRoute,
+const ContactoRoute = ContactoRouteImport.update({
+  id: '/contacto',
+  path: '/contacto',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CotizadorRoute = CotizadorRouteImport.update({
+  id: '/cotizador',
+  path: '/cotizador',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GaleriaRoute = GaleriaRouteImport.update({
+  id: '/galeria',
+  path: '/galeria',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NosotrosRoute = NosotrosRouteImport.update({
+  id: '/nosotros',
+  path: '/nosotros',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PanelRoute = PanelRouteImport.update({
+  id: '/panel',
+  path: '/panel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServiciosRoute = ServiciosRouteImport.update({
+  id: '/servicios',
+  path: '/servicios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TiendaRoute = TiendaRouteImport.update({
+  id: '/tienda',
+  path: '/tienda',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AdminRoute,
-} as any)
-const TiendaSlugRoute = TiendaSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => TiendaRoute,
-} as any)
-const PedidoTokenRoute = PedidoTokenRouteImport.update({
-  id: '/pedido/$token',
-  path: '/pedido/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PanelTaxonomiaRoute = PanelTaxonomiaRouteImport.update({
-  id: '/taxonomia',
-  path: '/taxonomia',
-  getParentRoute: () => PanelRoute,
-} as any)
-const PanelProductosRoute = PanelProductosRouteImport.update({
-  id: '/productos',
-  path: '/productos',
-  getParentRoute: () => PanelRoute,
-} as any)
-const PanelPedidosRoute = PanelPedidosRouteImport.update({
-  id: '/pedidos',
-  path: '/pedidos',
-  getParentRoute: () => PanelRoute,
-} as any)
-const PanelPagosRoute = PanelPagosRouteImport.update({
-  id: '/pagos',
-  path: '/pagos',
-  getParentRoute: () => PanelRoute,
-} as any)
-const PanelNotificacionesRoute = PanelNotificacionesRouteImport.update({
-  id: '/notificaciones',
-  path: '/notificaciones',
-  getParentRoute: () => PanelRoute,
-} as any)
-const PanelMenuRoute = PanelMenuRouteImport.update({
-  id: '/menu',
-  path: '/menu',
-  getParentRoute: () => PanelRoute,
-} as any)
-const PanelLlmRoute = PanelLlmRouteImport.update({
-  id: '/llm',
-  path: '/llm',
-  getParentRoute: () => PanelRoute,
-} as any)
-const PanelEquipoRoute = PanelEquipoRouteImport.update({
-  id: '/equipo',
-  path: '/equipo',
-  getParentRoute: () => PanelRoute,
-} as any)
-const PanelCotizadorRoute = PanelCotizadorRouteImport.update({
-  id: '/cotizador',
-  path: '/cotizador',
-  getParentRoute: () => PanelRoute,
-} as any)
-const PanelCotizacionesRoute = PanelCotizacionesRouteImport.update({
-  id: '/cotizaciones',
-  path: '/cotizaciones',
-  getParentRoute: () => PanelRoute,
-} as any)
-const PanelContenidoRoute = PanelContenidoRouteImport.update({
-  id: '/contenido',
-  path: '/contenido',
-  getParentRoute: () => PanelRoute,
-} as any)
-const PanelConocimientoRoute = PanelConocimientoRouteImport.update({
-  id: '/conocimiento',
-  path: '/conocimiento',
-  getParentRoute: () => PanelRoute,
-} as any)
-const PanelCarruselRoute = PanelCarruselRouteImport.update({
-  id: '/carrusel',
-  path: '/carrusel',
-  getParentRoute: () => PanelRoute,
-} as any)
-const CotizacionIdRoute = CotizacionIdRouteImport.update({
-  id: '/cotizacion/$id',
-  path: '/cotizacion/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiKiaraRoute = ApiKiaraRouteImport.update({
-  id: '/api/kiara',
-  path: '/api/kiara',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiCalculateQuoteRoute = ApiCalculateQuoteRouteImport.update({
-  id: '/api/calculate-quote',
-  path: '/api/calculate-quote',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminServiciosRoute = AdminServiciosRouteImport.update({
-  id: '/servicios',
-  path: '/servicios',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminPedidosRoute = AdminPedidosRouteImport.update({
-  id: '/pedidos',
-  path: '/pedidos',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminLiveRoute = AdminLiveRouteImport.update({
-  id: '/live',
-  path: '/live',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminInventarioRoute = AdminInventarioRouteImport.update({
-  id: '/inventario',
-  path: '/inventario',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminClientesRoute = AdminClientesRouteImport.update({
@@ -246,16 +126,136 @@ const AdminClientesRoute = AdminClientesRouteImport.update({
   path: '/clientes',
   getParentRoute: () => AdminRoute,
 } as any)
-const ApiPublicHooksProcessNotificationsRoute =
-  ApiPublicHooksProcessNotificationsRouteImport.update({
-    id: '/api/public/hooks/process-notifications',
-    path: '/api/public/hooks/process-notifications',
-    getParentRoute: () => rootRouteImport,
-  } as any)
+const AdminInventarioRoute = AdminInventarioRouteImport.update({
+  id: '/inventario',
+  path: '/inventario',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminLiveRoute = AdminLiveRouteImport.update({
+  id: '/live',
+  path: '/live',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPedidosRoute = AdminPedidosRouteImport.update({
+  id: '/pedidos',
+  path: '/pedidos',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminServiciosRoute = AdminServiciosRouteImport.update({
+  id: '/servicios',
+  path: '/servicios',
+  getParentRoute: () => AdminRoute,
+} as any)
+const ApiCalculateQuoteRoute = ApiCalculateQuoteRouteImport.update({
+  id: '/api/calculate-quote',
+  path: '/api/calculate-quote',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiKiaraRoute = ApiKiaraRouteImport.update({
+  id: '/api/kiara',
+  path: '/api/kiara',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CotizacionIdRoute = CotizacionIdRouteImport.update({
+  id: '/cotizacion/$id',
+  path: '/cotizacion/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PanelIndexRoute = PanelIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PanelRoute,
+} as any)
+const PanelCarruselRoute = PanelCarruselRouteImport.update({
+  id: '/carrusel',
+  path: '/carrusel',
+  getParentRoute: () => PanelRoute,
+} as any)
+const PanelConocimientoRoute = PanelConocimientoRouteImport.update({
+  id: '/conocimiento',
+  path: '/conocimiento',
+  getParentRoute: () => PanelRoute,
+} as any)
+const PanelContenidoRoute = PanelContenidoRouteImport.update({
+  id: '/contenido',
+  path: '/contenido',
+  getParentRoute: () => PanelRoute,
+} as any)
+const PanelCotizacionesRoute = PanelCotizacionesRouteImport.update({
+  id: '/cotizaciones',
+  path: '/cotizaciones',
+  getParentRoute: () => PanelRoute,
+} as any)
+const PanelCotizadorRoute = PanelCotizadorRouteImport.update({
+  id: '/cotizador',
+  path: '/cotizador',
+  getParentRoute: () => PanelRoute,
+} as any)
+const PanelEquipoRoute = PanelEquipoRouteImport.update({
+  id: '/equipo',
+  path: '/equipo',
+  getParentRoute: () => PanelRoute,
+} as any)
+const PanelLlmRoute = PanelLlmRouteImport.update({
+  id: '/llm',
+  path: '/llm',
+  getParentRoute: () => PanelRoute,
+} as any)
+const PanelMenuRoute = PanelMenuRouteImport.update({
+  id: '/menu',
+  path: '/menu',
+  getParentRoute: () => PanelRoute,
+} as any)
+const PanelNotificacionesRoute = PanelNotificacionesRouteImport.update({
+  id: '/notificaciones',
+  path: '/notificaciones',
+  getParentRoute: () => PanelRoute,
+} as any)
+const PanelPagosRoute = PanelPagosRouteImport.update({
+  id: '/pagos',
+  path: '/pagos',
+  getParentRoute: () => PanelRoute,
+} as any)
+const PanelPedidosRoute = PanelPedidosRouteImport.update({
+  id: '/pedidos',
+  path: '/pedidos',
+  getParentRoute: () => PanelRoute,
+} as any)
+const PanelProductosRoute = PanelProductosRouteImport.update({
+  id: '/productos',
+  path: '/productos',
+  getParentRoute: () => PanelRoute,
+} as any)
+const PanelTaxonomiaRoute = PanelTaxonomiaRouteImport.update({
+  id: '/taxonomia',
+  path: '/taxonomia',
+  getParentRoute: () => PanelRoute,
+} as any)
+const PedidoTokenRoute = PedidoTokenRouteImport.update({
+  id: '/pedido/$token',
+  path: '/pedido/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TiendaIndexRoute = TiendaIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TiendaRoute,
+} as any)
+const TiendaSlugRoute = TiendaSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => TiendaRoute,
+} as any)
 const ApiPublicHooksPaymentWebhookRoute =
   ApiPublicHooksPaymentWebhookRouteImport.update({
     id: '/api/public/hooks/payment-webhook',
     path: '/api/public/hooks/payment-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksProcessNotificationsRoute =
+  ApiPublicHooksProcessNotificationsRouteImport.update({
+    id: '/api/public/hooks/process-notifications',
+    path: '/api/public/hooks/process-notifications',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -539,81 +539,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/tienda': {
-      id: '/tienda'
-      path: '/tienda'
-      fullPath: '/tienda'
-      preLoaderRoute: typeof TiendaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/servicios': {
-      id: '/servicios'
-      path: '/servicios'
-      fullPath: '/servicios'
-      preLoaderRoute: typeof ServiciosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/panel': {
-      id: '/panel'
-      path: '/panel'
-      fullPath: '/panel'
-      preLoaderRoute: typeof PanelRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/nosotros': {
-      id: '/nosotros'
-      path: '/nosotros'
-      fullPath: '/nosotros'
-      preLoaderRoute: typeof NosotrosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/galeria': {
-      id: '/galeria'
-      path: '/galeria'
-      fullPath: '/galeria'
-      preLoaderRoute: typeof GaleriaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cotizador': {
-      id: '/cotizador'
-      path: '/cotizador'
-      fullPath: '/cotizador'
-      preLoaderRoute: typeof CotizadorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contacto': {
-      id: '/contacto'
-      path: '/contacto'
-      fullPath: '/contacto'
-      preLoaderRoute: typeof ContactoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/carrito': {
-      id: '/carrito'
-      path: '/carrito'
-      fullPath: '/carrito'
-      preLoaderRoute: typeof CarritoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -623,186 +553,88 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/tienda/': {
-      id: '/tienda/'
-      path: '/'
-      fullPath: '/tienda/'
-      preLoaderRoute: typeof TiendaIndexRouteImport
-      parentRoute: typeof TiendaRoute
+    '/carrito': {
+      id: '/carrito'
+      path: '/carrito'
+      fullPath: '/carrito'
+      preLoaderRoute: typeof CarritoRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/panel/': {
-      id: '/panel/'
-      path: '/'
-      fullPath: '/panel/'
-      preLoaderRoute: typeof PanelIndexRouteImport
-      parentRoute: typeof PanelRoute
+    '/contacto': {
+      id: '/contacto'
+      path: '/contacto'
+      fullPath: '/contacto'
+      preLoaderRoute: typeof ContactoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cotizador': {
+      id: '/cotizador'
+      path: '/cotizador'
+      fullPath: '/cotizador'
+      preLoaderRoute: typeof CotizadorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/galeria': {
+      id: '/galeria'
+      path: '/galeria'
+      fullPath: '/galeria'
+      preLoaderRoute: typeof GaleriaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nosotros': {
+      id: '/nosotros'
+      path: '/nosotros'
+      fullPath: '/nosotros'
+      preLoaderRoute: typeof NosotrosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/panel': {
+      id: '/panel'
+      path: '/panel'
+      fullPath: '/panel'
+      preLoaderRoute: typeof PanelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/servicios': {
+      id: '/servicios'
+      path: '/servicios'
+      fullPath: '/servicios'
+      preLoaderRoute: typeof ServiciosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tienda': {
+      id: '/tienda'
+      path: '/tienda'
+      fullPath: '/tienda'
+      preLoaderRoute: typeof TiendaRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/admin/': {
       id: '/admin/'
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/tienda/$slug': {
-      id: '/tienda/$slug'
-      path: '/$slug'
-      fullPath: '/tienda/$slug'
-      preLoaderRoute: typeof TiendaSlugRouteImport
-      parentRoute: typeof TiendaRoute
-    }
-    '/pedido/$token': {
-      id: '/pedido/$token'
-      path: '/pedido/$token'
-      fullPath: '/pedido/$token'
-      preLoaderRoute: typeof PedidoTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/panel/taxonomia': {
-      id: '/panel/taxonomia'
-      path: '/taxonomia'
-      fullPath: '/panel/taxonomia'
-      preLoaderRoute: typeof PanelTaxonomiaRouteImport
-      parentRoute: typeof PanelRoute
-    }
-    '/panel/productos': {
-      id: '/panel/productos'
-      path: '/productos'
-      fullPath: '/panel/productos'
-      preLoaderRoute: typeof PanelProductosRouteImport
-      parentRoute: typeof PanelRoute
-    }
-    '/panel/pedidos': {
-      id: '/panel/pedidos'
-      path: '/pedidos'
-      fullPath: '/panel/pedidos'
-      preLoaderRoute: typeof PanelPedidosRouteImport
-      parentRoute: typeof PanelRoute
-    }
-    '/panel/pagos': {
-      id: '/panel/pagos'
-      path: '/pagos'
-      fullPath: '/panel/pagos'
-      preLoaderRoute: typeof PanelPagosRouteImport
-      parentRoute: typeof PanelRoute
-    }
-    '/panel/notificaciones': {
-      id: '/panel/notificaciones'
-      path: '/notificaciones'
-      fullPath: '/panel/notificaciones'
-      preLoaderRoute: typeof PanelNotificacionesRouteImport
-      parentRoute: typeof PanelRoute
-    }
-    '/panel/menu': {
-      id: '/panel/menu'
-      path: '/menu'
-      fullPath: '/panel/menu'
-      preLoaderRoute: typeof PanelMenuRouteImport
-      parentRoute: typeof PanelRoute
-    }
-    '/panel/llm': {
-      id: '/panel/llm'
-      path: '/llm'
-      fullPath: '/panel/llm'
-      preLoaderRoute: typeof PanelLlmRouteImport
-      parentRoute: typeof PanelRoute
-    }
-    '/panel/equipo': {
-      id: '/panel/equipo'
-      path: '/equipo'
-      fullPath: '/panel/equipo'
-      preLoaderRoute: typeof PanelEquipoRouteImport
-      parentRoute: typeof PanelRoute
-    }
-    '/panel/cotizador': {
-      id: '/panel/cotizador'
-      path: '/cotizador'
-      fullPath: '/panel/cotizador'
-      preLoaderRoute: typeof PanelCotizadorRouteImport
-      parentRoute: typeof PanelRoute
-    }
-    '/panel/cotizaciones': {
-      id: '/panel/cotizaciones'
-      path: '/cotizaciones'
-      fullPath: '/panel/cotizaciones'
-      preLoaderRoute: typeof PanelCotizacionesRouteImport
-      parentRoute: typeof PanelRoute
-    }
-    '/panel/contenido': {
-      id: '/panel/contenido'
-      path: '/contenido'
-      fullPath: '/panel/contenido'
-      preLoaderRoute: typeof PanelContenidoRouteImport
-      parentRoute: typeof PanelRoute
-    }
-    '/panel/conocimiento': {
-      id: '/panel/conocimiento'
-      path: '/conocimiento'
-      fullPath: '/panel/conocimiento'
-      preLoaderRoute: typeof PanelConocimientoRouteImport
-      parentRoute: typeof PanelRoute
-    }
-    '/panel/carrusel': {
-      id: '/panel/carrusel'
-      path: '/carrusel'
-      fullPath: '/panel/carrusel'
-      preLoaderRoute: typeof PanelCarruselRouteImport
-      parentRoute: typeof PanelRoute
-    }
-    '/cotizacion/$id': {
-      id: '/cotizacion/$id'
-      path: '/cotizacion/$id'
-      fullPath: '/cotizacion/$id'
-      preLoaderRoute: typeof CotizacionIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/kiara': {
-      id: '/api/kiara'
-      path: '/api/kiara'
-      fullPath: '/api/kiara'
-      preLoaderRoute: typeof ApiKiaraRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/calculate-quote': {
-      id: '/api/calculate-quote'
-      path: '/api/calculate-quote'
-      fullPath: '/api/calculate-quote'
-      preLoaderRoute: typeof ApiCalculateQuoteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/servicios': {
-      id: '/admin/servicios'
-      path: '/servicios'
-      fullPath: '/admin/servicios'
-      preLoaderRoute: typeof AdminServiciosRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/pedidos': {
-      id: '/admin/pedidos'
-      path: '/pedidos'
-      fullPath: '/admin/pedidos'
-      preLoaderRoute: typeof AdminPedidosRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/live': {
-      id: '/admin/live'
-      path: '/live'
-      fullPath: '/admin/live'
-      preLoaderRoute: typeof AdminLiveRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/inventario': {
-      id: '/admin/inventario'
-      path: '/inventario'
-      fullPath: '/admin/inventario'
-      preLoaderRoute: typeof AdminInventarioRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/clientes': {
@@ -812,18 +644,186 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminClientesRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/api/public/hooks/process-notifications': {
-      id: '/api/public/hooks/process-notifications'
-      path: '/api/public/hooks/process-notifications'
-      fullPath: '/api/public/hooks/process-notifications'
-      preLoaderRoute: typeof ApiPublicHooksProcessNotificationsRouteImport
+    '/admin/inventario': {
+      id: '/admin/inventario'
+      path: '/inventario'
+      fullPath: '/admin/inventario'
+      preLoaderRoute: typeof AdminInventarioRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/live': {
+      id: '/admin/live'
+      path: '/live'
+      fullPath: '/admin/live'
+      preLoaderRoute: typeof AdminLiveRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/pedidos': {
+      id: '/admin/pedidos'
+      path: '/pedidos'
+      fullPath: '/admin/pedidos'
+      preLoaderRoute: typeof AdminPedidosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/servicios': {
+      id: '/admin/servicios'
+      path: '/servicios'
+      fullPath: '/admin/servicios'
+      preLoaderRoute: typeof AdminServiciosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/api/calculate-quote': {
+      id: '/api/calculate-quote'
+      path: '/api/calculate-quote'
+      fullPath: '/api/calculate-quote'
+      preLoaderRoute: typeof ApiCalculateQuoteRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/kiara': {
+      id: '/api/kiara'
+      path: '/api/kiara'
+      fullPath: '/api/kiara'
+      preLoaderRoute: typeof ApiKiaraRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cotizacion/$id': {
+      id: '/cotizacion/$id'
+      path: '/cotizacion/$id'
+      fullPath: '/cotizacion/$id'
+      preLoaderRoute: typeof CotizacionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/panel/': {
+      id: '/panel/'
+      path: '/'
+      fullPath: '/panel/'
+      preLoaderRoute: typeof PanelIndexRouteImport
+      parentRoute: typeof PanelRoute
+    }
+    '/panel/carrusel': {
+      id: '/panel/carrusel'
+      path: '/carrusel'
+      fullPath: '/panel/carrusel'
+      preLoaderRoute: typeof PanelCarruselRouteImport
+      parentRoute: typeof PanelRoute
+    }
+    '/panel/conocimiento': {
+      id: '/panel/conocimiento'
+      path: '/conocimiento'
+      fullPath: '/panel/conocimiento'
+      preLoaderRoute: typeof PanelConocimientoRouteImport
+      parentRoute: typeof PanelRoute
+    }
+    '/panel/contenido': {
+      id: '/panel/contenido'
+      path: '/contenido'
+      fullPath: '/panel/contenido'
+      preLoaderRoute: typeof PanelContenidoRouteImport
+      parentRoute: typeof PanelRoute
+    }
+    '/panel/cotizaciones': {
+      id: '/panel/cotizaciones'
+      path: '/cotizaciones'
+      fullPath: '/panel/cotizaciones'
+      preLoaderRoute: typeof PanelCotizacionesRouteImport
+      parentRoute: typeof PanelRoute
+    }
+    '/panel/cotizador': {
+      id: '/panel/cotizador'
+      path: '/cotizador'
+      fullPath: '/panel/cotizador'
+      preLoaderRoute: typeof PanelCotizadorRouteImport
+      parentRoute: typeof PanelRoute
+    }
+    '/panel/equipo': {
+      id: '/panel/equipo'
+      path: '/equipo'
+      fullPath: '/panel/equipo'
+      preLoaderRoute: typeof PanelEquipoRouteImport
+      parentRoute: typeof PanelRoute
+    }
+    '/panel/llm': {
+      id: '/panel/llm'
+      path: '/llm'
+      fullPath: '/panel/llm'
+      preLoaderRoute: typeof PanelLlmRouteImport
+      parentRoute: typeof PanelRoute
+    }
+    '/panel/menu': {
+      id: '/panel/menu'
+      path: '/menu'
+      fullPath: '/panel/menu'
+      preLoaderRoute: typeof PanelMenuRouteImport
+      parentRoute: typeof PanelRoute
+    }
+    '/panel/notificaciones': {
+      id: '/panel/notificaciones'
+      path: '/notificaciones'
+      fullPath: '/panel/notificaciones'
+      preLoaderRoute: typeof PanelNotificacionesRouteImport
+      parentRoute: typeof PanelRoute
+    }
+    '/panel/pagos': {
+      id: '/panel/pagos'
+      path: '/pagos'
+      fullPath: '/panel/pagos'
+      preLoaderRoute: typeof PanelPagosRouteImport
+      parentRoute: typeof PanelRoute
+    }
+    '/panel/pedidos': {
+      id: '/panel/pedidos'
+      path: '/pedidos'
+      fullPath: '/panel/pedidos'
+      preLoaderRoute: typeof PanelPedidosRouteImport
+      parentRoute: typeof PanelRoute
+    }
+    '/panel/productos': {
+      id: '/panel/productos'
+      path: '/productos'
+      fullPath: '/panel/productos'
+      preLoaderRoute: typeof PanelProductosRouteImport
+      parentRoute: typeof PanelRoute
+    }
+    '/panel/taxonomia': {
+      id: '/panel/taxonomia'
+      path: '/taxonomia'
+      fullPath: '/panel/taxonomia'
+      preLoaderRoute: typeof PanelTaxonomiaRouteImport
+      parentRoute: typeof PanelRoute
+    }
+    '/pedido/$token': {
+      id: '/pedido/$token'
+      path: '/pedido/$token'
+      fullPath: '/pedido/$token'
+      preLoaderRoute: typeof PedidoTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tienda/': {
+      id: '/tienda/'
+      path: '/'
+      fullPath: '/tienda/'
+      preLoaderRoute: typeof TiendaIndexRouteImport
+      parentRoute: typeof TiendaRoute
+    }
+    '/tienda/$slug': {
+      id: '/tienda/$slug'
+      path: '/$slug'
+      fullPath: '/tienda/$slug'
+      preLoaderRoute: typeof TiendaSlugRouteImport
+      parentRoute: typeof TiendaRoute
     }
     '/api/public/hooks/payment-webhook': {
       id: '/api/public/hooks/payment-webhook'
       path: '/api/public/hooks/payment-webhook'
       fullPath: '/api/public/hooks/payment-webhook'
       preLoaderRoute: typeof ApiPublicHooksPaymentWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/process-notifications': {
+      id: '/api/public/hooks/process-notifications'
+      path: '/api/public/hooks/process-notifications'
+      fullPath: '/api/public/hooks/process-notifications'
+      preLoaderRoute: typeof ApiPublicHooksProcessNotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
   }

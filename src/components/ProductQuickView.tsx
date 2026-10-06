@@ -1,3 +1,4 @@
+import { StockIndicator } from "@/components/StockIndicator";
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
@@ -81,6 +82,7 @@ export function ProductQuickView({
                 {formatCOP(product.price_cop)}
               </p>
             )}
+            <StockIndicator stock={product.stock} />
 
             {product.accepts_3d_file && (
               <FileDropzone3D
