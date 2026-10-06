@@ -106,7 +106,7 @@ export const Route = createFileRoute("/tienda/$slug")({
   errorComponent: ({ error }) => (
     <div className="mx-auto max-w-2xl px-4 py-24 text-center">
       <h1 className="text-3xl font-black">No pudimos cargar el producto</h1>
-      <p className="mt-3 text-muted-foreground">{error.message}</p>
+      <p className="mt-3 text-muted-foreground">{error instanceof Error ? error.message : String(error)}</p>
     </div>
   ),
   component: ProductPage,
