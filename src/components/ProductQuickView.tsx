@@ -81,6 +81,7 @@ export function ProductQuickView({
                 {formatCOP(product.price_cop)}
               </p>
             )}
+            <StockIndicator stock={product.stock} />
 
             {product.accepts_3d_file && (
               <FileDropzone3D

@@ -270,11 +270,7 @@ function ProductPage() {
               {formatCOP(product.price_cop)}
             </p>
           )}
-          <p className="text-xs text-muted-foreground">
-            {product.stock > 0
-              ? `Disponible · ${product.stock} en stock`
-              : "Consultar disponibilidad"}
-          </p>
+          <StockIndicator stock={product.stock} />
 
           <div className="mt-6 flex flex-wrap gap-3">
             {!product.quote_only && (

@@ -90,6 +90,7 @@ export function ProductCard({ product }: { product: Product }) {
           )}
           <h3 className="text-base font-bold leading-tight">{product.name}</h3>
           <p className="line-clamp-2 text-xs text-muted-foreground">{product.short}</p>
+          <StockIndicator stock={product.stock} className="text-[11px]" />
         </div>
       </Link>
       <div className="flex min-h-12 items-center justify-between gap-3 px-4 pb-2">
