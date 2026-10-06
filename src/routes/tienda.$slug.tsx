@@ -1,3 +1,4 @@
+import { StockIndicator } from "@/components/StockIndicator";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ShareButton } from "@/components/ShareButton";
 import { useQuery } from "@tanstack/react-query";

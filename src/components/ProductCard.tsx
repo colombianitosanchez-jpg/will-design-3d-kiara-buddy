@@ -1,3 +1,4 @@
+import { StockIndicator } from "@/components/StockIndicator";
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Eye, MessageCircle } from "lucide-react";
