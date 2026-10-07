@@ -1,8 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { parseVariants } from "@/lib/product-variants";
 
 const schema = z.object({
   product_id: z.string().uuid(),
+  variant_id: z.string().uuid().optional().default(""),
   quantity: z.number().int().min(1).max(99),
   customer_name: z.string().trim().min(2).max(120),
   customer_email: z.string().trim().email().max(160),
@@ -20,13 +22,23 @@ export const createOrderRequest = createServerFn({ method: "POST" })
 
     const { data: product, error: pErr } = await supabaseAdmin
       .from("products")
-      .select("id,name,price_cop,active")
+      .select("id,name,price_cop,active,variants")
       .eq("id", data.product_id)
       .maybeSingle();
     if (pErr) throw new Error(pErr.message);
     if (!product || !product.active) throw new Error("Producto no disponible");
 
-    const total = product.price_cop * data.quantity;
+    // Determina el precio unitario: variante o producto
+    let unitPrice = product.price_cop;
+    if (data.variant_id) {
+      const variants = parseVariants(product.variants);
+      const variant = variants.find((v) => v.id === data.variant_id);
+      if (!variant) throw new Error("Variante no encontrada");
+      // Usa el precio de la variante si existe, si no usa el del producto
+      unitPrice = variant.price_cop ?? product.price_cop;
+    }
+
+    const total = unitPrice * data.quantity;
 
     const { data: order, error: oErr } = await supabaseAdmin
       .from("orders")
@@ -51,7 +63,7 @@ export const createOrderRequest = createServerFn({ method: "POST" })
       product_id: product.id,
       product_name: product.name,
       quantity: data.quantity,
-      unit_price_cop: product.price_cop,
+      unit_price_cop: unitPrice,
     });
     if (iErr) throw new Error(iErr.message);
 
