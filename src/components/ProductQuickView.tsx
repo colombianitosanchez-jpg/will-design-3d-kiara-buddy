@@ -13,6 +13,7 @@ import { FileDropzone3D, file3dWaNote, type Dims3D } from "@/components/FileDrop
 import { ProductButtons } from "@/components/ProductButtons";
 import { ShareButton } from "@/components/ShareButton";
 import { formatCOP, gradientKeyFor, type Product } from "@/lib/catalog";
+import { parseVariants, type ProductVariant } from "@/lib/product-variants";
 
 const GRADIENTS: Record<string, string> = {
   orange:
@@ -34,7 +35,14 @@ export function ProductQuickView({
 }) {
   const [fileName, setFileName] = useState<string | null>(null);
   const [dims, setDims] = useState<Dims3D | null>(null);
+  const variants = parseVariants(product.variants ?? []);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const gradient = GRADIENTS[gradientKeyFor(product.category?.slug)];
+
+  // Determina la imagen, precio y stock efectivos
+  const displayImage = selectedVariant?.image_url ?? product.image_url;
+  const displayPrice = selectedVariant?.price_cop ?? product.price_cop;
+  const displayStock = selectedVariant?.stock ?? product.stock;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -44,9 +52,9 @@ export function ProductQuickView({
             className="flex aspect-[4/3] items-center justify-center overflow-hidden text-4xl font-black text-primary-foreground/90 md:aspect-auto md:h-full md:min-h-[320px]"
             style={{ background: gradient }}
           >
-            {product.image_url ? (
+            {displayImage ? (
               <img
-                src={product.image_url}
+                src={displayImage}
                 alt={product.name}
                 className="h-full w-full object-cover"
                 loading="lazy"
@@ -75,14 +83,45 @@ export function ProductQuickView({
               <DialogDescription className="text-sm">{product.short}</DialogDescription>
             </DialogHeader>
 
+            {/* Selector de variantes */}
+            {variants.length > 0 && (
+              <div className="mt-2">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Variantes
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {variants.map((variant) => (
+                    <button
+                      key={variant.id}
+                      onClick={() => setSelectedVariant(variant)}
+                      className={`flex flex-col items-center gap-1 rounded-lg border-2 p-2 transition ${
+                        selectedVariant?.id === variant.id
+                          ? "border-[var(--brand-wine)] bg-[var(--brand-wine)]/10"
+                          : "border-border hover:border-muted-foreground/50"
+                      }`}
+                    >
+                      {variant.image_url && (
+                        <img
+                          src={variant.image_url}
+                          alt={variant.name}
+                          className="h-12 w-12 rounded object-cover"
+                        />
+                      )}
+                      <span className="text-[10px] font-semibold text-center">{variant.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {product.quote_only ? (
               <p className="text-lg font-bold text-[var(--brand-teal-deep)]">Sujeto a cotización</p>
             ) : (
               <p className="text-2xl font-black text-[var(--brand-wine)]">
-                {formatCOP(product.price_cop)}
+                {formatCOP(displayPrice)}
               </p>
             )}
-            <StockIndicator stock={product.stock} />
+            <StockIndicator stock={displayStock} />
 
             {product.accepts_3d_file && (
               <FileDropzone3D
@@ -101,6 +140,7 @@ export function ProductQuickView({
                 buttons={product.custom_buttons}
                 extraWhatsappNote={file3dWaNote(fileName, dims)}
                 quoteOnly={product.quote_only}
+                variantName={selectedVariant?.name}
               />
             )}
 
