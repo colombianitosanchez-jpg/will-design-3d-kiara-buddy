@@ -25,6 +25,7 @@ export function ProductButtons({
   className = "",
   extraWhatsappNote,
   quoteOnly = false,
+  variantName,
 }: {
   product: Product;
   buttons: ProductButton[];
@@ -32,6 +33,8 @@ export function ProductButtons({
   extraWhatsappNote?: string;
   /** Producto "solo cotización": se desactivan las acciones de compra. */
   quoteOnly?: boolean;
+  /** Variante elegida: reemplaza {{variante}} y se añade al nombre. */
+  variantName?: string | null;
 }) {
   const router = useRouter();
   const { addItem } = useCart();
@@ -67,8 +70,9 @@ export function ProductButtons({
       }
       case "whatsapp": {
         const number = button.action_value.trim() || fallbackWhatsapp;
+        const msg = (button.whatsapp_message ?? "").replaceAll("{{variante}}", variantName ?? "");
         const text = buildButtonWhatsappText(
-          button,
+          { ...button, whatsapp_message: msg },
           {
             name: product.name,
             slug: product.slug,

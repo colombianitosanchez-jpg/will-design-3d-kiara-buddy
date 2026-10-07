@@ -20,6 +20,7 @@ import {
 import { KiaraTip } from "@/components/KiaraTip";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductButtons } from "@/components/ProductButtons";
+import { effectiveButtons } from "@/lib/product-variants";
 import { FileDropzone3D, file3dWaNote, type Dims3D } from "@/components/FileDropzone3D";
 import DOMPurify from "isomorphic-dompurify";
 
@@ -142,10 +143,7 @@ function ProductPage() {
 
   const { data: content } = useQuery(siteContentQuery());
   const contact = getContactInfo(content);
-  const waHref = waLink(
-    contact.whatsapp,
-    `Hola Will Design 3D, me interesa el producto: ${product.name} (${formatCOP(product.price_cop)}). ¿Está disponible?`,
-  );
+
   const gradient = GRADIENTS[gradientKeyFor(product.category?.slug)];
   const gallery = useMemo(() => {
     const all = [product.image_url, ...(product.images ?? [])].filter(
@@ -154,6 +152,36 @@ function ProductPage() {
     return Array.from(new Set(all));
   }, [product.image_url, product.images]);
   const [activeImage, setActiveImage] = useState(0);
+  const variants = product.variants ?? [];
+  const [variantId, setVariantId] = useState<string | null>(variants[0]?.id ?? null);
+  const selectedVariant = variants.find((v) => v.id === variantId) ?? null;
+  const shownPrice = selectedVariant?.price_cop ?? product.price_cop;
+  const shownStock = selectedVariant?.stock ?? product.stock;
+  const variantProduct: Product = selectedVariant
+    ? {
+        ...product,
+        name: `${product.name} — ${selectedVariant.name}`,
+        price_cop: shownPrice,
+        stock: shownStock,
+        image_url: selectedVariant.image_url ?? product.image_url,
+      }
+    : product;
+  const shownButtons = effectiveButtons(product.custom_buttons, selectedVariant);
+  const waHref = waLink(
+    contact.whatsapp,
+    `Hola Will Design 3D, me interesa el producto: ${variantProduct.name} (${formatCOP(shownPrice)}). ¿Está disponible?`,
+  );
+  function selectVariant(id: string) {
+    setVariantId(id);
+    const v = variants.find((x) => x.id === id);
+    const idx = v?.image_url ? gallery.indexOf(v.image_url) : -1;
+    if (idx >= 0) setActiveImage(idx);
+  }
+  function selectImage(i: number) {
+    setActiveImage(i);
+    const v = variants.find((x) => x.image_url === gallery[i]);
+    if (v) setVariantId(v.id);
+  }
   const [orderOpen, setOrderOpen] = useState(false);
   const [file3dName, setFile3dName] = useState<string | null>(null);
   const [file3dDims, setFile3dDims] = useState<Dims3D | null>(null);
@@ -194,7 +222,7 @@ function ProductPage() {
                 <button
                   key={url}
                   type="button"
-                  onClick={() => setActiveImage(i)}
+                  onClick={() => selectImage(i)}
                   aria-label={`Ver imagen ${i + 1} de ${product.name}`}
                   className={`aspect-square overflow-hidden rounded-xl border-2 transition ${
                     i === activeImage
@@ -268,10 +296,39 @@ function ProductPage() {
             </p>
           ) : (
             <p className="mt-6 text-4xl font-black text-[var(--brand-wine)]">
-              {formatCOP(product.price_cop)}
+              {formatCOP(shownPrice)}
             </p>
           )}
-          <StockIndicator stock={product.stock} />
+          <StockIndicator stock={shownStock} />
+
+          {variants.length > 0 && (
+            <div className="mt-6">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                {product.variant_label}: <span className="text-foreground">{selectedVariant?.name}</span>
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label={product.variant_label}>
+                {variants.map((v) => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={v.id === variantId}
+                    onClick={() => selectVariant(v.id)}
+                    className={`flex items-center gap-2 rounded-full border-2 px-3 py-1.5 text-sm font-semibold transition ${
+                      v.id === variantId
+                        ? "border-[var(--brand-orange)] bg-muted"
+                        : "border-border hover:border-muted-foreground/40"
+                    }`}
+                  >
+                    {v.image_url && (
+                      <img src={v.image_url} alt="" className="h-6 w-6 rounded-full object-cover" />
+                    )}
+                    {v.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="mt-6 flex flex-wrap gap-3">
             {!product.quote_only && (
@@ -305,10 +362,11 @@ function ProductPage() {
             />
           )}
 
-          {product.custom_buttons.length > 0 && (
+          {shownButtons.length > 0 && (
             <ProductButtons
-              product={product}
-              buttons={product.custom_buttons}
+              product={variantProduct}
+              buttons={shownButtons}
+              variantName={selectedVariant?.name ?? null}
               className="mt-4"
               extraWhatsappNote={file3dWaNote(file3dName, file3dDims)}
               quoteOnly={product.quote_only}
@@ -351,7 +409,7 @@ function ProductPage() {
       </section>
 
       {orderOpen && (
-        <OrderRequestModal product={product} onClose={() => setOrderOpen(false)} />
+        <OrderRequestModal product={product} variantName={selectedVariant?.name ?? null} onClose={() => setOrderOpen(false)} />
       )}
 
       {related.length > 0 && (
@@ -371,7 +429,7 @@ function ProductPage() {
 const inputCls =
   "mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring";
 
-function OrderRequestModal({ product, onClose }: { product: Product; onClose: () => void }) {
+function OrderRequestModal({ product, variantName, onClose }: { product: Product; variantName: string | null; onClose: () => void }) {
   const submit = useServerFn(createOrderRequest);
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
@@ -395,7 +453,7 @@ function OrderRequestModal({ product, onClose }: { product: Product; onClose: ()
     setSending(true);
     setError(null);
     try {
-      await submit({ data: { ...form, product_id: product.id, quantity: Number(form.quantity) || 1 } });
+      await submit({ data: { ...form, notes: variantName ? `Variante: ${variantName}${form.notes ? `\n${form.notes}` : ""}` : form.notes, product_id: product.id, quantity: Number(form.quantity) || 1 } });
       setDone(true);
     } catch (err) {
       setError((err as Error).message || "No pudimos enviar tu solicitud.");
@@ -410,7 +468,7 @@ function OrderRequestModal({ product, onClose }: { product: Product; onClose: ()
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-xl font-black">Solicitar pedido</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{product.name}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{product.name}{variantName ? ` — ${variantName}` : ""}</p>
           </div>
           <button onClick={onClose} className="rounded-full p-2 hover:bg-muted" aria-label="Cerrar">
             <X className="h-4 w-4" />

@@ -1,3 +1,4 @@
+import { parseVariants, type ProductVariant } from "@/lib/product-variants";
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { parseProductButtons, type ProductButton } from "@/lib/product-buttons";
@@ -86,10 +87,12 @@ export type Product = {
   brand: { id: string; name: string; slug: string | null } | null;
   specs: ProductSpec[];
   attributes: ProductAttribute[];
+  variants: ProductVariant[];
+  variant_label: string;
 };
 
 const PRODUCT_SELECT =
-  "id,slug,name,price_cop,btn_text,show_whatsapp,hide_default_cta,accepts_3d_file,quote_only,custom_share_text,custom_buttons,short,description,kiara_tip,image_url,images,featured,active,stock,sku,specs," +
+  "id,slug,name,price_cop,btn_text,show_whatsapp,hide_default_cta,accepts_3d_file,quote_only,custom_share_text,custom_buttons,variants,variant_label,short,description,kiara_tip,image_url,images,featured,active,stock,sku,specs," +
   "category:categories(id,slug,name,parent_id),brand:brands(id,name,slug)," +
   "attribute_links:product_attribute_values(text_value,attribute:attributes(slug,name),value:attribute_values(slug,label,color_hex))";
 
@@ -130,6 +133,8 @@ function normalize(row: any): Product {
     quote_only: !!row.quote_only,
     custom_share_text: row.custom_share_text ?? null,
     custom_buttons: parseProductButtons(row.custom_buttons),
+    variants: parseVariants(row.variants).filter((v) => v.is_active),
+    variant_label: row.variant_label || "Color",
   } as Product;
 
 }
