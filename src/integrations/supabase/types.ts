@@ -862,6 +862,8 @@ export type Database = {
           specs: Json
           stock: number
           updated_at: string
+          variant_label: string
+          variants: Json
         }
         Insert: {
           accepts_3d_file?: boolean
@@ -889,6 +891,8 @@ export type Database = {
           specs?: Json
           stock?: number
           updated_at?: string
+          variant_label?: string
+          variants?: Json
         }
         Update: {
           accepts_3d_file?: boolean
@@ -916,6 +920,8 @@ export type Database = {
           specs?: Json
           stock?: number
           updated_at?: string
+          variant_label?: string
+          variants?: Json
         }
         Relationships: [
           {
