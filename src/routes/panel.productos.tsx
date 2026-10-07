@@ -6,6 +6,8 @@ import { RichTextEditor } from "@/components/RichTextEditor";
 import { ImageDropzone } from "@/components/ImageDropzone";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { VariantsEditor } from "@/components/VariantsEditor";
+import { parseVariants, validateVariants, type ProductVariant } from "@/lib/product-variants";
 
 import {
   ACTION_LABELS,
@@ -64,6 +66,8 @@ type Product = {
   featured: boolean;
   active: boolean;
   stock: number;
+  variants: ProductVariant[];
+  variant_label: string;
 };
 
 const empty: Omit<Product, "id"> = {
@@ -89,6 +93,8 @@ const empty: Omit<Product, "id"> = {
   featured: false,
   active: true,
   stock: 0,
+  variants: [],
+  variant_label: "Color",
 };
 
 
@@ -160,6 +166,8 @@ function ProductosAdmin() {
         quote_only: !!r.quote_only,
         custom_share_text: r.custom_share_text ?? null,
         custom_buttons: parseProductButtons(r.custom_buttons),
+        variants: parseVariants(r.variants),
+        variant_label: r.variant_label || "Color",
       })) as Product[],
     );
     setCategories((c.data as Category[]) ?? []);
@@ -484,10 +492,14 @@ function ProductModal({
         featured: !!form.featured,
         active: form.active ?? true,
         stock: Number(form.stock) || 0,
+        variant_label: form.variant_label?.trim() || "Color",
+        variants: (form.variants ?? []).map((v) => ({ ...v, name: v.name.trim() })) as any,
       };
       if (!payload.name || !payload.slug) throw new Error("Nombre y slug son obligatorios");
       const buttonsError = validateProductButtons(buttons);
       if (buttonsError) throw new Error(buttonsError);
+      const variantsError = validateVariants(form.variants ?? []);
+      if (variantsError) throw new Error(variantsError);
 
       let id = form.id;
       if (id) {
@@ -721,6 +733,17 @@ function ProductModal({
               }));
             }}
 
+          />
+        </Field>
+
+        <Field label="Variantes (colores, tamaños…) — opcional">
+          <VariantsEditor
+            label={form.variant_label ?? "Color"}
+            onLabelChange={(v) => set("variant_label", v)}
+            variants={form.variants ?? []}
+            onChange={(v) => set("variants", v)}
+            gallery={[...(form.image_url ? [form.image_url] : []), ...(form.images ?? []).filter((u) => u !== form.image_url)]}
+            parentButtons={buttons}
           />
         </Field>
 
