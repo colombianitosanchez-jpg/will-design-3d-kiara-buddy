@@ -26,6 +26,7 @@ export function ProductButtons({
   extraWhatsappNote,
   quoteOnly = false,
   variantName,
+  variantId,
 }: {
   product: Product;
   buttons: ProductButton[];
@@ -35,6 +36,8 @@ export function ProductButtons({
   quoteOnly?: boolean;
   /** Variante elegida: reemplaza {{variante}} y se añade al nombre. */
   variantName?: string | null;
+  /** Variante elegida: el enlace con foto apunta a su ficha (vista previa con su foto). */
+  variantId?: string | null;
 }) {
   const router = useRouter();
   const { addItem } = useCart();
@@ -79,6 +82,7 @@ export function ProductButtons({
             image_url: product.image_url,
             images: product.images,
             price: formatCOP(product.price_cop),
+            variant_id: variantId ?? null,
           },
           extraWhatsappNote ?? "",
         );

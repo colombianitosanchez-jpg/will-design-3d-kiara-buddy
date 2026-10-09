@@ -15,3 +15,16 @@ describe("product variants", () => {
     expect(validateVariants(vs)).not.toBeNull();
   });
 });
+
+import { variantGallery as _vg, parseVariants as _pv } from "./product-variants";
+describe("galería por variante", () => {
+  it("una variante antigua con solo image_url obtiene images = [image_url]", () => {
+    const [v] = _pv([{ id: "a", name: "Rojo", image_url: "r.jpg" }]);
+    expect(v.images).toEqual(["r.jpg"]);
+  });
+  it("usa las fotos de la variante y si no tiene, las del producto", () => {
+    const [v, w] = _pv([{ id: "a", name: "Rojo", images: ["r1.jpg", "r2.jpg"] }, { id: "b", name: "Azul" }]);
+    expect(_vg(["p.jpg"], v)).toEqual(["r1.jpg", "r2.jpg"]);
+    expect(_vg(["p.jpg"], w)).toEqual(["p.jpg"]);
+  });
+});

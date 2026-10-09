@@ -6,7 +6,10 @@ import { parseProductButtons, type ProductButton } from "@/lib/product-buttons";
 export type ProductVariant = {
   id: string;
   name: string;
+  /** Foto principal de la variante (= images[0]). */
   image_url: string | null;
+  /** Galería propia de la variante; vacía = usa la del producto. */
+  images: string[];
   price_cop: number | null;
   stock: number | null;
   is_active: boolean;
@@ -22,6 +25,7 @@ export function newVariant(): ProductVariant {
         : `var-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     name: "",
     image_url: null,
+    images: [],
     price_cop: null,
     stock: null,
     is_active: true,
@@ -40,15 +44,21 @@ export function parseVariants(raw: unknown): ProductVariant[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .filter((r): r is Record<string, unknown> => !!r && typeof r === "object")
-    .map((r) => ({
+    .map((r) => {
+      const main = typeof r.image_url === "string" && r.image_url ? r.image_url : null;
+      const extra = Array.isArray(r.images) ? r.images.filter((u): u is string => typeof u === "string" && !!u) : [];
+      const images = Array.from(new Set([...(main ? [main] : []), ...extra]));
+      return {
       id: typeof r.id === "string" && r.id ? r.id : newVariant().id,
       name: typeof r.name === "string" ? r.name : "",
-      image_url: typeof r.image_url === "string" && r.image_url ? r.image_url : null,
+      image_url: images[0] ?? null,
+      images,
       price_cop: numOrNull(r.price_cop),
       stock: numOrNull(r.stock),
       is_active: r.is_active !== false,
       custom_buttons: Array.isArray(r.custom_buttons) ? parseProductButtons(r.custom_buttons) : null,
-    }));
+      };
+    });
 }
 
 export function validateVariants(variants: ProductVariant[]): string | null {
@@ -66,4 +76,9 @@ export function validateVariants(variants: ProductVariant[]): string | null {
 /** Botones efectivos de una variante (propios o heredados). */
 export function effectiveButtons(parent: ProductButton[], variant?: ProductVariant | null): ProductButton[] {
   return variant?.custom_buttons ?? parent;
+}
+
+/** Galería visible: la de la variante si tiene fotos; si no, la del producto. */
+export function variantGallery(productGallery: string[], variant?: ProductVariant | null): string[] {
+  return variant && variant.images.length ? variant.images : productGallery;
 }

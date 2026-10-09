@@ -20,7 +20,8 @@ import {
 import { KiaraTip } from "@/components/KiaraTip";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductButtons } from "@/components/ProductButtons";
-import { effectiveButtons } from "@/lib/product-variants";
+import { effectiveButtons, variantGallery } from "@/lib/product-variants";
+import { productPageUrl } from "@/lib/product-buttons";
 import { FileDropzone3D, file3dWaNote, type Dims3D } from "@/components/FileDropzone3D";
 import DOMPurify from "isomorphic-dompurify";
 
@@ -37,11 +38,14 @@ function sanitizeRichText(html: string | null | undefined): string {
 }
 
 export const Route = createFileRoute("/tienda/$slug")({
-  loader: async ({ params, context }) => {
+  validateSearch: (search: Record<string, unknown>): { v?: string } =>
+    typeof search.v === "string" && search.v ? { v: search.v.slice(0, 64) } : {},
+  loaderDeps: ({ search }) => ({ v: search.v }),
+  loader: async ({ params, context, deps }) => {
     const product = await context.queryClient.ensureQueryData(productBySlugQuery(params.slug));
     if (!product) throw notFound();
     context.queryClient.prefetchQuery(productsQuery());
-    return { product };
+    return { product, variantId: deps.v ?? null };
   },
   head: ({ params, loaderData }) => {
     if (!loaderData) {
@@ -52,7 +56,11 @@ export const Route = createFileRoute("/tienda/$slug")({
         ],
       };
     }
-    const p = loaderData.product;
+    const base0 = loaderData.product;
+    const v = base0.variants?.find((x) => x.id === loaderData.variantId) ?? null;
+    const p = v
+      ? { ...base0, name: `${base0.name} — ${v.name}`, image_url: v.image_url ?? base0.image_url, price_cop: v.price_cop ?? base0.price_cop, stock: v.stock ?? base0.stock }
+      : base0;
     const url = `https://will-design-3d.lovable.app/tienda/${params.slug}`;
     const base = (p.short || p.description || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
     const description = (
@@ -135,7 +143,7 @@ const GRADIENTS: Record<string, string> = {
 };
 
 function ProductPage() {
-  const { product } = Route.useLoaderData() as { product: Product };
+  const { product, variantId: initialVariantId } = Route.useLoaderData() as { product: Product; variantId: string | null };
   const { data: allProducts = [] } = useQuery(productsQuery());
   const related = allProducts
     .filter((p) => p.category?.slug === product.category?.slug && p.slug !== product.slug)
@@ -145,7 +153,7 @@ function ProductPage() {
   const contact = getContactInfo(content);
 
   const gradient = GRADIENTS[gradientKeyFor(product.category?.slug)];
-  const gallery = useMemo(() => {
+  const productGallery = useMemo(() => {
     const all = [product.image_url, ...(product.images ?? [])].filter(
       (u): u is string => !!u && u.trim().length > 0,
     );
@@ -153,8 +161,13 @@ function ProductPage() {
   }, [product.image_url, product.images]);
   const [activeImage, setActiveImage] = useState(0);
   const variants = product.variants ?? [];
-  const [variantId, setVariantId] = useState<string | null>(variants[0]?.id ?? null);
+  const [variantId, setVariantId] = useState<string | null>(
+    (initialVariantId && variants.some((v) => v.id === initialVariantId) ? initialVariantId : null) ??
+      variants[0]?.id ??
+      null,
+  );
   const selectedVariant = variants.find((v) => v.id === variantId) ?? null;
+  const gallery = variantGallery(productGallery, selectedVariant);
   const shownPrice = selectedVariant?.price_cop ?? product.price_cop;
   const shownStock = selectedVariant?.stock ?? product.stock;
   const variantProduct: Product = selectedVariant
@@ -173,14 +186,18 @@ function ProductPage() {
   );
   function selectVariant(id: string) {
     setVariantId(id);
-    const v = variants.find((x) => x.id === id);
-    const idx = v?.image_url ? gallery.indexOf(v.image_url) : -1;
-    if (idx >= 0) setActiveImage(idx);
+    setActiveImage(0);
   }
   function selectImage(i: number) {
     setActiveImage(i);
-    const v = variants.find((x) => x.image_url === gallery[i]);
-    if (v) setVariantId(v.id);
+    // Mostrando la galería general: tocar la foto de una variante la selecciona.
+    if (gallery === productGallery) {
+      const v = variants.find((x) => x.images.length && x.images.includes(gallery[i]));
+      if (v) {
+        setVariantId(v.id);
+        setActiveImage(Math.max(0, v.images.indexOf(gallery[i])));
+      }
+    }
   }
   const [orderOpen, setOrderOpen] = useState(false);
   const [file3dName, setFile3dName] = useState<string | null>(null);
@@ -246,8 +263,9 @@ function ProductPage() {
           <div className="mt-1 flex items-start justify-between gap-3">
             <h1 className="text-3xl font-black sm:text-4xl">{product.name}</h1>
             <ShareButton
-              title={product.name}
+              title={variantProduct.name}
               text={product.custom_share_text}
+              url={selectedVariant ? productPageUrl(product.slug, selectedVariant.id) : undefined}
               className="mt-1 h-9 w-9 shrink-0 text-muted-foreground"
             />
           </div>
@@ -367,6 +385,7 @@ function ProductPage() {
               product={variantProduct}
               buttons={shownButtons}
               variantName={selectedVariant?.name ?? null}
+              variantId={selectedVariant?.id ?? null}
               className="mt-4"
               extraWhatsappNote={file3dWaNote(file3dName, file3dDims)}
               quoteOnly={product.quote_only}
