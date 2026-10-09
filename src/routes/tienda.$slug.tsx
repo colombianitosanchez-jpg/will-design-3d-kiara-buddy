@@ -385,6 +385,7 @@ function ProductPage() {
               product={variantProduct}
               buttons={shownButtons}
               variantName={selectedVariant?.name ?? null}
+              variantId={selectedVariant?.id ?? null}
               className="mt-4"
               extraWhatsappNote={file3dWaNote(file3dName, file3dDims)}
               quoteOnly={product.quote_only}
