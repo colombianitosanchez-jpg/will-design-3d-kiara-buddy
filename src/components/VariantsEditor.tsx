@@ -1,6 +1,7 @@
 import { Plus, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
+import { ImageDropzone } from "@/components/ImageDropzone";
+import { ProductButtonsEditor } from "@/components/ProductButtonsEditor";
 import type { ProductButton } from "@/lib/product-buttons";
 import { newVariant, type ProductVariant } from "@/lib/product-variants";
 
@@ -24,9 +25,9 @@ export function VariantsEditor({
 }) {
   const update = (i: number, patch: Partial<ProductVariant>) =>
     onChange(variants.map((v, idx) => (idx === i ? { ...v, ...patch } : v)));
-  const updateBtn = (i: number, bi: number, patch: Partial<ProductButton>) => {
-    const btns = (variants[i].custom_buttons ?? []).map((b, idx) => (idx === bi ? { ...b, ...patch } : b));
-    update(i, { custom_buttons: btns });
+  const setImages = (i: number, images: string[]) => {
+    const uniq = Array.from(new Set(images.filter(Boolean)));
+    update(i, { images: uniq, image_url: uniq[0] ?? null });
   };
 
   return (
@@ -78,70 +79,59 @@ export function VariantsEditor({
           </div>
 
           <div className="mt-3 text-sm">
-            Foto de la variante
-            {gallery.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Sube primero imágenes al producto.</p>
-            ) : (
-              <div className="mt-1 flex flex-wrap gap-2">
-                {gallery.map((url) => (
-                  <button
-                    type="button"
-                    key={url}
-                    onClick={() => update(i, { image_url: v.image_url === url ? null : url })}
-                    className={`h-14 w-14 overflow-hidden rounded-lg border-2 ${v.image_url === url ? "border-primary" : "border-transparent"}`}
-                    aria-label="Elegir foto"
-                  >
-                    <img src={url} alt="" className="h-full w-full object-cover" />
-                  </button>
-                ))}
+            <p className="font-semibold">Fotos de esta variante</p>
+            <p className="text-xs text-muted-foreground">
+              Sube fotos propias o tócalas desde las del producto. La marcada con ★ es la principal y la que se
+              comparte por WhatsApp. Sin fotos, usa las del producto.
+            </p>
+            {gallery.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {gallery.map((url) => {
+                  const on = v.images.includes(url);
+                  return (
+                    <button
+                      type="button"
+                      key={url}
+                      onClick={() => setImages(i, on ? v.images.filter((u) => u !== url) : [...v.images, url])}
+                      className={`h-12 w-12 overflow-hidden rounded-lg border-2 ${on ? "border-primary" : "border-transparent opacity-70"}`}
+                      aria-label={on ? "Quitar foto de la variante" : "Usar foto en la variante"}
+                      aria-pressed={on}
+                    >
+                      <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                    </button>
+                  );
+                })}
               </div>
             )}
+            <div className="mt-2">
+              <ImageDropzone
+                images={v.images}
+                coverIndex={0}
+                onSetCover={(url) => setImages(i, [url, ...v.images.filter((u) => u !== url)])}
+                onChange={(urls) => setImages(i, urls)}
+                label="Arrastra aquí fotos de esta variante"
+              />
+            </div>
           </div>
 
           <label className="mt-3 inline-flex items-center gap-2 text-sm">
             <Switch
               checked={v.custom_buttons !== null}
               onCheckedChange={(c) =>
-                update(i, { custom_buttons: c ? parentButtons.map((b) => ({ ...b })) : null })
+                update(i, { custom_buttons: c ? parentButtons.map((b) => ({ ...b, id: `${b.id}-${v.id.slice(0, 6)}` })) : null })
               }
               aria-label="Botones propios para esta variante"
             />
-            Botones y mensajes propios (si está apagado usa los del producto)
+            Botones, WhatsApp y pagos propios (apagado = usa los del producto)
           </label>
 
           {v.custom_buttons && (
-            <div className="mt-2 grid gap-2">
-              {v.custom_buttons.length === 0 && (
-                <p className="text-xs text-muted-foreground">El producto no tiene botones para personalizar.</p>
-              )}
-              {v.custom_buttons.map((b, bi) => (
-                <div key={b.id} className="rounded-lg bg-muted/40 p-2">
-                  <label className="text-xs">
-                    Texto del botón
-                    <input className={inputCls} value={b.text} onChange={(e) => updateBtn(i, bi, { text: e.target.value })} />
-                  </label>
-                  {b.action_type === "whatsapp" && (
-                    <>
-                      <label className="mt-2 block text-xs">
-                        Mensaje de WhatsApp ({"{{producto}}"}, {"{{precio}}"}, {"{{variante}}"})
-                        <Textarea
-                          className="mt-1"
-                          value={b.whatsapp_message}
-                          onChange={(e) => updateBtn(i, bi, { whatsapp_message: e.target.value })}
-                        />
-                      </label>
-                      <label className="mt-2 inline-flex items-center gap-2 text-xs">
-                        <Switch
-                          checked={b.include_image_link}
-                          onCheckedChange={(c) => updateBtn(i, bi, { include_image_link: c })}
-                          aria-label="Incluir foto"
-                        />
-                        Incluir enlace con foto
-                      </label>
-                    </>
-                  )}
-                </div>
-              ))}
+            <div className="mt-2 rounded-xl bg-muted/30 p-2">
+              <ProductButtonsEditor
+                buttons={v.custom_buttons}
+                onChange={(b) => update(i, { custom_buttons: b })}
+                showVariantToken
+              />
             </div>
           )}
         </div>
