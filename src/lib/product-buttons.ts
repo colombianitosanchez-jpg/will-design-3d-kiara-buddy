@@ -121,13 +121,13 @@ function shortenStorageUrl(url: string): string {
 }
 
 /** URL pública de la ficha del producto: WhatsApp la usa para la vista previa con foto. */
-export function productPageUrl(slug?: string | null): string {
+export function productPageUrl(slug?: string | null, variantId?: string | null): string {
   if (!slug) return "";
   const origin =
     typeof window !== "undefined" && window.location?.origin
       ? window.location.origin
       : "https://will-design-3d.lovable.app";
-  return `${origin}/tienda/${slug}`;
+  return `${origin}/tienda/${slug}${variantId ? `?v=${encodeURIComponent(variantId)}` : ""}`;
 }
 
 /**
@@ -144,6 +144,7 @@ export function buildButtonWhatsappText(
     image_url?: string | null;
     images?: string[] | null;
     price?: string | null;
+    variant_id?: string | null;
   },
   extraNote = "",
 ): string {
@@ -159,7 +160,7 @@ export function buildButtonWhatsappText(
   let text = parts.join(" ");
   if (button.include_image_link) {
     const preview =
-      productPageUrl(product.slug) ||
+      productPageUrl(product.slug, product.variant_id) ||
       shortenStorageUrl(product.image_url || product.images?.[0] || "");
     if (preview) text = `${text}\n\n${preview}`;
   }
