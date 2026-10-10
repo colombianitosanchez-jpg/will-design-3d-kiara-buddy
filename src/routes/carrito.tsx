@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Minus, Plus, Share2, ShoppingCart, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { useCart } from "@/lib/cart";
 import { formatCOP, getContactInfo, waLink } from "@/lib/catalog";
 import { useSiteContent } from "@/hooks/use-site-content";
-import { createCartOrder } from "@/lib/cart-order.functions";
+import { cartPaymentRules, createCartOrder } from "@/lib/cart-order.functions";
+import { commonMethods, methodsForLine } from "@/lib/payment-rules";
 import { saveQuote } from "@/lib/saved-quotes.functions";
 import {
   listPublicPaymentMethods,
@@ -57,6 +58,13 @@ function CarritoPage() {
   const [sharing, setSharing] = useState(false);
   const [methods, setMethods] = useState<PublicPaymentMethod[]>([]);
   const [methodId, setMethodId] = useState<string>("");
+  const loadRules = useServerFn(cartPaymentRules);
+  const [rules, setRules] = useState<Record<string, string[] | null>>({});
+  const [mode, setMode] = useState<"single" | "split">("single");
+  const [itemMethod, setItemMethod] = useState<Record<string, string>>({});
+  const [splitDone, setSplitDone] = useState<
+    { order_id: string; public_token: string; method: string; total: number; items: string[] }[] | null
+  >(null);
   const [done, setDone] = useState<{
     order_id: string;
     public_token: string;
@@ -94,6 +102,55 @@ function CarritoPage() {
     };
   }, [loadMethods]);
 
+  const keysSig = items.map((i) => i.product_id).join("|");
+  useEffect(() => {
+    if (!keysSig) return;
+    let alive = true;
+    void loadRules({ data: { keys: keysSig.split("|") } })
+      .then((r) => alive && setRules(r))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [keysSig, loadRules]);
+
+  const activeIds = useMemo(() => methods.map((m) => m.id), [methods]);
+  const lineIds = (key: string) => methodsForLine(rules[key] ?? null, activeIds);
+  const common = useMemo(
+    () => commonMethods(items.map((i) => rules[i.product_id] ?? null), activeIds),
+    [items, rules, activeIds],
+  );
+  const singleMethods = methods.filter((m) => common.includes(m.id));
+  const effectiveMode: "single" | "split" = common.length ? mode : "split";
+  const isRestricted = items.some((i) => (rules[i.product_id] ?? null) !== null);
+
+  useEffect(() => {
+    if (common.length && !common.includes(methodId)) setMethodId(common[0]!);
+  }, [common, methodId]);
+  useEffect(() => {
+    setItemMethod((prev) => {
+      const next: Record<string, string> = {};
+      for (const i of items) {
+        const ids = methodsForLine(rules[i.product_id] ?? null, activeIds);
+        next[i.product_id] = prev[i.product_id] && ids.includes(prev[i.product_id]!) ? prev[i.product_id]! : ids[0] ?? "";
+      }
+      return next;
+    });
+  }, [items, rules, activeIds]);
+
+  const splitGroups = useMemo(() => {
+    const map = new Map<string, typeof items>();
+    for (const i of items) {
+      const id = itemMethod[i.product_id] ?? "";
+      map.set(id, [...(map.get(id) ?? []), i]);
+    }
+    return [...map.entries()].map(([id, list]) => ({
+      method: methods.find((m) => m.id === id) ?? null,
+      items: list,
+      total: list.reduce((n, i) => n + i.price_cop * i.quantity, 0),
+    }));
+  }, [items, itemMethod, methods]);
+
   const selectedMethod = methods.find((m) => m.id === methodId) ?? null;
   const { content } = useSiteContent();
   const whatsapp = getContactInfo(content).whatsapp;
@@ -108,7 +165,39 @@ function CarritoPage() {
 
   // Para pasarelas y cripto: al confirmar, el navegador sale al enlace de pago externo.
   useEffect(() => {
-    if (done && isRedirectFlow(done.payment_method_type) && done.payment_url) {
+    if (splitDone) {
+    return (
+      <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+        <h1 className="text-center text-3xl font-black">¡Gracias por tu pedido! 🐾</h1>
+        <p className="mt-3 text-center text-sm text-muted-foreground">
+          Lo dividimos en {splitDone.length} pedidos, uno por cada forma de pago. Cada uno se despacha
+          cuando confirmemos su pago. Abre cada uno para ver cómo pagar.
+        </p>
+        <ul className="mt-8 space-y-4">
+          {splitDone.map((o) => (
+            <li key={o.order_id} className="rounded-3xl border border-border bg-card p-5">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <p className="font-black">
+                  Pedido {o.order_id.slice(0, 8).toUpperCase()} · {o.method}
+                </p>
+                <p className="text-lg font-black text-[var(--brand-wine)]">{formatCOP(o.total)}</p>
+              </div>
+              <ul className="mt-2 text-sm text-muted-foreground">
+                {o.items.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
+              <Link to="/pedido/$token" params={{ token: o.public_token }} className="btn-primary mt-4 inline-flex text-sm">
+                Ver cómo pagar este pedido
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  }
+
+  if (done && isRedirectFlow(done.payment_method_type) && done.payment_url) {
       const url = done.payment_url;
       const t = window.setTimeout(() => window.location.assign(url), 1200);
       return () => window.clearTimeout(t);
@@ -159,6 +248,43 @@ function CarritoPage() {
     e.preventDefault();
     if (!items.length) return;
     setSending(true);
+    if (methods.length && effectiveMode === "split") {
+      try {
+        if (splitGroups.some((g) => !g.method)) throw new Error("Elige un método de pago para cada artículo");
+        const results: NonNullable<typeof splitDone> = [];
+        for (const g of splitGroups) {
+          const res = await submit({
+            data: {
+              items: g.items.map((i) => ({
+                product_id: i.product_id,
+                quantity: i.quantity,
+                kind: i.kind ?? "product",
+                ...(i.service_slug ? { service_slug: i.service_slug } : {}),
+                ...(i.answers ? { answers: i.answers } : {}),
+              })),
+              ...form,
+              notes: `${form.notes ? form.notes + " · " : ""}Pago separado (${splitGroups.length} pedidos)`,
+              payment_method_id: g.method!.id,
+            },
+          });
+          results.push({
+            order_id: res.order_id,
+            public_token: res.public_token,
+            method: g.method!.name,
+            total: res.total_cop,
+            items: g.items.map((i) => `${i.quantity} × ${i.name}`),
+          });
+        }
+        clear();
+        setSplitDone(results);
+        toast.success("¡Pedidos enviados!");
+      } catch (err) {
+        toast.error((err as Error).message || "No pudimos enviar el pedido");
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
     try {
       const res = await submit({
         data: {
@@ -405,21 +531,75 @@ function CarritoPage() {
               <textarea rows={3} value={form.notes} onChange={(e) => set("notes", e.target.value)} className={inputCls} />
             </label>
 
-            {methods.length > 0 && (
-              <div className="mt-5">
+            {methods.length > 0 && isRestricted && (
+              <div className="mt-5 space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   ¿Cómo quieres pagar?
                 </p>
+                {common.length ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button type="button" size="sm" variant={mode === "single" ? "default" : "outline"} onClick={() => setMode("single")}>
+                      Todo junto
+                    </Button>
+                    <Button type="button" size="sm" variant={mode === "split" ? "default" : "outline"} onClick={() => setMode("split")}>
+                      Por artículo
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
+                    Tus artículos usan formas de pago distintas. Elige cómo pagar cada uno; cada pago se
+                    despacha por separado cuando lo confirmemos.
+                  </p>
+                )}
+              </div>
+            )}
+            {methods.length > 0 && effectiveMode === "split" && (
+              <div className="mt-4 space-y-3">
+                {items.map((i) => (
+                  <label key={i.product_id} className="block rounded-xl border border-border p-3 text-sm">
+                    <span className="font-semibold">{i.name}</span>
+                    <span className="float-right font-bold">{formatCOP(i.price_cop * i.quantity)}</span>
+                    <select
+                      className={inputCls}
+                      value={itemMethod[i.product_id] ?? ""}
+                      onChange={(e) => setItemMethod((m) => ({ ...m, [i.product_id]: e.target.value }))}
+                    >
+                      {lineIds(i.product_id).map((id) => (
+                        <option key={id} value={id}>
+                          {methods.find((m) => m.id === id)?.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ))}
+                <div className="rounded-xl bg-muted/50 p-3 text-sm">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Resumen de pagos</p>
+                  {splitGroups.map((g) => (
+                    <p key={g.method?.id ?? "x"} className="mt-1 flex justify-between gap-2">
+                      <span>{g.method?.name ?? "Sin método"} ({g.items.length} art.)</span>
+                      <strong>{formatCOP(g.total)}</strong>
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+            {methods.length > 0 && effectiveMode === "single" && (
+              <div className="mt-5">
+                {!isRestricted && (
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    ¿Cómo quieres pagar?
+                  </p>
+                )}
                 <RadioGroup value={methodId} onValueChange={setMethodId} className="mt-2 space-y-4">
                   {PAYMENT_GROUPS.filter((g) =>
-                    methods.some((m) => paymentGroup(m.type) === g.group),
+                    singleMethods.some((m) => paymentGroup(m.type) === g.group),
                   ).map((g) => (
                     <div key={g.group} className="space-y-2">
                       <p className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
                         <g.icon className="h-4 w-4" aria-hidden="true" />
                         {g.label}
                       </p>
-                      {methods
+                      {singleMethods
                         .filter((m) => paymentGroup(m.type) === g.group)
                         .map((m) => (
                           <div
