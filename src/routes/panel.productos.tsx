@@ -7,6 +7,8 @@ import { ImageDropzone } from "@/components/ImageDropzone";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { VariantsEditor } from "@/components/VariantsEditor";
+import { PaymentMethodsPicker } from "@/components/PaymentMethodsPicker";
+import { normalizeMethodIds } from "@/lib/payment-rules";
 import { ProductButtonsEditor } from "@/components/ProductButtonsEditor";
 import { parseVariants, validateVariants, type ProductVariant } from "@/lib/product-variants";
 
@@ -69,6 +71,7 @@ type Product = {
   stock: number;
   variants: ProductVariant[];
   variant_label: string;
+  allowed_payment_method_ids: string[];
 };
 
 const empty: Omit<Product, "id"> = {
@@ -96,6 +99,7 @@ const empty: Omit<Product, "id"> = {
   stock: 0,
   variants: [],
   variant_label: "Color",
+  allowed_payment_method_ids: [],
 };
 
 
@@ -169,6 +173,7 @@ function ProductosAdmin() {
         custom_buttons: parseProductButtons(r.custom_buttons),
         variants: parseVariants(r.variants),
         variant_label: r.variant_label || "Color",
+        allowed_payment_method_ids: normalizeMethodIds(r.allowed_payment_method_ids),
       })) as Product[],
     );
     setCategories((c.data as Category[]) ?? []);
@@ -495,6 +500,7 @@ function ProductModal({
         stock: Number(form.stock) || 0,
         variant_label: form.variant_label?.trim() || "Color",
         variants: (form.variants ?? []).map((v) => ({ ...v, name: v.name.trim() })) as any,
+        allowed_payment_method_ids: form.allowed_payment_method_ids ?? [],
       };
       if (!payload.name || !payload.slug) throw new Error("Nombre y slug son obligatorios");
       const buttonsError = validateProductButtons(buttons);
@@ -734,6 +740,13 @@ function ProductModal({
               }));
             }}
 
+          />
+        </Field>
+
+        <Field label="Métodos de pago permitidos para este producto">
+          <PaymentMethodsPicker
+            value={form.allowed_payment_method_ids ?? []}
+            onChange={(v) => set("allowed_payment_method_ids", v ?? [])}
           />
         </Field>
 

@@ -1,3 +1,4 @@
+import { normalizeMethodIds } from "@/lib/payment-rules";
 import { parseProductButtons, type ProductButton } from "@/lib/product-buttons";
 
 /**
@@ -15,6 +16,8 @@ export type ProductVariant = {
   is_active: boolean;
   /** null = usa los botones del producto padre. */
   custom_buttons: ProductButton[] | null;
+  /** null = hereda los métodos de pago del producto; [] = todos los activos. */
+  allowed_payment_method_ids: string[] | null;
 };
 
 export function newVariant(): ProductVariant {
@@ -30,6 +33,7 @@ export function newVariant(): ProductVariant {
     stock: null,
     is_active: true,
     custom_buttons: null,
+    allowed_payment_method_ids: null,
   };
 }
 
@@ -57,6 +61,9 @@ export function parseVariants(raw: unknown): ProductVariant[] {
       stock: numOrNull(r.stock),
       is_active: r.is_active !== false,
       custom_buttons: Array.isArray(r.custom_buttons) ? parseProductButtons(r.custom_buttons) : null,
+      allowed_payment_method_ids: Array.isArray(r.allowed_payment_method_ids)
+        ? normalizeMethodIds(r.allowed_payment_method_ids)
+        : null,
       };
     });
 }
