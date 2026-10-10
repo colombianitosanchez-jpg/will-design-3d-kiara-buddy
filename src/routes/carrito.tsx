@@ -165,39 +165,7 @@ function CarritoPage() {
 
   // Para pasarelas y cripto: al confirmar, el navegador sale al enlace de pago externo.
   useEffect(() => {
-    if (splitDone) {
-    return (
-      <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
-        <h1 className="text-center text-3xl font-black">¡Gracias por tu pedido! 🐾</h1>
-        <p className="mt-3 text-center text-sm text-muted-foreground">
-          Lo dividimos en {splitDone.length} pedidos, uno por cada forma de pago. Cada uno se despacha
-          cuando confirmemos su pago. Abre cada uno para ver cómo pagar.
-        </p>
-        <ul className="mt-8 space-y-4">
-          {splitDone.map((o) => (
-            <li key={o.order_id} className="rounded-3xl border border-border bg-card p-5">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <p className="font-black">
-                  Pedido {o.order_id.slice(0, 8).toUpperCase()} · {o.method}
-                </p>
-                <p className="text-lg font-black text-[var(--brand-wine)]">{formatCOP(o.total)}</p>
-              </div>
-              <ul className="mt-2 text-sm text-muted-foreground">
-                {o.items.map((t) => (
-                  <li key={t}>{t}</li>
-                ))}
-              </ul>
-              <Link to="/pedido/$token" params={{ token: o.public_token }} className="btn-primary mt-4 inline-flex text-sm">
-                Ver cómo pagar este pedido
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </section>
-    );
-  }
-
-  if (done && isRedirectFlow(done.payment_method_type) && done.payment_url) {
+    if (done && isRedirectFlow(done.payment_method_type) && done.payment_url) {
       const url = done.payment_url;
       const t = window.setTimeout(() => window.location.assign(url), 1200);
       return () => window.clearTimeout(t);
@@ -316,6 +284,38 @@ function CarritoPage() {
     } finally {
       setSending(false);
     }
+  }
+
+  if (splitDone) {
+    return (
+      <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+        <h1 className="text-center text-3xl font-black">¡Gracias por tu pedido! 🐾</h1>
+        <p className="mt-3 text-center text-sm text-muted-foreground">
+          Lo dividimos en {splitDone.length} pedidos, uno por cada forma de pago. Cada uno se despacha
+          cuando confirmemos su pago. Abre cada uno para ver cómo pagar.
+        </p>
+        <ul className="mt-8 space-y-4">
+          {splitDone.map((o) => (
+            <li key={o.order_id} className="rounded-3xl border border-border bg-card p-5">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <p className="font-black">
+                  Pedido {o.order_id.slice(0, 8).toUpperCase()} · {o.method}
+                </p>
+                <p className="text-lg font-black text-[var(--brand-wine)]">{formatCOP(o.total)}</p>
+              </div>
+              <ul className="mt-2 text-sm text-muted-foreground">
+                {o.items.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
+              <Link to="/pedido/$token" params={{ token: o.public_token }} className="btn-primary mt-4 inline-flex text-sm">
+                Ver cómo pagar este pedido
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
   }
 
   if (done && isRedirectFlow(done.payment_method_type) && done.payment_url) {
