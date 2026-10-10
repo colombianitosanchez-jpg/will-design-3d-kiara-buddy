@@ -1,3 +1,4 @@
+import { cartLineKey } from "@/lib/payment-rules";
 import { useRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -51,7 +52,7 @@ export function ProductButtons({
 
   function cartPayload() {
     return {
-      product_id: product.id,
+      product_id: cartLineKey(product.id, variantId),
       slug: product.slug,
       name: product.name,
       price_cop: product.price_cop,

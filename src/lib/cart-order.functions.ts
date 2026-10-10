@@ -32,13 +32,15 @@ export const createCartOrder = createServerFn({ method: "POST" })
     const productItems = data.items.filter((i) => i.kind !== "service");
     const serviceItems = data.items.filter((i) => i.kind === "service" && i.service_slug);
 
-    const ids = [...new Set(productItems.map((i) => i.product_id))].filter((id) =>
+    const { parseLineKey, normalizeMethodIds, effectiveAllowed } = await import("@/lib/payment-rules");
+    const { parseVariants } = await import("@/lib/product-variants");
+    const ids = [...new Set(productItems.map((i) => parseLineKey(i.product_id).productId))].filter((id) =>
       /^[0-9a-f-]{36}$/i.test(id),
     );
     const { data: products, error: pErr } = ids.length
       ? await supabaseAdmin
           .from("products")
-          .select("id,name,price_cop,active,quote_only")
+          .select("id,name,price_cop,active,quote_only,variants,allowed_payment_method_ids")
           .in("id", ids)
       : { data: [], error: null };
     if (pErr) throw new Error(pErr.message);
@@ -55,17 +57,25 @@ export const createCartOrder = createServerFn({ method: "POST" })
       product_name: string;
       quantity: number;
       unit_price_cop: number;
-    }[] = productItems
-      .filter((i) => available.has(i.product_id))
-      .map((i) => {
-        const p = available.get(i.product_id)!;
-        return {
-          product_id: p.id,
-          product_name: p.name,
-          quantity: i.quantity,
-          unit_price_cop: p.price_cop,
-        };
+    }[] = [];
+    const lineAllowed: (string[] | null)[] = [];
+    for (const i of productItems) {
+      const { productId, variantId } = parseLineKey(i.product_id);
+      const p = available.get(productId);
+      if (!p) continue;
+      const variant = variantId
+        ? parseVariants(p.variants).find((v) => v.id === variantId && v.is_active) ?? null
+        : null;
+      lineAllowed.push(
+        effectiveAllowed(normalizeMethodIds(p.allowed_payment_method_ids), variant?.allowed_payment_method_ids ?? null),
+      );
+      lines.push({
+        product_id: p.id,
+        product_name: variant ? `${p.name} — ${variant.name}` : p.name,
+        quantity: i.quantity,
+        unit_price_cop: variant?.price_cop ?? p.price_cop,
       });
+    }
 
     // Los servicios cotizados se vuelven a calcular en el servidor con las
     // respuestas del cliente: nunca se confía en el precio enviado.
@@ -107,6 +117,9 @@ export const createCartOrder = createServerFn({ method: "POST" })
         .eq("id", data.payment_method_id)
         .maybeSingle();
       if (!pm || !pm.is_active) throw new Error("El método de pago ya no está disponible");
+      if (lineAllowed.some((a) => a && !a.includes(pm.id))) {
+        throw new Error(`Algún artículo no se puede pagar con ${pm.name}. Elige otro método.`);
+      }
       const cfg = (pm.config ?? {}) as { payment_url?: string; allowed_zones?: string };
       paymentMethod = {
         id: pm.id,
@@ -153,4 +166,34 @@ export const createCartOrder = createServerFn({ method: "POST" })
       payment_url: paymentMethod?.payment_url ?? null,
       allowed_zones: paymentMethod?.allowed_zones ?? null,
     };
+  });
+
+/** Métodos de pago permitidos por línea del carrito (null = todos los activos). */
+export const cartPaymentRules = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z.object({ keys: z.array(z.string().min(1).max(200)).max(40) }).parse(data),
+  )
+  .handler(async ({ data }) => {
+    const { parseLineKey, normalizeMethodIds, effectiveAllowed } = await import("@/lib/payment-rules");
+    const { parseVariants } = await import("@/lib/product-variants");
+    const ids = [...new Set(data.keys.map((k) => parseLineKey(k).productId))].filter((id) =>
+      /^[0-9a-f-]{36}$/i.test(id),
+    );
+    const result: Record<string, string[] | null> = {};
+    if (!ids.length) return result;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows } = await supabaseAdmin
+      .from("products")
+      .select("id,variants,allowed_payment_method_ids")
+      .in("id", ids)
+      .eq("active", true);
+    const byId = new Map((rows ?? []).map((r) => [r.id, r] as const));
+    for (const key of data.keys) {
+      const { productId, variantId } = parseLineKey(key);
+      const p = byId.get(productId);
+      if (!p) continue;
+      const v = variantId ? parseVariants(p.variants).find((x) => x.id === variantId) : null;
+      result[key] = effectiveAllowed(normalizeMethodIds(p.allowed_payment_method_ids), v?.allowed_payment_method_ids ?? null);
+    }
+    return result;
   });

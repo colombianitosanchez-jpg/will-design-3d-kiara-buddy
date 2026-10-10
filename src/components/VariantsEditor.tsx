@@ -1,4 +1,5 @@
 import { Plus, Trash2 } from "lucide-react";
+import { PaymentMethodsPicker } from "@/components/PaymentMethodsPicker";
 import { Switch } from "@/components/ui/switch";
 import { ImageDropzone } from "@/components/ImageDropzone";
 import { ProductButtonsEditor } from "@/components/ProductButtonsEditor";
@@ -124,6 +125,17 @@ export function VariantsEditor({
             />
             Botones, WhatsApp y pagos propios (apagado = usa los del producto)
           </label>
+
+          <div className="mt-3 text-sm">
+            <p className="font-semibold">Métodos de pago de esta variante</p>
+            <div className="mt-2">
+              <PaymentMethodsPicker
+                value={v.allowed_payment_method_ids}
+                onChange={(ids) => update(i, { allowed_payment_method_ids: ids })}
+                inheritLabel="Usar los mismos del producto"
+              />
+            </div>
+          </div>
 
           {v.custom_buttons && (
             <div className="mt-2 rounded-xl bg-muted/30 p-2">

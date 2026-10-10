@@ -839,6 +839,7 @@ export type Database = {
         Row: {
           accepts_3d_file: boolean
           active: boolean
+          allowed_payment_method_ids: Json
           brand_id: string | null
           btn_text: string
           category_id: string | null
@@ -868,6 +869,7 @@ export type Database = {
         Insert: {
           accepts_3d_file?: boolean
           active?: boolean
+          allowed_payment_method_ids?: Json
           brand_id?: string | null
           btn_text?: string
           category_id?: string | null
@@ -897,6 +899,7 @@ export type Database = {
         Update: {
           accepts_3d_file?: boolean
           active?: boolean
+          allowed_payment_method_ids?: Json
           brand_id?: string | null
           btn_text?: string
           category_id?: string | null
