@@ -1,5 +1,24 @@
 import { ProductMedia } from "@/components/ProductMedia";
-import { Plus, Trash2 } from "lucide-react";
+import type { ReactNode } from "react";
+import { GripVertical, Plus, Trash2 } from "lucide-react";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { PaymentMethodsPicker } from "@/components/PaymentMethodsPicker";
 import { Switch } from "@/components/ui/switch";
 import { ImageDropzone } from "@/components/ImageDropzone";
@@ -9,6 +28,31 @@ import { newVariant, type ProductVariant } from "@/lib/product-variants";
 
 const inputCls =
   "mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring";
+
+/** Tarjeta de variante arrastrable desde su tirador. */
+function SortableVariant({ id, dimmed, children }: { id: string; dimmed: boolean; children: ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`relative rounded-xl border border-border bg-background p-3 pl-10 ${dimmed ? "opacity-60" : ""} ${
+        isDragging ? "z-10 shadow-lg ring-2 ring-ring" : ""
+      }`}
+    >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        aria-label="Arrastrar para cambiar el orden"
+        className="absolute left-2 top-3 cursor-grab touch-none rounded-md p-1 text-muted-foreground hover:bg-muted active:cursor-grabbing"
+      >
+        <GripVertical className="h-5 w-5" />
+      </button>
+      {children}
+    </div>
+  );
+}
 
 export function VariantsEditor({
   label,
@@ -32,6 +76,18 @@ export function VariantsEditor({
     update(i, { images: uniq, image_url: uniq[0] ?? null });
   };
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+  const onDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return;
+    const from = variants.findIndex((v) => v.id === active.id);
+    const to = variants.findIndex((v) => v.id === over.id);
+    if (from >= 0 && to >= 0) onChange(arrayMove(variants, from, to));
+  };
+
   return (
     <div className="grid gap-3">
       <label className="text-sm">
@@ -39,8 +95,16 @@ export function VariantsEditor({
         <input className={inputCls} value={label} onChange={(e) => onLabelChange(e.target.value)} />
       </label>
 
+      {variants.length > 1 && (
+        <p className="text-xs text-muted-foreground">
+          Arrastra cada variante desde el tirador para elegir el orden en que aparece en la tienda.
+        </p>
+      )}
+
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+      <SortableContext items={variants.map((v) => v.id)} strategy={verticalListSortingStrategy}>
       {variants.map((v, i) => (
-        <div key={v.id} className={`rounded-xl border border-border p-3 ${v.is_active ? "" : "opacity-60"}`}>
+        <SortableVariant key={v.id} id={v.id} dimmed={!v.is_active}>
           <div className="flex flex-wrap items-end gap-2">
             <label className="min-w-40 flex-1 text-sm">
               Nombre
@@ -147,8 +211,10 @@ export function VariantsEditor({
               />
             </div>
           )}
-        </div>
+        </SortableVariant>
       ))}
+      </SortableContext>
+      </DndContext>
 
       <button
         type="button"
