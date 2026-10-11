@@ -1,3 +1,4 @@
+import { ProductMedia } from "@/components/ProductMedia";
 import { Plus, Trash2 } from "lucide-react";
 import { PaymentMethodsPicker } from "@/components/PaymentMethodsPicker";
 import { Switch } from "@/components/ui/switch";
@@ -98,7 +99,7 @@ export function VariantsEditor({
                       aria-label={on ? "Quitar foto de la variante" : "Usar foto en la variante"}
                       aria-pressed={on}
                     >
-                      <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                      <ProductMedia thumb src={url} className="h-full w-full object-cover" />
                     </button>
                   );
                 })}
