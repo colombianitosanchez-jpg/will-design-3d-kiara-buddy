@@ -12,7 +12,6 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { sanitizeWidgetId, parsePhotos, type PortfolioPhoto } from "@/components/InstagramFeed";
-import { HomeSectionsEditor } from "@/components/HomeSectionsEditor";
 
 export const Route = createFileRoute("/panel/contenido")({
   ssr: false,
@@ -24,7 +23,7 @@ type Row = { key: string; value: string };
 type FieldDef = {
   key: string;
   label: string;
-  type: "text" | "textarea" | "image" | "images" | "switch" | "select" | "order";
+  type: "text" | "textarea" | "image" | "images" | "switch" | "select";
   help?: string;
   section: string;
   group: string;
@@ -33,7 +32,6 @@ type FieldDef = {
 
 const FIELDS: FieldDef[] = [
   // ---------------------------------------------------------------- Inicio
-  { key: "home_sections_order", label: "Orden de las secciones del inicio", type: "order", help: "Arrastra para cambiar qué aparece primero al entrar a la página. Apaga el interruptor para ocultar una sección. Recuerda Guardar.", section: "Inicio", group: "Orden de la página" },
   { key: "hero_title", label: "Título del hero", type: "textarea", section: "Inicio", group: "Hero" },
   { key: "hero_subtitle", label: "Subtítulo del hero", type: "textarea", section: "Inicio", group: "Hero" },
   {
@@ -198,18 +196,6 @@ function ContenidoAdmin() {
   }
 
   function renderField(f: FieldDef) {
-    if (f.type === "order") {
-      return (
-        <div key={f.key} className="space-y-2 rounded-2xl border border-border p-4">
-          <Label className="text-sm font-bold">{f.label}</Label>
-          {f.help && <p className="text-xs text-muted-foreground">{f.help}</p>}
-          <HomeSectionsEditor
-            value={values[f.key] ?? ""}
-            onChange={(v) => setValues((s) => ({ ...s, [f.key]: v }))}
-          />
-        </div>
-      );
-    }
     if (f.type === "switch") {
       return (
         <div
