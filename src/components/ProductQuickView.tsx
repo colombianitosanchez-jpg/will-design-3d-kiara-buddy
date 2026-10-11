@@ -1,3 +1,4 @@
+import { ProductMedia } from "@/components/ProductMedia";
 import { StockIndicator } from "@/components/StockIndicator";
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
@@ -53,11 +54,10 @@ export function ProductQuickView({
             style={{ background: gradient }}
           >
             {displayImage ? (
-              <img
+              <ProductMedia
                 src={displayImage}
                 alt={product.name}
                 className="h-full w-full object-cover"
-                loading="lazy"
               />
             ) : (
               <span className="drop-shadow-md">{product.name.split(" ")[0]}</span>
@@ -101,7 +101,8 @@ export function ProductQuickView({
                       }`}
                     >
                       {variant.image_url && (
-                        <img
+                        <ProductMedia
+                          thumb
                           src={variant.image_url}
                           alt={variant.name}
                           className="h-12 w-12 rounded object-cover"

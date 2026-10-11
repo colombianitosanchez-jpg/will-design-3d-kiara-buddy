@@ -1,3 +1,4 @@
+import { ProductMedia, isVideoUrl } from "@/components/ProductMedia";
 import { StockIndicator } from "@/components/StockIndicator";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ShareButton } from "@/components/ShareButton";
@@ -68,7 +69,7 @@ export const Route = createFileRoute("/tienda/$slug")({
         ? base
         : `${p.name} disponible en Will Design 3D, Bogotá. ${base} Asesoría técnica y envíos a todo el país.`
     ).slice(0, 160);
-    const rawImage = p.image_url || p.images?.[0] || null;
+    const rawImage = [p.image_url, ...(p.images ?? [])].find((u) => u && !isVideoUrl(u)) || null;
     const image = rawImage && /^https:\/\//i.test(rawImage) ? rawImage : null;
     return {
       meta: [
@@ -223,7 +224,7 @@ function ProductPage() {
             style={{ background: gradient }}
           >
             {gallery.length > 0 ? (
-              <img
+              <ProductMedia
                 src={gallery[Math.min(activeImage, gallery.length - 1)]}
                 alt={product.name}
                 className="h-full w-full object-cover"
@@ -247,7 +248,7 @@ function ProductPage() {
                       : "border-border hover:border-muted-foreground/40"
                   }`}
                 >
-                  <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                  <ProductMedia thumb src={url} className="h-full w-full object-cover" />
                 </button>
               ))}
             </div>
@@ -339,7 +340,7 @@ function ProductPage() {
                     }`}
                   >
                     {v.image_url && (
-                      <img src={v.image_url} alt="" className="h-6 w-6 rounded-full object-cover" />
+                      <ProductMedia thumb src={v.image_url} className="h-6 w-6 rounded-full object-cover" />
                     )}
                     {v.name}
                   </button>

@@ -1,3 +1,4 @@
+import { ProductMedia } from "@/components/ProductMedia";
 import { StockIndicator } from "@/components/StockIndicator";
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
@@ -49,11 +50,10 @@ export function ProductCard({ product }: { product: Product }) {
           style={{ background: gradient }}
         >
           {product.image_url ? (
-            <img
+            <ProductMedia
               src={product.image_url}
               alt={product.name}
               className="h-full w-full object-cover"
-              loading="lazy"
             />
           ) : (
             <span className="drop-shadow-md">{product.name.split(" ")[0]}</span>

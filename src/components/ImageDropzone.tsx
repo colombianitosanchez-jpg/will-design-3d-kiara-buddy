@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { ProductMedia } from "@/components/ProductMedia";
 import { UploadCloud, X, Star, Loader2 } from "lucide-react";
 
 async function uploadToStorage(file: File, bucket: string): Promise<string> {
@@ -38,14 +39,15 @@ export function ImageDropzone({
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleFiles(files: FileList | File[]) {
-    const list = Array.from(files).filter((f) => f.type.startsWith("image/"));
-    if (!list.length) return;
+    const list = Array.from(files).filter((f) => f.type.startsWith("image/") || f.type.startsWith("video/"));
+    if (!list.length) return setError("Solo se aceptan fotos o videos.");
     setBusy(true);
     setError(null);
     try {
       const urls: string[] = [];
       for (const f of list) {
-        if (f.size > 15 * 1024 * 1024) throw new Error(`${f.name} pesa más de 15 MB`);
+        const maxMb = f.type.startsWith("video/") ? 50 : 15;
+        if (f.size > maxMb * 1024 * 1024) throw new Error(`${f.name} pesa más de ${maxMb} MB`);
         urls.push(await uploadToStorage(f, bucket));
       }
       onChange([...images, ...urls]);
@@ -101,14 +103,14 @@ export function ImageDropzone({
         ) : (
           <UploadCloud className="h-6 w-6 text-[var(--brand-teal-deep)]" />
         )}
-        <p className="text-sm font-semibold">{busy ? "Subiendo imágenes…" : label}</p>
+        <p className="text-sm font-semibold">{busy ? "Subiendo archivos…" : label}</p>
         <p className="text-xs text-muted-foreground">
-          o haz clic para elegir archivos · JPG, PNG o WEBP hasta 15 MB
+          o haz clic para elegir archivos · fotos JPG, PNG o WEBP hasta 15 MB · videos MP4 o WEBM cortos hasta 50 MB
         </p>
         <input
           ref={inputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,video/mp4,video/webm,video/quicktime"
           multiple
           className="hidden"
           onChange={(e) => e.target.files?.length && handleFiles(e.target.files)}
@@ -126,7 +128,7 @@ export function ImageDropzone({
                 i === coverIndex ? "border-[var(--brand-orange)]" : "border-border"
               }`}
             >
-              <img src={url} alt="" className="aspect-square w-full object-cover" />
+              <ProductMedia thumb src={url} className="aspect-square w-full object-cover" />
               {i === coverIndex && (
                 <span className="absolute left-1 top-1 rounded-full bg-[var(--brand-orange)] px-2 py-0.5 text-[10px] font-bold text-white">
                   Portada
