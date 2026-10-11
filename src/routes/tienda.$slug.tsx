@@ -1,4 +1,4 @@
-import { ProductMedia } from "@/components/ProductMedia";
+import { ProductMedia, isVideoUrl } from "@/components/ProductMedia";
 import { StockIndicator } from "@/components/StockIndicator";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ShareButton } from "@/components/ShareButton";
@@ -69,7 +69,7 @@ export const Route = createFileRoute("/tienda/$slug")({
         ? base
         : `${p.name} disponible en Will Design 3D, Bogotá. ${base} Asesoría técnica y envíos a todo el país.`
     ).slice(0, 160);
-    const rawImage = p.image_url || p.images?.[0] || null;
+    const rawImage = [p.image_url, ...(p.images ?? [])].find((u) => u && !isVideoUrl(u)) || null;
     const image = rawImage && /^https:\/\//i.test(rawImage) ? rawImage : null;
     return {
       meta: [

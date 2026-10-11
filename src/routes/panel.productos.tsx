@@ -1,3 +1,4 @@
+import { ProductMedia } from "@/components/ProductMedia";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -263,7 +264,7 @@ function ProductosAdmin() {
                     <tr key={p.id} className="border-t border-border">
                       <td className="px-4 py-3">
                         {p.image_url ? (
-                          <img src={p.image_url} alt="" className="h-12 w-12 rounded-lg object-cover" />
+                          <ProductMedia thumb src={p.image_url} className="h-12 w-12 rounded-lg object-cover" />
                         ) : (
                           <div className="h-12 w-12 rounded-lg bg-muted" />
                         )}
