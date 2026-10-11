@@ -58,7 +58,6 @@ export function ProductQuickView({
                 src={displayImage}
                 alt={product.name}
                 className="h-full w-full object-cover"
-                loading="lazy"
               />
             ) : (
               <span className="drop-shadow-md">{product.name.split(" ")[0]}</span>
