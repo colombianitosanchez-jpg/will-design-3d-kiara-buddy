@@ -62,14 +62,16 @@ export const Route = createFileRoute("/tienda/$slug")({
     const p = v
       ? { ...base0, name: `${base0.name} — ${v.name}`, image_url: v.image_url ?? base0.image_url, price_cop: v.price_cop ?? base0.price_cop, stock: v.stock ?? base0.stock }
       : base0;
-    const url = `https://will-design-3d.lovable.app/tienda/${params.slug}`;
+    const url = `https://will-design-3d.lovable.app/tienda/${params.slug}${v ? `?v=${encodeURIComponent(v.id)}` : ""}`;
     const base = (p.short || p.description || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
     const description = (
       base.length >= 50
         ? base
         : `${p.name} disponible en Will Design 3D, Bogotá. ${base} Asesoría técnica y envíos a todo el país.`
     ).slice(0, 160);
-    const rawImage = [p.image_url, ...(p.images ?? [])].find((u) => u && !isVideoUrl(u)) || null;
+    // Primero la primera foto (no video) de la variante; luego las del producto.
+    const candidates = [...(v?.images ?? []), base0.image_url, ...(base0.images ?? [])];
+    const rawImage = candidates.find((u) => u && !isVideoUrl(u)) || null;
     const image = rawImage && /^https:\/\//i.test(rawImage) ? rawImage : null;
     return {
       meta: [
