@@ -18,6 +18,7 @@ import { productsQuery, siteContentQuery } from "@/lib/catalog";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { heroCarouselQuery } from "@/lib/hero-carousel";
 import { HeroMedia } from "@/components/HeroMedia";
+import { parseHomeSections, type HomeSectionId } from "@/lib/home-sections";
 
 
 export const Route = createFileRoute("/")({
@@ -87,14 +88,26 @@ const services = [
   },
 ];
 
+const SECTION_COMPONENTS: Record<HomeSectionId, () => React.ReactNode> = {
+  hero: () => <Hero />,
+  services: () => <Services />,
+  products: () => <FeaturedProducts />,
+  portfolio: () => <InstagramFeed />,
+  quoter: () => <Quoter />,
+};
+
 function Home() {
+  const { getText } = useSiteContent();
+  const order = parseHomeSections(getText("home_sections_order", ""));
   return (
     <>
-      <Hero />
-      <Services />
-      <FeaturedProducts />
-      <InstagramFeed />
-      <Quoter />
+      {order
+        .filter((s) => s.visible)
+        .map((s) => (
+          <div key={s.id} data-home-section={s.id}>
+            {SECTION_COMPONENTS[s.id]()}
+          </div>
+        ))}
     </>
   );
 }
