@@ -223,11 +223,7 @@ function ProductosAdmin() {
     setTimeout(() => {
       const el = document.getElementById(`product-row-${product.id}`);
       if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
-        el.classList.add("ring-2", "ring-[var(--brand-orange)]", "bg-[var(--brand-orange)]/10", "transition-all", "duration-500");
-        setTimeout(() => {
-          el.classList.remove("ring-2", "ring-[var(--brand-orange)]", "bg-[var(--brand-orange)]/10");
-        }, 2000);
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     }, 50);
   }
