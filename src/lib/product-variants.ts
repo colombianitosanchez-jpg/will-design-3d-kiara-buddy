@@ -93,13 +93,23 @@ export function normalizeText(value: string): string {
     .toLowerCase();
 }
 
+export type ParentProductContext = {
+  name?: string | null;
+  brand?: { name?: string | null } | null;
+  category?: { name?: string | null } | null;
+  attributes?: { value_label?: string | null }[] | null;
+  sku?: string | null;
+  short?: string | null;
+};
+
 /**
- * Busca la primera variante que coincida con la consulta de búsqueda.
- * Realiza coincidencia parcial no estricta (palabras clave sin acentos/mayúsculas).
+ * Busca la variante que mejor coincida con la consulta de búsqueda.
+ * Evalúa el contexto del producto padre + datos de variante para consultas compuestas ("pla verde").
  */
 export function getMatchingVariant(
   variants: ProductVariant[] | undefined | null,
   query?: string | null,
+  parentContext?: string | ParentProductContext | null,
 ): ProductVariant | null {
   if (!variants || variants.length === 0) return null;
   const q = query?.trim();
@@ -108,15 +118,63 @@ export function getMatchingVariant(
   const terms = normalizeText(q).split(/\s+/).filter(Boolean);
   if (terms.length === 0) return null;
 
+  let parentStr = "";
+  if (typeof parentContext === "string") {
+    parentStr = normalizeText(parentContext);
+  } else if (parentContext && typeof parentContext === "object") {
+    parentStr = normalizeText(
+      [
+        parentContext.name ?? "",
+        parentContext.brand?.name ?? "",
+        parentContext.category?.name ?? "",
+        parentContext.sku ?? "",
+        parentContext.short ?? "",
+        ...(parentContext.attributes?.map((a) => a.value_label ?? "") ?? []),
+      ].join(" "),
+    );
+  }
+
+  let bestVariant: ProductVariant | null = null;
+  let highestScore = -1;
+
   for (const v of variants) {
-    const haystack = normalizeText(`${v.name} ${(v as any).sku ?? ""}`);
+    const varName = normalizeText(v.name);
+    const varSku = normalizeText((v as any).sku ?? "");
+    const haystack = normalizeText(`${parentStr} ${varName} ${varSku}`);
+
     const matchesAll = terms.every((term) => haystack.includes(term));
     if (matchesAll) {
-      return v;
+      let score = 0;
+      const normalizedQuery = normalizeText(q);
+
+      if (varName === normalizedQuery) {
+        score += 100;
+      } else if (varName.startsWith(normalizedQuery)) {
+        score += 60;
+      } else if (varName.includes(normalizedQuery)) {
+        score += 40;
+      }
+
+      for (const term of terms) {
+        if (varName.includes(term)) {
+          score += 20;
+        }
+        if (varSku.includes(term)) {
+          score += 15;
+        }
+        if (parentStr.includes(term)) {
+          score += 5;
+        }
+      }
+
+      if (score > highestScore) {
+        highestScore = score;
+        bestVariant = v;
+      }
     }
   }
 
-  return null;
+  return bestVariant;
 }
 
 /** Galería visible: la de la variante si tiene fotos; si no, la del producto. */

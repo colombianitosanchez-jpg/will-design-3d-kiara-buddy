@@ -127,6 +127,7 @@ function ProductosAdmin() {
   const [attrRows, setAttrRows] = useState<ProductAttrRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Product> | null>(null);
+  const [targetVariantId, setTargetVariantId] = useState<string | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const scrollPosRef = useRef<number>(0);
@@ -203,8 +204,9 @@ function ProductosAdmin() {
     setLoading(false);
   }
 
-  function handleEditProduct(product: Product) {
+  function handleEditProduct(product: Product, varId?: string | null) {
     setEditing(product);
+    setTargetVariantId(varId ?? null);
     setHighlightedId(product.id);
     setTimeout(() => {
       const el = document.getElementById(`product-row-${product.id}`);
@@ -341,9 +343,14 @@ function ProductosAdmin() {
                       <td className="px-4 py-3 font-semibold">
                         <div>{p.name}</div>
                         {matchedVar && (
-                          <span className="mt-1 inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">
-                            Variante: {matchedVar.name}
-                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleEditProduct(p, matchedVar.id)}
+                            className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-[var(--brand-orange)] hover:bg-amber-500/20"
+                            title="Hacer clic para editar directamente esta variante"
+                          >
+                            Variante: {matchedVar.name} · Editar
+                          </button>
                         )}
                       </td>
                       <td className="px-4 py-3">{cat}</td>
@@ -361,7 +368,7 @@ function ProductosAdmin() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button
-                          onClick={() => handleEditProduct(p)}
+                          onClick={() => handleEditProduct(p, matchedVar?.id)}
                           className="mr-2 inline-flex items-center gap-1 rounded-lg bg-muted px-3 py-1.5 text-xs font-semibold hover:bg-muted/70"
                         >
                           <Pencil className="h-3 w-3" /> Editar
@@ -388,6 +395,7 @@ function ProductosAdmin() {
       {editing && (
         <ProductModal
           product={editing}
+          targetVariantId={targetVariantId}
           categories={categories}
           brands={brands}
           attributes={attributes}
@@ -400,10 +408,12 @@ function ProductosAdmin() {
           onClose={() => {
             const savedScroll = scrollPosRef.current;
             setEditing(null);
+            setTargetVariantId(null);
             window.scrollTo({ top: savedScroll });
           }}
           onSaved={async () => {
             setEditing(null);
+            setTargetVariantId(null);
             load(true);
           }}
         />
@@ -415,6 +425,7 @@ function ProductosAdmin() {
 
 function ProductModal({
   product,
+  targetVariantId,
   categories,
   brands,
   attributes,
@@ -424,6 +435,7 @@ function ProductModal({
   onSaved,
 }: {
   product: Partial<Product>;
+  targetVariantId?: string | null;
   categories: Category[];
   brands: Brand[];
   attributes: Attribute[];
@@ -863,6 +875,7 @@ function ProductModal({
             onChange={(v) => set("variants", v)}
             gallery={[...(form.image_url ? [form.image_url] : []), ...(form.images ?? []).filter((u) => u !== form.image_url)]}
             parentButtons={buttons}
+            targetVariantId={targetVariantId}
           />
         </Field>
 

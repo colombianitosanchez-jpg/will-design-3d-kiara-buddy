@@ -190,3 +190,22 @@
   margin: 0.7em 0;
 }
 .rich-text a { color: var(--brand-teal-deep); text-decoration: underline; }
+
+@keyframes variant-glow-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(232, 138, 56, 0.9);
+    border-color: var(--brand-orange);
+  }
+  50% {
+    box-shadow: 0 0 24px 8px rgba(232, 138, 56, 0.7);
+    border-color: var(--brand-orange);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(232, 138, 56, 0);
+  }
+}
+
+.variant-glow {
+  animation: variant-glow-pulse 2s ease-in-out forwards;
+  border-color: var(--brand-orange) !important;
+}

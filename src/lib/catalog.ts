@@ -446,7 +446,7 @@ export function matchesSearch(haystack: string, query?: string | null): boolean 
     .every((term) => target.includes(term));
 }
 
-/** Filtra el catálogo por rama de categoría, marca, atributos y texto libre. */
+/** Filtra el catálogo por rama de categoría, marca, atributos y texto libre, ordenado por relevancia si hay búsqueda. */
 export function filterProducts(
   products: Product[],
   opts: {
@@ -459,7 +459,9 @@ export function filterProducts(
   const { filter, brandSlug, attrs = [], query } = opts;
   if (filter.unknown) return [];
   const branch = new Set(filter.branch);
-  return products.filter((p) => {
+  const trimmedQuery = query?.trim();
+
+  const matchingProducts = products.filter((p) => {
     const okCat = !filter.categorySlug || (p.category?.slug ? branch.has(p.category.slug) : false);
     const okBrand = !brandSlug || brandSlugOf(p.brand) === brandSlug;
     const okAttrs = productMatchesAttrs(p, attrs);
@@ -469,11 +471,81 @@ export function filterProducts(
       p.brand?.name ?? "",
       p.category?.name ?? "",
       p.short,
+      p.description,
       p.slug,
       p.attributes.map((a) => a.value_label).join(" "),
       p.variants.map((v) => `${v.name} ${(v as any).sku ?? ""}`).join(" "),
     ].join(" ");
-    const okQ = matchesSearch(haystack, query);
+    const okQ = matchesSearch(haystack, trimmedQuery);
     return okCat && okBrand && okAttrs && okQ;
   });
+
+  if (!trimmedQuery) {
+    return matchingProducts;
+  }
+
+  const normQ = normalizeText(trimmedQuery);
+  const terms = normQ.split(/\s+/).filter(Boolean);
+
+  const scored = matchingProducts.map((p) => {
+    let score = 0;
+    const prodName = normalizeText(p.name);
+    const prodShort = normalizeText(p.short ?? "");
+    const prodDesc = normalizeText(p.description ?? "");
+    const prodBrand = normalizeText(p.brand?.name ?? "");
+    const prodCat = normalizeText(p.category?.name ?? "");
+    const prodSku = normalizeText(p.sku ?? "");
+    const attrText = normalizeText(p.attributes.map((a) => a.value_label).join(" "));
+
+    if (prodName === normQ) {
+      score += 1000;
+    } else if (prodName.startsWith(normQ)) {
+      score += 500;
+    } else if (prodName.includes(normQ)) {
+      score += 300;
+    }
+
+    for (const term of terms) {
+      if (prodName.includes(term)) {
+        score += 100;
+      }
+    }
+
+    for (const v of p.variants) {
+      const vName = normalizeText(v.name);
+      const vSku = normalizeText((v as any).sku ?? "");
+
+      if (vName === normQ) {
+        score += 400;
+      } else if (vName.startsWith(normQ)) {
+        score += 200;
+      } else if (vName.includes(normQ)) {
+        score += 100;
+      }
+
+      for (const term of terms) {
+        if (vName.includes(term)) {
+          score += 50;
+        }
+        if (vSku.includes(term)) {
+          score += 40;
+        }
+      }
+    }
+
+    for (const term of terms) {
+      if (prodSku.includes(term)) score += 80;
+      if (prodBrand.includes(term)) score += 40;
+      if (prodCat.includes(term)) score += 30;
+      if (attrText.includes(term)) score += 20;
+      if (prodShort.includes(term)) score += 10;
+      if (prodDesc.includes(term)) score += 5;
+    }
+
+    return { product: p, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+
+  return scored.map((s) => s.product);
 }

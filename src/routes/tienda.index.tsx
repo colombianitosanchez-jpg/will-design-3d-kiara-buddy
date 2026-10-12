@@ -31,7 +31,7 @@ import { getMatchingVariant } from "@/lib/product-variants";
 
 /** Variante que coincide con la búsqueda (p. ej. "pla azul"), para abrirla directo. */
 function matchedVariant(p: Product, query: string) {
-  return getMatchingVariant(p.variants, query);
+  return getMatchingVariant(p.variants, query, p);
 }
 
 export const Route = createFileRoute("/tienda/")({
