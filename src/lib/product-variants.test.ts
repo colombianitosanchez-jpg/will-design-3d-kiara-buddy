@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { effectiveButtons, parseVariants, validateVariants } from "./product-variants";
+import { effectiveButtons, getMatchingVariant, normalizeText, parseVariants, validateVariants } from "./product-variants";
 
 describe("product variants", () => {
   it("productos antiguos sin variantes devuelven lista vacía", () => {
@@ -26,5 +26,26 @@ describe("galería por variante", () => {
     const [v, w] = _pv([{ id: "a", name: "Rojo", images: ["r1.jpg", "r2.jpg"] }, { id: "b", name: "Azul" }]);
     expect(_vg(["p.jpg"], v)).toEqual(["r1.jpg", "r2.jpg"]);
     expect(_vg(["p.jpg"], w)).toEqual(["p.jpg"]);
+  });
+});
+
+describe("getMatchingVariant & normalizeText", () => {
+  it("normalizeText convierte a minúsculas y remueve tildes", () => {
+    expect(normalizeText("VERDE CLARO")).toBe("verde claro");
+    expect(normalizeText("Lápiz 3D")).toBe("lapiz 3d");
+  });
+
+  it("getMatchingVariant encuentra coincidencia parcial de variante", () => {
+    const variants = parseVariants([
+      { id: "1", name: "Verde Pino", image_url: "pino.jpg" },
+      { id: "2", name: "Verde Biche", image_url: "biche.jpg" },
+      { id: "3", name: "UVA Mate", image_url: "uva.jpg" },
+    ]);
+
+    expect(getMatchingVariant(variants, "verde")?.name).toBe("Verde Pino");
+    expect(getMatchingVariant(variants, "biche")?.name).toBe("Verde Biche");
+    expect(getMatchingVariant(variants, "uva")?.name).toBe("UVA Mate");
+    expect(getMatchingVariant(variants, "UVA")?.name).toBe("UVA Mate");
+    expect(getMatchingVariant(variants, "rosa")).toBeNull();
   });
 });
