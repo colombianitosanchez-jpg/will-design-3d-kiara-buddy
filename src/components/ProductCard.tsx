@@ -94,6 +94,11 @@ export function ProductCard({ product, variant }: { product: Product; variant?: 
             </p>
           )}
           <h3 className="text-base font-bold leading-tight">{product.name}</h3>
+          {variant && (
+            <p className="text-xs text-muted-foreground">
+              Variante: <span className="font-medium text-foreground">{variant.name}</span>
+            </p>
+          )}
           <p className="line-clamp-2 text-xs text-muted-foreground">{product.short}</p>
           <StockIndicator stock={product.stock} className="text-[11px]" />
         </div>

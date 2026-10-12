@@ -4,9 +4,10 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ShareButton } from "@/components/ShareButton";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
-import { ArrowLeft, Calculator, MessageCircle, ShieldCheck, Truck, Loader2, ShoppingBag, X, CheckCircle2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, Calculator, MessageCircle, ShieldCheck, Truck, Loader2, ShoppingBag, X, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { createOrderRequest } from "@/lib/orders.functions";
+import useEmblaCarousel from "embla-carousel-react";
 import {
   formatCOP,
   gradientKeyFor,
@@ -171,6 +172,44 @@ function ProductPage() {
   );
   const selectedVariant = variants.find((v) => v.id === variantId) ?? null;
   const gallery = variantGallery(productGallery, selectedVariant);
+
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, draggable: true });
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    const onSelect = () => {
+      const idx = emblaApi.selectedScrollSnap();
+      setActiveImage(idx);
+      if (gallery === productGallery) {
+        const v = variants.find((x) => x.images.length && x.images.includes(gallery[idx]));
+        if (v && v.id !== variantId) {
+          setVariantId(v.id);
+        }
+      }
+    };
+    emblaApi.on("select", onSelect);
+    return () => {
+      emblaApi.off("select", onSelect);
+    };
+  }, [emblaApi, gallery, productGallery, variants, variantId]);
+
+  function selectVariant(id: string) {
+    setVariantId(id);
+    setActiveImage(0);
+    if (emblaApi) emblaApi.scrollTo(0);
+  }
+
+  function selectImage(i: number) {
+    setActiveImage(i);
+    if (emblaApi) emblaApi.scrollTo(i);
+    if (gallery === productGallery) {
+      const v = variants.find((x) => x.images.length && x.images.includes(gallery[i]));
+      if (v) {
+        setVariantId(v.id);
+      }
+    }
+  }
+
   const shownPrice = selectedVariant?.price_cop ?? product.price_cop;
   const shownStock = selectedVariant?.stock ?? product.stock;
   const variantProduct: Product = selectedVariant
@@ -187,21 +226,6 @@ function ProductPage() {
     contact.whatsapp,
     `Hola Will Design 3D, me interesa el producto: ${variantProduct.name} (${formatCOP(shownPrice)}). ¿Está disponible?`,
   );
-  function selectVariant(id: string) {
-    setVariantId(id);
-    setActiveImage(0);
-  }
-  function selectImage(i: number) {
-    setActiveImage(i);
-    // Mostrando la galería general: tocar la foto de una variante la selecciona.
-    if (gallery === productGallery) {
-      const v = variants.find((x) => x.images.length && x.images.includes(gallery[i]));
-      if (v) {
-        setVariantId(v.id);
-        setActiveImage(Math.max(0, v.images.indexOf(gallery[i])));
-      }
-    }
-  }
   const [orderOpen, setOrderOpen] = useState(false);
   const [file3dName, setFile3dName] = useState<string | null>(null);
   const [file3dDims, setFile3dDims] = useState<Dims3D | null>(null);
@@ -222,17 +246,48 @@ function ProductPage() {
       <section className="mx-auto grid max-w-7xl gap-10 px-4 py-8 sm:px-6 md:grid-cols-2 md:py-12">
         <div>
           <div
-            className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-3xl text-5xl font-black text-white/90 shadow-lg"
+            className="relative overflow-hidden rounded-3xl shadow-lg touch-pan-y"
             style={{ background: gradient }}
           >
             {gallery.length > 0 ? (
-              <ProductMedia
-                src={gallery[Math.min(activeImage, gallery.length - 1)]}
-                alt={product.name}
-                className="h-full w-full object-cover"
-              />
+              <div className="overflow-hidden" ref={emblaRef}>
+                <div className="flex">
+                  {gallery.map((url, idx) => (
+                    <div key={url + idx} className="relative aspect-square min-w-0 flex-[0_0_100%]">
+                      <ProductMedia
+                        src={url}
+                        alt={`${product.name} - ${idx + 1}`}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
             ) : (
-              <span>{product.name.split(" ")[0]}</span>
+              <div className="flex aspect-square items-center justify-center text-5xl font-black text-white/90">
+                <span>{product.name.split(" ")[0]}</span>
+              </div>
+            )}
+
+            {gallery.length > 1 && emblaApi && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => emblaApi.scrollPrev()}
+                  aria-label="Imagen anterior"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-background/80 p-2 text-foreground shadow-md backdrop-blur transition hover:bg-background"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => emblaApi.scrollNext()}
+                  aria-label="Siguiente imagen"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-background/80 p-2 text-foreground shadow-md backdrop-blur transition hover:bg-background"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </>
             )}
           </div>
 

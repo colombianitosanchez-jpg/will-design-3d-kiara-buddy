@@ -12,7 +12,7 @@ import { VariantsEditor } from "@/components/VariantsEditor";
 import { PaymentMethodsPicker } from "@/components/PaymentMethodsPicker";
 import { normalizeMethodIds } from "@/lib/payment-rules";
 import { ProductButtonsEditor } from "@/components/ProductButtonsEditor";
-import { parseVariants, validateVariants, type ProductVariant } from "@/lib/product-variants";
+import { getMatchingVariant, parseVariants, validateVariants, type ProductVariant } from "@/lib/product-variants";
 
 import {
   ACTION_LABELS,
@@ -160,15 +160,8 @@ function ProductosAdmin() {
     });
   }, [products, brands, categories, search, selectedCategory, selectedStatus]);
 
-  function getMatchingVariantName(product: Product, query: string): string | null {
-    const q = query.trim();
-    if (!q) return null;
-    const matched = product.variants.find((v) => matchesSearch(`${v.name} ${(v as any).sku ?? ""}`, q));
-    return matched ? matched.name : null;
-  }
-
-  async function load() {
-    setLoading(true);
+  async function load(isBackground = false) {
+    if (!isBackground) setLoading(true);
     const [p, c, b, a, ca, pav] = await Promise.all([
       supabase.from("products").select("*").order("created_at", { ascending: false }),
       supabase
@@ -208,6 +201,16 @@ function ProductosAdmin() {
     setLoading(false);
   }
 
+  function handleEditProduct(product: Product) {
+    setEditing(product);
+    setTimeout(() => {
+      const el = document.getElementById(`product-row-${product.id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 50);
+  }
+
 
   useEffect(() => {
     load();
@@ -217,7 +220,7 @@ function ProductosAdmin() {
     if (!confirm("¿Eliminar este producto?")) return;
     const { error } = await supabase.from("products").delete().eq("id", id);
     if (error) return alert(error.message);
-    load();
+    load(true);
   }
 
   return (
@@ -312,30 +315,30 @@ function ProductosAdmin() {
                     : "—";
                   const br = brands.find((b) => b.id === p.brand_id)?.name ?? "—";
 
+                  const matchedVar = getMatchingVariant(p.variants, search);
+                  const displayImageUrl = matchedVar?.image_url ?? p.image_url;
+
                   return (
-                    <tr key={p.id} className="border-t border-border">
+                    <tr id={`product-row-${p.id}`} key={p.id} className="border-t border-border">
                       <td className="px-4 py-3">
-                        {p.image_url ? (
-                          <ProductMedia thumb src={p.image_url} className="h-12 w-12 rounded-lg object-cover" />
+                        {displayImageUrl ? (
+                          <ProductMedia thumb src={displayImageUrl} className="h-12 w-12 rounded-lg object-cover" />
                         ) : (
                           <div className="h-12 w-12 rounded-lg bg-muted" />
                         )}
                       </td>
                       <td className="px-4 py-3 font-semibold">
                         <div>{p.name}</div>
-                        {search.trim() && (() => {
-                          const varName = getMatchingVariantName(p, search);
-                          return varName ? (
-                            <span className="mt-1 inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">
-                              Variante: {varName}
-                            </span>
-                          ) : null;
-                        })()}
+                        {matchedVar && (
+                          <span className="mt-1 inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">
+                            Variante: {matchedVar.name}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3">{cat}</td>
                       <td className="px-4 py-3">{br}</td>
-                      <td className="px-4 py-3 text-right">{formatCOP(p.price_cop)}</td>
-                      <td className="px-4 py-3 text-right">{p.stock}</td>
+                      <td className="px-4 py-3 text-right">{formatCOP(matchedVar?.price_cop ?? p.price_cop)}</td>
+                      <td className="px-4 py-3 text-right">{matchedVar?.stock ?? p.stock}</td>
                       <td className="px-4 py-3">
                         <span
                           className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
@@ -347,7 +350,7 @@ function ProductosAdmin() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button
-                          onClick={() => setEditing(p)}
+                          onClick={() => handleEditProduct(p)}
                           className="mr-2 inline-flex items-center gap-1 rounded-lg bg-muted px-3 py-1.5 text-xs font-semibold hover:bg-muted/70"
                         >
                           <Pencil className="h-3 w-3" /> Editar
@@ -383,7 +386,7 @@ function ProductosAdmin() {
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null);
-            load();
+            load(true);
           }}
         />
       )}
