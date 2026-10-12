@@ -106,15 +106,44 @@ export type ParentProductContext = {
 };
 
 /**
+ * Obtiene todas las variantes cuyo nombre coincida con el término de búsqueda.
+ */
+export function getMatchingVariants(
+  variants: ProductVariant[] | undefined | null,
+  query?: string | null,
+): ProductVariant[] {
+  if (!variants || variants.length === 0) return [];
+  const q = query?.trim();
+  if (!q) return [];
+  const normQ = normalizeText(q);
+  if (!normQ) return [];
+
+  return variants.filter((v) => {
+    const varName = normalizeText(v.name);
+    return varName.includes(normQ);
+  });
+}
+
+/**
  * Busca la variante que mejor coincida con la consulta de búsqueda.
- * Evalúa de forma combinada el contexto del producto padre + datos de la variante
- * para consultas compuestas o parciales (ej. "pla verde", "ve", "bambu").
+ * Evalúa de forma combinada el contexto del producto padre + datos de la variante.
  */
 export function getMatchingVariant(
   variants: ProductVariant[] | undefined | null,
   query?: string | null,
   parentContext?: string | ParentProductContext | null,
 ): ProductVariant | null {
+  const matching = getMatchingVariants(variants, query);
+  if (matching.length > 0) {
+    const normQ = normalizeText(query ?? "");
+    // Si hay varias, devuelve la que empiece o sea igual, o la primera
+    const exact = matching.find((v) => normalizeText(v.name) === normQ);
+    if (exact) return exact;
+    const starts = matching.find((v) => normalizeText(v.name).startsWith(normQ));
+    if (starts) return starts;
+    return matching[0];
+  }
+
   if (!variants || variants.length === 0) return null;
   const q = query?.trim();
   if (!q) return null;
@@ -147,13 +176,11 @@ export function getMatchingVariant(
     const varSku = normalizeText(v.sku ?? "");
     const haystack = normalizeText(`${parentStr} ${varName} ${varSku}`);
 
-    // Todas las palabras clave deben coincidir en el conjunto (Padre + Variante)
     const matchesAll = terms.every((term) => haystack.includes(term));
     if (matchesAll) {
       let score = 0;
       const normalizedQuery = normalizeText(q);
 
-      // Coincidencia directa con el nombre de la variante
       if (varName === normalizedQuery) {
         score += 1000;
       } else if (varName.startsWith(normalizedQuery)) {
@@ -162,17 +189,10 @@ export function getMatchingVariant(
         score += 400;
       }
 
-      // Puntuación adicional por términos coincidiendo específicamente en la variante
       for (const term of terms) {
-        if (varName.includes(term)) {
-          score += 150;
-        }
-        if (varSku.includes(term)) {
-          score += 100;
-        }
-        if (parentStr.includes(term)) {
-          score += 20;
-        }
+        if (varName.includes(term)) score += 150;
+        if (varSku.includes(term)) score += 100;
+        if (parentStr.includes(term)) score += 20;
       }
 
       if (score > highestScore) {

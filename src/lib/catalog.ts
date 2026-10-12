@@ -466,90 +466,63 @@ export function filterProducts(
   const branch = new Set(filter.branch);
   const trimmedQuery = query?.trim();
 
+  const normQ = trimmedQuery ? normalizeText(trimmedQuery) : "";
+
   const matchingProducts = products.filter((p) => {
     const okCat = !filter.categorySlug || (p.category?.slug ? branch.has(p.category.slug) : false);
     const okBrand = !brandSlug || brandSlugOf(p.brand) === brandSlug;
     const okAttrs = productMatchesAttrs(p, attrs);
 
-    const specsText = p.specs ? p.specs.map((s) => `${s.label} ${s.value}`).join(" ") : "";
-    const attrsText = p.attributes ? p.attributes.map((a) => a.value_label).join(" ") : "";
-    const variantsText = p.variants
-      ? p.variants.map((v) => `${v.name} ${v.sku ?? ""}`).join(" ")
-      : "";
+    if (!normQ) {
+      return okCat && okBrand && okAttrs;
+    }
 
-    const haystack = [
-      p.name,
-      p.sku ?? "",
-      p.brand?.name ?? "",
-      p.category?.name ?? "",
-      p.short ?? "",
-      p.description ?? "",
-      p.slug ?? "",
-      attrsText,
-      specsText,
-      variantsText,
-    ].join(" ");
+    const prodName = normalizeText(p.name);
+    const prodDesc = normalizeText(`${p.short ?? ""} ${p.description ?? ""}`);
+    const variantMatch = (p.variants ?? []).some((v) => normalizeText(v.name).includes(normQ));
 
-    const okQ = matchesSearch(haystack, trimmedQuery);
+    const titleMatch = prodName.includes(normQ);
+    const descMatch = prodDesc.includes(normQ);
+
+    const okQ = titleMatch || variantMatch || descMatch;
     return okCat && okBrand && okAttrs && okQ;
   });
 
-  if (!trimmedQuery) {
+  if (!normQ) {
     return matchingProducts;
   }
-
-  const normQ = normalizeText(trimmedQuery);
-  const terms = normQ.split(/\s+/).filter(Boolean);
 
   const scored = matchingProducts.map((p) => {
     let score = 0;
     const prodName = normalizeText(p.name);
-    const prodShort = normalizeText(p.short ?? "");
-    const prodDesc = normalizeText(p.description ?? "");
-    const prodBrand = normalizeText(p.brand?.name ?? "");
-    const prodCat = normalizeText(p.category?.name ?? "");
-    const prodSku = normalizeText(p.sku ?? "");
-    const attrText = normalizeText(p.attributes ? p.attributes.map((a) => a.value_label).join(" ") : "");
-    const specText = normalizeText(p.specs ? p.specs.map((s) => `${s.label} ${s.value}`).join(" ") : "");
+    const prodDesc = normalizeText(`${p.short ?? ""} ${p.description ?? ""}`);
+    const matchingVars = (p.variants ?? []).filter((v) => normalizeText(v.name).includes(normQ));
 
+    // 1. Título comience o coincida exactamente
     if (prodName === normQ) {
-      score += 2000;
+      score += 4000;
     } else if (prodName.startsWith(normQ)) {
-      score += 1000;
+      score += 3000;
     } else if (prodName.includes(normQ)) {
+      score += 2500;
+    }
+
+    // 2. Variantes cuyo nombre coincida o contenga el término
+    if (matchingVars.length > 0) {
+      const exactVar = matchingVars.some((v) => normalizeText(v.name) === normQ);
+      const startVar = matchingVars.some((v) => normalizeText(v.name).startsWith(normQ));
+      if (exactVar) {
+        score += 2000;
+      } else if (startVar) {
+        score += 1800;
+      } else {
+        score += 1500;
+      }
+    }
+
+    // 3. Coincidencias en la descripción
+    if (prodDesc.includes(normQ)) {
       score += 500;
-    }
-
-    for (const term of terms) {
-      if (prodName.includes(term)) score += 200;
-    }
-
-    for (const v of p.variants) {
-      const vName = normalizeText(v.name);
-      const vSku = normalizeText(v.sku ?? "");
-
-      if (vName === normQ) {
-        score += 800;
-      } else if (vName.startsWith(normQ)) {
-        score += 400;
-      } else if (vName.includes(normQ)) {
-        score += 200;
-      }
-
-      for (const term of terms) {
-        if (vName.includes(term)) score += 100;
-        if (vSku.includes(term)) score += 80;
-      }
-    }
-
-    for (const term of terms) {
-      if (prodSku.includes(term)) score += 150;
-      if (prodBrand.includes(term)) score += 80;
-      if (prodCat.includes(term)) score += 60;
-      if (attrText.includes(term)) score += 40;
-      if (specText.includes(term)) score += 30;
-      if (prodShort.includes(term)) score += 20;
-      if (prodDesc.includes(term)) score += 10;
     }
 
     return { product: p, score };

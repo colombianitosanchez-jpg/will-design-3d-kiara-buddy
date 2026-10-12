@@ -27,12 +27,7 @@ import {
   type Product,
 } from "@/lib/catalog";
 import { ProductCard } from "@/components/ProductCard";
-import { getMatchingVariant } from "@/lib/product-variants";
-
-/** Variante que coincide con la búsqueda (p. ej. "pla azul"), para abrirla directo. */
-function matchedVariant(p: Product, query: string) {
-  return getMatchingVariant(p.variants, query, p);
-}
+import { getMatchingVariants, type ProductVariant } from "@/lib/product-variants";
 
 export const Route = createFileRoute("/tienda/")({
   validateSearch: (
@@ -89,6 +84,25 @@ function TiendaPage() {
     () => filterProducts(products, { filter, brandSlug, attrs, query }),
     [products, filter, brandSlug, attrs, query],
   );
+
+  const displayItems = useMemo(() => {
+    const q = query.trim();
+    if (!q) {
+      return filtered.map((p) => ({ product: p, variant: null as ProductVariant | null, key: p.id }));
+    }
+    const items: { product: Product; variant: ProductVariant | null; key: string }[] = [];
+    for (const p of filtered) {
+      const matchedVars = getMatchingVariants(p.variants, q);
+      if (matchedVars.length > 0) {
+        for (const v of matchedVars) {
+          items.push({ product: p, variant: v, key: `${p.id}-${v.id}` });
+        }
+      } else {
+        items.push({ product: p, variant: null, key: p.id });
+      }
+    }
+    return items;
+  }, [filtered, query]);
 
   /** Subcategorías directas de la categoría activa, para navegar la rama. */
   const activeNode = useMemo(
@@ -360,8 +374,8 @@ function TiendaPage() {
               </div>
             ) : (
               <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                {filtered.map((p) => (
-                  <ProductCard key={p.id} product={p} variant={matchedVariant(p, query)} />
+                {displayItems.map((item) => (
+                  <ProductCard key={item.key} product={item.product} variant={item.variant} />
                 ))}
               </div>
             )}

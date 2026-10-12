@@ -12,7 +12,7 @@ import { VariantsEditor } from "@/components/VariantsEditor";
 import { PaymentMethodsPicker } from "@/components/PaymentMethodsPicker";
 import { normalizeMethodIds } from "@/lib/payment-rules";
 import { ProductButtonsEditor } from "@/components/ProductButtonsEditor";
-import { getMatchingVariant, parseVariants, validateVariants, type ProductVariant } from "@/lib/product-variants";
+import { getMatchingVariants, parseVariants, validateVariants, type ProductVariant } from "@/lib/product-variants";
 
 import {
   ACTION_LABELS,
@@ -32,7 +32,7 @@ import {
   buildCategoryTree,
   categoryPath,
   flattenCategoryTree,
-  matchesSearch,
+  normalizeText,
   slugify as slugifyValue,
   type Attribute,
   type Brand,
@@ -135,20 +135,17 @@ function ProductosAdmin() {
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
 
   const visibleProducts = useMemo(() => {
-    return products.filter((p) => {
-      const haystack = [
-        p.name,
-        p.sku ?? "",
-        p.slug,
-        p.short ?? "",
-        p.description ?? "",
-        brands.find((b) => b.id === p.brand_id)?.name ?? "",
-        categories.find((c) => c.id === p.category_id)?.name ?? "",
-        p.variants.map((v) => `${v.name} ${(v as any).sku ?? ""}`).join(" "),
-      ].join(" ");
+    const q = search.trim();
+    const normQ = q ? normalizeText(q) : "";
 
-      const matchesQuery = matchesSearch(haystack, search);
-      if (!matchesQuery) return false;
+    return products.filter((p) => {
+      if (normQ) {
+        const prodName = normalizeText(p.name);
+        const prodDesc = normalizeText(`${p.short ?? ""} ${p.description ?? ""}`);
+        const variantMatch = (p.variants ?? []).some((v) => normalizeText(v.name).includes(normQ));
+        const matchesQuery = prodName.includes(normQ) || prodDesc.includes(normQ) || variantMatch;
+        if (!matchesQuery) return false;
+      }
 
       if (selectedCategory !== "all" && p.category_id !== selectedCategory) {
         return false;
@@ -161,7 +158,7 @@ function ProductosAdmin() {
 
       return true;
     });
-  }, [products, brands, categories, search, selectedCategory, selectedStatus]);
+  }, [products, search, selectedCategory, selectedStatus]);
 
   async function load(isBackground = false) {
     if (!isBackground) setLoading(true);
@@ -320,8 +317,9 @@ function ProductosAdmin() {
                     ? (categoryPath(categories.find((c) => c.id === p.category_id)?.slug, categories) || "—")
                     : "—";
                   const br = brands.find((b) => b.id === p.brand_id)?.name ?? "—";
-                  const matchedVar = getMatchingVariant(p.variants, search);
-                  const displayImageUrl = matchedVar?.image_url ?? p.image_url;
+                  const matchedVars = search.trim() ? getMatchingVariants(p.variants, search) : [];
+                  const primaryVar = matchedVars[0] ?? null;
+                  const displayImageUrl = primaryVar?.image_url ?? p.image_url;
 
                   return (
                     <tr
@@ -342,21 +340,26 @@ function ProductosAdmin() {
                       </td>
                       <td className="px-4 py-3 font-semibold">
                         <div>{p.name}</div>
-                        {matchedVar && (
-                          <button
-                            type="button"
-                            onClick={() => handleEditProduct(p, matchedVar.id)}
-                            className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-[var(--brand-orange)] hover:bg-amber-500/20"
-                            title="Hacer clic para editar directamente esta variante"
-                          >
-                            Variante: {matchedVar.name} · Editar
-                          </button>
+                        {matchedVars.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {matchedVars.map((mv) => (
+                              <button
+                                key={mv.id}
+                                type="button"
+                                onClick={() => handleEditProduct(p, mv.id)}
+                                className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-[var(--brand-orange)] hover:bg-amber-500/20"
+                                title="Hacer clic para editar directamente esta variante"
+                              >
+                                Variante: {mv.name} · Editar
+                              </button>
+                            ))}
+                          </div>
                         )}
                       </td>
                       <td className="px-4 py-3">{cat}</td>
                       <td className="px-4 py-3">{br}</td>
-                      <td className="px-4 py-3 text-right">{formatCOP(matchedVar?.price_cop ?? p.price_cop)}</td>
-                      <td className="px-4 py-3 text-right">{matchedVar?.stock ?? p.stock}</td>
+                      <td className="px-4 py-3 text-right">{formatCOP(primaryVar?.price_cop ?? p.price_cop)}</td>
+                      <td className="px-4 py-3 text-right">{primaryVar?.stock ?? p.stock}</td>
                       <td className="px-4 py-3">
                         <span
                           className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
@@ -368,7 +371,7 @@ function ProductosAdmin() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button
-                          onClick={() => handleEditProduct(p, matchedVar?.id)}
+                          onClick={() => handleEditProduct(p, primaryVar?.id)}
                           className="mr-2 inline-flex items-center gap-1 rounded-lg bg-muted px-3 py-1.5 text-xs font-semibold hover:bg-muted/70"
                         >
                           <Pencil className="h-3 w-3" /> Editar

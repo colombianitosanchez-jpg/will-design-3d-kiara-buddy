@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { effectiveButtons, getMatchingVariant, normalizeText, parseVariants, validateVariants } from "./product-variants";
+import { effectiveButtons, getMatchingVariant, getMatchingVariants, normalizeText, parseVariants, validateVariants } from "./product-variants";
 
 describe("product variants", () => {
   it("productos antiguos sin variantes devuelven lista vacía", () => {
@@ -73,36 +73,77 @@ describe("getMatchingVariant & normalizeText", () => {
     expect(getMatchingVariant(variants, "v")?.id).toBe("v-verde");
     expect(getMatchingVariant(variants, "ve")?.id).toBe("v-verde");
   });
+
+  it("getMatchingVariants devuelve TODAS las variantes coincidentes (ej. 've')", () => {
+    const variants = parseVariants([
+      { id: "v1", name: "Verde Claro" },
+      { id: "v2", name: "Verde Militar" },
+      { id: "v3", name: "Verde Neón" },
+      { id: "v4", name: "Azul Rey" },
+    ]);
+    const matches = getMatchingVariants(variants, "ve");
+    expect(matches).toHaveLength(3);
+    expect(matches.map((m) => m.name)).toEqual(["Verde Claro", "Verde Militar", "Verde Neón"]);
+  });
 });
 
 import { filterProducts } from "./catalog";
-describe("filterProducts search relevance", () => {
-  it("ordena resultados por relevancia de búsqueda", () => {
-    const dummyStoreFilter = { categorySlug: null, branch: [], unknown: false };
+describe("filterProducts search relevance & strict match", () => {
+  const dummyStoreFilter = { categorySlug: null, branch: [], unknown: false };
+
+  it("descarta estrictamente productos irrelevantes", () => {
     const products: any[] = [
       {
         id: "p1",
-        slug: "bambu-lab",
-        name: "Bambu Lab Impresora 3D",
-        short: "Impresora rápida",
+        name: "Filamento PLA Verde",
+        short: "Color verde",
         description: "",
-        sku: "IMP-001",
         attributes: [],
-        variants: [{ id: "v1", name: "Estándar" }],
+        variants: [{ name: "Verde Claro" }],
       },
       {
         id: "p2",
-        slug: "filamento-pla",
-        name: "Filamento PLA 1.75mm",
-        short: "Filamento básico",
-        description: "",
-        sku: "FIL-001",
+        name: "Resina ABS-like",
+        short: "Gris",
+        description: "Sin coincidencia",
         attributes: [],
-        variants: [{ id: "v2", name: "Bambu" }],
+        variants: [{ name: "Gris" }],
       },
     ];
 
-    const results = filterProducts(products, { filter: dummyStoreFilter, query: "Bambu" });
-    expect(results[0].id).toBe("p1"); // Nombre de producto coincide directo con 'Bambu' -> mayor puntaje
+    const results = filterProducts(products, { filter: dummyStoreFilter, query: "ve" });
+    expect(results.map((p) => p.id)).toEqual(["p1"]);
+  });
+
+  it("ordena según ranking de relevancia (Título > Variante > Descripción)", () => {
+    const products: any[] = [
+      {
+        id: "p-desc",
+        name: "Impresora K1",
+        short: "Soporta filamentos de color verde",
+        description: "",
+        attributes: [],
+        variants: [],
+      },
+      {
+        id: "p-title",
+        name: "Verde Menta Filamento",
+        short: "",
+        description: "",
+        attributes: [],
+        variants: [],
+      },
+      {
+        id: "p-variant",
+        name: "Filamento PETG 1kg",
+        short: "",
+        description: "",
+        attributes: [],
+        variants: [{ name: "Verde Esmeralda" }],
+      },
+    ];
+
+    const results = filterProducts(products, { filter: dummyStoreFilter, query: "verde" });
+    expect(results.map((p) => p.id)).toEqual(["p-title", "p-variant", "p-desc"]);
   });
 });
