@@ -1,6 +1,7 @@
 import { ProductMedia } from "@/components/ProductMedia";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Pencil, Trash2, Loader2, X, Search } from "lucide-react";
 import { RichTextEditor } from "@/components/RichTextEditor";
@@ -472,8 +473,8 @@ function ProductModal({
     });
   }
 
-  async function save(e: React.FormEvent) {
-    e.preventDefault();
+  /** Guarda en el servidor. Si faltan datos obligatorios, no guarda y muestra qué falta. */
+  async function persist(snapshot: string) {
     setSaving(true);
     try {
       const payload = {
@@ -503,11 +504,12 @@ function ProductModal({
         variants: (form.variants ?? []).map((v) => ({ ...v, name: v.name.trim() })) as any,
         allowed_payment_method_ids: form.allowed_payment_method_ids ?? [],
       };
-      if (!payload.name || !payload.slug) throw new Error("Nombre y slug son obligatorios");
-      const buttonsError = validateProductButtons(buttons);
-      if (buttonsError) throw new Error(buttonsError);
-      const variantsError = validateVariants(form.variants ?? []);
-      if (variantsError) throw new Error(variantsError);
+      const problem =
+        (!payload.name || !payload.slug ? "Escribe el nombre para guardar." : null) ??
+        validateProductButtons(buttons) ??
+        validateVariants(form.variants ?? []);
+      setPending(problem);
+      if (problem) return;
 
       let id = form.id;
       if (id) {
@@ -517,6 +519,7 @@ function ProductModal({
         const { data, error } = await supabase.from("products").insert(payload).select("id").single();
         if (error) throw error;
         id = data.id;
+        setForm((fm) => ({ ...fm, id }));
       }
 
       // Atributos del producto (Material, Color…): se reescriben en cada guardado.
@@ -532,24 +535,43 @@ function ProductModal({
         const { error } = await supabase.from("product_attribute_values").insert(rows);
         if (error) throw error;
       }
-      onSaved();
-
+      lastSaved.current = snapshot;
+      dirty.current = true;
     } catch (e) {
-      alert((e as Error).message);
+      toast.error("No pudimos guardar", { description: (e as Error).message });
     } finally {
       setSaving(false);
     }
   }
 
+  // Guardado automático: cada cambio se guarda solo tras una breve pausa.
+  const [pending, setPending] = useState<string | null>(null);
+  const dirty = useRef(false);
+  const snapshot = JSON.stringify({ form: { ...form, id: undefined }, buttons, attrSel });
+  const lastSaved = useRef(snapshot);
+  useEffect(() => {
+    if (snapshot === lastSaved.current || saving) return;
+    const timer = setTimeout(() => persist(snapshot), 900);
+    return () => clearTimeout(timer);
+  }, [snapshot, saving]);
+
+  function close() {
+    if (dirty.current) onSaved();
+    else onClose();
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4">
       <form
-        onSubmit={save}
+        onSubmit={(e) => {
+          e.preventDefault();
+          persist(snapshot);
+        }}
         className="my-8 w-full max-w-2xl rounded-3xl bg-background p-6 shadow-2xl"
       >
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-black">{form.id ? "Editar producto" : "Nuevo producto"}</h2>
-          <button type="button" onClick={onClose} className="rounded-full p-2 hover:bg-muted">
+          <button type="button" onClick={close} aria-label="Cerrar" className="rounded-full p-2 hover:bg-muted">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -857,19 +879,16 @@ function ProductModal({
           </label>
         </div>
 
-        <div className="mt-6 flex justify-end gap-2">
+        <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
+          <span className="text-sm text-muted-foreground" aria-live="polite">
+            {saving ? "Guardando…" : pending ?? (form.id ? "Guardado automático ✓" : "Se guardará solo al escribir el nombre")}
+          </span>
           <button
             type="button"
-            onClick={onClose}
-            className="rounded-full border border-border px-5 py-2 text-sm font-semibold"
+            onClick={close}
+            className="rounded-full bg-[var(--brand-wine)] px-6 py-2 text-sm font-bold text-white hover:opacity-90"
           >
-            Cancelar
-          </button>
-          <button
-            disabled={saving}
-            className="rounded-full bg-[var(--brand-wine)] px-6 py-2 text-sm font-bold text-white hover:opacity-90 disabled:opacity-60"
-          >
-            {saving ? "Guardando…" : "Guardar"}
+            Listo
           </button>
         </div>
       </form>
