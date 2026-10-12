@@ -128,22 +128,44 @@ function ProductosAdmin() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Product> | null>(null);
   const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
 
   const visibleProducts = useMemo(() => {
-    return products.filter((p) =>
-      matchesSearch(
-        [
-          p.name,
-          p.sku ?? "",
-          p.slug,
-          p.short ?? "",
-          brands.find((b) => b.id === p.brand_id)?.name ?? "",
-          categories.find((c) => c.id === p.category_id)?.name ?? "",
-        ].join(" "),
-        search,
-      ),
-    );
-  }, [products, brands, categories, search]);
+    return products.filter((p) => {
+      const haystack = [
+        p.name,
+        p.sku ?? "",
+        p.slug,
+        p.short ?? "",
+        p.description ?? "",
+        brands.find((b) => b.id === p.brand_id)?.name ?? "",
+        categories.find((c) => c.id === p.category_id)?.name ?? "",
+        p.variants.map((v) => `${v.name} ${(v as any).sku ?? ""}`).join(" "),
+      ].join(" ");
+
+      const matchesQuery = matchesSearch(haystack, search);
+      if (!matchesQuery) return false;
+
+      if (selectedCategory !== "all" && p.category_id !== selectedCategory) {
+        return false;
+      }
+
+      if (selectedStatus === "active" && !p.active) return false;
+      if (selectedStatus === "inactive" && p.active) return false;
+      if (selectedStatus === "in_stock" && p.stock <= 0) return false;
+      if (selectedStatus === "out_of_stock" && p.stock > 0) return false;
+
+      return true;
+    });
+  }, [products, brands, categories, search, selectedCategory, selectedStatus]);
+
+  function getMatchingVariantName(product: Product, query: string): string | null {
+    const q = query.trim();
+    if (!q) return null;
+    const matched = product.variants.find((v) => matchesSearch(`${v.name} ${(v as any).sku ?? ""}`, q));
+    return matched ? matched.name : null;
+  }
 
   async function load() {
     setLoading(true);
@@ -215,15 +237,44 @@ function ProductosAdmin() {
         </button>
       </div>
 
-      <div className="relative mt-5 max-w-md">
-        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por nombre, SKU, marca o categoría…"
-          className="w-full rounded-full border border-border bg-card py-2.5 pl-11 pr-4 text-sm outline-none focus:ring-2 focus:ring-[var(--brand-orange)]"
-        />
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <div className="relative min-w-[240px] flex-1 max-w-md">
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por nombre, SKU, variante, descripción..."
+            className="w-full rounded-full border border-border bg-card py-2.5 pl-11 pr-4 text-sm outline-none focus:ring-2 focus:ring-[var(--brand-orange)]"
+          />
+        </div>
+
+        <select
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          className="cursor-pointer rounded-full border border-border bg-card px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--brand-orange)]"
+        >
+          <option value="all">Todas las categorías</option>
+          {categories
+            .filter((c) => c.is_active)
+            .map((c) => (
+              <option key={c.id} value={c.id}>
+                {categoryPath(c.slug, categories)}
+              </option>
+            ))}
+        </select>
+
+        <select
+          value={selectedStatus}
+          onChange={(e) => setSelectedStatus(e.target.value)}
+          className="cursor-pointer rounded-full border border-border bg-card px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--brand-orange)]"
+        >
+          <option value="all">Todos los estados</option>
+          <option value="active">Solo activos</option>
+          <option value="inactive">Ocultos / Inactivos</option>
+          <option value="in_stock">Con stock</option>
+          <option value="out_of_stock">Agotados (stock 0)</option>
+        </select>
       </div>
 
       <div className="mt-6 overflow-hidden rounded-3xl border border-border bg-card">
@@ -270,7 +321,17 @@ function ProductosAdmin() {
                           <div className="h-12 w-12 rounded-lg bg-muted" />
                         )}
                       </td>
-                      <td className="px-4 py-3 font-semibold">{p.name}</td>
+                      <td className="px-4 py-3 font-semibold">
+                        <div>{p.name}</div>
+                        {search.trim() && (() => {
+                          const varName = getMatchingVariantName(p, search);
+                          return varName ? (
+                            <span className="mt-1 inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">
+                              Variante: {varName}
+                            </span>
+                          ) : null;
+                        })()}
+                      </td>
                       <td className="px-4 py-3">{cat}</td>
                       <td className="px-4 py-3">{br}</td>
                       <td className="px-4 py-3 text-right">{formatCOP(p.price_cop)}</td>
