@@ -7,6 +7,7 @@ import { parseProductButtons, type ProductButton } from "@/lib/product-buttons";
 export type ProductVariant = {
   id: string;
   name: string;
+  sku?: string | null;
   /** Foto principal de la variante (= images[0]). */
   image_url: string | null;
   /** Galería propia de la variante; vacía = usa la del producto. */
@@ -53,17 +54,18 @@ export function parseVariants(raw: unknown): ProductVariant[] {
       const extra = Array.isArray(r.images) ? r.images.filter((u): u is string => typeof u === "string" && !!u) : [];
       const images = Array.from(new Set([...(main ? [main] : []), ...extra]));
       return {
-      id: typeof r.id === "string" && r.id ? r.id : newVariant().id,
-      name: typeof r.name === "string" ? r.name : "",
-      image_url: images[0] ?? null,
-      images,
-      price_cop: numOrNull(r.price_cop),
-      stock: numOrNull(r.stock),
-      is_active: r.is_active !== false,
-      custom_buttons: Array.isArray(r.custom_buttons) ? parseProductButtons(r.custom_buttons) : null,
-      allowed_payment_method_ids: Array.isArray(r.allowed_payment_method_ids)
-        ? normalizeMethodIds(r.allowed_payment_method_ids)
-        : null,
+        id: typeof r.id === "string" && r.id ? r.id : newVariant().id,
+        name: typeof r.name === "string" ? r.name : "",
+        sku: typeof r.sku === "string" && r.sku ? r.sku : null,
+        image_url: images[0] ?? null,
+        images,
+        price_cop: numOrNull(r.price_cop),
+        stock: numOrNull(r.stock),
+        is_active: r.is_active !== false,
+        custom_buttons: Array.isArray(r.custom_buttons) ? parseProductButtons(r.custom_buttons) : null,
+        allowed_payment_method_ids: Array.isArray(r.allowed_payment_method_ids)
+          ? normalizeMethodIds(r.allowed_payment_method_ids)
+          : null,
       };
     });
 }
@@ -100,11 +102,13 @@ export type ParentProductContext = {
   attributes?: { value_label?: string | null }[] | null;
   sku?: string | null;
   short?: string | null;
+  description?: string | null;
 };
 
 /**
  * Busca la variante que mejor coincida con la consulta de búsqueda.
- * Evalúa el contexto del producto padre + datos de variante para consultas compuestas ("pla verde").
+ * Evalúa de forma combinada el contexto del producto padre + datos de la variante
+ * para consultas compuestas o parciales (ej. "pla verde", "ve", "bambu").
  */
 export function getMatchingVariant(
   variants: ProductVariant[] | undefined | null,
@@ -129,6 +133,7 @@ export function getMatchingVariant(
         parentContext.category?.name ?? "",
         parentContext.sku ?? "",
         parentContext.short ?? "",
+        parentContext.description ?? "",
         ...(parentContext.attributes?.map((a) => a.value_label ?? "") ?? []),
       ].join(" "),
     );
@@ -139,31 +144,34 @@ export function getMatchingVariant(
 
   for (const v of variants) {
     const varName = normalizeText(v.name);
-    const varSku = normalizeText((v as any).sku ?? "");
+    const varSku = normalizeText(v.sku ?? "");
     const haystack = normalizeText(`${parentStr} ${varName} ${varSku}`);
 
+    // Todas las palabras clave deben coincidir en el conjunto (Padre + Variante)
     const matchesAll = terms.every((term) => haystack.includes(term));
     if (matchesAll) {
       let score = 0;
       const normalizedQuery = normalizeText(q);
 
+      // Coincidencia directa con el nombre de la variante
       if (varName === normalizedQuery) {
-        score += 100;
+        score += 1000;
       } else if (varName.startsWith(normalizedQuery)) {
-        score += 60;
+        score += 600;
       } else if (varName.includes(normalizedQuery)) {
-        score += 40;
+        score += 400;
       }
 
+      // Puntuación adicional por términos coincidiendo específicamente en la variante
       for (const term of terms) {
         if (varName.includes(term)) {
-          score += 20;
+          score += 150;
         }
         if (varSku.includes(term)) {
-          score += 15;
+          score += 100;
         }
         if (parentStr.includes(term)) {
-          score += 5;
+          score += 20;
         }
       }
 

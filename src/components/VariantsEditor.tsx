@@ -77,22 +77,26 @@ export function VariantsEditor({
   useEffect(() => {
     if (!targetVariantId) return;
 
-    // Forzar la apertura/expansión del contenedor si estuviera colapsado
+    // Apertura automática: Si el contenedor/acordeón de variantes está colapsado, fuerza su apertura programáticamente.
     setIsCollapsed(false);
 
-    const timer = setTimeout(() => {
+    let activeGlowTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const scrollTimer = setTimeout(() => {
       const el = document.getElementById(`variant-editor-${targetVariantId}`);
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "center" });
         setGlowingId(targetVariantId);
-        const glowTimer = setTimeout(() => {
+        activeGlowTimer = setTimeout(() => {
           setGlowingId(null);
         }, 2000);
-        return () => clearTimeout(glowTimer);
       }
-    }, 120);
+    }, 150);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(scrollTimer);
+      if (activeGlowTimer) clearTimeout(activeGlowTimer);
+    };
   }, [targetVariantId]);
 
   const update = (i: number, patch: Partial<ProductVariant>) =>
