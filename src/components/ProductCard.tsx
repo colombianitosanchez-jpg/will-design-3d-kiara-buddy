@@ -14,6 +14,7 @@ import { useSiteContent } from "@/hooks/use-site-content";
 import { ProductButtons } from "@/components/ProductButtons";
 import { ProductQuickView } from "@/components/ProductQuickView";
 import { ShareButton } from "@/components/ShareButton";
+import type { ProductVariant } from "@/lib/product-variants";
 
 
 const GRADIENTS: Record<string, string> = {
@@ -25,7 +26,9 @@ const GRADIENTS: Record<string, string> = {
     "linear-gradient(135deg, color-mix(in oklab, var(--brand-wine) 35%, white), color-mix(in oklab, var(--brand-wine) 70%, white))",
 };
 
-export function ProductCard({ product }: { product: Product }) {
+/** `variant`: la tarjeta muestra y abre esa variante (p. ej. resultado de búsqueda). */
+export function ProductCard({ product, variant }: { product: Product; variant?: ProductVariant | null }) {
+  const cover = variant?.image_url ?? product.image_url;
   const gradient = GRADIENTS[gradientKeyFor(product.category?.slug)];
   const { content } = useSiteContent();
   const whatsappUrl = waLink(
@@ -42,6 +45,7 @@ export function ProductCard({ product }: { product: Product }) {
       <Link
         to="/tienda/$slug"
         params={{ slug: product.slug }}
+        search={variant ? { v: variant.id } : {}}
         className="flex flex-1 flex-col"
         aria-label={`${actionText}: ${product.name}`}
       >
@@ -49,9 +53,9 @@ export function ProductCard({ product }: { product: Product }) {
           className="relative flex aspect-[4/3] items-center justify-center overflow-hidden text-4xl font-black text-primary-foreground/90"
           style={{ background: gradient }}
         >
-          {product.image_url ? (
+          {cover ? (
             <ProductMedia
-              src={product.image_url}
+              src={cover}
               alt={product.name}
               className="h-full w-full object-cover"
             />

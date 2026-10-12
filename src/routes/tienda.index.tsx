@@ -25,6 +25,13 @@ import {
   type AttrFilter,
 } from "@/lib/catalog";
 import { ProductCard } from "@/components/ProductCard";
+import { matchesSearch, type Product } from "@/lib/catalog";
+
+/** Variante que coincide con la búsqueda (p. ej. "pla azul"), para abrirla directo. */
+function matchedVariant(p: Product, query: string) {
+  if (!query.trim()) return null;
+  return p.variants.find((v) => matchesSearch(`${p.name} ${v.name}`, query) && matchesSearch(v.name, query.split(/\s+/).at(-1))) ?? null;
+}
 
 export const Route = createFileRoute("/tienda/")({
   validateSearch: (
@@ -353,7 +360,7 @@ function TiendaPage() {
             ) : (
               <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {filtered.map((p) => (
-                  <ProductCard key={p.id} product={p} />
+                  <ProductCard key={p.id} product={p} variant={matchedVariant(p, query)} />
                 ))}
               </div>
             )}
