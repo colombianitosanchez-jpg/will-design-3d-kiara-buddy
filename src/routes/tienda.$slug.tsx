@@ -69,7 +69,9 @@ export const Route = createFileRoute("/tienda/$slug")({
         ? base
         : `${p.name} disponible en Will Design 3D, Bogotá. ${base} Asesoría técnica y envíos a todo el país.`
     ).slice(0, 160);
-    const rawImage = [p.image_url, ...(p.images ?? [])].find((u) => u && !isVideoUrl(u)) || null;
+    // Primera FOTO de la variante (saltando videos); si no tiene, la del producto.
+    const rawImage =
+      [...(v?.images ?? []), base0.image_url, ...(base0.images ?? [])].find((u) => u && !isVideoUrl(u)) || null;
     const image = rawImage && /^https:\/\//i.test(rawImage) ? rawImage : null;
     return {
       meta: [
