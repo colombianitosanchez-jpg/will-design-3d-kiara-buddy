@@ -470,6 +470,7 @@ export function filterProducts(
       p.short,
       p.slug,
       p.attributes.map((a) => a.value_label).join(" "),
+      p.variants.map((v) => v.name).join(" "),
     ].join(" ");
     const okQ = matchesSearch(haystack, query);
     return okCat && okBrand && okAttrs && okQ;
