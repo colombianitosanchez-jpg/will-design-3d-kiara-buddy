@@ -100,12 +100,13 @@ function Home() {
   const { getText } = useSiteContent();
   const order = parseHomeOrder(getText("home_sections_order", ""));
   return (
-    <>
+    <main className="w-full">
       {order.map((key) => {
         const Section = SECTION_COMPONENTS[key];
+        if (!Section) return null;
         return <Section key={key} />;
       })}
-    </>
+    </main>
   );
 }
 
