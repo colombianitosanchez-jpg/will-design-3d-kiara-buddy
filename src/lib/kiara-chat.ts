@@ -32,6 +32,7 @@ export type KiaraProductsData = {
     image_url: string | null;
     in_stock: boolean;
     url: string;
+    variants_summary?: string;
   }[];
 };
 export type KiaraTool =
