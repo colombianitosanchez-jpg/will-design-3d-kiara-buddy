@@ -22,10 +22,11 @@ import {
   serializeAttrParam,
   prettySlug,
   slugify,
+  matchesSearch,
   type AttrFilter,
+  type Product,
 } from "@/lib/catalog";
 import { ProductCard } from "@/components/ProductCard";
-import { matchesSearch, type Product } from "@/lib/catalog";
 
 /** Variante que coincide con la búsqueda (p. ej. "pla azul"), para abrirla directo. */
 function matchedVariant(p: Product, query: string) {
