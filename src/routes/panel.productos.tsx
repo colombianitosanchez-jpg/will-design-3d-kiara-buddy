@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Pencil, Trash2, Loader2, X, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, X, Search, Check } from "lucide-react";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { ImageDropzone } from "@/components/ImageDropzone";
 import { Switch } from "@/components/ui/switch";
@@ -391,7 +391,14 @@ function ProductModal({
     return attributes.filter((a) => allowed.has(a.id));
   }, [attributes, catAttrs, categories, form.category_id]);
 
+  const instantRef = useRef(false);
+
   function set<K extends keyof Product>(k: K, v: Product[K]) {
+    setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  function setInstant<K extends keyof Product>(k: K, v: Product[K]) {
+    instantRef.current = true;
     setForm((f) => ({ ...f, [k]: v }));
   }
 
@@ -473,13 +480,29 @@ function ProductModal({
     });
   }
 
-  /** Guarda en el servidor. Si faltan datos obligatorios, no guarda y muestra qué falta. */
-  async function persist(snapshot: string) {
+  /** Guarda en el servidor. Si faltan datos obligatorios o hay errores de seguridad, no guarda. */
+  async function persist(snapshotToSave: string) {
+    const rawName = form.name?.trim() ?? "";
+    const rawSlug = form.slug?.trim() || slugify(rawName);
+
+    // Validación de seguridad para evitar productos o variantes sin nombre o incompletos
+    let problem: string | null = null;
+    if (!rawName) {
+      problem = form.id ? "Escribe un nombre para guardar." : "Se guardará solo al escribir el nombre";
+    } else if (!rawSlug) {
+      problem = "El nombre o slug principal no es válido.";
+    } else {
+      problem = validateProductButtons(buttons) ?? validateVariants(form.variants ?? []);
+    }
+
+    setPending(problem);
+    if (problem) return;
+
     setSaving(true);
     try {
       const payload = {
-        slug: (form.slug || slugify(form.name || "")).slice(0, 80),
-        name: form.name ?? "",
+        slug: rawSlug.slice(0, 80),
+        name: rawName,
         price_cop: Number(form.price_cop) || 0,
         btn_text: form.btn_text?.trim() || "Ver más",
         show_whatsapp: !!form.show_whatsapp,
@@ -504,12 +527,6 @@ function ProductModal({
         variants: (form.variants ?? []).map((v) => ({ ...v, name: v.name.trim() })) as any,
         allowed_payment_method_ids: form.allowed_payment_method_ids ?? [],
       };
-      const problem =
-        (!payload.name || !payload.slug ? "Escribe el nombre para guardar." : null) ??
-        validateProductButtons(buttons) ??
-        validateVariants(form.variants ?? []);
-      setPending(problem);
-      if (problem) return;
 
       let id = form.id;
       if (id) {
@@ -535,8 +552,9 @@ function ProductModal({
         const { error } = await supabase.from("product_attribute_values").insert(rows);
         if (error) throw error;
       }
-      lastSaved.current = snapshot;
+      lastSaved.current = snapshotToSave;
       dirty.current = true;
+      setPending(null);
     } catch (e) {
       toast.error("No pudimos guardar", { description: (e as Error).message });
     } finally {
@@ -544,18 +562,25 @@ function ProductModal({
     }
   }
 
-  // Guardado automático: cada cambio se guarda solo tras una breve pausa.
+  // Guardado automático: guardado instantáneo para switches/fotos y debounce ligero (800ms) para campos de texto y números.
   const [pending, setPending] = useState<string | null>(null);
   const dirty = useRef(false);
   const snapshot = JSON.stringify({ form: { ...form, id: undefined }, buttons, attrSel });
   const lastSaved = useRef(snapshot);
+
   useEffect(() => {
     if (snapshot === lastSaved.current || saving) return;
-    const timer = setTimeout(() => persist(snapshot), 900);
+    const isInstant = instantRef.current;
+    instantRef.current = false;
+    const delay = isInstant ? 0 : 800;
+    const timer = setTimeout(() => persist(snapshot), delay);
     return () => clearTimeout(timer);
   }, [snapshot, saving]);
 
-  function close() {
+  async function close() {
+    if (snapshot !== lastSaved.current && !saving) {
+      await persist(snapshot);
+    }
     if (dirty.current) onSaved();
     else onClose();
   }
@@ -642,7 +667,7 @@ function ProductModal({
           <Field label="Categoría">
             <select
               value={form.category_id ?? ""}
-              onChange={(e) => set("category_id", e.target.value || null)}
+              onChange={(e) => setInstant("category_id", e.target.value || null)}
               className={inputCls}
             >
               <option value="">— Selecciona —</option>
@@ -670,7 +695,7 @@ function ProductModal({
           <Field label="Marca">
             <select
               value={form.brand_id ?? ""}
-              onChange={(e) => set("brand_id", e.target.value || null)}
+              onChange={(e) => setInstant("brand_id", e.target.value || null)}
               className={inputCls}
             >
               <option value="">— Selecciona —</option>
@@ -692,14 +717,15 @@ function ProductModal({
             <Field key={a.id} label={a.name}>
               <select
                 value={attrSel[a.id] ?? ""}
-                onChange={(e) =>
+                onChange={(e) => {
+                  instantRef.current = true;
                   setAttrSel((s) => {
                     const next = { ...s };
                     if (e.target.value) next[a.id] = e.target.value;
                     else delete next[a.id];
                     return next;
-                  })
-                }
+                  });
+                }}
                 className={inputCls}
               >
                 <option value="">— Sin especificar —</option>
@@ -752,9 +778,9 @@ function ProductModal({
               ...(form.images ?? []).filter((u) => u !== form.image_url),
             ]}
             coverIndex={0}
-            onSetCover={(url) => set("image_url", url)}
+            onSetCover={(url) => setInstant("image_url", url)}
             onChange={(urls) => {
-              // La posición 1 de la lista es siempre la portada.
+              instantRef.current = true;
               const cover = urls[0] ?? null;
               setForm((fm) => ({
                 ...fm,
@@ -769,7 +795,10 @@ function ProductModal({
         <Field label="Métodos de pago permitidos para este producto">
           <PaymentMethodsPicker
             value={form.allowed_payment_method_ids ?? []}
-            onChange={(v) => set("allowed_payment_method_ids", v ?? [])}
+            onChange={(v) => {
+              instantRef.current = true;
+              setForm((fm) => ({ ...fm, allowed_payment_method_ids: v ?? [] }));
+            }}
           />
         </Field>
 
@@ -829,59 +858,75 @@ function ProductModal({
 
 
         <div className="mt-4 flex flex-wrap gap-6">
-          <label className="inline-flex items-center gap-2 text-sm">
+          <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
             <Switch
               checked={!!form.show_whatsapp}
-              onCheckedChange={(checked) => set("show_whatsapp", checked)}
+              onCheckedChange={(checked) => setInstant("show_whatsapp", checked)}
               aria-label="Mostrar icono de WhatsApp en el catálogo"
             />
             Mostrar icono de WhatsApp en el catálogo
           </label>
-          <label className="inline-flex items-center gap-2 text-sm">
+          <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
             <Switch
               checked={!!form.hide_default_cta}
-              onCheckedChange={(checked) => set("hide_default_cta", checked)}
+              onCheckedChange={(checked) => setInstant("hide_default_cta", checked)}
               aria-label="Ocultar el texto de acción y el icono de WhatsApp"
             />
             Ocultar el texto de acción y el icono de WhatsApp
           </label>
-          <label className="inline-flex items-center gap-2 text-sm">
+          <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
             <Switch
               checked={!!form.accepts_3d_file}
-              onCheckedChange={(checked) => set("accepts_3d_file", checked)}
+              onCheckedChange={(checked) => setInstant("accepts_3d_file", checked)}
               aria-label="Solicitar archivo 3D al cliente (STL/OBJ/STEP) antes de cotizar"
             />
             Solicitar archivo 3D al cliente (STL/OBJ/STEP) antes de cotizar
           </label>
-          <label className="inline-flex items-center gap-2 text-sm">
+          <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
             <Switch
               checked={!!form.quote_only}
-              onCheckedChange={(checked) => set("quote_only", checked)}
+              onCheckedChange={(checked) => setInstant("quote_only", checked)}
               aria-label="Solo cotización (ocultar precio)"
             />
             Solo cotización (ocultar precio)
           </label>
-          <label className="inline-flex items-center gap-2 text-sm">
+          <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
             <input
               type="checkbox"
               checked={!!form.featured}
-              onChange={(e) => set("featured", e.target.checked)}
+              onChange={(e) => setInstant("featured", e.target.checked)}
             />
             Destacado en home
           </label>
-          <label className="inline-flex items-center gap-2 text-sm">
+          <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
             <input
               type="checkbox"
               checked={form.active ?? true}
-              onChange={(e) => set("active", e.target.checked)}
+              onChange={(e) => setInstant("active", e.target.checked)}
             />
             Visible en tienda
           </label>
         </div>
 
         <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
-          <span className="text-sm text-muted-foreground" aria-live="polite">
-            {saving ? "Guardando…" : pending ?? (form.id ? "Guardado automático ✓" : "Se guardará solo al escribir el nombre")}
+          <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground" aria-live="polite">
+            {saving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                <span>Guardando…</span>
+              </>
+            ) : pending ? (
+              <span className={pending.includes("solo") || pending.includes("Escribe") ? "text-muted-foreground" : "text-amber-600 font-medium"}>
+                {pending}
+              </span>
+            ) : form.id ? (
+              <>
+                <Check className="h-4 w-4 text-green-600" />
+                <span className="text-foreground font-medium">Guardado automático ✓</span>
+              </>
+            ) : (
+              <span>Se guardará solo al escribir el nombre</span>
+            )}
           </span>
           <button
             type="button"
