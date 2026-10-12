@@ -7,6 +7,7 @@ import { Plus, Pencil, Trash2, Loader2, X, Search } from "lucide-react";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { ImageDropzone } from "@/components/ImageDropzone";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { VariantsEditor } from "@/components/VariantsEditor";
 import { PaymentMethodsPicker } from "@/components/PaymentMethodsPicker";
 import { normalizeMethodIds } from "@/lib/payment-rules";
@@ -14,6 +15,15 @@ import { ProductButtonsEditor } from "@/components/ProductButtonsEditor";
 import { getMatchingVariant, parseVariants, validateVariants, type ProductVariant } from "@/lib/product-variants";
 
 import {
+  ACTION_LABELS,
+  BUTTON_ACTIONS,
+  BUTTON_POSITIONS,
+  BUTTON_VARIANTS,
+  BUTTON_WIDTHS,
+  POSITION_LABELS,
+  VARIANT_LABELS,
+  WIDTH_LABELS,
+  newProductButton,
   parseProductButtons,
   validateProductButtons,
   type ProductButton,
@@ -94,6 +104,7 @@ const empty: Omit<Product, "id"> = {
   allowed_payment_method_ids: [],
 };
 
+
 function slugify(s: string) {
   return s
     .toLowerCase()
@@ -120,7 +131,6 @@ function ProductosAdmin() {
   const scrollPosRef = useRef<number>(0);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
-  const [highlightedRowId, setHighlightedRowId] = useState<string | null>(null);
 
   const visibleProducts = useMemo(() => {
     return products.filter((p) => {
@@ -151,8 +161,24 @@ function ProductosAdmin() {
     });
   }, [products, brands, categories, search, selectedCategory, selectedStatus]);
 
+ kiara-variant-support-9653472826990086035
+  function getMatchingVariant(product: Product, query: string): ProductVariant | null {
+    const q = query.trim();
+    if (!q) return null;
+    return product.variants.find((v) => matchesSearch(`${v.name} ${(v as any).sku ?? ""}`, q)) ?? null;
+  }
+
+  function getMatchingVariantName(product: Product, query: string): string | null {
+    const matched = getMatchingVariant(product, query);
+    return matched ? matched.name : null;
+  }
+
+  async function load() {
+    setLoading(true);
+
   async function load(isBackground = false) {
     if (!isBackground) setLoading(true);
+ main
     const [p, c, b, a, ca, pav] = await Promise.all([
       supabase.from("products").select("*").order("created_at", { ascending: false }),
       supabase
@@ -193,17 +219,15 @@ function ProductosAdmin() {
   }
 
   function handleEditProduct(product: Product) {
-    scrollPosRef.current = window.scrollY;
     setEditing(product);
     setTimeout(() => {
       const el = document.getElementById(`product-row-${product.id}`);
       if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
-        setHighlightedRowId(product.id);
-        setTimeout(() => setHighlightedRowId(null), 1800);
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     }, 50);
   }
+
 
   useEffect(() => {
     load();
@@ -307,21 +331,22 @@ function ProductosAdmin() {
                     ? (categoryPath(categories.find((c) => c.id === p.category_id)?.slug, categories) || "—")
                     : "—";
                   const br = brands.find((b) => b.id === p.brand_id)?.name ?? "—";
-                  const matchedVar = search.trim() ? getMatchingVariant(p.variants, search) : null;
+                  const matchingVar = search.trim() ? getMatchingVariant(p, search) : null;
+                  const displayImage = matchingVar?.image_url || matchingVar?.images?.[0] || p.image_url;
+
+                  const matchedVar = getMatchingVariant(p.variants, search);
                   const displayImageUrl = matchedVar?.image_url ?? p.image_url;
-                  const isHighlighted = highlightedRowId === p.id;
 
                   return (
-                    <tr
-                      id={`product-row-${p.id}`}
-                      key={p.id}
-                      className={`border-t border-border transition-all duration-500 ${
-                        isHighlighted ? "ring-2 ring-primary bg-primary/5" : ""
-                      }`}
-                    >
+                    <tr id={`product-row-${p.id}`} key={p.id} className="border-t border-border">
                       <td className="px-4 py-3">
+ kiara-variant-support-9653472826990086035
+                        {displayImage ? (
+                          <ProductMedia thumb src={displayImage} className="h-12 w-12 rounded-lg object-cover" />
+
                         {displayImageUrl ? (
                           <ProductMedia thumb src={displayImageUrl} className="h-12 w-12 rounded-lg object-cover" />
+main
                         ) : (
                           <div className="h-12 w-12 rounded-lg bg-muted" />
                         )}
@@ -349,7 +374,14 @@ function ProductosAdmin() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button
+ kiara-variant-support-9653472826990086035
+                          onClick={() => {
+                            scrollPosRef.current = window.scrollY;
+                            setEditing(p);
+                          }}
+
                           onClick={() => handleEditProduct(p)}
+ main
                           className="mr-2 inline-flex items-center gap-1 rounded-lg bg-muted px-3 py-1.5 text-xs font-semibold hover:bg-muted/70"
                         >
                           <Pencil className="h-3 w-3" /> Editar
@@ -394,20 +426,22 @@ function ProductosAdmin() {
             const savedScroll = scrollPosRef.current;
             const targetId = editing.id;
             setEditing(null);
-            await load(true);
+ kiara-variant-support-9653472826990086035
+            await load();
+            window.scrollTo({ top: savedScroll });
             if (targetId) {
               const rowEl = document.getElementById(`product-row-${targetId}`);
               if (rowEl) {
-                rowEl.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
-                setHighlightedRowId(targetId);
-                setTimeout(() => setHighlightedRowId(null), 1800);
+                rowEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
               }
-            } else {
-              window.scrollTo({ top: savedScroll });
             }
+
+            load(true);
+ main
           }}
         />
       )}
+
     </>
   );
 }
@@ -433,8 +467,23 @@ function ProductModal({
 }) {
   const [form, setForm] = useState<Partial<Product>>(product);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [attrSel, setAttrSel] = useState<Record<string, string>>(initialAttrs);
   const [buttons, setButtons] = useState<ProductButton[]>(product.custom_buttons ?? []);
+
+  function updateButton(index: number, patch: Partial<ProductButton>) {
+    setButtons((list) => list.map((b, i) => (i === index ? { ...b, ...patch } : b)));
+  }
+
+  function moveButton(index: number, dir: -1 | 1) {
+    setButtons((list) => {
+      const next = [...list];
+      const target = index + dir;
+      if (target < 0 || target >= next.length) return list;
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  }
 
   const categoryOptions = useMemo(
     () => flattenCategoryTree(buildCategoryTree(categories)),
@@ -489,6 +538,46 @@ function ProductModal({
       .single();
     if (error) return alert(error.message);
     set("brand_id", data.id);
+  }
+
+
+  async function uploadToStorage(file: File): Promise<string> {
+      const path = `${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      const up = await supabase.storage.from("product-images").upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+      if (up.error) throw up.error;
+      // signed URL 10 years
+      const signed = await supabase.storage
+        .from("product-images")
+        .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+      if (signed.error) throw signed.error;
+      return signed.data.signedUrl;
+  }
+
+  async function uploadImage(file: File) {
+    setUploading(true);
+    try {
+      set("image_url", await uploadToStorage(file));
+    } catch (e) {
+      alert("Error al subir la imagen: " + (e as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function uploadGallery(files: FileList) {
+    setUploading(true);
+    try {
+      const urls: string[] = [];
+      for (const f of Array.from(files)) urls.push(await uploadToStorage(f));
+      setForm((fm) => ({ ...fm, images: [...(fm.images ?? []), ...urls] }));
+    } catch (e) {
+      alert("Error al subir imágenes: " + (e as Error).message);
+    } finally {
+      setUploading(false);
+    }
   }
 
   function setSpec(i: number, key: "label" | "value", v: string) {
@@ -747,6 +836,7 @@ function ProductModal({
           </p>
         )}
 
+
         <Field label="Descripción corta">
           <textarea
             rows={2}
@@ -787,6 +877,7 @@ function ProductModal({
                 images: urls.slice(1),
               }));
             }}
+
           />
         </Field>
 
@@ -807,6 +898,7 @@ function ProductModal({
             parentButtons={buttons}
           />
         </Field>
+
 
         <Field label="Especificaciones técnicas (tecnología, volumen, material…)">
           <div className="grid gap-2">
@@ -848,6 +940,8 @@ function ProductModal({
         <Field label="Botones del producto (se muestran en las tarjetas del catálogo)">
           <ProductButtonsEditor buttons={buttons} onChange={setButtons} />
         </Field>
+
+
 
         <div className="mt-4 flex flex-wrap gap-6">
           <label className="inline-flex items-center gap-2 text-sm">
