@@ -48,4 +48,61 @@ describe("getMatchingVariant & normalizeText", () => {
     expect(getMatchingVariant(variants, "UVA")?.name).toBe("UVA Mate");
     expect(getMatchingVariant(variants, "rosa")).toBeNull();
   });
+
+  it("getMatchingVariant evalúa términos compuestos combinando producto padre y variante ('pla verde')", () => {
+    const variants = parseVariants([
+      { id: "v-rojo", name: "Rojo" },
+      { id: "v-verde", name: "Verde" },
+      { id: "v-azul", name: "Azul" },
+    ]);
+    const parentContext = {
+      name: "Filamento PLA 1.75mm",
+      brand: { name: "Will 3D" },
+      category: { name: "Filamentos" },
+    };
+
+    const matched = getMatchingVariant(variants, "pla verde", parentContext);
+    expect(matched?.id).toBe("v-verde");
+  });
+
+  it("getMatchingVariant funciona con términos cortos como 'v' o 've'", () => {
+    const variants = parseVariants([
+      { id: "v-rojo", name: "Rojo" },
+      { id: "v-verde", name: "Verde" },
+    ]);
+    expect(getMatchingVariant(variants, "v")?.id).toBe("v-verde");
+    expect(getMatchingVariant(variants, "ve")?.id).toBe("v-verde");
+  });
+});
+
+import { filterProducts } from "./catalog";
+describe("filterProducts search relevance", () => {
+  it("ordena resultados por relevancia de búsqueda", () => {
+    const dummyStoreFilter = { categorySlug: null, branch: [], unknown: false };
+    const products: any[] = [
+      {
+        id: "p1",
+        slug: "bambu-lab",
+        name: "Bambu Lab Impresora 3D",
+        short: "Impresora rápida",
+        description: "",
+        sku: "IMP-001",
+        attributes: [],
+        variants: [{ id: "v1", name: "Estándar" }],
+      },
+      {
+        id: "p2",
+        slug: "filamento-pla",
+        name: "Filamento PLA 1.75mm",
+        short: "Filamento básico",
+        description: "",
+        sku: "FIL-001",
+        attributes: [],
+        variants: [{ id: "v2", name: "Bambu" }],
+      },
+    ];
+
+    const results = filterProducts(products, { filter: dummyStoreFilter, query: "Bambu" });
+    expect(results[0].id).toBe("p1"); // Nombre de producto coincide directo con 'Bambu' -> mayor puntaje
+  });
 });
