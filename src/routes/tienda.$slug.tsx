@@ -173,7 +173,7 @@ function ProductPage() {
   const selectedVariant = variants.find((v) => v.id === variantId) ?? null;
   const gallery = variantGallery(productGallery, selectedVariant);
 
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, draggable: true });
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
 
   useEffect(() => {
     if (!emblaApi) return;
