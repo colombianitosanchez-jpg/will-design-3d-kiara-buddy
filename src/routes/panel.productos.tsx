@@ -128,6 +128,7 @@ function ProductosAdmin() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Product> | null>(null);
   const [search, setSearch] = useState("");
+  const scrollPosRef = useRef<number>(0);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
 
@@ -160,10 +161,14 @@ function ProductosAdmin() {
     });
   }, [products, brands, categories, search, selectedCategory, selectedStatus]);
 
-  function getMatchingVariantName(product: Product, query: string): string | null {
+  function getMatchingVariant(product: Product, query: string): ProductVariant | null {
     const q = query.trim();
     if (!q) return null;
-    const matched = product.variants.find((v) => matchesSearch(`${v.name} ${(v as any).sku ?? ""}`, q));
+    return product.variants.find((v) => matchesSearch(`${v.name} ${(v as any).sku ?? ""}`, q)) ?? null;
+  }
+
+  function getMatchingVariantName(product: Product, query: string): string | null {
+    const matched = getMatchingVariant(product, query);
     return matched ? matched.name : null;
   }
 
@@ -311,12 +316,14 @@ function ProductosAdmin() {
                     ? (categoryPath(categories.find((c) => c.id === p.category_id)?.slug, categories) || "—")
                     : "—";
                   const br = brands.find((b) => b.id === p.brand_id)?.name ?? "—";
+                  const matchingVar = search.trim() ? getMatchingVariant(p, search) : null;
+                  const displayImage = matchingVar?.image_url || matchingVar?.images?.[0] || p.image_url;
 
                   return (
                     <tr key={p.id} className="border-t border-border">
                       <td className="px-4 py-3">
-                        {p.image_url ? (
-                          <ProductMedia thumb src={p.image_url} className="h-12 w-12 rounded-lg object-cover" />
+                        {displayImage ? (
+                          <ProductMedia thumb src={displayImage} className="h-12 w-12 rounded-lg object-cover" />
                         ) : (
                           <div className="h-12 w-12 rounded-lg bg-muted" />
                         )}
@@ -347,13 +354,19 @@ function ProductosAdmin() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button
-                          onClick={() => setEditing(p)}
+                          onClick={() => {
+                            scrollPosRef.current = window.scrollY;
+                            setEditing(p);
+                          }}
                           className="mr-2 inline-flex items-center gap-1 rounded-lg bg-muted px-3 py-1.5 text-xs font-semibold hover:bg-muted/70"
                         >
                           <Pencil className="h-3 w-3" /> Editar
                         </button>
                         <button
-                          onClick={() => remove(p.id)}
+                          onClick={() => {
+                            scrollPosRef.current = window.scrollY;
+                            remove(p.id);
+                          }}
                           className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100"
                         >
                           <Trash2 className="h-3 w-3" /> Borrar
@@ -380,10 +393,23 @@ function ProductosAdmin() {
               .filter((r) => r.product_id === editing.id && r.attribute_value_id)
               .map((r) => [r.attribute_id, r.attribute_value_id!]),
           )}
-          onClose={() => setEditing(null)}
-          onSaved={() => {
+          onClose={() => {
+            const savedScroll = scrollPosRef.current;
             setEditing(null);
-            load();
+            window.scrollTo({ top: savedScroll });
+          }}
+          onSaved={async () => {
+            const savedScroll = scrollPosRef.current;
+            const targetId = editing.id;
+            setEditing(null);
+            await load();
+            window.scrollTo({ top: savedScroll });
+            if (targetId) {
+              const rowEl = document.getElementById(`product-row-${targetId}`);
+              if (rowEl) {
+                rowEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+              }
+            }
           }}
         />
       )}
