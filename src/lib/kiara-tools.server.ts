@@ -3,6 +3,7 @@
 
 import { computeQuote, coerceAnswersDetailed, formatCOP } from "@/lib/quoter-core";
 import { getQuoterServices } from "@/lib/quoter.server";
+import { parseVariants } from "@/lib/product-variants";
 
 
 export const KIARA_TOOLS = [
@@ -107,6 +108,7 @@ type ProductRow = {
   short: string | null;
   stock: number | null;
   image_url: string | null;
+  variants?: unknown;
   categories?: { name?: string } | null;
   brands?: { name?: string } | null;
 };
@@ -210,7 +212,7 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
 
     let builder = supabaseAdmin
       .from("products")
-      .select("name, slug, price_cop, short, stock, image_url, categories(name), brands(name)")
+      .select("name, slug, price_cop, short, stock, image_url, variants, categories(name), brands(name)")
       .eq("active", true);
     if (Number.isFinite(maxPrice) && maxPrice > 0) builder = builder.lte("price_cop", Math.round(maxPrice));
 
@@ -219,8 +221,11 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
 
     const terms = slugify(q).split("-").filter((t) => t.length >= 3);
     const score = (p: ProductRow) => {
+      const activeVars = parseVariants(p.variants)
+        .filter((v) => v.is_active !== false && v.name.trim())
+        .map((v) => v.name.trim());
       const hay = slugify(
-        [p.name, p.short, p.categories?.name, p.brands?.name].filter(Boolean).join(" "),
+        [p.name, p.short, p.categories?.name, p.brands?.name, ...activeVars].filter(Boolean).join(" "),
       );
       return terms.reduce((n, t) => n + (hay.includes(t) ? 1 : 0), 0);
     };
@@ -232,17 +237,23 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
           .map((x) => x.p)
       : rows;
 
-    const items = matched.slice(0, 6).map((p) => ({
-      name: p.name,
-      slug: p.slug,
-      price_cop: Number(p.price_cop) || 0,
-      brand: p.brands?.name ?? null,
-      category: p.categories?.name ?? null,
-      short: p.short ?? "",
-      image_url: p.image_url ?? null,
-      in_stock: (p.stock ?? 0) > 0,
-      url: `/tienda/${p.slug}`,
-    }));
+    const items = matched.slice(0, 6).map((p) => {
+      const activeVars = parseVariants(p.variants)
+        .filter((v) => v.is_active !== false && v.name.trim())
+        .map((v) => v.name.trim());
+      return {
+        name: p.name,
+        slug: p.slug,
+        price_cop: Number(p.price_cop) || 0,
+        brand: p.brands?.name ?? null,
+        category: p.categories?.name ?? null,
+        short: p.short ?? "",
+        image_url: p.image_url ?? null,
+        in_stock: (p.stock ?? 0) > 0,
+        url: `/tienda/${p.slug}`,
+        variants_summary: activeVars.length ? activeVars.join(", ") : undefined,
+      };
+    });
 
     if (items.length === 0)
       return {
@@ -262,6 +273,7 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
           price_cop: i.price_cop,
           url: i.url,
           in_stock: i.in_stock,
+          variants_summary: i.variants_summary,
         })),
       },
     };

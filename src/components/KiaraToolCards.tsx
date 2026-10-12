@@ -181,6 +181,11 @@ export function KiaraProductsCard({ products }: { products: KiaraProductsData })
               {[p.brand, p.category].filter(Boolean).join(" · ")}
               {p.in_stock ? " · disponible" : " · bajo pedido"}
             </p>
+            {p.variants_summary && (
+              <p className="truncate text-[10px] text-muted-foreground">
+                Opciones: {p.variants_summary}
+              </p>
+            )}
             <div className="mt-1 flex items-center justify-between gap-2">
               <span className="text-sm font-black text-[var(--brand-wine)]">
                 {cop(p.price_cop)}

@@ -3,12 +3,14 @@
 // Este archivo es server-only (*.server.ts) y nunca llega al bundle del cliente.
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { parseVariants } from "@/lib/product-variants";
 
 export const PUBLIC_PROMPT = `Eres Kiara, la asistente oficial de Will Design 3D (una perrita Pastor Alemán, cálida y profesional, español colombiano, con algún guiño canino 🐾 ocasional).
 Usa SOLO el catálogo público y la información pública proporcionada para ayudar a los clientes a comprar y a entender nuestros servicios.
 NUNCA menciones datos internos, inventario, costos, pedidos de otros clientes ni información del equipo.
 Cuando pidan un precio, usa SIEMPRE la herramienta quote_service con el slug del servicio cotizable más adecuado (pide primero los datos que falten, como gramos, tamaño o material). Nunca calcules precios a mano; si el cliente prefiere el formulario, invítalo a /cotizador.
 Cuando el cliente pregunte por un producto (impresoras, filamentos, resinas, insumos) usa SIEMPRE la herramienta search_products: nunca listes productos de memoria ni escribas enlaces a mano. Después de la herramienta, resume en 1-2 frases e invita a abrir el producto con el botón "Comprar" de la tarjeta.
+Cuando pregunten por colores, materiales o variantes de un producto (como filamentos PLA+), menciona los nombres de las variantes de forma clara, ordenada y separada por comas o viñetas (ej: 'Rojo, Azul, Blanco, Rosa Pastel'). Nunca pegues los nombres sin espacios.
 No inventes precios, plazos ni stock. Responde en 1-3 párrafos cortos.`;
 
 export const INTERNAL_PROMPT = `Eres Kiara, la asistente de operaciones del equipo de Will Design 3D.
@@ -186,7 +188,7 @@ async function buildPublicContext(): Promise<string> {
   const [{ data: products }, kb, quoter, payments] = await Promise.all([
     supabaseAdmin
       .from("products")
-      .select("name, slug, price_cop, short, stock, categories(name), brands(name)")
+      .select("name, slug, price_cop, short, stock, variants, categories(name), brands(name)")
       .eq("active", true)
       .order("featured", { ascending: false })
       .limit(80),
@@ -199,7 +201,13 @@ async function buildPublicContext(): Promise<string> {
     const cat = (p as { categories?: { name?: string } | null }).categories?.name ?? "General";
     const brand = (p as { brands?: { name?: string } | null }).brands?.name ?? "";
     const avail = (p.stock ?? 0) > 0 ? "disponible" : "bajo pedido";
-    return `- ${p.name}${brand ? ` (${brand})` : ""} — ${cat} — ${cop(p.price_cop)} — ${avail} — /tienda/${p.slug}${p.short ? `\n  ${p.short}` : ""}`;
+    const activeVariants = parseVariants(p.variants)
+      .filter((v) => v.is_active !== false && v.name.trim())
+      .map((v) => v.name.trim());
+    const variantSuffix = activeVariants.length
+      ? ` — Colores/opciones: ${activeVariants.join(", ")}`
+      : "";
+    return `- ${p.name}${brand ? ` (${brand})` : ""} — ${cat} — ${cop(p.price_cop)} — ${avail} — /tienda/${p.slug}${variantSuffix}${p.short ? `\n  ${p.short}` : ""}`;
   });
 
   const blocks: string[] = [];
@@ -223,7 +231,7 @@ async function buildInternalContext(): Promise<string> {
   ] = await Promise.all([
     supabaseAdmin
       .from("products")
-      .select("name, sku, price_cop, stock, active, categories(name), brands(name)")
+      .select("name, sku, price_cop, stock, active, variants, categories(name), brands(name)")
       .order("stock", { ascending: true })
       .limit(120),
     supabaseAdmin
@@ -248,7 +256,13 @@ async function buildInternalContext(): Promise<string> {
   const inventory = (products ?? []).map((p) => {
     const cat = (p as { categories?: { name?: string } | null }).categories?.name ?? "General";
     const brand = (p as { brands?: { name?: string } | null }).brands?.name ?? "";
-    return `- ${p.name}${brand ? ` (${brand})` : ""} | SKU ${p.sku ?? "—"} | ${cat} | precio ${cop(p.price_cop)} | stock ${p.stock ?? 0} | ${p.active ? "activo" : "inactivo"}`;
+    const activeVariants = parseVariants(p.variants)
+      .filter((v) => v.is_active !== false && v.name.trim())
+      .map((v) => v.name.trim());
+    const variantSuffix = activeVariants.length
+      ? ` | variantes: ${activeVariants.join(", ")}`
+      : "";
+    return `- ${p.name}${brand ? ` (${brand})` : ""} | SKU ${p.sku ?? "—"} | ${cat} | precio ${cop(p.price_cop)} | stock ${p.stock ?? 0} | ${p.active ? "activo" : "inactivo"}${variantSuffix}`;
   });
 
   const orderLines = (orders ?? []).map((o) => {
