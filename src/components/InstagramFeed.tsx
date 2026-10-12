@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Instagram, ImageIcon, X } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Instagram, ImageIcon, X, Film } from "lucide-react";
 import { siteContentQuery, getContactInfo } from "@/lib/catalog";
+import { ProductMedia, isVideoUrl } from "@/components/ProductMedia";
 
 // Fallback si aún no hay nada configurado en Panel → Contenido.
 const ENV_WIDGET_ID = import.meta.env.VITE_ELFSIGHT_INSTAGRAM_ID as string | undefined;
@@ -92,13 +94,18 @@ function useElfsightScript(enabled: boolean, widgetId: string): ScriptStatus {
   return status;
 }
 
-export type PortfolioPhoto = { id: string; url: string; is_visible: boolean };
+export type PortfolioPhoto = {
+  id: string;
+  url: string;
+  is_visible: boolean;
+  link_url?: string;
+};
 
 function makeId(url: string, i: number) {
   return `${i}-${url.slice(-24)}`;
 }
 
-/** Acepta el formato nuevo ({id,url,is_visible}) y el antiguo (lista de URLs). */
+/** Acepta el formato nuevo ({id,url,is_visible,link_url}) y el antiguo (lista de URLs). */
 export function parsePhotos(raw: string | undefined): PortfolioPhoto[] {
   if (!raw?.trim()) return [];
   const out: PortfolioPhoto[] = [];
@@ -109,10 +116,13 @@ export function parsePhotos(raw: string | undefined): PortfolioPhoto[] {
       const o = item as Record<string, unknown>;
       const url = typeof o.url === "string" ? o.url.trim() : "";
       if (!url) return;
+      const link_url =
+        typeof o.link_url === "string" && o.link_url.trim() ? o.link_url.trim() : undefined;
       out.push({
         id: typeof o.id === "string" && o.id ? o.id : makeId(url, i),
         url,
         is_visible: o.is_visible !== false,
+        ...(link_url ? { link_url } : {}),
       });
     }
   };
@@ -238,25 +248,68 @@ function ManualGallery({ photos, handle }: { photos: PortfolioPhoto[]; handle: s
 }
 
 function PhotoGallery({ photos, handle }: { photos: PortfolioPhoto[]; handle: string }) {
-  const [zoom, setZoom] = useState<string | null>(null);
+  const [zoom, setZoom] = useState<PortfolioPhoto | null>(null);
+
   return (
     <>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {photos.map(({ url: src, id }, i) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setZoom(src)}
-            className="group relative aspect-square overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
-          >
-            <img
-              src={src}
-              alt={`Proyecto de impresión 3D de Will Design 3D ${i + 1}`}
-              loading="lazy"
-              className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-            />
-          </button>
-        ))}
+        {photos.map((item, i) => {
+          const isVideo = isVideoUrl(item.url);
+          const link = item.link_url;
+          const isExternal = link && /^https?:\/\//i.test(link);
+
+          const cardContent = (
+            <div className="group relative aspect-square h-full w-full overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+              <ProductMedia
+                src={item.url}
+                alt={`Proyecto de impresión 3D de Will Design 3D ${i + 1}`}
+                className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+              />
+              {isVideo && (
+                <span className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                  <Film className="h-3 w-3" />
+                  Video
+                </span>
+              )}
+            </div>
+          );
+
+          if (link) {
+            if (isExternal) {
+              return (
+                <a
+                  key={item.id}
+                  href={link}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block focus:outline-none focus:ring-2 focus:ring-primary rounded-2xl"
+                >
+                  {cardContent}
+                </a>
+              );
+            }
+            return (
+              <Link
+                key={item.id}
+                to={link}
+                className="block focus:outline-none focus:ring-2 focus:ring-primary rounded-2xl"
+              >
+                {cardContent}
+              </Link>
+            );
+          }
+
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setZoom(item)}
+              className="block text-left focus:outline-none focus:ring-2 focus:ring-primary rounded-2xl"
+            >
+              {cardContent}
+            </button>
+          );
+        })}
       </div>
 
       {zoom && (
@@ -273,11 +326,16 @@ function PhotoGallery({ photos, handle }: { photos: PortfolioPhoto[]; handle: st
           >
             <X className="h-5 w-5" />
           </button>
-          <img
-            src={zoom}
-            alt={`Proyecto de Will Design 3D — @${handle}`}
-            className="max-h-[85vh] max-w-full rounded-2xl object-contain"
-          />
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-h-[85vh] max-w-full overflow-hidden rounded-2xl"
+          >
+            <ProductMedia
+              src={zoom.url}
+              alt={`Proyecto de Will Design 3D — @${handle}`}
+              className="max-h-[85vh] max-w-full rounded-2xl object-contain"
+            />
+          </div>
         </div>
       )}
     </>

@@ -3,10 +3,11 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Upload, Check, Eye, EyeOff } from "lucide-react";
+import { Loader2, Upload, Check, Eye, EyeOff, Film, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -14,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { sanitizeWidgetId, parsePhotos, type PortfolioPhoto } from "@/components/InstagramFeed";
 import { HomeSectionsOrder } from "@/components/HomeSectionsOrder";
 import { parseHomeOrder } from "@/lib/home-sections";
+import { ProductMedia, isVideoUrl } from "@/components/ProductMedia";
 
 export const Route = createFileRoute("/panel/contenido")({
   ssr: false,
@@ -58,7 +60,7 @@ const FIELDS: FieldDef[] = [
     { value: "manual_first", label: "Fotos manuales primero, luego Instagram" },
     { value: "instagram_first", label: "Instagram primero, luego fotos manuales" },
   ] },
-  { key: "portfolio_images", label: "Fotos de portafolio", type: "images", help: "Se muestran en la sección de portafolio del inicio y en /galeria. Ya no se ocultan al usar el widget de Instagram.", section: "Inicio", group: "Portafolio (Instagram)" },
+  { key: "portfolio_images", label: "Fotos y videos de portafolio", type: "images", help: "Se muestran en la sección de portafolio del inicio y en /galeria. Puedes subir fotos y videos cortos (hasta 50MB), reordenar, cambiar visibilidad y definir enlaces de acción.", section: "Inicio", group: "Portafolio (Instagram)" },
   { key: "elfsight_instagram_id", label: "ID del widget de Instagram (Elfsight)", type: "text", help: "Puedes pegar el ID completo ('elfsight-app-abc123'); quitamos el prefijo automáticamente.", section: "Inicio", group: "Portafolio (Instagram)" },
   { key: "about_short", label: "Descripción corta 'Nosotros'", type: "textarea", section: "Inicio", group: "Página Nosotros" },
 
@@ -140,12 +142,18 @@ function ContenidoAdmin() {
     }
   }
 
-  async function uploadToStorage(key: string, file: File) {
+  async function uploadToStorage(key: string, file: File, bucket = "site-media") {
+    if (file.size > 50 * 1024 * 1024) {
+      throw new Error(`El archivo ${file.name} supera el límite máximo de 50MB.`);
+    }
     const path = `content/${key}-${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-    const up = await supabase.storage.from("product-images").upload(path, file, { upsert: false });
+    const up = await supabase.storage.from(bucket).upload(path, file, {
+      upsert: false,
+      contentType: file.type || undefined,
+    });
     if (up.error) throw up.error;
     const signed = await supabase.storage
-      .from("product-images")
+      .from(bucket)
       .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
     if (signed.error) throw signed.error;
     return signed.data.signedUrl;
@@ -173,14 +181,14 @@ function ContenidoAdmin() {
     try {
       const added: PortfolioPhoto[] = [];
       for (const f of files) {
-        const url = await uploadToStorage(key, f);
+        const url = await uploadToStorage(key, f, "site-media");
         added.push({ id: crypto.randomUUID(), url, is_visible: true });
       }
       setValues((v) => ({
         ...v,
         [key]: JSON.stringify([...parseList(v[key]), ...added]),
       }));
-      toast.success(`${added.length} foto(s) subidas`);
+      toast.success(`${added.length} elemento(s) subido(s)`);
     } catch (e) {
       toast.error("Error al subir", { description: (e as Error).message });
     } finally {
@@ -191,6 +199,28 @@ function ContenidoAdmin() {
   function removeImageAt(key: string, index: number) {
     setValues((v) => {
       const list = parseList(v[key]).filter((_, i) => i !== index);
+      return { ...v, [key]: list.length ? JSON.stringify(list) : "" };
+    });
+  }
+
+  function movePhotoAt(key: string, index: number, dir: -1 | 1) {
+    setValues((v) => {
+      const list = parseList(v[key]);
+      const target = index + dir;
+      if (target < 0 || target >= list.length) return v;
+      const next = [...list];
+      const temp = next[index];
+      next[index] = next[target];
+      next[target] = temp;
+      return { ...v, [key]: JSON.stringify(next) };
+    });
+  }
+
+  function updatePhotoLinkAt(key: string, index: number, link_url: string) {
+    setValues((v) => {
+      const list = parseList(v[key]).map((p, i) =>
+        i === index ? { ...p, link_url: link_url ? link_url : undefined } : p,
+      );
       return { ...v, [key]: list.length ? JSON.stringify(list) : "" };
     });
   }
@@ -320,51 +350,109 @@ function ContenidoAdmin() {
 
         {f.type === "images" && (
           <div>
-            <div className="flex flex-wrap gap-3">
-              {parseList(values[f.key]).map((photo, idx) => (
-                <div key={photo.id} className="relative">
-                  <img
-                    src={photo.url}
-                    alt=""
-                    className={`h-20 w-20 rounded-xl object-cover ${photo.is_visible ? "" : "opacity-50"}`}
-                  />
-                  {!photo.is_visible && (
-                    <span className="absolute bottom-1 left-1 rounded-md bg-foreground/80 px-1.5 py-0.5 text-[10px] font-bold text-background">
-                      Oculto
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => togglePhotoAt(f.key, idx)}
-                    aria-label={photo.is_visible ? "Ocultar foto" : "Mostrar foto"}
-                    title={photo.is_visible ? "Ocultar foto" : "Mostrar foto"}
-                    className="absolute -left-2 -top-2 rounded-full border border-border bg-card p-1 shadow"
-                  >
-                    {photo.is_visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => removeImageAt(f.key, idx)}
-                    aria-label="Quitar foto"
-                    className="absolute -right-2 -top-2 rounded-full border border-border bg-card px-2 text-xs font-bold shadow"
-                  >
-                    ×
-                  </button>
+            <div className="space-y-3">
+              {parseList(values[f.key]).map((photo, idx, arr) => (
+                <div
+                  key={photo.id}
+                  className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm sm:flex-row sm:items-center"
+                >
+                  <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-border bg-muted">
+                    <ProductMedia
+                      src={photo.url}
+                      thumb={true}
+                      className={`h-full w-full object-cover ${photo.is_visible ? "" : "opacity-40"}`}
+                    />
+                    {isVideoUrl(photo.url) && (
+                      <span className="absolute bottom-1 right-1 flex items-center gap-0.5 rounded-md bg-black/70 px-1 py-0.5 text-[10px] font-bold text-white">
+                        <Film className="h-3 w-3" />
+                      </span>
+                    )}
+                    {!photo.is_visible && (
+                      <span className="absolute top-1 left-1 rounded-md bg-foreground/80 px-1 py-0.5 text-[9px] font-bold text-background">
+                        Oculto
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="w-full flex-1 space-y-1">
+                    <Label className="text-xs text-muted-foreground">
+                      Enlace de acción (opcional)
+                    </Label>
+                    <Input
+                      type="text"
+                      placeholder="Ej: /tienda/lampara-luna o https://..."
+                      className="h-9 text-xs"
+                      value={photo.link_url ?? ""}
+                      onChange={(e) => updatePhotoLinkAt(f.key, idx, e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2 self-end sm:self-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => togglePhotoAt(f.key, idx)}
+                      aria-label={photo.is_visible ? "Ocultar elemento" : "Mostrar elemento"}
+                      title={photo.is_visible ? "Ocultar elemento" : "Mostrar elemento"}
+                    >
+                      {photo.is_visible ? (
+                        <Eye className="h-4 w-4" />
+                      ) : (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => movePhotoAt(f.key, idx, -1)}
+                      disabled={idx === 0}
+                      aria-label="Mover arriba"
+                      title="Mover arriba"
+                    >
+                      <ArrowUp className="h-4 w-4" />
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => movePhotoAt(f.key, idx, 1)}
+                      disabled={idx === arr.length - 1}
+                      aria-label="Mover abajo"
+                      title="Mover abajo"
+                    >
+                      <ArrowDown className="h-4 w-4" />
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => removeImageAt(f.key, idx)}
+                      aria-label="Eliminar elemento"
+                      title="Eliminar elemento"
+                    >
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                    </Button>
+                  </div>
                 </div>
               ))}
               {parseList(values[f.key]).length === 0 && (
-                <div className="grid h-20 w-20 place-items-center rounded-xl bg-muted text-xs text-muted-foreground">
-                  Vacío
+                <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                  No hay fotos ni videos subidos en el portafolio.
                 </div>
               )}
             </div>
             <Button asChild variant="outline" size="sm" type="button" className="mt-3">
               <label className="cursor-pointer">
                 <Upload className="mr-2 h-4 w-4" />
-                {uploadingKey === f.key ? "Subiendo…" : "Subir fotos"}
+                {uploadingKey === f.key ? "Subiendo…" : "Subir fotos o videos"}
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,video/*,video/mp4,video/webm,video/quicktime"
                   multiple
                   className="hidden"
                   onChange={(e) => {
