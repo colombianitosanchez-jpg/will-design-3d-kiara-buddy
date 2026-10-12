@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Filter, Loader2, MessageCircle, PackageSearch, X } from "lucide-react";
 import {
@@ -22,7 +22,6 @@ import {
   serializeAttrParam,
   prettySlug,
   slugify,
-  matchesSearch,
   type AttrFilter,
   type Product,
 } from "@/lib/catalog";
@@ -71,22 +70,30 @@ function TiendaPage() {
   const { categoria, marca, atributo } = Route.useSearch();
   const navigate = useNavigate({ from: "/tienda/" });
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [query]);
 
   const categories = useMemo(() => allCategories.filter((c) => c.is_active), [allCategories]);
   const tree = useMemo(() => buildCategoryTree(categories), [categories]);
   const rootCategories = tree;
 
   const filter = useMemo(() => resolveStoreFilter(categoria, categories), [categoria, categories]);
-  const brandSlug = marca ? slugify(marca) : null;
+  const brandSlug = useMemo(() => (marca ? slugify(marca) : null), [marca]);
   const attrs = useMemo(() => parseAttrParam(atributo), [atributo]);
 
   const filtered = useMemo(
-    () => filterProducts(products, { filter, brandSlug, attrs, query }),
-    [products, filter, brandSlug, attrs, query],
+    () => filterProducts(products, { filter, brandSlug, attrs, query: debouncedQuery }),
+    [products, filter, brandSlug, attrs, debouncedQuery],
   );
 
   const displayItems = useMemo(() => {
-    const q = query.trim();
+    const q = debouncedQuery.trim();
     if (!q) {
       return filtered.map((p) => ({ product: p, variant: null as ProductVariant | null, key: p.id }));
     }
@@ -102,7 +109,7 @@ function TiendaPage() {
       }
     }
     return items;
-  }, [filtered, query]);
+  }, [filtered, debouncedQuery]);
 
   /** Subcategorías directas de la categoría activa, para navegar la rama. */
   const activeNode = useMemo(
@@ -134,26 +141,40 @@ function TiendaPage() {
     return scoped.length ? scoped : [];
   }, [attributes, categoryAttributes, categories, filter.categorySlug]);
 
-  /** Conteo real por opción, respetando los otros filtros activos. */
-  function countFor(attributeSlug: string, valueSlug: string) {
-    const others = attrs.filter((f) => f.attribute !== attributeSlug);
-    return filterProducts(products, {
-      filter,
-      brandSlug,
-      attrs: [...others, { attribute: attributeSlug, value: valueSlug }],
-      query,
-    }).length;
-  }
+  /** Conteo real por opción, calculado de forma eficiente en un map memoizado. */
+  const attrCountsMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const a of visibleAttributes) {
+      const others = attrs.filter((f) => f.attribute !== a.slug);
+      for (const v of a.values) {
+        const count = filterProducts(products, {
+          filter,
+          brandSlug,
+          attrs: [...others, { attribute: a.slug, value: v.slug }],
+          query: debouncedQuery,
+        }).length;
+        map.set(`${a.slug}:${v.slug}`, count);
+      }
+    }
+    return map;
+  }, [products, filter, brandSlug, attrs, visibleAttributes, debouncedQuery]);
+
+  const countFor = useCallback(
+    (attributeSlug: string, valueSlug: string) => {
+      return attrCountsMap.get(`${attributeSlug}:${valueSlug}`) ?? 0;
+    },
+    [attrCountsMap],
+  );
 
   const brandCounts = useMemo(() => {
-    const base = filterProducts(products, { filter, attrs, query });
+    const base = filterProducts(products, { filter, attrs, query: debouncedQuery });
     const map = new Map<string, number>();
     base.forEach((p) => {
       const s = brandSlugOf(p.brand);
       if (s) map.set(s, (map.get(s) ?? 0) + 1);
     });
     return map;
-  }, [products, filter, attrs, query]);
+  }, [products, filter, attrs, debouncedQuery]);
 
   const catLabel =
     (filter.categorySlug ? categoryPath(filter.categorySlug, categories) : null) ??
@@ -179,27 +200,36 @@ function TiendaPage() {
       .join(" / ")}`,
   );
 
-  const setCat = (slug: string | null) =>
-    navigate({ search: { categoria: slug ?? undefined, marca: undefined, atributo: undefined } });
+  const setCat = useCallback(
+    (slug: string | null) =>
+      navigate({ search: { categoria: slug ?? undefined, marca: undefined, atributo: undefined } }),
+    [navigate],
+  );
 
-  const setBrand = (slug: string | null) =>
-    navigate({
-      search: { categoria: categoria ?? undefined, marca: slug ?? undefined, atributo: atributo ?? undefined },
-    });
+  const setBrand = useCallback(
+    (slug: string | null) =>
+      navigate({
+        search: { categoria: categoria ?? undefined, marca: slug ?? undefined, atributo: atributo ?? undefined },
+      }),
+    [navigate, categoria, atributo],
+  );
 
-  const toggleAttr = (f: AttrFilter) => {
-    const exists = attrs.some((x) => x.attribute === f.attribute && x.value === f.value);
-    const next = exists
-      ? attrs.filter((x) => !(x.attribute === f.attribute && x.value === f.value))
-      : [...attrs.filter((x) => x.attribute !== f.attribute), f];
-    navigate({
-      search: {
-        categoria: categoria ?? undefined,
-        marca: marca ?? undefined,
-        atributo: serializeAttrParam(next),
-      },
-    });
-  };
+  const toggleAttr = useCallback(
+    (f: AttrFilter) => {
+      const exists = attrs.some((x) => x.attribute === f.attribute && x.value === f.value);
+      const next = exists
+        ? attrs.filter((x) => !(x.attribute === f.attribute && x.value === f.value))
+        : [...attrs.filter((x) => x.attribute !== f.attribute), f];
+      navigate({
+        search: {
+          categoria: categoria ?? undefined,
+          marca: marca ?? undefined,
+          atributo: serializeAttrParam(next),
+        },
+      });
+    },
+    [attrs, navigate, categoria, marca],
+  );
 
   return (
     <>
