@@ -97,31 +97,37 @@ const PRODUCT_SELECT =
   "attribute_links:product_attribute_values(text_value,attribute:attributes(slug,name),value:attribute_values(slug,label,color_hex))";
 
 
-function normalize(row: any): Product {
+function normalize(row: Record<string, unknown>): Product {
   let specs: ProductSpec[] = [];
   try {
-    if (Array.isArray(row.specs)) specs = row.specs;
+    if (Array.isArray(row.specs)) specs = row.specs as ProductSpec[];
     else if (typeof row.specs === "string") specs = JSON.parse(row.specs);
   } catch {
     specs = [];
   }
   let images: string[] = [];
   try {
-    if (Array.isArray(row.images)) images = row.images.filter((x: unknown) => typeof x === "string");
+    if (Array.isArray(row.images)) images = row.images.filter((x: unknown): x is string => typeof x === "string");
     else if (typeof row.images === "string") images = JSON.parse(row.images);
   } catch {
     images = [];
   }
-  const attributes: ProductAttribute[] = (row.attribute_links ?? [])
-    .filter((l: any) => l?.attribute)
-    .map((l: any) => ({
-      attribute_slug: l.attribute.slug,
-      attribute_name: l.attribute.name,
-      value_slug: l.value?.slug ?? null,
-      value_label: l.value?.label ?? l.text_value ?? "",
-      color_hex: l.value?.color_hex ?? null,
-    }))
+  const rawLinks = Array.isArray(row.attribute_links) ? row.attribute_links : [];
+  const attributes: ProductAttribute[] = rawLinks
+    .filter((l): l is Record<string, unknown> => !!l && typeof l === "object" && !!(l as Record<string, unknown>).attribute)
+    .map((l) => {
+      const attr = l.attribute as Record<string, unknown>;
+      const val = l.value as Record<string, unknown> | null;
+      return {
+        attribute_slug: typeof attr.slug === "string" ? attr.slug : "",
+        attribute_name: typeof attr.name === "string" ? attr.name : "",
+        value_slug: val && typeof val.slug === "string" ? val.slug : null,
+        value_label: val && typeof val.label === "string" ? val.label : typeof l.text_value === "string" ? l.text_value : "",
+        color_hex: val && typeof val.color_hex === "string" ? val.color_hex : null,
+      };
+    })
     .filter((a: ProductAttribute) => a.value_label);
+
   const { attribute_links: _drop, ...rest } = row;
   return {
     ...rest,
@@ -131,12 +137,11 @@ function normalize(row: any): Product {
     hide_default_cta: !!row.hide_default_cta,
     accepts_3d_file: !!row.accepts_3d_file,
     quote_only: !!row.quote_only,
-    custom_share_text: row.custom_share_text ?? null,
+    custom_share_text: typeof row.custom_share_text === "string" ? row.custom_share_text : null,
     custom_buttons: parseProductButtons(row.custom_buttons),
     variants: parseVariants(row.variants).filter((v) => v.is_active),
-    variant_label: row.variant_label || "Color",
+    variant_label: typeof row.variant_label === "string" && row.variant_label ? row.variant_label : "Color",
   } as Product;
-
 }
 
 export async function fetchProducts(): Promise<Product[]> {
@@ -465,17 +470,26 @@ export function filterProducts(
     const okCat = !filter.categorySlug || (p.category?.slug ? branch.has(p.category.slug) : false);
     const okBrand = !brandSlug || brandSlugOf(p.brand) === brandSlug;
     const okAttrs = productMatchesAttrs(p, attrs);
+
+    const specsText = p.specs ? p.specs.map((s) => `${s.label} ${s.value}`).join(" ") : "";
+    const attrsText = p.attributes ? p.attributes.map((a) => a.value_label).join(" ") : "";
+    const variantsText = p.variants
+      ? p.variants.map((v) => `${v.name} ${v.sku ?? ""}`).join(" ")
+      : "";
+
     const haystack = [
       p.name,
       p.sku ?? "",
       p.brand?.name ?? "",
       p.category?.name ?? "",
-      p.short,
-      p.description,
-      p.slug,
-      p.attributes.map((a) => a.value_label).join(" "),
-      p.variants.map((v) => `${v.name} ${(v as any).sku ?? ""}`).join(" "),
+      p.short ?? "",
+      p.description ?? "",
+      p.slug ?? "",
+      attrsText,
+      specsText,
+      variantsText,
     ].join(" ");
+
     const okQ = matchesSearch(haystack, trimmedQuery);
     return okCat && okBrand && okAttrs && okQ;
   });
@@ -495,51 +509,47 @@ export function filterProducts(
     const prodBrand = normalizeText(p.brand?.name ?? "");
     const prodCat = normalizeText(p.category?.name ?? "");
     const prodSku = normalizeText(p.sku ?? "");
-    const attrText = normalizeText(p.attributes.map((a) => a.value_label).join(" "));
+    const attrText = normalizeText(p.attributes ? p.attributes.map((a) => a.value_label).join(" ") : "");
+    const specText = normalizeText(p.specs ? p.specs.map((s) => `${s.label} ${s.value}`).join(" ") : "");
 
     if (prodName === normQ) {
-      score += 1000;
+      score += 2000;
     } else if (prodName.startsWith(normQ)) {
-      score += 500;
+      score += 1000;
     } else if (prodName.includes(normQ)) {
-      score += 300;
+      score += 500;
     }
 
     for (const term of terms) {
-      if (prodName.includes(term)) {
-        score += 100;
-      }
+      if (prodName.includes(term)) score += 200;
     }
 
     for (const v of p.variants) {
       const vName = normalizeText(v.name);
-      const vSku = normalizeText((v as any).sku ?? "");
+      const vSku = normalizeText(v.sku ?? "");
 
       if (vName === normQ) {
-        score += 400;
+        score += 800;
       } else if (vName.startsWith(normQ)) {
-        score += 200;
+        score += 400;
       } else if (vName.includes(normQ)) {
-        score += 100;
+        score += 200;
       }
 
       for (const term of terms) {
-        if (vName.includes(term)) {
-          score += 50;
-        }
-        if (vSku.includes(term)) {
-          score += 40;
-        }
+        if (vName.includes(term)) score += 100;
+        if (vSku.includes(term)) score += 80;
       }
     }
 
     for (const term of terms) {
-      if (prodSku.includes(term)) score += 80;
-      if (prodBrand.includes(term)) score += 40;
-      if (prodCat.includes(term)) score += 30;
-      if (attrText.includes(term)) score += 20;
-      if (prodShort.includes(term)) score += 10;
-      if (prodDesc.includes(term)) score += 5;
+      if (prodSku.includes(term)) score += 150;
+      if (prodBrand.includes(term)) score += 80;
+      if (prodCat.includes(term)) score += 60;
+      if (attrText.includes(term)) score += 40;
+      if (specText.includes(term)) score += 30;
+      if (prodShort.includes(term)) score += 20;
+      if (prodDesc.includes(term)) score += 10;
     }
 
     return { product: p, score };

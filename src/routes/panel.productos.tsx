@@ -182,17 +182,17 @@ function ProductosAdmin() {
       supabase.from("product_attribute_values").select("product_id,attribute_id,attribute_value_id"),
     ]);
     setProducts(
-      ((p.data as any[]) ?? []).map((r) => ({
+      ((p.data as Record<string, unknown>[]) ?? []).map((r) => ({
         ...r,
         images: Array.isArray(r.images) ? r.images : [],
         specs: Array.isArray(r.specs) ? r.specs : [],
         hide_default_cta: !!r.hide_default_cta,
         accepts_3d_file: !!r.accepts_3d_file,
         quote_only: !!r.quote_only,
-        custom_share_text: r.custom_share_text ?? null,
+        custom_share_text: typeof r.custom_share_text === "string" ? r.custom_share_text : null,
         custom_buttons: parseProductButtons(r.custom_buttons),
         variants: parseVariants(r.variants),
-        variant_label: r.variant_label || "Color",
+        variant_label: typeof r.variant_label === "string" && r.variant_label ? r.variant_label : "Color",
         allowed_payment_method_ids: normalizeMethodIds(r.allowed_payment_method_ids),
       })) as Product[],
     );
@@ -595,7 +595,7 @@ function ProductModal({
         active: form.active ?? true,
         stock: Number(form.stock) || 0,
         variant_label: form.variant_label?.trim() || "Color",
-        variants: (form.variants ?? []).map((v) => ({ ...v, name: v.name.trim() })) as any,
+        variants: (form.variants ?? []).map((v) => ({ ...v, name: v.name.trim() })),
         allowed_payment_method_ids: form.allowed_payment_method_ids ?? [],
       };
       const problem =
