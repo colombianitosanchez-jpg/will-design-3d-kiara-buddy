@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Upload, Save, Eye, EyeOff } from "lucide-react";
+import { Loader2, Upload, Check, Eye, EyeOff } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { sanitizeWidgetId, parsePhotos, type PortfolioPhoto } from "@/components/InstagramFeed";
+import { HomeSectionsOrder } from "@/components/HomeSectionsOrder";
+import { parseHomeOrder } from "@/lib/home-sections";
 
 export const Route = createFileRoute("/panel/contenido")({
   ssr: false,
@@ -23,7 +25,7 @@ type Row = { key: string; value: string };
 type FieldDef = {
   key: string;
   label: string;
-  type: "text" | "textarea" | "image" | "images" | "switch" | "select";
+  type: "text" | "textarea" | "image" | "images" | "switch" | "select" | "order";
   help?: string;
   section: string;
   group: string;
@@ -49,6 +51,7 @@ const FIELDS: FieldDef[] = [
   { key: "hero_stat_2_v", label: "Estadística 2 · descripción", type: "text", section: "Inicio", group: "Estadísticas" },
   { key: "hero_stat_3_k", label: "Estadística 3 · valor", type: "text", section: "Inicio", group: "Estadísticas" },
   { key: "hero_stat_3_v", label: "Estadística 3 · descripción", type: "text", section: "Inicio", group: "Estadísticas" },
+  { key: "home_sections_order", label: "Orden de las secciones del inicio", type: "order", help: "Arrastra para decidir qué aparece primero al entrar a la página.", section: "Inicio", group: "Orden de la página" },
   { key: "show_manual_gallery", label: "Mostrar sección de Portafolio Manual (Piezas que hemos impreso)", type: "switch", help: "Se muestra si está activo y hay al menos una foto subida.", section: "Inicio", group: "Portafolio (Instagram)" },
   { key: "show_instagram_widget", label: "Mostrar sección de Instagram en vivo", type: "switch", help: "Se muestra si está activo y el ID del widget es válido.", section: "Inicio", group: "Portafolio (Instagram)" },
   { key: "portfolio_display_order", label: "Orden de visualización", type: "select", help: "Decide qué sección del portafolio aparece primero en la página.", section: "Inicio", group: "Portafolio (Instagram)", options: [
@@ -104,20 +107,32 @@ function ContenidoAdmin() {
     load();
   }, []);
 
-  async function save() {
+  // Guardado automático: espera a que el usuario deje de escribir y guarda solo lo cambiado.
+  const lastSaved = useRef<Record<string, string> | null>(null);
+  useEffect(() => {
+    if (loading) return;
+    if (!lastSaved.current) {
+      lastSaved.current = values;
+      return;
+    }
+    const changed = FIELDS.filter((f) => (values[f.key] ?? "") !== (lastSaved.current?.[f.key] ?? ""));
+    if (!changed.length) return;
+    const timer = setTimeout(() => save(changed, values), 800);
+    return () => clearTimeout(timer);
+  }, [values, loading]);
+
+  async function save(fields: FieldDef[], snapshot: Record<string, string>) {
     setSaving(true);
     try {
-      const rows = FIELDS.map((f) => ({
+      const rows = fields.map((f) => ({
         key: f.key,
-        value: values[f.key] ?? "",
+        value: snapshot[f.key] ?? "",
         section: f.section,
       }));
       const { error } = await supabase.from("site_content").upsert(rows, { onConflict: "key" });
       if (error) throw error;
+      lastSaved.current = { ...lastSaved.current, ...Object.fromEntries(rows.map((r) => [r.key, r.value])) };
       await queryClient.invalidateQueries({ queryKey: ["site_content"] });
-      toast.success("Cambios guardados", {
-        description: "La web pública se actualiza en unos segundos.",
-      });
     } catch (e) {
       toast.error("No pudimos guardar", { description: (e as Error).message });
     } finally {
@@ -196,6 +211,18 @@ function ContenidoAdmin() {
   }
 
   function renderField(f: FieldDef) {
+    if (f.type === "order") {
+      return (
+        <div key={f.key} className="space-y-2">
+          <Label className="text-sm font-bold">{f.label}</Label>
+          {f.help && <p className="text-xs text-muted-foreground">{f.help}</p>}
+          <HomeSectionsOrder
+            value={parseHomeOrder(values[f.key])}
+            onChange={(next) => setValues((v) => ({ ...v, [f.key]: JSON.stringify(next) }))}
+          />
+        </div>
+      );
+    }
     if (f.type === "switch") {
       return (
         <div
@@ -368,13 +395,13 @@ function ContenidoAdmin() {
         <div>
           <h1 className="text-2xl font-black">Contenido del sitio</h1>
           <p className="text-sm text-muted-foreground">
-            Edita todos los textos e imágenes públicos sin tocar código.
+            Cada cambio se guarda solo, sin tocar código.
           </p>
         </div>
-        <Button onClick={save} disabled={saving} size="lg">
-          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-          {saving ? "Guardando…" : "Guardar cambios"}
-        </Button>
+        <span className="inline-flex items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+          {saving ? "Guardando…" : "Guardado automático"}
+        </span>
       </div>
 
       <Tabs defaultValue={SECTIONS[0]}>
