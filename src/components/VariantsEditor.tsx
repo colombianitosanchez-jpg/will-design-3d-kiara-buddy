@@ -1,5 +1,5 @@
 import { ProductMedia } from "@/components/ProductMedia";
-import { useEffect, useState, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useState, type ReactNode } from "react";
 import { ChevronDown, ChevronUp, GripVertical, Plus, Trash2 } from "lucide-react";
 import {
   DndContext,
@@ -30,7 +30,7 @@ const inputCls =
   "mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring";
 
 /** Tarjeta de variante arrastrable desde su tirador. */
-function SortableVariant({ id, dimmed, children }: { id: string; dimmed: boolean; children: ReactNode }) {
+const SortableVariant = memo(function SortableVariant({ id, dimmed, children }: { id: string; dimmed: boolean; children: ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   return (
     <div
@@ -52,7 +52,7 @@ function SortableVariant({ id, dimmed, children }: { id: string; dimmed: boolean
       {children}
     </div>
   );
-}
+});
 
 export function VariantsEditor({
   label,
@@ -99,12 +99,19 @@ export function VariantsEditor({
     };
   }, [targetVariantId]);
 
-  const update = (i: number, patch: Partial<ProductVariant>) =>
-    onChange(variants.map((v, idx) => (idx === i ? { ...v, ...patch } : v)));
-  const setImages = (i: number, images: string[]) => {
-    const uniq = Array.from(new Set(images.filter(Boolean)));
-    update(i, { images: uniq, image_url: uniq[0] ?? null });
-  };
+  const update = useCallback(
+    (i: number, patch: Partial<ProductVariant>) =>
+      onChange(variants.map((v, idx) => (idx === i ? { ...v, ...patch } : v))),
+    [onChange, variants],
+  );
+
+  const setImages = useCallback(
+    (i: number, images: string[]) => {
+      const uniq = Array.from(new Set(images.filter(Boolean)));
+      update(i, { images: uniq, image_url: uniq[0] ?? null });
+    },
+    [update],
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),

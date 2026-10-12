@@ -56,6 +56,10 @@ function useElfsightScript(enabled: boolean, widgetId: string): ScriptStatus {
       retrigger();
     };
 
+    const markError = () => {
+      if (!cancelled) setStatus("error");
+    };
+
     const existing = document.querySelector<HTMLScriptElement>('script[data-elfsight="1"]');
     let script: HTMLScriptElement;
 
@@ -65,7 +69,7 @@ function useElfsightScript(enabled: boolean, widgetId: string): ScriptStatus {
         markReady();
       } else {
         script.addEventListener("load", markReady);
-        script.addEventListener("error", () => !cancelled && setStatus("error"));
+        script.addEventListener("error", markError);
       }
     } else {
       script = document.createElement("script");
@@ -73,7 +77,7 @@ function useElfsightScript(enabled: boolean, widgetId: string): ScriptStatus {
       script.defer = true;
       script.dataset.elfsight = "1";
       script.addEventListener("load", markReady);
-      script.addEventListener("error", () => !cancelled && setStatus("error"));
+      script.addEventListener("error", markError);
       document.body.appendChild(script);
     }
 
@@ -88,6 +92,7 @@ function useElfsightScript(enabled: boolean, widgetId: string): ScriptStatus {
       window.clearTimeout(retryTimer);
       window.clearTimeout(failTimer);
       script.removeEventListener("load", markReady);
+      script.removeEventListener("error", markError);
     };
   }, [enabled, widgetId]);
 

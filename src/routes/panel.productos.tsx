@@ -7,7 +7,6 @@ import { Plus, Pencil, Trash2, Loader2, X, Search } from "lucide-react";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { ImageDropzone } from "@/components/ImageDropzone";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { VariantsEditor } from "@/components/VariantsEditor";
 import { PaymentMethodsPicker } from "@/components/PaymentMethodsPicker";
 import { normalizeMethodIds } from "@/lib/payment-rules";
@@ -15,15 +14,6 @@ import { ProductButtonsEditor } from "@/components/ProductButtonsEditor";
 import { getMatchingVariants, parseVariants, validateVariants, type ProductVariant } from "@/lib/product-variants";
 
 import {
-  ACTION_LABELS,
-  BUTTON_ACTIONS,
-  BUTTON_POSITIONS,
-  BUTTON_VARIANTS,
-  BUTTON_WIDTHS,
-  POSITION_LABELS,
-  VARIANT_LABELS,
-  WIDTH_LABELS,
-  newProductButton,
   parseProductButtons,
   validateProductButtons,
   type ProductButton,
@@ -130,12 +120,20 @@ function ProductosAdmin() {
   const [targetVariantId, setTargetVariantId] = useState<string | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const scrollPosRef = useRef<number>(0);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   const visibleProducts = useMemo(() => {
-    const q = search.trim();
+    const q = debouncedSearch.trim();
     const normQ = q ? normalizeText(q) : "";
 
     return products.filter((p) => {
@@ -158,7 +156,7 @@ function ProductosAdmin() {
 
       return true;
     });
-  }, [products, search, selectedCategory, selectedStatus]);
+  }, [products, debouncedSearch, selectedCategory, selectedStatus]);
 
   async function load(isBackground = false) {
     if (!isBackground) setLoading(true);

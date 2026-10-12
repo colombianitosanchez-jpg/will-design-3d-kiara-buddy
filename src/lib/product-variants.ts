@@ -88,11 +88,20 @@ export function effectiveButtons(parent: ProductButton[], variant?: ProductVaria
 }
 
 /** Normaliza texto: minúsculas y sin acentos, para búsquedas tolerantes. */
+const normCache = new Map<string, string>();
+const NORM_CACHE_MAX = 1000;
+
 export function normalizeText(value: string): string {
-  return (value ?? "")
+  if (!value) return "";
+  let res = normCache.get(value);
+  if (res !== undefined) return res;
+  res = value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
+  if (normCache.size > NORM_CACHE_MAX) normCache.clear();
+  normCache.set(value, res);
+  return res;
 }
 
 export type ParentProductContext = {
