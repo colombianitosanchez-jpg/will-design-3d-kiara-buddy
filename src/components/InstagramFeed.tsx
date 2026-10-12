@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Instagram, ImageIcon, X, Film } from "lucide-react";
+import { Instagram, ImageIcon, X, Film, Maximize2, ExternalLink } from "lucide-react";
 import { siteContentQuery, getContactInfo } from "@/lib/catalog";
 import { ProductMedia, isVideoUrl } from "@/components/ProductMedia";
 
@@ -258,6 +258,22 @@ function PhotoGallery({ photos, handle }: { photos: PortfolioPhoto[]; handle: st
           const link = item.link_url;
           const isExternal = link && /^https?:\/\//i.test(link);
 
+          const zoomButton = link ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setZoom(item);
+              }}
+              title="Ver en grande"
+              aria-label="Ver en grande"
+              className="absolute top-2 right-2 z-10 backdrop-blur-md bg-black/60 text-white hover:bg-black/80 rounded-full p-2 shadow-lg transition-transform hover:scale-110"
+            >
+              <Maximize2 className="h-4 w-4" />
+            </button>
+          ) : null;
+
           const cardContent = (
             <div className="group relative aspect-square h-full w-full overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
               <ProductMedia
@@ -271,6 +287,7 @@ function PhotoGallery({ photos, handle }: { photos: PortfolioPhoto[]; handle: st
                   Video
                 </span>
               )}
+              {zoomButton}
             </div>
           );
 
@@ -328,13 +345,37 @@ function PhotoGallery({ photos, handle }: { photos: PortfolioPhoto[]; handle: st
           </button>
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative max-h-[85vh] max-w-full overflow-hidden rounded-2xl"
+            className="relative max-h-[85vh] max-w-full overflow-hidden rounded-2xl bg-card p-3 shadow-2xl flex flex-col items-center"
           >
             <ProductMedia
               src={zoom.url}
               alt={`Proyecto de Will Design 3D — @${handle}`}
-              className="max-h-[85vh] max-w-full rounded-2xl object-contain"
+              className="max-h-[75vh] max-w-full rounded-xl object-contain"
             />
+            {zoom.link_url && (
+              <div className="mt-3 flex justify-center pb-1">
+                {/^https?:\/\//i.test(zoom.link_url) ? (
+                  <a
+                    href={zoom.link_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-primary text-xs py-2 px-4 inline-flex items-center gap-1.5"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Visitar enlace
+                  </a>
+                ) : (
+                  <Link
+                    to={zoom.link_url}
+                    onClick={() => setZoom(null)}
+                    className="btn-primary text-xs py-2 px-4 inline-flex items-center gap-1.5"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Visitar enlace
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

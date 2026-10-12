@@ -465,12 +465,13 @@ export function filterProducts(
     const okAttrs = productMatchesAttrs(p, attrs);
     const haystack = [
       p.name,
+      p.sku ?? "",
       p.brand?.name ?? "",
       p.category?.name ?? "",
       p.short,
       p.slug,
       p.attributes.map((a) => a.value_label).join(" "),
-      p.variants.map((v) => v.name).join(" "),
+      p.variants.map((v) => `${v.name} ${(v as any).sku ?? ""}`).join(" "),
     ].join(" ");
     const okQ = matchesSearch(haystack, query);
     return okCat && okBrand && okAttrs && okQ;
