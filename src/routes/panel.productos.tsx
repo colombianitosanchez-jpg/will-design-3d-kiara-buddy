@@ -127,6 +127,7 @@ function ProductosAdmin() {
   const [attrRows, setAttrRows] = useState<ProductAttrRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Product> | null>(null);
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const scrollPosRef = useRef<number>(0);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -161,24 +162,8 @@ function ProductosAdmin() {
     });
   }, [products, brands, categories, search, selectedCategory, selectedStatus]);
 
- kiara-variant-support-9653472826990086035
-  function getMatchingVariant(product: Product, query: string): ProductVariant | null {
-    const q = query.trim();
-    if (!q) return null;
-    return product.variants.find((v) => matchesSearch(`${v.name} ${(v as any).sku ?? ""}`, q)) ?? null;
-  }
-
-  function getMatchingVariantName(product: Product, query: string): string | null {
-    const matched = getMatchingVariant(product, query);
-    return matched ? matched.name : null;
-  }
-
-  async function load() {
-    setLoading(true);
-
   async function load(isBackground = false) {
     if (!isBackground) setLoading(true);
- main
     const [p, c, b, a, ca, pav] = await Promise.all([
       supabase.from("products").select("*").order("created_at", { ascending: false }),
       supabase
@@ -220,11 +205,13 @@ function ProductosAdmin() {
 
   function handleEditProduct(product: Product) {
     setEditing(product);
+    setHighlightedId(product.id);
     setTimeout(() => {
       const el = document.getElementById(`product-row-${product.id}`);
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "center" });
       }
+      setTimeout(() => setHighlightedId(null), 2500);
     }, 50);
   }
 
@@ -331,22 +318,22 @@ function ProductosAdmin() {
                     ? (categoryPath(categories.find((c) => c.id === p.category_id)?.slug, categories) || "—")
                     : "—";
                   const br = brands.find((b) => b.id === p.brand_id)?.name ?? "—";
-                  const matchingVar = search.trim() ? getMatchingVariant(p, search) : null;
-                  const displayImage = matchingVar?.image_url || matchingVar?.images?.[0] || p.image_url;
-
                   const matchedVar = getMatchingVariant(p.variants, search);
                   const displayImageUrl = matchedVar?.image_url ?? p.image_url;
 
                   return (
-                    <tr id={`product-row-${p.id}`} key={p.id} className="border-t border-border">
+                    <tr
+                      id={`product-row-${p.id}`}
+                      key={p.id}
+                      className={`border-t border-border transition-all duration-500 ${
+                        highlightedId === p.id
+                          ? "bg-amber-500/10 ring-2 ring-[var(--brand-orange)] dark:bg-amber-500/20"
+                          : ""
+                      }`}
+                    >
                       <td className="px-4 py-3">
- kiara-variant-support-9653472826990086035
-                        {displayImage ? (
-                          <ProductMedia thumb src={displayImage} className="h-12 w-12 rounded-lg object-cover" />
-
                         {displayImageUrl ? (
                           <ProductMedia thumb src={displayImageUrl} className="h-12 w-12 rounded-lg object-cover" />
-main
                         ) : (
                           <div className="h-12 w-12 rounded-lg bg-muted" />
                         )}
@@ -374,14 +361,7 @@ main
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button
- kiara-variant-support-9653472826990086035
-                          onClick={() => {
-                            scrollPosRef.current = window.scrollY;
-                            setEditing(p);
-                          }}
-
                           onClick={() => handleEditProduct(p)}
- main
                           className="mr-2 inline-flex items-center gap-1 rounded-lg bg-muted px-3 py-1.5 text-xs font-semibold hover:bg-muted/70"
                         >
                           <Pencil className="h-3 w-3" /> Editar
@@ -423,21 +403,8 @@ main
             window.scrollTo({ top: savedScroll });
           }}
           onSaved={async () => {
-            const savedScroll = scrollPosRef.current;
-            const targetId = editing.id;
             setEditing(null);
- kiara-variant-support-9653472826990086035
-            await load();
-            window.scrollTo({ top: savedScroll });
-            if (targetId) {
-              const rowEl = document.getElementById(`product-row-${targetId}`);
-              if (rowEl) {
-                rowEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
-              }
-            }
-
             load(true);
- main
           }}
         />
       )}
