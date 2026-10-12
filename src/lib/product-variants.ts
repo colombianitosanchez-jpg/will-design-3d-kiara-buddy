@@ -85,6 +85,40 @@ export function effectiveButtons(parent: ProductButton[], variant?: ProductVaria
   return variant?.custom_buttons ?? parent;
 }
 
+/** Normaliza texto: minúsculas y sin acentos, para búsquedas tolerantes. */
+export function normalizeText(value: string): string {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+/**
+ * Busca la primera variante que coincida con la consulta de búsqueda.
+ * Realiza coincidencia parcial no estricta (palabras clave sin acentos/mayúsculas).
+ */
+export function getMatchingVariant(
+  variants: ProductVariant[] | undefined | null,
+  query?: string | null,
+): ProductVariant | null {
+  if (!variants || variants.length === 0) return null;
+  const q = query?.trim();
+  if (!q) return null;
+
+  const terms = normalizeText(q).split(/\s+/).filter(Boolean);
+  if (terms.length === 0) return null;
+
+  for (const v of variants) {
+    const haystack = normalizeText(`${v.name} ${(v as any).sku ?? ""}`);
+    const matchesAll = terms.every((term) => haystack.includes(term));
+    if (matchesAll) {
+      return v;
+    }
+  }
+
+  return null;
+}
+
 /** Galería visible: la de la variante si tiene fotos; si no, la del producto. */
 export function variantGallery(productGallery: string[], variant?: ProductVariant | null): string[] {
   return variant && variant.images.length ? variant.images : productGallery;

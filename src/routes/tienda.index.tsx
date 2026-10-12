@@ -27,11 +27,11 @@ import {
   type Product,
 } from "@/lib/catalog";
 import { ProductCard } from "@/components/ProductCard";
+import { getMatchingVariant } from "@/lib/product-variants";
 
 /** Variante que coincide con la búsqueda (p. ej. "pla azul"), para abrirla directo. */
 function matchedVariant(p: Product, query: string) {
-  if (!query.trim()) return null;
-  return p.variants.find((v) => matchesSearch(`${p.name} ${v.name}`, query) && matchesSearch(v.name, query.split(/\s+/).at(-1))) ?? null;
+  return getMatchingVariant(p.variants, query);
 }
 
 export const Route = createFileRoute("/tienda/")({
