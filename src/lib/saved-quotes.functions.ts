@@ -30,8 +30,8 @@ const saveSchema = z.object({ items: z.array(itemSchema).min(1).max(40) });
 export const saveQuote = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => saveSchema.parse(data))
   .handler(async ({ data }) => {
-    const { publicServerClient } = await import("@/lib/supabase-public.server");
-    const sb = publicServerClient();
+    // La inserción solo ocurre aquí, tras validar cada línea con zod.
+    const { supabaseAdmin: sb } = await import("@/integrations/supabase/client.server");
     // El total se recalcula en el servidor a partir de las líneas validadas.
     const total = data.items.reduce((sum, i) => sum + i.price_cop * i.quantity, 0);
     const { data: row, error } = await sb
