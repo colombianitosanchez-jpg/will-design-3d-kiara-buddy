@@ -27,7 +27,17 @@ export const Route = createFileRoute("/api/calculate-quote")({
         const rules = await getActivePricingRules();
         const breakdown = calcQuote(rules, parsed);
 
-        return Response.json({ ok: true, rules_name: rules.name, quote: breakdown });
+        // Solo se devuelven los precios finales; costos internos y margen quedan en el servidor.
+        return Response.json({
+          ok: true,
+          quote: {
+            material: breakdown.material,
+            finish: breakdown.finish,
+            quantity: breakdown.quantity,
+            unit_price_cop: breakdown.unit_price_cop,
+            total_cop: breakdown.total_cop,
+          },
+        });
       },
     },
   },
