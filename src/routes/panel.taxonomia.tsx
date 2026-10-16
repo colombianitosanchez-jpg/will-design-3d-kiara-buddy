@@ -756,7 +756,7 @@ function AttributesTab({ attributes, reload }: { attributes: Attribute[]; reload
   );
 }
 
-type DraftValue = { id?: string; slug: string; label: string; color_hex: string | null };
+type DraftValue = { id?: string; slug: string; label: string; color_hex: string | null; image_url?: string | null };
 
 function AttributeModal({
   attribute,
@@ -774,6 +774,7 @@ function AttributeModal({
       slug: v.slug,
       label: v.label,
       color_hex: v.color_hex,
+      image_url: v.image_url,
     })),
   );
   const [saving, setSaving] = useState(false);
@@ -810,6 +811,7 @@ function AttributeModal({
           slug: v.slug || slugify(v.label),
           label: v.label.trim(),
           color_hex: v.color_hex?.trim() || null,
+          image_url: v.image_url?.trim() || null,
           sort_order: i,
         };
         const q = v.id
@@ -864,44 +866,59 @@ function AttributeModal({
       </label>
 
       <Field label="Opciones">
-        <div className="grid gap-2">
+        <div className="grid gap-3">
           {values.map((v, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <input
-                value={v.label}
-                onChange={(e) =>
-                  setValues((list) =>
-                    list.map((x, j) =>
-                      j === i
-                        ? { ...x, label: e.target.value, slug: x.id ? x.slug : slugify(e.target.value) }
-                        : x,
-                    ),
-                  )
-                }
-                placeholder="Rosado"
-                className={inputCls}
-              />
-              <input
-                type="color"
-                value={v.color_hex ?? "#cccccc"}
-                onChange={(e) =>
-                  setValues((list) => list.map((x, j) => (j === i ? { ...x, color_hex: e.target.value } : x)))
-                }
-                className="mt-1 h-9 w-12 rounded-lg border border-input"
-                aria-label="Color opcional"
-              />
-              <button
-                type="button"
-                onClick={() => setValues((list) => list.filter((_, j) => j !== i))}
-                className="mt-1 rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-700"
-              >
-                Quitar
-              </button>
+            <div key={i} className="rounded-2xl border border-border bg-muted/20 p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  value={v.label}
+                  onChange={(e) =>
+                    setValues((list) =>
+                      list.map((x, j) =>
+                        j === i
+                          ? { ...x, label: e.target.value, slug: x.id ? x.slug : slugify(e.target.value) }
+                          : x,
+                      ),
+                    )
+                  }
+                  placeholder="Etiqueta (ej. Máquina Cerrada, Rainbow)"
+                  className={inputCls}
+                />
+                <input
+                  type="color"
+                  value={v.color_hex ?? "#cccccc"}
+                  onChange={(e) =>
+                    setValues((list) => list.map((x, j) => (j === i ? { ...x, color_hex: e.target.value } : x)))
+                  }
+                  className="mt-1 h-9 w-12 rounded-lg border border-input shrink-0"
+                  aria-label="Color opcional"
+                  title="Color hexadecimal"
+                />
+                <button
+                  type="button"
+                  onClick={() => setValues((list) => list.filter((_, j) => j !== i))}
+                  className="mt-1 rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 shrink-0"
+                >
+                  Quitar
+                </button>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <input
+                  value={v.image_url || ""}
+                  onChange={(e) =>
+                    setValues((list) =>
+                      list.map((x, j) => (j === i ? { ...x, image_url: e.target.value } : x)),
+                    )
+                  }
+                  placeholder="URL Imagen / GIF / Video opcional (ej. https://.../closed_printer.gif)"
+                  className={inputCls}
+                />
+              </div>
             </div>
           ))}
           <button
             type="button"
-            onClick={() => setValues((l) => [...l, { slug: "", label: "", color_hex: null }])}
+            onClick={() => setValues((l) => [...l, { slug: "", label: "", color_hex: null, image_url: null }])}
             className="justify-self-start rounded-full border border-border px-4 py-1.5 text-xs font-semibold hover:bg-muted"
           >
             + Añadir opción

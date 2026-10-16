@@ -255,6 +255,8 @@ function ServiceCard({
         margin_percent: draft.margin_percent,
         allow_quantity: draft.allow_quantity,
         allow_file: draft.allow_file,
+        requires_approval: draft.requires_approval,
+        approval_threshold_cop: draft.approval_threshold_cop,
         is_active: draft.is_active,
         sort_order: draft.sort_order,
         site_anchor: draft.site_anchor.trim(),
@@ -262,6 +264,65 @@ function ServiceCard({
       .eq("id", draft.id);
     setSaving(false);
     onMsg(error ? `Error: ${error.message}` : `“${draft.name}” guardado.`);
+    onChanged();
+  }
+
+  async function duplicateService() {
+    const newName = `${draft.name} (Copia)`;
+    const newSlug = `${draft.slug}-copia-${Date.now().toString().slice(-4)}`;
+    const { data: newSvc, error: svcErr } = await supabase
+      .from("quoter_services")
+      .insert({
+        name: newName,
+        slug: newSlug,
+        tagline: draft.tagline,
+        description: draft.description,
+        icon: draft.icon,
+        base_price_cop: draft.base_price_cop,
+        gastos_extra_cop: draft.gastos_extra_cop,
+        min_price_cop: draft.min_price_cop,
+        margin_percent: draft.margin_percent,
+        allow_quantity: draft.allow_quantity,
+        allow_file: draft.allow_file,
+        requires_approval: draft.requires_approval,
+        approval_threshold_cop: draft.approval_threshold_cop,
+        is_active: draft.is_active,
+        sort_order: draft.sort_order + 1,
+        site_anchor: draft.site_anchor,
+      })
+      .select("id")
+      .single();
+
+    if (svcErr || !newSvc) {
+      onMsg(`Error al duplicar: ${svcErr?.message}`);
+      return;
+    }
+
+    // Duplicar las preguntas / campos
+    if (draft.fields.length > 0) {
+      const newFields = draft.fields.map((f) => ({
+        service_id: newSvc.id,
+        key: f.key,
+        label: f.label,
+        help: f.help,
+        input_type: f.input_type,
+        min_value: f.min_value,
+        max_value: f.max_value,
+        step_value: f.step_value,
+        default_value: f.default_value,
+        unit: f.unit,
+        price_per_unit_cop: f.price_per_unit_cop,
+        price_source: f.price_source,
+        multiplier: f.multiplier,
+        options: f.options,
+        is_required: f.is_required,
+        is_active: f.is_active,
+        sort_order: f.sort_order,
+      }));
+      await supabase.from("quoter_fields").insert(newFields);
+    }
+
+    onMsg(`Servicio “${newName}” duplicado con éxito.`);
     onChanged();
   }
 
@@ -413,7 +474,17 @@ function ServiceCard({
                   className={inputCls}
                 />
               </L>
-              <div className="flex items-center gap-4 sm:col-span-2">
+              <L label="Umbral para requerir aprobación humana (COP)">
+                <input
+                  type="number"
+                  min={0}
+                  placeholder="Ej: 500000"
+                  value={draft.approval_threshold_cop || 0}
+                  onChange={(e) => set("approval_threshold_cop", Number(e.target.value) || 0)}
+                  className={inputCls}
+                />
+              </L>
+              <div className="flex flex-wrap items-center gap-4 sm:col-span-2">
                 <label className="inline-flex items-center gap-2 text-sm font-semibold">
                   <input
                     type="checkbox"
@@ -432,17 +503,35 @@ function ServiceCard({
                   />
                   Permitir subir archivo
                 </label>
+                <label className="inline-flex items-center gap-2 text-sm font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={draft.requires_approval || false}
+                    onChange={(e) => set("requires_approval", e.target.checked)}
+                    className="h-4 w-4 accent-[var(--brand-orange)]"
+                  />
+                  Requerir aprobación manual siempre
+                </label>
               </div>
             </div>
 
-            <button
-              onClick={save}
-              disabled={saving}
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-wine)] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60"
-            >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Guardar servicio
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={save}
+                disabled={saving}
+                className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-wine)] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Guardar servicio
+              </button>
+              <button
+                onClick={duplicateService}
+                type="button"
+                className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2.5 text-sm font-bold hover:bg-muted"
+              >
+                Duplicar servicio
+              </button>
+            </div>
 
             <div>
               <div className="flex items-center justify-between">

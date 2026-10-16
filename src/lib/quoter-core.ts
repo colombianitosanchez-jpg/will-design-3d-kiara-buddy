@@ -64,6 +64,8 @@ export type QuoterService = {
   margin_percent: number;
   allow_quantity: boolean;
   allow_file: boolean;
+  requires_approval?: boolean;
+  approval_threshold_cop?: number;
   is_active: boolean;
   sort_order: number;
   fields: QuoterField[];
@@ -123,6 +125,8 @@ export function normalizeService(
     margin_percent: num(row['margin_percent']),
     allow_quantity: row['allow_quantity'] !== false,
     allow_file: row['allow_file'] !== false,
+    requires_approval: Boolean(row['requires_approval']),
+    approval_threshold_cop: num(row['approval_threshold_cop']),
     is_active: row['is_active'] !== false,
     sort_order: num(row['sort_order']),
     fields: fields
@@ -157,6 +161,7 @@ export type QuoterResult = {
   quantity: number;
   total_cop: number;
   min_applied: boolean;
+  requires_approval: boolean;
   answers: { label: string; value: string }[];
 };
 
@@ -247,6 +252,12 @@ export function computeQuote(
   const unit = Math.max(min, withMargin) + extra;
   if (extra > 0) lines.push({ label: "Gastos extra", detail: "Montaje y post-procesado", amount: extra });
   const qty = Math.max(1, Math.round(num(quantity, 1)));
+  const total = round100(unit * qty);
+
+  const reqApproval = Boolean(
+    service.requires_approval ||
+      (service.approval_threshold_cop && service.approval_threshold_cop > 0 && total >= service.approval_threshold_cop),
+  );
 
   return {
     lines,
@@ -255,8 +266,9 @@ export function computeQuote(
     margin_cop: round100(margin),
     unit_price_cop: round100(unit),
     quantity: qty,
-    total_cop: round100(unit * qty),
+    total_cop: total,
     min_applied: withMargin < min,
+    requires_approval: reqApproval,
     answers,
   };
 }

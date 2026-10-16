@@ -24,6 +24,11 @@ export type ProductButton = {
   whatsapp_message: string;
   /** Añade al final del mensaje el enlace de la imagen principal. */
   include_image_link: boolean;
+  /** URL de GIF, Video o Imagen decorativa para el botón */
+  media_url?: string;
+  media_type?: "gif" | "video" | "image";
+  /** Estilo de animación dinámica (Neón, Pulso Cyber, Shimmer) */
+  animation_style?: string;
 };
 
 
@@ -67,7 +72,9 @@ export function newProductButton(): ProductButton {
     action_value: "",
     whatsapp_message: "",
     include_image_link: false,
-
+    media_url: "",
+    media_type: "image",
+    animation_style: "none",
   };
 }
 
@@ -100,6 +107,9 @@ export function parseProductButtons(raw: unknown): ProductButton[] {
       action_value: typeof b.action_value === "string" ? b.action_value.trim() : "",
       whatsapp_message: typeof b.whatsapp_message === "string" ? b.whatsapp_message : "",
       include_image_link: b.include_image_link === true,
+      media_url: typeof b.media_url === "string" ? b.media_url.trim() : "",
+      media_type: typeof b.media_type === "string" ? (b.media_type as any) : "image",
+      animation_style: typeof b.animation_style === "string" ? b.animation_style : "none",
     }))
     .filter((b) => !!b.text);
 }

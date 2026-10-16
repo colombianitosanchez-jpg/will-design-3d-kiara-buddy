@@ -24,10 +24,11 @@ import {
 import { ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import kiaraAsset from "@/assets/kiara.asset.json";
-import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
+import { siteContentQuery, getContactInfo, waLink, buildWhatsAppQuoteMessage } from "@/lib/catalog";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { useCart } from "@/lib/cart";
 import { quotingVarsQuery } from "@/lib/quoting-vars";
+import { Link } from "@tanstack/react-router";
 
 import { supabase } from "@/integrations/supabase/client";
 import { createQuoteRequest } from "@/lib/quotes.functions";
@@ -208,7 +209,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
   const contact = getContactInfo(content);
   const saveQuote = useServerFn(createQuoteRequest);
   const { data: quotingVars } = useQuery(quotingVarsQuery());
-  const { addItem } = useCart();
+  const { items: cartItems, addItem } = useCart();
 
 
   const [serviceId, setServiceId] = useState<string | null>(null);
@@ -325,23 +326,22 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
         },
       });
 
-      const lines = [
-        `Hola Will Design 3D, quiero cotizar: *${service.name}*`,
-        ``,
-        `👤 ${data.get("name")}`,
-        `✉️ ${data.get("email")}`,
-        `📱 ${data.get("phone")}`,
-        ``,
-        ...result.answers.map((a) => `• ${a.label}: ${a.value}`),
-        `• Cantidad: ${result.quantity}`,
-        ``,
-        `💰 Estimado en la web: ${formatCOP(result.total_cop)}`,
-        notes.trim() ? `📝 Notas: ${notes.trim()}` : "",
-        file_name ? `📎 Archivo enviado: ${file_name}` : "",
-      ].filter(Boolean);
+      const msgText = buildWhatsAppQuoteMessage(
+        contact.whatsapp_quote_template,
+        {
+          servicio: service.name,
+          cliente: String(data.get("name") ?? ""),
+          email: String(data.get("email") ?? ""),
+          telefono: String(data.get("phone") ?? ""),
+          resumen: result.answers.map((a) => `• ${a.label}: ${a.value}`).join("\n") + `\n• Cantidad: ${result.quantity}`,
+          total: formatCOP(result.total_cop),
+          notas: notes.trim(),
+          mediaUrl: file_name ? file_name : null,
+        },
+      );
 
       setSent(true);
-      window.open(waLink(contact.whatsapp, lines.join("\n")), "_blank");
+      window.open(waLink(contact.whatsapp, msgText), "_blank");
     } catch (err) {
       setSendError((err as Error).message || "No pudimos enviar la cotización.");
     } finally {
@@ -594,10 +594,28 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
                 </p>
               )}
               {sent && (
-                <p className="inline-flex items-center gap-2 rounded-2xl bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
-                  <CheckCircle2 className="h-4 w-4" /> ¡Listo! Guardamos tu cotización y abrimos
-                  WhatsApp con el resumen.
-                </p>
+                <div className="space-y-3">
+                  <p className="inline-flex items-center gap-2 rounded-2xl bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+                    <CheckCircle2 className="h-4 w-4" /> ¡Listo! Guardamos tu cotización y abrimos
+                    WhatsApp con el resumen.
+                  </p>
+                  {cartItems.length > 0 && (
+                    <div className="rounded-2xl border border-[var(--brand-orange)] bg-[color-mix(in_oklab,var(--brand-orange)_10%,white)] p-4 text-sm">
+                      <p className="font-bold">
+                        Tienes {cartItems.length} producto(s) en tu carrito de compras.
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Mientras nuestro equipo revisa y aprueba tu cotización, puedes avanzar pagando y procesando los productos de tu carrito.
+                      </p>
+                      <Link
+                        to="/carrito"
+                        className="btn-primary mt-3 inline-flex text-xs font-bold"
+                      >
+                        Ir a pagar los productos del carrito
+                      </Link>
+                    </div>
+                  )}
+                </div>
               )}
             </form>
           </div>
@@ -643,6 +661,13 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
               )}
             </div>
 
+            {result.requires_approval && (
+              <div className="mt-3 rounded-2xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
+                <span className="font-bold block">⚠️ Requiere revisión previa:</span>
+                Esta cotización supera el umbral automático. Tras enviarla por WhatsApp, nuestro equipo la aprobará formalmente.
+              </div>
+            )}
+
             <button
               type="button"
               onClick={addQuoteToCart}
@@ -650,6 +675,21 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
             >
               <ShoppingCart className="h-4 w-4" /> Agregar al carrito
             </button>
+
+            {cartItems.length > 0 && (
+              <div className="mt-3 rounded-2xl border border-border bg-muted/30 p-3 text-center">
+                <p className="text-xs font-bold">¿Tienes productos en tu carrito?</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  Puedes pagar tus productos del carrito ({cartItems.length}) inmediatamente sin esperar la revisión de la cotización.
+                </p>
+                <Link
+                  to="/carrito"
+                  className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-primary underline"
+                >
+                  Ir al checkout del carrito →
+                </Link>
+              </div>
+            )}
 
             <p className="mt-4 text-[11px] text-muted-foreground">
               Es un estimado automático. Confirmamos el precio final al revisar tu archivo o idea.
