@@ -86,6 +86,10 @@ const FIELDS: FieldDef[] = [
   // ----------------------------------------------------------------- Kiara
   { key: "kiara_message", label: "Mensaje de Kiara (widget)", type: "textarea", section: "Kiara", group: "Asistente" },
   { key: "kiara_image_url", label: "Foto de Kiara", type: "image", help: "Se usa en widget y página Nosotros.", section: "Kiara", group: "Asistente" },
+
+  // ------------------------------------------------------------ Favicon y Meta
+  { key: "site_favicon_url", label: "Favicon de la pestaña (.ico, .png, .gif, .svg)", type: "image", help: "Ícono visible en la pestaña del navegador. Soporta GIFs e imágenes.", section: "Marca y SEO", group: "Favicon e Íconos de Buscadores" },
+  { key: "site_meta_thumbnail_url", label: "Miniatura para Google y Redes Sociales", type: "image", help: "Imagen mostrada en resultados de Google y al compartir el enlace en WhatsApp/redes sociales.", section: "Marca y SEO", group: "Favicon e Íconos de Buscadores" },
 ];
 
 function ThemeManagerTab({

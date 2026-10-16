@@ -39,14 +39,24 @@ export function ImageDropzone({
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleFiles(files: FileList | File[]) {
-    const list = Array.from(files).filter((f) => f.type.startsWith("image/") || f.type.startsWith("video/"));
-    if (!list.length) return setError("Solo se aceptan fotos o videos.");
+    const list = Array.from(files).filter((f) => {
+      const lower = f.name.toLowerCase();
+      return (
+        f.type.startsWith("image/") ||
+        f.type.startsWith("video/") ||
+        lower.endsWith(".stl") ||
+        lower.endsWith(".obj") ||
+        lower.endsWith(".3mf")
+      );
+    });
+    if (!list.length) return setError("Solo se aceptan fotos, GIFs, videos o archivos 3D (.stl, .obj, .3mf).");
     setBusy(true);
     setError(null);
     try {
       const urls: string[] = [];
       for (const f of list) {
-        const maxMb = f.type.startsWith("video/") ? 50 : 15;
+        const is3d = f.name.toLowerCase().endsWith(".stl") || f.name.toLowerCase().endsWith(".obj") || f.name.toLowerCase().endsWith(".3mf");
+        const maxMb = is3d ? 100 : f.type.startsWith("video/") ? 50 : 25;
         if (f.size > maxMb * 1024 * 1024) throw new Error(`${f.name} pesa más de ${maxMb} MB`);
         urls.push(await uploadToStorage(f, bucket));
       }
@@ -105,12 +115,12 @@ export function ImageDropzone({
         )}
         <p className="text-sm font-semibold">{busy ? "Subiendo archivos…" : label}</p>
         <p className="text-xs text-muted-foreground">
-          o haz clic para elegir archivos · fotos JPG, PNG o WEBP hasta 15 MB · videos MP4 o WEBM cortos hasta 50 MB
+          o haz clic para elegir archivos · fotos, GIFs, videos MP4/WEBM o modelos 3D STL (.stl, .obj, .3mf) hasta 100 MB
         </p>
         <input
           ref={inputRef}
           type="file"
-          accept="image/*,video/mp4,video/webm,video/quicktime"
+          accept="image/*,video/*,video/mp4,video/webm,video/quicktime,.stl,.obj,.3mf"
           multiple
           className="hidden"
           onChange={(e) => e.target.files?.length && handleFiles(e.target.files)}
