@@ -114,25 +114,46 @@ export function ProductButtons({
     <div className={`flex flex-col gap-2 ${className}`}>
       {groups.map(({ position, list }) => (
         <div key={position} className={`flex flex-wrap items-center gap-2 ${ROW_ALIGN[position]}`}>
-          {list.map((b) => (
-            <Button
-              key={b.id}
-              type="button"
-              size="sm"
-              variant={b.variant}
-              className={b.width === "full" ? "w-full" : "w-auto"}
-              disabled={quoteOnly && isCartAction(b)}
-              title={quoteOnly && isCartAction(b) ? "Producto sujeto a cotización" : undefined}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (quoteOnly && isCartAction(b)) return;
-                handleButtonAction(b);
-              }}
-            >
-              {b.text}
-            </Button>
-          ))}
+          {list.map((b) => {
+            const animClass = b.animation_style && b.animation_style !== "none" ? `theme-anim-${b.animation_style}` : "";
+            return (
+              <Button
+                key={b.id}
+                type="button"
+                size="sm"
+                variant={b.variant}
+                className={`${b.width === "full" ? "w-full" : "w-auto"} ${animClass}`}
+                disabled={quoteOnly && isCartAction(b)}
+                title={quoteOnly && isCartAction(b) ? "Producto sujeto a cotización" : undefined}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (quoteOnly && isCartAction(b)) return;
+                  handleButtonAction(b);
+                }}
+              >
+                {b.media_url && (
+                  b.media_type === "video" ? (
+                    <video
+                      src={b.media_url}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="h-5 w-5 object-cover rounded-full shrink-0 mr-1.5"
+                    />
+                  ) : (
+                    <img
+                      src={b.media_url}
+                      alt=""
+                      className="h-5 w-5 object-cover rounded-full shrink-0 mr-1.5"
+                    />
+                  )
+                )}
+                {b.text}
+              </Button>
+            );
+          })}
         </div>
       ))}
     </div>

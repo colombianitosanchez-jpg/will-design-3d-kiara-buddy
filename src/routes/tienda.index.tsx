@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Filter, Loader2, MessageCircle, PackageSearch, X } from "lucide-react";
+import { Filter, Loader2, MessageCircle, PackageSearch, X, SlidersHorizontal } from "lucide-react";
 import {
   productsQuery,
   categoriesQuery,
@@ -71,6 +71,7 @@ function TiendaPage() {
   const navigate = useNavigate({ from: "/tienda/" });
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -303,6 +304,24 @@ function TiendaPage() {
           </div>
         )}
 
+        <div className="mt-4 flex items-center justify-between gap-3 lg:hidden">
+          <button
+            onClick={() => setMobileFilterOpen(true)}
+            className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-teal-deep)] px-4 py-2 text-xs font-bold text-white shadow"
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            Filtrar productos
+            {hasFilter && (
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[10px] font-black text-[var(--brand-teal-deep)]">
+                {(brandSlug ? 1 : 0) + attrs.length}
+              </span>
+            )}
+          </button>
+          <span className="text-xs font-semibold text-muted-foreground">
+            {filtered.length} producto(s)
+          </span>
+        </div>
+
         {hasFilter && (
           <div className="mt-5 flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-muted/40 px-4 py-3">
             <span className="text-sm">
@@ -322,8 +341,90 @@ function TiendaPage() {
           </div>
         )}
 
+        {/* Modal / Drawer de filtros en celular */}
+        {mobileFilterOpen && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4 lg:hidden">
+            <div className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-background p-6 shadow-2xl">
+              <div className="flex items-center justify-between border-b border-border pb-3">
+                <h2 className="text-lg font-black flex items-center gap-2">
+                  <SlidersHorizontal className="h-5 w-5 text-primary" /> Filtros del catálogo
+                </h2>
+                <button
+                  onClick={() => setMobileFilterOpen(false)}
+                  className="rounded-full p-2 hover:bg-muted"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-5">
+                <FilterBlock title="Marca">
+                  <div className="flex flex-wrap gap-2">
+                    <Chip active={!brandSlug} onClick={() => setBrand(null)}>
+                      Todas
+                    </Chip>
+                    {brands
+                      .filter((b) => b.is_active)
+                      .map((b) => {
+                        const s = brandSlugOf(b)!;
+                        const n = brandCounts.get(s) ?? 0;
+                        return (
+                          <Chip
+                            key={b.id}
+                            active={brandSlug === s}
+                            disabled={n === 0 && brandSlug !== s}
+                            onClick={() => setBrand(brandSlug === s ? null : s)}
+                          >
+                            {b.name} <span className="opacity-60">({n})</span>
+                          </Chip>
+                        );
+                      })}
+                  </div>
+                </FilterBlock>
+
+                {visibleAttributes.map((a) => (
+                  <FilterBlock key={a.id} title={a.name}>
+                    <div className="flex flex-wrap gap-2">
+                      {a.values.map((v) => {
+                        const active = attrs.some((f) => f.attribute === a.slug && f.value === v.slug);
+                        const n = countFor(a.slug, v.slug);
+                        return (
+                          <Chip
+                            key={v.id}
+                            active={active}
+                            imageUrl={v.image_url}
+                            disabled={n === 0 && !active}
+                            onClick={() => toggleAttr({ attribute: a.slug, value: v.slug })}
+                          >
+                            {v.color_hex && (
+                              <span
+                                className="mr-1 inline-block h-2.5 w-2.5 rounded-full border border-black/10 align-middle"
+                                style={{ background: v.color_hex }}
+                              />
+                            )}
+                            {v.label} <span className="opacity-60">({n})</span>
+                          </Chip>
+                        );
+                      })}
+                    </div>
+                  </FilterBlock>
+                ))}
+              </div>
+
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={() => setMobileFilterOpen(false)}
+                  className="w-full rounded-full bg-[var(--brand-orange)] py-3 text-sm font-bold text-white"
+                >
+                  Ver ({filtered.length}) resultados
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mt-8 grid gap-6 lg:grid-cols-[240px_1fr]">
-          <aside className="space-y-5">
+          <aside className="hidden lg:block space-y-5">
             <FilterBlock title="Marca">
               <div className="flex flex-wrap gap-2">
                 <Chip active={!brandSlug} onClick={() => setBrand(null)}>
@@ -358,6 +459,7 @@ function TiendaPage() {
                       <Chip
                         key={v.id}
                         active={active}
+                        imageUrl={v.image_url}
                         disabled={n === 0 && !active}
                         onClick={() => toggleAttr({ attribute: a.slug, value: v.slug })}
                       >
@@ -427,11 +529,13 @@ function FilterBlock({ title, children }: { title: string; children: React.React
 
 function Chip({
   active,
+  imageUrl,
   disabled,
   onClick,
   children,
 }: {
   active?: boolean;
+  imageUrl?: string | null;
   disabled?: boolean;
   onClick: () => void;
   children: React.ReactNode;
@@ -440,12 +544,19 @@ function Chip({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
         active
           ? "bg-[var(--brand-teal-deep)] text-white"
           : "bg-muted text-foreground hover:bg-muted/70"
       } ${disabled ? "cursor-not-allowed opacity-40" : ""}`}
     >
+      {imageUrl && (
+        <img
+          src={imageUrl}
+          alt=""
+          className="h-4 w-4 rounded-full object-cover shrink-0"
+        />
+      )}
       {children}
     </button>
   );

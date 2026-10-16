@@ -161,6 +161,29 @@ export function ProductButtonsEditor({
                       />
                     </label>
                   )}
+                  <label className="text-xs font-semibold text-muted-foreground">
+                    URL GIF/Video/Imagen (Opcional)
+                    <input
+                      value={b.media_url || ""}
+                      onChange={(e) => updateButton(i, { media_url: e.target.value })}
+                      placeholder="https://... .gif o .mp4"
+                      className={inputCls}
+                    />
+                  </label>
+                  <label className="text-xs font-semibold text-muted-foreground">
+                    Efecto / Animación Botón
+                    <select
+                      value={b.animation_style || "none"}
+                      onChange={(e) => updateButton(i, { animation_style: e.target.value })}
+                      className={inputCls}
+                    >
+                      <option value="none">Sin Animación</option>
+                      <option value="neon_glow">Neón Cyberpunk ⚡</option>
+                      <option value="cyber_pulse">Pulso Dinámico 💫</option>
+                      <option value="shimmer">Brillo Shimmer ✨</option>
+                      <option value="festive_sparkle">Destello Festivo 🌟</option>
+                    </select>
+                  </label>
                 </div>
                 {b.action_type === "whatsapp" && (
                   <div className="mt-2 space-y-3">

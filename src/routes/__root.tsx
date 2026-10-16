@@ -19,6 +19,18 @@ import { Toaster } from "../components/ui/sonner";
 import { AuthProvider } from "../hooks/use-auth";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { CartProvider } from "../lib/cart";
+import { useQuery } from "@tanstack/react-query";
+import { siteContentQuery } from "../lib/catalog";
+import { getActiveTheme, applyThemeToDocument } from "../lib/theme";
+
+function ThemeApplier() {
+  const { data: content } = useQuery(siteContentQuery());
+  useEffect(() => {
+    const activeTheme = getActiveTheme(content);
+    applyThemeToDocument(activeTheme);
+  }, [content]);
+  return null;
+}
 
 
 function NotFoundComponent() {
@@ -167,6 +179,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <ThemeApplier />
       <AuthProvider>
         <CartProvider>
           <div className="flex min-h-screen flex-col bg-background text-foreground">

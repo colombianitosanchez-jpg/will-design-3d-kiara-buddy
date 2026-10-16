@@ -16,6 +16,7 @@ import { sanitizeWidgetId, parsePhotos, type PortfolioPhoto } from "@/components
 import { HomeSectionsOrder } from "@/components/HomeSectionsOrder";
 import { parseHomeOrder } from "@/lib/home-sections";
 import { ProductMedia, isVideoUrl } from "@/components/ProductMedia";
+import { PRESET_THEMES, resolveThemes, type SiteTheme, type ThemeAnimation } from "@/lib/theme";
 
 export const Route = createFileRoute("/panel/contenido")({
   ssr: false,
@@ -80,13 +81,305 @@ const FIELDS: FieldDef[] = [
   { key: "contact_location_text", label: "Ubicación (texto)", type: "text", help: "Ej: Bogotá, Colombia · atención por cita previa", section: "Contacto", group: "Ubicación" },
   { key: "contact_location_short", label: "Ubicación corta (footer)", type: "text", help: "Ej: Bogotá, Colombia", section: "Contacto", group: "Ubicación" },
   { key: "contact_map_embed_url", label: "URL del mapa (Google Maps embed)", type: "textarea", help: "Pega la URL del src del iframe de Google Maps.", section: "Contacto", group: "Ubicación" },
+  { key: "whatsapp_quote_template", label: "Plantilla del mensaje de WhatsApp para Cotizaciones", type: "textarea", help: "Admite variables: {{servicio}}, {{cliente}}, {{email}}, {{telefono}}, {{resumen}}, {{total}}, {{notas}}, {{media_link}}", section: "Contacto", group: "Canales" },
 
   // ----------------------------------------------------------------- Kiara
   { key: "kiara_message", label: "Mensaje de Kiara (widget)", type: "textarea", section: "Kiara", group: "Asistente" },
   { key: "kiara_image_url", label: "Foto de Kiara", type: "image", help: "Se usa en widget y página Nosotros.", section: "Kiara", group: "Asistente" },
 ];
 
-const SECTIONS = Array.from(new Set(FIELDS.map((f) => f.section)));
+function ThemeManagerTab({
+  values,
+  onChange,
+}: {
+  values: Record<string, string>;
+  onChange: (patch: Record<string, string>) => void;
+}) {
+  const activeThemeId = values.active_theme_id || "default";
+  const themes = resolveThemes(values.custom_themes);
+  const activeTheme = themes.find((t) => t.id === activeThemeId) || PRESET_THEMES[0];
+  const [editingTheme, setEditingTheme] = useState<SiteTheme | null>(null);
+
+  const targetEdit = editingTheme || activeTheme;
+
+  function selectTheme(id: string) {
+    onChange({ active_theme_id: id });
+    toast.success("Tema activado globalmente");
+  }
+
+  function handleCreateTheme(baseTheme?: SiteTheme) {
+    const newId = `custom_${Date.now()}`;
+    const newTheme: SiteTheme = {
+      id: newId,
+      name: baseTheme ? `${baseTheme.name} (Copia)` : "Nuevo Tema Custom",
+      description: "Tema personalizado editable",
+      isPreset: false,
+      colors: baseTheme ? { ...baseTheme.colors } : { ...PRESET_THEMES[0].colors },
+      buttonStyle: baseTheme ? { ...baseTheme.buttonStyle } : { animation: "none" },
+      customCss: baseTheme?.customCss || "",
+    };
+    const customList = themes.filter((t) => !t.isPreset);
+    const updatedCustom = [...customList, newTheme];
+    onChange({
+      custom_themes: JSON.stringify(updatedCustom),
+      active_theme_id: newId,
+    });
+    setEditingTheme(newTheme);
+    toast.success("Tema creado y activado");
+  }
+
+  function handleSaveEditingTheme(updated: SiteTheme) {
+    const customList = themes.filter((t) => !t.isPreset);
+    const nextCustom = customList.map((t) => (t.id === updated.id ? updated : t));
+    if (!customList.some((t) => t.id === updated.id)) {
+      nextCustom.push(updated);
+    }
+    onChange({ custom_themes: JSON.stringify(nextCustom) });
+    setEditingTheme(updated);
+    toast.success("Guardado en configuración de temas");
+  }
+
+  function handleDeleteTheme(id: string) {
+    const nextCustom = themes.filter((t) => !t.isPreset && t.id !== id);
+    const nextActive = activeThemeId === id ? "default" : activeThemeId;
+    onChange({
+      custom_themes: JSON.stringify(nextCustom),
+      active_theme_id: nextActive,
+    });
+    if (editingTheme?.id === id) setEditingTheme(null);
+    toast.success("Tema eliminado");
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Selector de Tema Activo</CardTitle>
+          <CardDescription>
+            Elige qué tema y estilo visual se aplica a toda la tienda y página principal.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {themes.map((t) => {
+              const isActive = t.id === activeThemeId;
+              return (
+                <div
+                  key={t.id}
+                  className={`flex flex-col justify-between rounded-2xl border p-4 transition ${
+                    isActive ? "border-primary bg-primary/10 ring-2 ring-primary" : "border-border bg-card"
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold text-sm">{t.name}</h3>
+                      {t.isPreset && (
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                          Prediseñado
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{t.description}</p>
+                    {/* Previsualizador de Muestra de Colores */}
+                    <div className="mt-3 flex items-center gap-1.5">
+                      <span className="h-4 w-4 rounded-full border border-black/10" style={{ background: t.colors.brandOrange }} title="Naranja / Primario" />
+                      <span className="h-4 w-4 rounded-full border border-black/10" style={{ background: t.colors.brandTeal }} title="Teal / Secundario" />
+                      <span className="h-4 w-4 rounded-full border border-black/10" style={{ background: t.colors.brandWine }} title="Burgundy / Acento" />
+                      <span className="h-4 w-4 rounded-full border border-black/10" style={{ background: t.colors.background }} title="Fondo" />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    {!isActive ? (
+                      <Button size="sm" onClick={() => selectTheme(t.id)}>
+                        Activar tema
+                      </Button>
+                    ) : (
+                      <span className="text-xs font-bold text-primary">✓ Activo</span>
+                    )}
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleCreateTheme(t)}
+                      title="Duplicar como plantilla editable"
+                    >
+                      Duplicar
+                    </Button>
+
+                    {!t.isPreset && (
+                      <>
+                        <Button size="sm" variant="secondary" onClick={() => setEditingTheme(t)}>
+                          Editar
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => handleDeleteTheme(t.id)}>
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-4">
+            <Button variant="outline" onClick={() => handleCreateTheme()}>
+              + Crear Nuevo Tema Personalizado
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Editor de Tema (si se seleccionó editar o crear) */}
+      {editingTheme && !editingTheme.isPreset && (
+        <Card className="border-2 border-primary/40">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Editando Tema: {editingTheme.name}</CardTitle>
+              <CardDescription>
+                Personaliza los colores exactos y los efectos visuales de los botones.
+              </CardDescription>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setEditingTheme(null)}>
+              Cerrar editor
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label className="text-xs font-semibold">Nombre del Tema</Label>
+                <Input
+                  value={editingTheme.name}
+                  onChange={(e) =>
+                    handleSaveEditingTheme({ ...editingTheme, name: e.target.value })
+                  }
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold">Descripción</Label>
+                <Input
+                  value={editingTheme.description}
+                  onChange={(e) =>
+                    handleSaveEditingTheme({ ...editingTheme, description: e.target.value })
+                  }
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground my-2">
+                Paleta de Colores
+              </h4>
+              <div className="grid gap-3 sm:grid-cols-4">
+                <label className="text-xs font-semibold space-y-1 block">
+                  Color Naranja / Principal
+                  <Input
+                    type="text"
+                    value={editingTheme.colors.brandOrange}
+                    onChange={(e) =>
+                      handleSaveEditingTheme({
+                        ...editingTheme,
+                        colors: { ...editingTheme.colors, brandOrange: e.target.value, primary: e.target.value },
+                      })
+                    }
+                  />
+                </label>
+                <label className="text-xs font-semibold space-y-1 block">
+                  Color Teal / Secundario
+                  <Input
+                    type="text"
+                    value={editingTheme.colors.brandTeal}
+                    onChange={(e) =>
+                      handleSaveEditingTheme({
+                        ...editingTheme,
+                        colors: { ...editingTheme.colors, brandTeal: e.target.value, secondary: e.target.value },
+                      })
+                    }
+                  />
+                </label>
+                <label className="text-xs font-semibold space-y-1 block">
+                  Color Burgundy / Acento
+                  <Input
+                    type="text"
+                    value={editingTheme.colors.brandWine}
+                    onChange={(e) =>
+                      handleSaveEditingTheme({
+                        ...editingTheme,
+                        colors: { ...editingTheme.colors, brandWine: e.target.value, accent: e.target.value },
+                      })
+                    }
+                  />
+                </label>
+                <label className="text-xs font-semibold space-y-1 block">
+                  Fondo de Página
+                  <Input
+                    type="text"
+                    value={editingTheme.colors.background}
+                    onChange={(e) =>
+                      handleSaveEditingTheme({
+                        ...editingTheme,
+                        colors: { ...editingTheme.colors, background: e.target.value },
+                      })
+                    }
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground my-2">
+                Efectos y Estilo de Botones
+              </h4>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label className="text-xs font-semibold">Animación por Defecto de Botones</Label>
+                  <Select
+                    value={editingTheme.buttonStyle.animation || "none"}
+                    onValueChange={(val: ThemeAnimation) =>
+                      handleSaveEditingTheme({
+                        ...editingTheme,
+                        buttonStyle: { ...editingTheme.buttonStyle, animation: val },
+                      })
+                    }
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sin Animación</SelectItem>
+                      <SelectItem value="neon_glow">Neón Cyberpunk ⚡</SelectItem>
+                      <SelectItem value="cyber_pulse">Pulso Dinámico 💫</SelectItem>
+                      <SelectItem value="shimmer">Brillo Shimmer ✨</SelectItem>
+                      <SelectItem value="festive_sparkle">Destello Festivo 🌟</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs font-semibold">CSS Personalizado Adicional</Label>
+              <Textarea
+                rows={3}
+                value={editingTheme.customCss || ""}
+                onChange={(e) =>
+                  handleSaveEditingTheme({ ...editingTheme, customCss: e.target.value })
+                }
+                placeholder=".btn-primary { border-radius: 4px; }"
+                className="font-mono text-xs mt-1"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+const SECTIONS = [...Array.from(new Set(FIELDS.map((f) => f.section))), "Temas y Estilos"];
 
 function ContenidoAdmin() {
   const queryClient = useQueryClient();
@@ -502,6 +795,16 @@ function ContenidoAdmin() {
         </TabsList>
 
         {SECTIONS.map((section) => {
+          if (section === "Temas y Estilos") {
+            return (
+              <TabsContent key={section} value={section} className="mt-6 space-y-5">
+                <ThemeManagerTab
+                  values={values}
+                  onChange={(patch) => setValues((v) => ({ ...v, ...patch }))}
+                />
+              </TabsContent>
+            );
+          }
           const groups = Array.from(
             new Set(FIELDS.filter((f) => f.section === section).map((f) => f.group)),
           );

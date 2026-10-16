@@ -30,6 +30,7 @@ export type AttributeValue = {
   slug: string;
   label: string;
   color_hex: string | null;
+  image_url?: string | null;
   sort_order: number;
 };
 
@@ -198,7 +199,7 @@ export async function fetchAttributes(): Promise<Attribute[]> {
   const { data, error } = await supabase
     .from("attributes")
     .select(
-      "id,slug,name,input_type,is_filterable,sort_order,values:attribute_values(id,attribute_id,slug,label,color_hex,sort_order)",
+      "id,slug,name,input_type,is_filterable,sort_order,values:attribute_values(id,attribute_id,slug,label,color_hex,image_url,sort_order)",
     )
     .order("sort_order");
   if (error) throw error;
@@ -271,7 +272,39 @@ export function getContactInfo(content: Record<string, string> | undefined) {
     location_text: g("contact_location_text", DEFAULT_CONTACT.location_text),
     location_short: g("contact_location_short", DEFAULT_CONTACT.location_short),
     map_embed_url: g("contact_map_embed_url", DEFAULT_CONTACT.map_embed_url),
+    whatsapp_quote_template: g("whatsapp_quote_template", "Hola Will Design 3D, quiero cotizar: *{{servicio}}*\n\n👤 {{cliente}}\n✉️ {{email}}\n📱 {{telefono}}\n\n{{resumen}}\n\n💰 Estimado en la web: {{total}}\n{{notas}}\n{{media_link}}"),
   };
+}
+
+export function buildWhatsAppQuoteMessage(
+  template: string,
+  params: {
+    servicio: string;
+    cliente: string;
+    email: string;
+    telefono: string;
+    resumen: string;
+    total: string;
+    notas?: string;
+    mediaUrl?: string | null;
+  },
+): string {
+  let text = template
+    .replaceAll("{{servicio}}", params.servicio)
+    .replaceAll("{{cliente}}", params.cliente)
+    .replaceAll("{{email}}", params.email)
+    .replaceAll("{{telefono}}", params.telefono)
+    .replaceAll("{{resumen}}", params.resumen)
+    .replaceAll("{{total}}", params.total)
+    .replaceAll("{{notas}}", params.notas ? `📝 Notas: ${params.notas}` : "");
+
+  if (params.mediaUrl) {
+    text = text.replaceAll("{{media_link}}", `📎 Archivo/Foto adjunta: ${params.mediaUrl}`);
+  } else {
+    text = text.replaceAll("{{media_link}}", "");
+  }
+
+  return text.trim();
 }
 
 export function waLink(whatsapp: string, text?: string) {
