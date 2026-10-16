@@ -28,6 +28,16 @@ function ThemeApplier() {
   useEffect(() => {
     const activeTheme = getActiveTheme(content);
     applyThemeToDocument(activeTheme);
+
+    if (content?.site_favicon_url) {
+      let iconEl = document.querySelector("link[rel='icon']") as HTMLLinkElement | null;
+      if (!iconEl) {
+        iconEl = document.createElement("link");
+        iconEl.rel = "icon";
+        document.head.appendChild(iconEl);
+      }
+      iconEl.href = content.site_favicon_url;
+    }
   }, [content]);
   return null;
 }
