@@ -511,13 +511,22 @@ export function filterProducts(
     }
 
     const prodName = normalizeText(p.name);
+    const prodSku = normalizeText(p.sku ?? "");
     const prodDesc = normalizeText(`${p.short ?? ""} ${p.description ?? ""}`);
-    const variantMatch = (p.variants ?? []).some((v) => normalizeText(v.name).includes(normQ));
+    const prodCatBrand = normalizeText(`${p.category?.name ?? ""} ${p.brand?.name ?? ""}`);
+    const prodAttrs = normalizeText(p.attributes.map((a) => `${a.attribute_name} ${a.value_label}`).join(" "));
+    const prodSpecs = normalizeText((p.specs ?? []).map((s) => `${s.label} ${s.value}`).join(" "));
+    const variantMatch = (p.variants ?? []).some((v) =>
+      normalizeText(`${v.name} ${v.sku ?? ""}`).includes(normQ),
+    );
 
     const titleMatch = prodName.includes(normQ);
+    const skuMatch = prodSku.includes(normQ);
     const descMatch = prodDesc.includes(normQ);
+    const attrMatch = prodAttrs.includes(normQ) || prodSpecs.includes(normQ);
+    const catBrandMatch = prodCatBrand.includes(normQ);
 
-    const okQ = titleMatch || variantMatch || descMatch;
+    const okQ = titleMatch || skuMatch || descMatch || attrMatch || catBrandMatch || variantMatch;
     return okCat && okBrand && okAttrs && okQ;
   });
 
@@ -528,22 +537,30 @@ export function filterProducts(
   const scored = matchingProducts.map((p) => {
     let score = 0;
     const prodName = normalizeText(p.name);
+    const prodSku = normalizeText(p.sku ?? "");
     const prodDesc = normalizeText(`${p.short ?? ""} ${p.description ?? ""}`);
-    const matchingVars = (p.variants ?? []).filter((v) => normalizeText(v.name).includes(normQ));
+    const prodAttrs = normalizeText(p.attributes.map((a) => `${a.attribute_name} ${a.value_label}`).join(" "));
+    const matchingVars = (p.variants ?? []).filter((v) =>
+      normalizeText(`${v.name} ${v.sku ?? ""}`).includes(normQ),
+    );
 
-    // 1. Título comience o coincida exactamente
-    if (prodName === normQ) {
+    // 1. Título o SKU comience o coincida exactamente
+    if (prodName === normQ || prodSku === normQ) {
       score += 4000;
-    } else if (prodName.startsWith(normQ)) {
+    } else if (prodName.startsWith(normQ) || prodSku.startsWith(normQ)) {
       score += 3000;
-    } else if (prodName.includes(normQ)) {
+    } else if (prodName.includes(normQ) || prodSku.includes(normQ)) {
       score += 2500;
     }
 
-    // 2. Variantes cuyo nombre coincida o contenga el término
+    // 2. Variantes (JSONB) cuyo nombre o SKU coincida
     if (matchingVars.length > 0) {
-      const exactVar = matchingVars.some((v) => normalizeText(v.name) === normQ);
-      const startVar = matchingVars.some((v) => normalizeText(v.name).startsWith(normQ));
+      const exactVar = matchingVars.some(
+        (v) => normalizeText(v.name) === normQ || normalizeText(v.sku ?? "") === normQ,
+      );
+      const startVar = matchingVars.some(
+        (v) => normalizeText(v.name).startsWith(normQ) || normalizeText(v.sku ?? "").startsWith(normQ),
+      );
       if (exactVar) {
         score += 2000;
       } else if (startVar) {
@@ -553,7 +570,12 @@ export function filterProducts(
       }
     }
 
-    // 3. Coincidencias en la descripción
+    // 3. Atributos y especificaciones
+    if (prodAttrs.includes(normQ)) {
+      score += 1000;
+    }
+
+    // 4. Coincidencias en la descripción
     if (prodDesc.includes(normQ)) {
       score += 500;
     }

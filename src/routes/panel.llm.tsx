@@ -297,7 +297,7 @@ function LlmAdmin() {
                               ...p,
                               [r.id]: res.ok
                                 ? `OK · ${res.ms} ms`
-                                : `Falló (${res.status || "red"}): ${res.message}`,
+                                : `Falló: ${res.message}`,
                             }));
                           } catch (e) {
                             setResults((p) => ({ ...p, [r.id]: "Error: " + (e as Error).message }));

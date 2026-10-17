@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
+export type LLMProvider = "gemini" | "groq" | "openrouter" | "custom";
+
 export type LlmProviderRow = {
   id: string;
   name: string;
@@ -11,105 +13,110 @@ export type LlmProviderRow = {
   is_active: boolean;
   has_key: boolean;
   temperature: number;
-  system_prompt: string;
-  max_tokens: number | null;
+  system_prompt?: string | null;
+  max_tokens?: number | null;
 };
 
-const SAFE_COLUMNS =
-  "id, name, base_url, model, priority, is_active, api_key, temperature, system_prompt, max_tokens";
-
 const upsertSchema = z.object({
-  id: z.string().uuid().nullable().optional().default(null),
-  name: z.string().trim().min(2).max(80),
-  base_url: z.string().trim().url().max(400),
-  model: z.string().trim().min(1).max(160),
-  api_key: z.string().trim().max(400).nullable().optional().default(null),
-  priority: z.number().int().min(1).max(99),
-  is_active: z.boolean().default(true),
-  temperature: z.number().min(0).max(2).default(0.2),
-  system_prompt: z.string().trim().max(4000).nullable().optional().default(null),
-  max_tokens: z.number().int().min(64).max(32000).nullable().optional().default(null),
+  id: z.string().uuid().nullable().optional(),
+  name: z.string().trim().min(2).max(100),
+  base_url: z.string().trim().url(),
+  model: z.string().trim().min(1).max(100),
+  api_key: z.string().trim().max(1000).nullable().optional(),
+  priority: z.number().int().min(1).max(99).optional().default(1),
+  is_active: z.boolean().optional().default(true),
+  temperature: z.number().min(0).max(2).optional().default(0.2),
+  system_prompt: z.string().trim().max(4000).nullable().optional(),
+  max_tokens: z.number().int().min(1).max(128000).nullable().optional(),
 });
 
-async function assertAdmin(context: { supabase: any; userId: string }) {
-  const { data } = await context.supabase
+async function assertAdmin(context: { supabase: unknown; userId: string }) {
+  const supabase = context.supabase as {
+    from: (t: string) => {
+      select: (c: string) => {
+        eq: (
+          c: string,
+          v: string,
+        ) => { maybeSingle: () => Promise<{ data: { role: string; is_active: boolean } | null }> };
+      };
+    };
+  };
+  const { data } = await supabase
     .from("user_roles")
     .select("role, is_active")
     .eq("user_id", context.userId)
     .maybeSingle();
-  const role = String((data as { role?: string } | null)?.role ?? "");
-  const active = (data as { is_active?: boolean } | null)?.is_active !== false;
-  if (!data || !active || role !== "super_admin") {
-    throw new Error("Solo un Super Admin puede gestionar la configuración de IA");
+  if (!data || !data.is_active || (data.role !== "admin" && data.role !== "super_admin")) {
+    throw new Error("Acceso denegado: Se requieren permisos de administrador");
   }
 }
 
-/** Lista los proveedores (sin exponer la clave, solo si existe o no). */
-export const listLlmProviders = createServerFn({ method: "POST" })
+export const listLlmProviders = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<LlmProviderRow[]> => {
-    await assertAdmin(context as any);
+  .handler(async ({ context }) => {
+    await assertAdmin(context as never);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
       .from("llm_providers")
-      .select(SAFE_COLUMNS)
-      .order("priority", { ascending: true })
-      .order("created_at", { ascending: true });
-    if (error) throw new Error(error.message);
-    return (data ?? []).map((r: any) => ({
-      id: r.id,
-      name: r.name,
-      base_url: r.base_url,
-      model: r.model,
-      priority: r.priority,
-      is_active: r.is_active,
-      has_key: Boolean(r.api_key && String(r.api_key).length > 0),
-      temperature: Number(r.temperature ?? 0.2),
-      system_prompt: r.system_prompt ?? "",
-      max_tokens: r.max_tokens ?? null,
-    }));
+      .select("id, name, base_url, model, priority, is_active, api_key, temperature, system_prompt, max_tokens")
+      .order("priority", { ascending: true });
+
+    if (error) return [] as LlmProviderRow[];
+
+    return (data ?? []).map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      base_url: p.base_url,
+      model: p.model,
+      priority: p.priority,
+      is_active: p.is_active,
+      has_key: Boolean(p.api_key),
+      temperature: Number(p.temperature ?? 0.2),
+      system_prompt: p.system_prompt,
+      max_tokens: p.max_tokens,
+    })) as LlmProviderRow[];
   });
 
-/** Crea o actualiza un proveedor. Si api_key viene vacío/nulo en una edición, se conserva la clave guardada. */
 export const saveLlmProvider = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => upsertSchema.parse(data))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context as any);
+    await assertAdmin(context as never);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const base = {
+    const payload = {
       name: data.name,
-      base_url: data.base_url.replace(/\/+$/, ""),
+      base_url: data.base_url,
       model: data.model,
       priority: data.priority,
       is_active: data.is_active,
       temperature: data.temperature,
-      system_prompt: data.system_prompt || null,
+      system_prompt: data.system_prompt ?? null,
       max_tokens: data.max_tokens ?? null,
+      ...(data.api_key ? { api_key: data.api_key } : {}),
     };
 
     if (data.id) {
-      const patch = { ...base, ...(data.api_key ? { api_key: data.api_key } : {}) };
-      const { error } = await supabaseAdmin.from("llm_providers").update(patch).eq("id", data.id);
+      const { error } = await supabaseAdmin.from("llm_providers").update(payload as any).eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true, id: data.id };
     }
 
-    const { data: row, error } = await supabaseAdmin
+    const { data: inserted, error } = await supabaseAdmin
       .from("llm_providers")
-      .insert({ ...base, api_key: data.api_key || null })
+      .insert(payload as any)
       .select("id")
       .single();
+
     if (error) throw new Error(error.message);
-    return { ok: true, id: row.id };
+    return { ok: true, id: inserted.id };
   });
 
 export const deleteLlmProvider = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context as any);
+    await assertAdmin(context as never);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("llm_providers").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
@@ -118,11 +125,9 @@ export const deleteLlmProvider = createServerFn({ method: "POST" })
 
 export const setLlmProviderActive = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) =>
-    z.object({ id: z.string().uuid(), is_active: z.boolean() }).parse(data),
-  )
+  .inputValidator((data: unknown) => z.object({ id: z.string().uuid(), is_active: z.boolean() }).parse(data))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context as any);
+    await assertAdmin(context as never);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("llm_providers")
@@ -132,71 +137,56 @@ export const setLlmProviderActive = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** Guarda el nuevo orden de prioridades (array de ids en el orden deseado). */
 export const reorderLlmProviders = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) =>
-    z.object({ ids: z.array(z.string().uuid()).min(1).max(50) }).parse(data),
-  )
+  .inputValidator((data: unknown) => z.object({ ids: z.array(z.string().uuid()) }).parse(data))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context as any);
+    await assertAdmin(context as never);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    for (let i = 0; i < data.ids.length; i++) {
-      const { error } = await supabaseAdmin
-        .from("llm_providers")
-        .update({ priority: i + 1 })
-        .eq("id", data.ids[i]);
-      if (error) throw new Error(error.message);
+    for (const [idx, id] of data.ids.entries()) {
+      await supabaseAdmin.from("llm_providers").update({ priority: idx + 1 }).eq("id", id);
     }
     return { ok: true };
   });
 
-/** Prueba un proveedor con un mensaje mínimo y devuelve el resultado. */
 export const testLlmProvider = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context as any);
+    await assertAdmin(context as never);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: p, error } = await supabaseAdmin
+    const { data: prov, error } = await supabaseAdmin
       .from("llm_providers")
-      .select("name, base_url, model, api_key")
+      .select("base_url, model, api_key")
       .eq("id", data.id)
       .single();
-    if (error || !p) throw new Error(error?.message ?? "Proveedor no encontrado");
 
-    const started = Date.now();
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 20_000);
+    if (error || !prov) throw new Error("Proveedor no encontrado");
+
+    const start = Date.now();
     try {
-      const res = await fetch(`${String(p.base_url).replace(/\/+$/, "")}/chat/completions`, {
+      const url = `${prov.base_url.replace(/\/+$/, "")}/chat/completions`;
+      const res = await fetch(url, {
         method: "POST",
-        signal: controller.signal,
         headers: {
           "Content-Type": "application/json",
-          ...(p.api_key ? { Authorization: `Bearer ${p.api_key}` } : {}),
+          ...(prov.api_key ? { Authorization: `Bearer ${prov.api_key}` } : {}),
         },
         body: JSON.stringify({
-          model: p.model,
-          messages: [{ role: "user", content: "ping" }],
-          max_tokens: 16,
-          stream: false,
+          model: prov.model,
+          messages: [{ role: "user", content: "Ping" }],
+          max_tokens: 5,
         }),
       });
-      const ms = Date.now() - started;
+
+      const elapsed = Date.now() - start;
       if (!res.ok) {
-        const body = (await res.text()).slice(0, 300);
-        return { ok: false, status: res.status, ms, message: body || res.statusText };
+        const text = await res.text();
+        return { ok: false, ms: elapsed, message: `HTTP ${res.status}: ${text.slice(0, 150)}` };
       }
-      return { ok: true, status: res.status, ms, message: "Respondió correctamente" };
+
+      return { ok: true, ms: elapsed, message: "Conexión exitosa" };
     } catch (e) {
-      return {
-        ok: false,
-        status: 0,
-        ms: Date.now() - started,
-        message: (e as Error).name === "AbortError" ? "Tiempo de espera agotado" : (e as Error).message,
-      };
-    } finally {
-      clearTimeout(timer);
+      return { ok: false, ms: Date.now() - start, message: (e as Error).message };
     }
   });

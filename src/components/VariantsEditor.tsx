@@ -163,6 +163,25 @@ export function VariantsEditor({
                     }`}
                   >
                     <div className="flex flex-wrap items-end gap-2">
+                      <label className="w-20 text-sm">
+                        Posición
+                        <input
+                          type="number"
+                          min={1}
+                          max={variants.length}
+                          className={inputCls}
+                          value={i + 1}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10);
+                            if (!isNaN(val)) {
+                              const targetIdx = Math.max(0, Math.min(variants.length - 1, val - 1));
+                              if (targetIdx !== i) {
+                                onChange(arrayMove(variants, i, targetIdx));
+                              }
+                            }
+                          }}
+                        />
+                      </label>
                       <label className="min-w-40 flex-1 text-sm">
                         Nombre
                         <input className={inputCls} value={v.name} placeholder="Rojo" onChange={(e) => update(i, { name: e.target.value })} />
