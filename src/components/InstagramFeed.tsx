@@ -263,7 +263,7 @@ function PhotoGallery({ photos, handle }: { photos: PortfolioPhoto[]; handle: st
           const link = item.link_url;
           const isExternal = link && /^https?:\/\//i.test(link);
 
-          const zoomButton = link ? (
+          const zoomButton = (
             <button
               type="button"
               onClick={(e) => {
@@ -271,12 +271,19 @@ function PhotoGallery({ photos, handle }: { photos: PortfolioPhoto[]; handle: st
                 e.stopPropagation();
                 setZoom(item);
               }}
-              title="Ver en grande"
-              aria-label="Ver en grande"
+              title="Ver en Lightbox"
+              aria-label="Ver en Lightbox"
               className="absolute top-2 right-2 z-10 backdrop-blur-md bg-black/60 text-white hover:bg-black/80 rounded-full p-2 shadow-lg transition-transform hover:scale-110"
             >
               <Maximize2 className="h-4 w-4" />
             </button>
+          );
+
+          const externalBadge = isExternal ? (
+            <span className="absolute top-2 left-2 z-10 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] font-medium text-white backdrop-blur-md shadow-md">
+              <ExternalLink className="h-3 w-3" />
+              Enlace
+            </span>
           ) : null;
 
           const cardContent = (
@@ -292,6 +299,7 @@ function PhotoGallery({ photos, handle }: { photos: PortfolioPhoto[]; handle: st
                   Video
                 </span>
               )}
+              {externalBadge}
               {zoomButton}
             </div>
           );

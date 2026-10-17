@@ -262,10 +262,17 @@ function ServiciosPage() {
                       )}
                     </div>
                   ) : (
-                    <Link to="/contacto" className="btn-primary mt-6 text-sm">
-                      Cotizar este servicio
+                    <a
+                      href={`https://wa.me/573156724474?text=${encodeURIComponent(
+                        `Hola Will Design 3D! Me interesa solicitar información y cotización sobre el servicio: *${s.title}*\n\n📌 https://willdesign3d.com/servicios#${s.id}`,
+                      )}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn-primary mt-6 text-sm inline-flex items-center gap-2"
+                    >
+                      Cotizar por WhatsApp
                       <ArrowRight className="h-4 w-4" />
-                    </Link>
+                    </a>
                   );
                 })()}
               </div>
