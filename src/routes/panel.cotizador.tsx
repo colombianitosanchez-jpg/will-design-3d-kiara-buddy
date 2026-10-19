@@ -21,6 +21,7 @@ import {
   type QuotingVars,
   type CustomQuotingVar,
 } from "@/lib/quoting-vars";
+import { FormulaEditor, type FormulaVarTag } from "@/components/FormulaEditor";
 import {
   Loader2,
   Plus,
@@ -315,19 +316,26 @@ function GlobalVarsCard({ onMsg }: { onMsg: (m: string) => void }) {
                 </L>
               </div>
 
-              <div className="sm:col-span-4">
-                <L label="Operación / Fórmula matemática (Opcional)">
-                  <input
-                    value={v.formula || ""}
-                    onChange={(e) => {
-                      const next = [...draft.custom_vars];
-                      next[idx] = { ...v, formula: e.target.value };
-                      setDraft({ ...draft, custom_vars: next });
-                    }}
-                    placeholder="ej: (envio + impuesto) / 20"
-                    className={inputCls}
-                  />
-                </L>
+              <div className="sm:col-span-12">
+                <FormulaEditor
+                  value={v.formula || ""}
+                  onChange={(fVal) => {
+                    const next = [...draft.custom_vars];
+                    next[idx] = { ...v, formula: fVal };
+                    setDraft({ ...draft, custom_vars: next });
+                  }}
+                  label={`Fórmula para "${v.label || v.key}" (Opcional)`}
+                  placeholder="ej: (precio_bobina / peso_bobina) * 1.05"
+                  availableVars={[
+                    { key: "fdm_gram_cost", label: "Costo gramo FDM" },
+                    { key: "resin_ml_cost", label: "Costo ml Resina" },
+                    { key: "machine_hour_rate", label: "Hora Máquina" },
+                    { key: "labor_hour_rate", label: "Hora Mano de obra" },
+                    ...draft.custom_vars
+                      .filter((cv) => cv.key !== v.key)
+                      .map((cv) => ({ key: cv.key, label: cv.label })),
+                  ]}
+                />
               </div>
 
               <div className="sm:col-span-10 flex flex-wrap items-center gap-4 text-xs">
@@ -434,6 +442,7 @@ function ServiceCard({
         pricing_mode: draft.pricing_mode || "formula",
         uses_global_vars: draft.uses_global_vars ?? false,
         price_display: draft.price_display || "final",
+        formula: draft.formula || null,
         allow_quantity: draft.allow_quantity,
         allow_file: draft.allow_file,
         requires_approval: draft.requires_approval,
@@ -624,6 +633,25 @@ function ServiceCard({
                   </label>
                 </L>
               </div>
+
+              {draft.pricing_mode === "formula" && (
+                <div className="pt-2">
+                  <FormulaEditor
+                    value={draft.formula || ""}
+                    onChange={(val) => set("formula", val)}
+                    label="Fórmula Maestra del Servicio (Anula la suma simple de campos si está definida)"
+                    placeholder="Ej: (peso_gramos * fdm_gram_cost) + (horas_impresion * machine_hour_rate) + base_price"
+                    availableVars={[
+                      { key: "base_price", label: "Precio Base" },
+                      { key: "fdm_gram_cost", label: "Costo gramo FDM" },
+                      { key: "resin_ml_cost", label: "Costo ml Resina" },
+                      { key: "machine_hour_rate", label: "Hora Máquina" },
+                      { key: "labor_hour_rate", label: "Hora Mano de obra" },
+                      ...draft.fields.map((f) => ({ key: f.key, label: f.label })),
+                    ]}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -1049,6 +1077,7 @@ function FieldEditor({
         price_per_unit_cop: d.price_per_unit_cop,
         price_source: d.price_source ?? "fixed",
         multiplier: d.multiplier || 1,
+        formula: d.formula || null,
         options: d.options,
         is_active: d.is_active,
         sort_order: d.sort_order,
@@ -1216,6 +1245,22 @@ function FieldEditor({
                     ))}
                   </select>
                 </L>
+
+                <div className="sm:col-span-2 pt-2">
+                  <FormulaEditor
+                    value={d.formula || ""}
+                    onChange={(fVal) => set("formula", fVal)}
+                    label={`Fórmula específica para "${d.label}" (Opcional)`}
+                    placeholder="Ej: (peso_gramos * fdm_gram_cost) * 1.10"
+                    availableVars={[
+                      { key: "fdm_gram_cost", label: "Costo gramo FDM" },
+                      { key: "resin_ml_cost", label: "Costo ml Resina" },
+                      { key: "machine_hour_rate", label: "Hora Máquina" },
+                      { key: "labor_hour_rate", label: "Hora Mano obra" },
+                      { key: d.key, label: d.label },
+                    ]}
+                  />
+                </div>
               </>
             )}
             <L label="Valor por defecto">
