@@ -17,19 +17,19 @@ Revisión del plan: el orden es correcto, pero se ajustan tres puntos para no ro
 - Las variables globales solo se usan si el cotizador las activa; por defecto, apagadas.
 - Opción por cotizador: mostrar al cliente solo el precio final o el desglose.
 
-## Fase 3 — Seguridad de precios
-- Los costos internos (costo por gramo, hora de máquina, margen) dejan de verse en la web; el cálculo se hace en el servidor y el cliente solo recibe el resultado.
-- Kiara cotiza con el mismo motor.
+## Fase 3 — Seguridad de precios (una sola fuente de verdad)
+- El cálculo vive solo en el servidor: la web y Kiara envían las respuestas del cliente y reciben el precio final o el desglose autorizado.
+- Ni el navegador ni llamadas externas ven márgenes, costos de proveedor ni fórmulas.
 
 ## Fase 4 — Rendimiento móvil
 - Carga diferida de fotos, GIFs y videos fuera de pantalla (hoy solo 3 sitios lo hacen).
 - Cálculos del cotizador memorizados para que los deslizadores no se traben.
-- Revisión de peso de la web y separación de partes pesadas (visor 3D, panel).
+- Las partes pesadas (visor 3D, editores del panel) se descargan solo cuando se usan; quien ve la tienda desde el celular baja una versión ligera.
 
 ## Detalles técnicos
-- Nueva ruta `src/routes/panel.servicios.tsx`; `admin.servicios.tsx` pasa a `redirect` a `/panel/servicios`. Columna `site_services.quoter_service_id uuid null` + `whatsapp_template text null`.
+- Nueva ruta `src/routes/panel.servicios.tsx`; `admin.servicios.tsx` redirige a `/panel/servicios` preservando parámetros y búsqueda (`?id=`, etc.) para no romper enlaces guardados. Columna `site_services.quoter_service_id uuid null` + `whatsapp_template text null`.
 - `quoter_services`: `pricing_mode text default 'formula'`, `uses_global_vars boolean default false`, `price_display text default 'final'`, `volume_tiers jsonb default '[]'`. Solo columnas nuevas, nada se borra.
-- `quoting_vars` sin lectura anónima; cálculo vía `createServerFn` reutilizando `quoter-core.ts`. Tests Vitest por regla (fijo, volumen, sin variables globales).
+- Motor único: `createServerFn` `computeQuoteServer` (en `quoter.functions.ts`, lógica en `quoter.server.ts` sobre `quoter-core.ts`); lee `quoting_vars` con cliente privilegiado; devuelve solo total o desglose según `price_display`. Kiara (`kiara-tools.server.ts`) y `/api/calculate-quote` llaman al mismo helper. Se quita la lectura anónima de `quoting_vars` y el navegador deja de importar fórmulas con costos. Tests Vitest por regla (fijo, volumen, sin variables globales, desglose oculto).
 - Menú lateral: quitar entrada `cotizaciones`, añadir `servicios` (superOnly).
-- `loading="lazy"`/`preload="none"` en ProductMedia, galería, carrusel salvo la primera; `React.lazy` para visor STL.
+- `loading="lazy"`/`preload="none"` en ProductMedia, galería, carrusel salvo la primera; `React.lazy` + `Suspense` para visor STL/FileDropzone3D, RichTextEditor, VariantsEditor y ProductButtonsEditor.
 - Cada fase se verifica con tsgo, Vitest y navegador con sesión de Super Admin antes de pasar a la siguiente.
