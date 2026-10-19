@@ -947,7 +947,6 @@ export type Database = {
         Row: {
           created_at: string
           default_value: string
-          formula: string | null
           help: string
           id: string
           input_type: string
@@ -970,7 +969,6 @@ export type Database = {
         Insert: {
           created_at?: string
           default_value?: string
-          formula?: string | null
           help?: string
           id?: string
           input_type?: string
@@ -993,7 +991,6 @@ export type Database = {
         Update: {
           created_at?: string
           default_value?: string
-          formula?: string | null
           help?: string
           id?: string
           input_type?: string
@@ -1034,7 +1031,6 @@ export type Database = {
           icon: string
           id: string
           is_active: boolean
-          formula: string | null
           margin_percent: number
           min_price_cop: number
           name: string
@@ -1054,7 +1050,6 @@ export type Database = {
           icon?: string
           id?: string
           is_active?: boolean
-          formula?: string | null
           margin_percent?: number
           min_price_cop?: number
           name: string
@@ -1074,7 +1069,6 @@ export type Database = {
           icon?: string
           id?: string
           is_active?: boolean
-          formula?: string | null
           margin_percent?: number
           min_price_cop?: number
           name?: string
