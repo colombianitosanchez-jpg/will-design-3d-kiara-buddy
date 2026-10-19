@@ -2,7 +2,7 @@
 // Server-only: nunca llega al bundle del cliente.
 
 import { computeQuote, coerceAnswersDetailed, formatCOP } from "@/lib/quoter-core";
-import { getQuoterServices } from "@/lib/quoter.server";
+import { getQuoterServices, getQuotingVars } from "@/lib/quoter.server";
 import { parseVariants } from "@/lib/product-variants";
 
 
@@ -183,12 +183,14 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
       };
     }
 
-    const quote = computeQuote(service, values, Number(args.quantity) || 1);
+    const vars = await getQuotingVars();
+    const quote = computeQuote(service, values, Number(args.quantity) || 1, vars as any);
+    const isBreakdown = service.price_display === "breakdown";
     const data = {
       service_slug: service.slug,
       project_name: service.name,
       answers: quote.answers,
-      lines: quote.lines,
+      lines: isBreakdown ? quote.lines : [],
       quantity: quote.quantity,
       unit_price_cop: quote.unit_price_cop,
       total_cop: quote.total_cop,

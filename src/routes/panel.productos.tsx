@@ -4,13 +4,21 @@ import { toast } from "sonner";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Pencil, Trash2, Loader2, X, Search } from "lucide-react";
-import { RichTextEditor } from "@/components/RichTextEditor";
+import { lazy, Suspense } from "react";
 import { ImageDropzone } from "@/components/ImageDropzone";
 import { Switch } from "@/components/ui/switch";
-import { VariantsEditor } from "@/components/VariantsEditor";
 import { PaymentMethodsPicker } from "@/components/PaymentMethodsPicker";
 import { normalizeMethodIds } from "@/lib/payment-rules";
-import { ProductButtonsEditor } from "@/components/ProductButtonsEditor";
+
+const RichTextEditor = lazy(() =>
+  import("@/components/RichTextEditor").then((m) => ({ default: m.RichTextEditor }))
+);
+const VariantsEditor = lazy(() =>
+  import("@/components/VariantsEditor").then((m) => ({ default: m.VariantsEditor }))
+);
+const ProductButtonsEditor = lazy(() =>
+  import("@/components/ProductButtonsEditor").then((m) => ({ default: m.ProductButtonsEditor }))
+);
 import { getMatchingVariants, parseVariants, validateVariants, type ProductVariant } from "@/lib/product-variants";
 
 import {
@@ -826,11 +834,13 @@ function ProductModal({
           />
         </Field>
         <Field label="Descripción completa">
-          <RichTextEditor
-            value={form.description ?? ""}
-            onChange={(html) => set("description", html)}
-            placeholder="Escribe la descripción con negritas, listas y subtítulos…"
-          />
+          <Suspense fallback={<div className="p-4 text-xs text-muted-foreground flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Cargando editor...</div>}>
+            <RichTextEditor
+              value={form.description ?? ""}
+              onChange={(html) => set("description", html)}
+              placeholder="Escribe la descripción con negritas, listas y subtítulos…"
+            />
+          </Suspense>
         </Field>
         <Field label="Consejo de Kiara 🐾">
           <input
@@ -869,15 +879,17 @@ function ProductModal({
         </Field>
 
         <Field label="Variantes (colores, tamaños…) — opcional">
-          <VariantsEditor
-            label={form.variant_label ?? "Color"}
-            onLabelChange={(v) => set("variant_label", v)}
-            variants={form.variants ?? []}
-            onChange={(v) => set("variants", v)}
-            gallery={[...(form.image_url ? [form.image_url] : []), ...(form.images ?? []).filter((u) => u !== form.image_url)]}
-            parentButtons={buttons}
-            targetVariantId={targetVariantId}
-          />
+          <Suspense fallback={<div className="p-4 text-xs text-muted-foreground flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Cargando editor de variantes...</div>}>
+            <VariantsEditor
+              label={form.variant_label ?? "Color"}
+              onLabelChange={(v) => set("variant_label", v)}
+              variants={form.variants ?? []}
+              onChange={(v) => set("variants", v)}
+              gallery={[...(form.image_url ? [form.image_url] : []), ...(form.images ?? []).filter((u) => u !== form.image_url)]}
+              parentButtons={buttons}
+              targetVariantId={targetVariantId}
+            />
+          </Suspense>
         </Field>
 
 
@@ -919,7 +931,9 @@ function ProductModal({
         </Field>
 
         <Field label="Botones del producto (se muestran en las tarjetas del catálogo)">
-          <ProductButtonsEditor buttons={buttons} onChange={setButtons} />
+          <Suspense fallback={<div className="p-4 text-xs text-muted-foreground flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Cargando botones...</div>}>
+            <ProductButtonsEditor buttons={buttons} onChange={setButtons} />
+          </Suspense>
         </Field>
 
 

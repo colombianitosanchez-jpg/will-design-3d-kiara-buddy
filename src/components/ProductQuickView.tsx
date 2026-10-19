@@ -10,7 +10,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { FileDropzone3D, file3dWaNote, type Dims3D } from "@/components/FileDropzone3D";
+import { lazy, Suspense } from "react";
+import { file3dWaNote, type Dims3D } from "@/components/FileDropzone3D";
+import { Loader2 } from "lucide-react";
+
+const FileDropzone3D = lazy(() =>
+  import("@/components/FileDropzone3D").then((m) => ({ default: m.FileDropzone3D }))
+);
 import { ProductButtons } from "@/components/ProductButtons";
 import { ShareButton } from "@/components/ShareButton";
 import { formatCOP, gradientKeyFor, type Product } from "@/lib/catalog";

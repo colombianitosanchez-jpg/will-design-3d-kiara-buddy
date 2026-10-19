@@ -19,6 +19,7 @@ import {
   quotingVarsQuery,
   saveQuotingVars,
   type QuotingVars,
+  type CustomQuotingVar,
 } from "@/lib/quoting-vars";
 import {
   Loader2,
@@ -32,6 +33,10 @@ import {
   Calculator,
   ArrowUp,
   ArrowDown,
+  Sparkles,
+  Sliders,
+  DollarSign,
+  Info,
 } from "lucide-react";
 
 export const Route = createFileRoute("/panel/cotizador")({
@@ -54,6 +59,14 @@ const INPUT_TYPES: { value: QuoterField["input_type"]; label: string }[] = [
   { value: "toggle", label: "Sí / No" },
   { value: "number", label: "Número" },
   { value: "text", label: "Texto libre" },
+];
+
+const PRICING_MODES = [
+  { value: "formula", label: "Fórmula / Operaciones matemáticas" },
+  { value: "fixed", label: "Precio Fijo (ej. Cursos, consulta)" },
+  { value: "weight_material", label: "Por Material / Peso (Gramos/ML)" },
+  { value: "hours", label: "Por Horas (Máquina / Mano de obra)" },
+  { value: "volume_tier", label: "Por Cantidad con Descuento por Volumen" },
 ];
 
 const ICON_OPTIONS = [
@@ -98,35 +111,34 @@ function QuoterAdmin() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground p-8">
         <Loader2 className="h-4 w-4 animate-spin" /> Cargando cotizador…
       </div>
     );
   }
 
   return (
-    <>
+    <div className="p-4 sm:p-6 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-black">Cotizador</h1>
+          <h1 className="text-3xl font-black">Cotizador Independiente & Variables</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Cada servicio del cotizador público se arma aquí: agrega preguntas, deslizadores y precios.
-            Los cambios se ven de inmediato en la web.
+            Configura las reglas de cálculo, variables globales, fórmulas encadenadas y visibilidad de desglose para cada servicio público o para Kiara.
           </p>
         </div>
         <button
           onClick={addService}
-          className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-wine)] px-5 py-2.5 text-sm font-bold text-white"
+          className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-wine)] px-5 py-2.5 text-sm font-bold text-white shadow hover:opacity-90"
         >
           <Plus className="h-4 w-4" /> Nuevo servicio
         </button>
       </div>
 
-      {msg && <p className="mt-3 text-xs font-semibold text-muted-foreground">{msg}</p>}
+      {msg && <p className="text-xs font-semibold text-primary">{msg}</p>}
 
       <GlobalVarsCard onMsg={setMsg} />
 
-      <div className="mt-6 space-y-4">
+      <div className="space-y-4">
         {(services ?? []).map((s) => (
           <ServiceCard
             key={s.id}
@@ -143,11 +155,11 @@ function QuoterAdmin() {
           </p>
         )}
       </div>
-    </>
+    </div>
   );
 }
 
-/** Variables globales que alimentan los precios de todos los servicios. */
+/** Variables globales que alimentan los precios y cálculos. Permite CRUD completo de variables personalizadas y fórmulas encadenadas. */
 function GlobalVarsCard({ onMsg }: { onMsg: (m: string) => void }) {
   const qc = useQueryClient();
   const { data } = useQuery(quotingVarsQuery());
@@ -160,29 +172,62 @@ function GlobalVarsCard({ onMsg }: { onMsg: (m: string) => void }) {
 
   async function save() {
     if (!data?.id) {
-      onMsg("Error: no encontramos la fila de ajustes.");
+      onMsg("Error: no encontramos la fila de ajustes de variables.");
       return;
     }
     setSaving(true);
     try {
       await saveQuotingVars(data.id, draft);
-      onMsg("Variables globales guardadas.");
+      onMsg("Variables globales guardadas con éxito.");
       void qc.invalidateQueries({ queryKey: ["admin_settings", "quoting_vars"] });
     } catch (err) {
-      onMsg(`Error: ${(err as Error).message}`);
+      onMsg(`Error al guardar variables: ${(err as Error).message}`);
     } finally {
       setSaving(false);
     }
   }
 
+  function handleAddCustomVar() {
+    const keyName = window.prompt("Identificador de la variable (ej: comision_disenador, costo_impuesto)");
+    if (!keyName?.trim()) return;
+    const cleanKey = slugify(keyName).replace(/-/g, "_");
+
+    const newVar: CustomQuotingVar = {
+      key: cleanKey,
+      label: keyName.trim(),
+      value: 0,
+      formula: "",
+      show_in_breakdown: false,
+      help: "Variable personalizada de cotización.",
+    };
+
+    setDraft((prev) => ({
+      ...prev,
+      custom_vars: [...(prev.custom_vars || []), newVar],
+    }));
+  }
+
+  function handleDeleteCustomVar(keyToDelete: string) {
+    if (!confirm(`¿Eliminar la variable global "${keyToDelete}"?`)) return;
+    setDraft((prev) => ({
+      ...prev,
+      custom_vars: (prev.custom_vars || []).filter((v) => v.key !== keyToDelete),
+    }));
+  }
+
   return (
-    <div className="mt-6 rounded-3xl border border-border bg-card p-5">
-      <h2 className="text-lg font-black">Variables globales</h2>
-      <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-        Costos base de todo el taller. Cualquier pregunta del cotizador puede tomar su costo de aquí
-        en vez de un número fijo, así actualizas precios en un solo lugar.
-      </p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="rounded-3xl border border-border bg-card p-5 space-y-4 shadow-sm">
+      <div>
+        <h2 className="text-lg font-black flex items-center gap-2">
+          <Sliders className="h-5 w-5 text-primary" /> Variables Globales del Taller
+        </h2>
+        <p className="mt-1 max-w-3xl text-xs text-muted-foreground">
+          Añade, edita o elimina variables globales. Puedes definir fórmulas de encadenamiento matemático (ej. sumas de envío, impuestos o comisiones) y seleccionar exactamente cuáles se muestran al cliente en el desglose final.
+        </p>
+      </div>
+
+      {/* Variables Estándar Base */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 pt-2">
         {QUOTING_VAR_LABELS.map((v) => (
           <L key={v.key} label={v.label}>
             <input
@@ -198,13 +243,146 @@ function GlobalVarsCard({ onMsg }: { onMsg: (m: string) => void }) {
           </L>
         ))}
       </div>
+
+      {/* Variables Personalizadas y Fórmulas */}
+      <div className="border-t border-border pt-4">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+              Variables Personalizadas & Fórmulas Encadenadas
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Ejemplo de fórmula: <code className="bg-muted px-1 py-0.5 rounded text-primary">(envio + impuesto - descuento) / 20</code>
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleAddCustomVar}
+            className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 px-4 py-1.5 text-xs font-bold hover:bg-primary/20"
+          >
+            <Plus className="h-4 w-4" /> Agregar Variable
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          {(draft.custom_vars || []).map((v, idx) => (
+            <div
+              key={v.key || idx}
+              className="grid gap-3 sm:grid-cols-12 items-start rounded-2xl border border-border bg-muted/20 p-3"
+            >
+              <div className="sm:col-span-3">
+                <L label="Identificador (Clave)">
+                  <input
+                    value={v.key}
+                    onChange={(e) => {
+                      const clean = slugify(e.target.value).replace(/-/g, "_");
+                      const next = [...draft.custom_vars];
+                      next[idx] = { ...v, key: clean };
+                      setDraft({ ...draft, custom_vars: next });
+                    }}
+                    className={inputCls}
+                  />
+                </L>
+              </div>
+
+              <div className="sm:col-span-3">
+                <L label="Etiqueta visible">
+                  <input
+                    value={v.label}
+                    onChange={(e) => {
+                      const next = [...draft.custom_vars];
+                      next[idx] = { ...v, label: e.target.value };
+                      setDraft({ ...draft, custom_vars: next });
+                    }}
+                    className={inputCls}
+                  />
+                </L>
+              </div>
+
+              <div className="sm:col-span-2">
+                <L label="Valor Base">
+                  <input
+                    type="number"
+                    value={v.value}
+                    onChange={(e) => {
+                      const next = [...draft.custom_vars];
+                      next[idx] = { ...v, value: Number(e.target.value) || 0 };
+                      setDraft({ ...draft, custom_vars: next });
+                    }}
+                    className={inputCls}
+                  />
+                </L>
+              </div>
+
+              <div className="sm:col-span-4">
+                <L label="Operación / Fórmula matemática (Opcional)">
+                  <input
+                    value={v.formula || ""}
+                    onChange={(e) => {
+                      const next = [...draft.custom_vars];
+                      next[idx] = { ...v, formula: e.target.value };
+                      setDraft({ ...draft, custom_vars: next });
+                    }}
+                    placeholder="ej: (envio + impuesto) / 20"
+                    className={inputCls}
+                  />
+                </L>
+              </div>
+
+              <div className="sm:col-span-10 flex flex-wrap items-center gap-4 text-xs">
+                <label className="inline-flex items-center gap-1.5 font-semibold cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={v.show_in_breakdown}
+                    onChange={(e) => {
+                      const next = [...draft.custom_vars];
+                      next[idx] = { ...v, show_in_breakdown: e.target.checked };
+                      setDraft({ ...draft, custom_vars: next });
+                    }}
+                    className="h-4 w-4 rounded accent-primary"
+                  />
+                  Mostrar en desglose al cliente
+                </label>
+
+                <input
+                  value={v.help || ""}
+                  onChange={(e) => {
+                    const next = [...draft.custom_vars];
+                    next[idx] = { ...v, help: e.target.value };
+                    setDraft({ ...draft, custom_vars: next });
+                  }}
+                  placeholder="Descripción o nota interna..."
+                  className="flex-1 rounded-lg border border-input bg-background px-2 py-1 text-xs"
+                />
+              </div>
+
+              <div className="sm:col-span-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => handleDeleteCustomVar(v.key)}
+                  className="rounded-lg p-2 text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
+                  title="Eliminar variable"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {(draft.custom_vars || []).length === 0 && (
+            <p className="text-xs text-muted-foreground">No hay variables personalizadas creadas.</p>
+          )}
+        </div>
+      </div>
+
       <button
         onClick={save}
         disabled={saving}
-        className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--brand-wine)] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+        className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-wine)] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60 shadow"
       >
         {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-        Guardar variables
+        Guardar variables globales
       </button>
     </div>
   );
@@ -253,6 +431,9 @@ function ServiceCard({
         gastos_extra_cop: draft.gastos_extra_cop,
         min_price_cop: draft.min_price_cop,
         margin_percent: draft.margin_percent,
+        pricing_mode: draft.pricing_mode || "formula",
+        uses_global_vars: draft.uses_global_vars ?? false,
+        price_display: draft.price_display || "final",
         allow_quantity: draft.allow_quantity,
         allow_file: draft.allow_file,
         requires_approval: draft.requires_approval,
@@ -285,6 +466,9 @@ function ServiceCard({
         gastos_extra_cop: draft.gastos_extra_cop,
         min_price_cop: draft.min_price_cop,
         margin_percent: draft.margin_percent,
+        pricing_mode: draft.pricing_mode || "formula",
+        uses_global_vars: draft.uses_global_vars ?? false,
+        price_display: draft.price_display || "final",
         allow_quantity: draft.allow_quantity,
         allow_file: draft.allow_file,
         requires_approval: draft.requires_approval,
@@ -301,7 +485,6 @@ function ServiceCard({
       return;
     }
 
-    // Duplicar las preguntas / campos
     if (draft.fields.length > 0) {
       const newFields = draft.fields.map((f) => ({
         service_id: newSvc.id,
@@ -364,7 +547,7 @@ function ServiceCard({
   }
 
   return (
-    <section className="rounded-3xl border border-border bg-card">
+    <section className="rounded-3xl border border-border bg-card shadow-sm">
       <div className="flex flex-wrap items-center gap-3 p-5">
         <button onClick={onToggle} className="flex flex-1 items-center gap-2 text-left">
           {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -397,6 +580,52 @@ function ServiceCard({
       {open && (
         <div className="grid gap-6 border-t border-border p-5 lg:grid-cols-[1.5fr_1fr]">
           <div className="space-y-6">
+            {/* Configuración del Modo de Precios y Reglas del Cotizador */}
+            <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+              <h4 className="text-sm font-bold text-primary flex items-center gap-2">
+                <Calculator className="h-4 w-4" /> Reglas de Cotización Independiente
+              </h4>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <L label="Modo de Precio">
+                  <select
+                    value={draft.pricing_mode || "formula"}
+                    onChange={(e) => set("pricing_mode", e.target.value as any)}
+                    className={inputCls}
+                  >
+                    {PRICING_MODES.map((m) => (
+                      <option key={m.value} value={m.value}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </L>
+
+                <L label="Visibilidad para el Cliente">
+                  <select
+                    value={draft.price_display || "final"}
+                    onChange={(e) => set("price_display", e.target.value as any)}
+                    className={inputCls}
+                  >
+                    <option value="final">Ocultar desglose (Solo Precio Final)</option>
+                    <option value="breakdown">Mostrar desglose autorizado</option>
+                  </select>
+                </L>
+
+                <L label="Variables Globales">
+                  <label className="mt-2 inline-flex items-center gap-2 text-xs font-semibold cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(draft.uses_global_vars)}
+                      onChange={(e) => set("uses_global_vars", e.target.checked)}
+                      className="h-4 w-4 rounded accent-primary"
+                    />
+                    Usar variables globales del taller
+                  </label>
+                </L>
+              </div>
+            </div>
+
             <div className="grid gap-4 sm:grid-cols-2">
               <L label="Nombre">
                 <input value={draft.name} onChange={(e) => set("name", e.target.value)} className={inputCls} />
@@ -644,7 +873,7 @@ function ServiceCard({
               <button
                 onClick={save}
                 disabled={saving}
-                className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-wine)] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-wine)] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60 shadow"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Guardar servicio
@@ -745,21 +974,23 @@ function ServiceCard({
             </div>
 
             <div className="mt-4 space-y-1 border-t border-dashed border-border pt-3 text-xs">
-              {preview.lines.map((l, i) => (
-                <div key={i} className="flex justify-between gap-2 text-muted-foreground">
-                  <span>
-                    {l.label}
-                    {l.detail ? ` · ${l.detail}` : ""}
-                  </span>
-                  <span>{formatCOP(l.amount)}</span>
+              {draft.price_display === "final" ? (
+                <div className="text-xs text-muted-foreground italic mb-2">
+                  (El desglose estará oculto para el cliente final; solo verá el total)
                 </div>
-              ))}
-              <div className="flex justify-between text-muted-foreground">
-                <span>Multiplicador</span>
-                <span>×{preview.multiplier.toFixed(2)}</span>
-              </div>
+              ) : (
+                preview.lines.map((l, i) => (
+                  <div key={i} className="flex justify-between gap-2 text-muted-foreground">
+                    <span>
+                      {l.label}
+                      {l.detail ? ` · ${l.detail}` : ""}
+                    </span>
+                    <span>{formatCOP(l.amount)}</span>
+                  </div>
+                ))
+              )}
               <div className="flex justify-between border-t border-border pt-2 text-base font-black">
-                <span>Total</span>
+                <span>Total Calculado</span>
                 <span>{formatCOP(preview.total_cop)}</span>
               </div>
             </div>
