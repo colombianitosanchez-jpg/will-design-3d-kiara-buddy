@@ -1,4 +1,4 @@
-// Motor del Cotizador (puro): tipos, normalización y matemática.
+// Motor del Cotizador (puro): tipos, normalización y matemática AST.
 // No importa Supabase, así puede usarse igual en el navegador y en el servidor.
 
 export type QuoterOptionMedia = {
@@ -29,7 +29,8 @@ export type QuoterPriceSource =
   | "fdm_gram_cost"
   | "resin_ml_cost"
   | "machine_hour_rate"
-  | "labor_hour_rate";
+  | "labor_hour_rate"
+  | string;
 
 export type QuoterField = {
   id: string;
@@ -46,12 +47,22 @@ export type QuoterField = {
   price_per_unit_cop: number;
   price_source: QuoterPriceSource;
   multiplier: number;
+  formula?: string; // Fórmula matemática personalizada por campo
   options: QuoterOption[];
   is_required: boolean;
   is_active: boolean;
   sort_order: number;
   media_url?: string;
   media_type?: "image" | "video" | "gif";
+};
+
+export type CustomQuoterVar = {
+  key: string;
+  label: string;
+  value: number;
+  formula?: string;
+  show_in_breakdown: boolean;
+  help?: string;
 };
 
 /** Variables globales del cotizador que pueden alimentar el costo de un campo. */
@@ -62,6 +73,7 @@ export type QuoterVars = {
   labor_hour_rate: number;
   default_margin: number;
   failure_rate_percentage: number;
+  custom_vars?: CustomQuoterVar[];
 };
 
 export type QuoterPricingMode = "formula" | "fixed" | "weight_material" | "hours" | "volume_tier";
@@ -83,6 +95,7 @@ export type QuoterService = {
   pricing_mode?: QuoterPricingMode;
   uses_global_vars?: boolean;
   price_display?: QuoterPriceDisplay;
+  formula?: string; // Master formula para el cálculo completo del servicio
   allow_quantity: boolean;
   allow_file: boolean;
   requires_approval?: boolean;
@@ -98,6 +111,56 @@ export type QuoterService = {
 function num(v: unknown, fallback = 0) {
   const n = Number(v);
   return Number.isFinite(n) ? n : fallback;
+}
+
+/** Evaluador de fórmulas matemáticas seguro con soporte de variables, operadores y jerarquía. */
+export function evaluateFormula(
+  expression: string | null | undefined,
+  context: Record<string, number> = {},
+): number {
+  if (!expression || typeof expression !== "string") return 0;
+
+  // Normalizar corchetes {{clave}} -> clave
+  let expr = expression.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, "$1").trim();
+  if (!expr) return 0;
+
+  // Sustituir identificadores del contexto (ordenados por longitud descendente para evitar colisiones)
+  const keys = Object.keys(context).sort((a, b) => b.length - a.length);
+  for (const k of keys) {
+    if (!k) continue;
+    const val = Number(context[k]);
+    const numVal = Number.isFinite(val) ? val : 0;
+    const regex = new RegExp(`\\b${k}\\b`, "g");
+    expr = expr.replace(regex, String(numVal));
+  }
+
+  // Eliminar espacios en blanco
+  expr = expr.replace(/\s+/g, "");
+
+  // Reemplazar identificadores no resueltos por 0
+  expr = expr.replace(/\b[a-zA-Z_][a-zA-Z0-9_]*\b/g, "0");
+
+  // Validar caracteres permitidos: dígitos, operadores, paréntesis, puntos decimales
+  if (!/^[0-9+\-*/().%^ ]+$/.test(expr)) {
+    return 0;
+  }
+
+  try {
+    // Reemplazar operador exponente ^ por **
+    const jsExpr = expr.replace(/\^/g, "**");
+
+    // Prevenir división directa por cero
+    if (/\/(0+(\.0+)?)(?![0-9])/.test(jsExpr)) {
+      return 0;
+    }
+
+    const fn = new Function(`"use strict"; return (${jsExpr});`);
+    const val = Number(fn());
+    if (!Number.isFinite(val) || Number.isNaN(val)) return 0;
+    return val;
+  } catch {
+    return 0;
+  }
 }
 
 export function normalizeField(row: Record<string, unknown>): QuoterField {
@@ -117,6 +180,7 @@ export function normalizeField(row: Record<string, unknown>): QuoterField {
     price_per_unit_cop: num(row['price_per_unit_cop']),
     price_source: (String(row['price_source'] ?? "fixed") || "fixed") as QuoterPriceSource,
     multiplier: num(row['multiplier'], 1) || 1,
+    formula: row['formula'] ? String(row['formula']) : undefined,
     options: rawOptions
       .filter((o): o is Record<string, unknown> => Boolean(o) && typeof o === "object")
       .map((o) => {
@@ -172,6 +236,7 @@ export function normalizeService(
     pricing_mode: (String(row['pricing_mode'] ?? "formula") as QuoterPricingMode) || "formula",
     uses_global_vars: Boolean(row['uses_global_vars']),
     price_display: (String(row['price_display'] ?? "final") as QuoterPriceDisplay) || "final",
+    formula: row['formula'] ? String(row['formula']) : undefined,
     allow_quantity: row['allow_quantity'] !== false,
     allow_file: row['allow_file'] !== false,
     requires_approval: Boolean(row['requires_approval']),
@@ -225,18 +290,34 @@ export function isOn(value: string | undefined) {
 }
 
 /**
- * Costo unitario de un campo: su número fijo o la variable global elegida
- * (con el porcentaje de fallo aplicado a esos costos globales).
+ * Costo unitario de un campo: su número fijo, variable global o fórmula calculada.
  */
-export function unitCostFor(field: QuoterField, vars?: QuoterVars): number {
+export function unitCostFor(field: QuoterField, vars?: QuoterVars, context?: Record<string, number>): number {
+  if (field.formula) {
+    return evaluateFormula(field.formula, context || {});
+  }
+
   const src = field.price_source ?? "fixed";
   if (src === "fixed" || !vars) return num(field.price_per_unit_cop);
-  const base = num((vars as unknown as Record<string, unknown>)[src], num(field.price_per_unit_cop));
+
+  // Check in standard vars
+  let base = num((vars as unknown as Record<string, unknown>)[src], 0);
+
+  // Check in custom vars
+  if (base === 0 && vars.custom_vars) {
+    const custom = vars.custom_vars.find((v) => v.key === src);
+    if (custom) {
+      base = custom.formula ? evaluateFormula(custom.formula, context || {}) : custom.value;
+    }
+  }
+
+  if (base === 0) base = num(field.price_per_unit_cop);
+
   const failure = num(vars.failure_rate_percentage);
   return base * (1 + failure / 100);
 }
 
-/** Precio en vivo: (base + recargos) × multiplicadores + margen, con mínimo y cantidad. */
+/** Precio en vivo con evaluador matemático AST completo. */
 export function computeQuote(
   service: QuoterService,
   values: QuoterValues,
@@ -245,6 +326,59 @@ export function computeQuote(
 ): QuoterResult {
   const lines: QuoterLine[] = [];
   const answers: { label: string; value: string }[] = [];
+  const qty = Math.max(1, Math.round(num(quantity, 1)));
+
+  // Construcción del contexto numérico completo para fórmulas
+  const context: Record<string, number> = {
+    quantity: qty,
+    cantidad: qty,
+    base_price: num(service.base_price_cop),
+    precio_base: num(service.base_price_cop),
+  };
+
+  // Agregar variables globales estándar al contexto
+  if (vars) {
+    context.fdm_gram_cost = num(vars.fdm_gram_cost);
+    context.resin_ml_cost = num(vars.resin_ml_cost);
+    context.machine_hour_rate = num(vars.machine_hour_rate);
+    context.labor_hour_rate = num(vars.labor_hour_rate);
+    context.default_margin = num(vars.default_margin);
+    context.failure_rate_percentage = num(vars.failure_rate_percentage);
+
+    if (vars.custom_vars) {
+      for (const cv of vars.custom_vars) {
+        if (!cv.key) continue;
+        const computed = cv.formula ? evaluateFormula(cv.formula, context) : cv.value;
+        context[cv.key] = computed;
+      }
+    }
+  }
+
+  // Agregar entradas numéricas del cliente al contexto
+  for (const f of service.fields) {
+    const raw = values[f.key] ?? "";
+    const n = num(raw);
+    context[f.key] = n;
+  }
+
+  // Si el servicio es de precio fijo
+  if (service.pricing_mode === "fixed") {
+    const unit = num(service.base_price_cop);
+    const total = round100(unit * qty);
+    return {
+      lines: [{ label: service.name, detail: `${qty} unidad(es)`, amount: total }],
+      multiplier: 1,
+      subtotal_cop: total,
+      margin_cop: 0,
+      unit_price_cop: unit,
+      quantity: qty,
+      total_cop: total,
+      min_applied: false,
+      requires_approval: false,
+      answers,
+    };
+  }
+
   let add = num(service.base_price_cop);
   let multiplier = 1;
 
@@ -256,7 +390,9 @@ export function computeQuote(
 
     if (f.input_type === "slider" || f.input_type === "number") {
       const v = num(raw);
-      const amount = v * unitCostFor(f, vars);
+      const unitPrice = unitCostFor(f, vars, context);
+      const amount = f.formula ? unitPrice : v * unitPrice;
+
       answers.push({ label: f.label, value: `${v}${f.unit ? ` ${f.unit}` : ""}` });
       if (amount) {
         add += amount;
@@ -265,7 +401,6 @@ export function computeQuote(
       if (f.multiplier !== 1) multiplier *= f.multiplier;
       continue;
     }
-
 
     if (f.input_type === "select") {
       const opt = f.options.find((o) => o.value === raw) ?? null;
@@ -296,6 +431,16 @@ export function computeQuote(
     if (raw.trim()) answers.push({ label: f.label, value: raw.trim() });
   }
 
+  // Evaluación de la Master Formula si el servicio tiene una definida
+  if (service.formula) {
+    const computedMaster = evaluateFormula(service.formula, context);
+    if (computedMaster > 0) {
+      add = computedMaster;
+      lines.length = 0; // Reemplazar con el resultado de la fórmula maestra
+      lines.push({ label: "Fórmula personalizada del servicio", detail: service.name, amount: add });
+    }
+  }
+
   const subtotal = add * multiplier;
   const margin = subtotal * (num(service.margin_percent) / 100);
   const withMargin = subtotal + margin;
@@ -303,8 +448,6 @@ export function computeQuote(
   const extra = num(service.gastos_extra_cop);
   let baseUnit = Math.max(min, withMargin) + extra;
   if (extra > 0) lines.push({ label: "Gastos extra", detail: "Montaje y post-procesado", amount: extra });
-
-  const qty = Math.max(1, Math.round(num(quantity, 1)));
 
   // Escalado de Descuentos por Volumen (Tiered Volume Discounts)
   let unit = baseUnit;
@@ -354,12 +497,6 @@ export function computeQuote(
   };
 }
 
-/**
- * Convierte respuestas "en lenguaje natural" (por clave, etiqueta o valor) a los
- * valores exactos que espera el motor, e informa qué campos quedaron sin dato.
- * Lo usa Kiara para cotizar por chat: si falta un campo obligatorio, debe
- * preguntarlo en vez de inventarlo.
- */
 export function coerceAnswersDetailed(
   service: QuoterService,
   input: Record<string, unknown>,
@@ -378,14 +515,14 @@ export function coerceAnswersDetailed(
   for (const [rawKey, rawVal] of Object.entries(input)) {
     const key = norm(rawKey);
     if (!key) continue;
-    // Coincidencia estricta primero; la difusa solo con claves suficientemente
-    // largas y por palabra completa, para no mapear datos al campo equivocado.
+
     const fuzzy = (f: QuoterField) => {
       if (key.length < 4) return false;
       const words = (s: string) => norm(s).split(" ");
       return words(f.key).includes(key) || words(f.label).includes(key) ||
         key.split(" ").some((w) => w.length >= 4 && (words(f.key).includes(w) || words(f.label).includes(w)));
     };
+
     const field =
       service.fields.find((f) => norm(f.key) === key) ??
       service.fields.find((f) => norm(f.label) === key) ??
@@ -422,8 +559,6 @@ export function coerceAnswersDetailed(
     matched.add(field.key);
   }
 
-  // Falta un dato si es obligatorio, o si es un número que cambia el precio y
-  // el cliente no lo dio: así Kiara pregunta en vez de asumir un valor por defecto.
   const missingRequired = service.fields.filter((f) => {
     if (!f.is_active || matched.has(f.key)) return false;
     const numeric = f.input_type === "slider" || f.input_type === "number";
@@ -431,7 +566,6 @@ export function coerceAnswersDetailed(
     if (f.input_type === "text") return f.is_required && !f.default_value;
     return f.is_required && !f.default_value;
   });
-
 
   return { values, matchedKeys: [...matched], missingRequired };
 }
@@ -442,7 +576,6 @@ export function coerceAnswers(
 ): QuoterValues {
   return coerceAnswersDetailed(service, input).values;
 }
-
 
 export function formatCOP(n: number) {
   return (Number(n) || 0).toLocaleString("es-CO", {

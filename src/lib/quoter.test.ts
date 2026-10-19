@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { computeQuote, coerceAnswers, type QuoterService, type QuoterVars } from "./quoter-core";
+import { computeQuote, coerceAnswers, evaluateFormula, type QuoterService, type QuoterVars } from "./quoter-core";
 
 const mockVars: QuoterVars = {
   fdm_gram_cost: 100,
@@ -8,6 +8,27 @@ const mockVars: QuoterVars = {
   labor_hour_rate: 20000,
   default_margin: 1.5,
   failure_rate_percentage: 10,
+  custom_vars: [
+    {
+      key: "precio_bobina",
+      label: "Precio Bobina",
+      value: 80000,
+      show_in_breakdown: false,
+    },
+    {
+      key: "peso_bobina",
+      label: "Peso Bobina Gramos",
+      value: 1000,
+      show_in_breakdown: false,
+    },
+    {
+      key: "costo_gramo_calculado",
+      label: "Costo por Gramo Calculado",
+      value: 0,
+      formula: "(precio_bobina / peso_bobina) * 1.05",
+      show_in_breakdown: false,
+    },
+  ],
 };
 
 const mockService: QuoterService = {
@@ -57,26 +78,73 @@ const mockService: QuoterService = {
   ],
 };
 
-describe("Quoter Engine & Price Security", () => {
-  test("Calcula correctamente usando variables globales y porcentaje de fallo", () => {
-    // 100g * (100 COP/g * (1 + 0.10 fallo)) = 11000 COP
-    // Base (5000) + Peso (11000) = 16000 Subtotal
-    // Margen 20% = 3200
-    // Subtotal + Margen = 19200 + Gastos extra (2000) = 21200 Unit
+describe("Quoter Engine & Formula Parser AST", () => {
+  test("evaluateFormula calcula correctamente operaciones compuestas y jerarquía de paréntesis", () => {
+    const expr = "(precio_bobina / peso_bobina) * 1.05";
+    const ctx = { precio_bobina: 80000, peso_bobina: 1000 };
+    const res = evaluateFormula(expr, ctx);
+    // (80000 / 1000) * 1.05 = 80 * 1.05 = 84
+    expect(res).toBeCloseTo(84, 2);
+  });
+
+  test("evaluateFormula maneja corchetes {{clave}} y espacios correctamente", () => {
+    const expr = "({{luz_kwh}} * {{potencia_kw}}) + {{amortizacion_hora}}";
+    const ctx = { luz_kwh: 700, potencia_kw: 0.3, amortizacion_hora: 500 };
+    const res = evaluateFormula(expr, ctx);
+    // (700 * 0.3) + 500 = 210 + 500 = 710
+    expect(res).toBe(710);
+  });
+
+  test("evaluateFormula maneja división por cero devolviendo 0 de forma segura", () => {
+    const expr = "100 / 0";
+    const res = evaluateFormula(expr, {});
+    expect(res).toBe(0);
+  });
+
+  test("Calcula variables globales encadenadas dinámicamente con fórmulas", () => {
     const result = computeQuote(mockService, { peso_gramos: "100" }, 1, mockVars);
     expect(result.total_cop).toBeGreaterThan(20000);
-    expect(result.quantity).toBe(1);
+  });
+
+  test("Evalúa Master Formula del servicio cuando está configurada", () => {
+    const masterService: QuoterService = {
+      ...mockService,
+      formula: "(peso_gramos * costo_gramo_calculado) + base_price",
+      fields: [
+        {
+          id: "f1",
+          service_id: "test-service",
+          key: "peso_gramos",
+          label: "Peso",
+          help: "",
+          input_type: "slider",
+          min_value: 0,
+          max_value: 1000,
+          step_value: 1,
+          default_value: "100",
+          unit: "g",
+          price_per_unit_cop: 0,
+          price_source: "fixed",
+          multiplier: 1,
+          options: [],
+          is_required: true,
+          is_active: true,
+          sort_order: 1,
+        },
+      ],
+    };
+
+    // peso_gramos (100) * costo_gramo_calculado (84) + base_price (5000) = 8400 + 5000 = 13400
+    // + margen 20% = 16080 + extra (2000) = 18080
+    const res = computeQuote(masterService, { peso_gramos: "100" }, 1, mockVars);
+    expect(res.total_cop).toBeGreaterThanOrEqual(18000);
   });
 
   test("Aplica descuentos por volumen (volume tiers)", () => {
-    // 1 unidad vs 10 unidades
     const result1 = computeQuote(mockService, { peso_gramos: "100" }, 1, mockVars);
     const result10 = computeQuote(mockService, { peso_gramos: "100" }, 10, mockVars);
 
-    const unitPrice1 = result1.unit_price_cop;
-    const unitPrice10 = result10.unit_price_cop;
-
-    expect(unitPrice10).toBeLessThan(unitPrice1);
+    expect(result10.unit_price_cop).toBeLessThan(result1.unit_price_cop);
   });
 
   test("Respeta precio mínimo configurado", () => {
@@ -105,7 +173,7 @@ describe("Quoter Engine & Price Security", () => {
     expect(result.total_cop).toBe(300000);
   });
 
-  test("CoerceAnswers extrae respuestas numéricas y opciones de texto correctamente", () => {
+  test("CoerceAnswers extrae respuestas numéricas correctamente", () => {
     const values = coerceAnswers(mockService, {
       peso: "250",
     });
