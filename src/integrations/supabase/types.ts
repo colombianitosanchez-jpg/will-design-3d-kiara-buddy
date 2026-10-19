@@ -1028,23 +1028,17 @@ export type Database = {
           created_at: string
           description: string
           gastos_extra_cop: number
-          has_calculator: boolean
           icon: string
           id: string
           is_active: boolean
           margin_percent: number
           min_price_cop: number
           name: string
-          price_display: string
-          pricing_mode: string
           site_anchor: string
           slug: string
           sort_order: number
           tagline: string
           updated_at: string
-          uses_global_vars: boolean
-          volume_tiers: Json
-          whatsapp_custom_message: string | null
         }
         Insert: {
           allow_file?: boolean
@@ -1053,23 +1047,17 @@ export type Database = {
           created_at?: string
           description?: string
           gastos_extra_cop?: number
-          has_calculator?: boolean
           icon?: string
           id?: string
           is_active?: boolean
           margin_percent?: number
           min_price_cop?: number
           name: string
-          price_display?: string
-          pricing_mode?: string
           site_anchor?: string
           slug: string
           sort_order?: number
           tagline?: string
           updated_at?: string
-          uses_global_vars?: boolean
-          volume_tiers?: Json
-          whatsapp_custom_message?: string | null
         }
         Update: {
           allow_file?: boolean
@@ -1078,23 +1066,17 @@ export type Database = {
           created_at?: string
           description?: string
           gastos_extra_cop?: number
-          has_calculator?: boolean
           icon?: string
           id?: string
           is_active?: boolean
           margin_percent?: number
           min_price_cop?: number
           name?: string
-          price_display?: string
-          pricing_mode?: string
           site_anchor?: string
           slug?: string
           sort_order?: number
           tagline?: string
           updated_at?: string
-          uses_global_vars?: boolean
-          volume_tiers?: Json
-          whatsapp_custom_message?: string | null
         }
         Relationships: []
       }
@@ -1228,61 +1210,46 @@ export type Database = {
           bullets: Json
           color: string
           created_at: string
-          custom_buttons: Json
           icon: string
           id: string
           image_url: string | null
           is_active: boolean
           kiara_tip: string
           lead: string
-          media_type: string
-          quoter_service_id: string | null
-          requires_file: boolean
           slug: string
           sort_order: number
           title: string
           updated_at: string
-          whatsapp_template: string | null
         }
         Insert: {
           bullets?: Json
           color?: string
           created_at?: string
-          custom_buttons?: Json
           icon?: string
           id?: string
           image_url?: string | null
           is_active?: boolean
           kiara_tip?: string
           lead?: string
-          media_type?: string
-          quoter_service_id?: string | null
-          requires_file?: boolean
           slug: string
           sort_order?: number
           title: string
           updated_at?: string
-          whatsapp_template?: string | null
         }
         Update: {
           bullets?: Json
           color?: string
           created_at?: string
-          custom_buttons?: Json
           icon?: string
           id?: string
           image_url?: string | null
           is_active?: boolean
           kiara_tip?: string
           lead?: string
-          media_type?: string
-          quoter_service_id?: string | null
-          requires_file?: boolean
           slug?: string
           sort_order?: number
           title?: string
           updated_at?: string
-          whatsapp_template?: string | null
         }
         Relationships: []
       }
