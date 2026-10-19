@@ -260,6 +260,9 @@ function ServiceCard({
         is_active: draft.is_active,
         sort_order: draft.sort_order,
         site_anchor: draft.site_anchor.trim(),
+        has_calculator: draft.has_calculator !== false,
+        whatsapp_custom_message: draft.whatsapp_custom_message || null,
+        volume_tiers: draft.volume_tiers || [],
       })
       .eq("id", draft.id);
     setSaving(false);
@@ -484,6 +487,28 @@ function ServiceCard({
                   className={inputCls}
                 />
               </L>
+              <L label="Módulo Calculador Activo">
+                <label className="mt-2 inline-flex items-center gap-2 text-sm font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={draft.has_calculator !== false}
+                    onChange={(e) => set("has_calculator", e.target.checked)}
+                    className="h-4 w-4 accent-[var(--brand-orange)]"
+                  />
+                  {draft.has_calculator !== false ? "Sí (Mostrar cotizador)" : "No (Ir directo a WhatsApp)"}
+                </label>
+              </L>
+              {draft.has_calculator === false && (
+                <L label="Mensaje personalizado para WhatsApp" full>
+                  <textarea
+                    rows={2}
+                    value={draft.whatsapp_custom_message || ""}
+                    onChange={(e) => set("whatsapp_custom_message", e.target.value)}
+                    placeholder="Hola Will Design 3D! Quisiera consultar sobre el servicio…"
+                    className={inputCls}
+                  />
+                </L>
+              )}
               <div className="flex flex-wrap items-center gap-4 sm:col-span-2">
                 <label className="inline-flex items-center gap-2 text-sm font-semibold">
                   <input
@@ -512,6 +537,106 @@ function ServiceCard({
                   />
                   Requerir aprobación manual siempre
                 </label>
+              </div>
+
+              {/* Escalas de Descuento por Volumen */}
+              <div className="rounded-2xl border border-border bg-muted/20 p-4 sm:col-span-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-bold">Descuentos por Volumen (Volume Tiers)</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Configura tarifas escalonadas según la cantidad de unidades.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      set("volume_tiers", [
+                        ...(draft.volume_tiers || []),
+                        { min_qty: 6, max_qty: 20, discount_percentage: 10, fixed_unit_price_cop: null },
+                      ])
+                    }
+                    className="inline-flex items-center gap-1 rounded-full bg-[var(--brand-teal-deep)] px-3 py-1 text-xs font-bold text-white"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Agregar rango
+                  </button>
+                </div>
+
+                <div className="mt-3 space-y-2">
+                  {(draft.volume_tiers || []).map((tier, idx) => (
+                    <div key={idx} className="grid gap-2 sm:grid-cols-4 items-center">
+                      <L label="Cantidad mín">
+                        <input
+                          type="number"
+                          min={1}
+                          value={tier.min_qty}
+                          onChange={(e) => {
+                            const tiers = [...(draft.volume_tiers || [])];
+                            tiers[idx] = { ...tier, min_qty: Number(e.target.value) || 1 };
+                            set("volume_tiers", tiers);
+                          }}
+                          className={inputCls}
+                        />
+                      </L>
+                      <L label="Cantidad máx (o vacío)">
+                        <input
+                          type="number"
+                          value={tier.max_qty ?? ""}
+                          onChange={(e) => {
+                            const tiers = [...(draft.volume_tiers || [])];
+                            tiers[idx] = { ...tier, max_qty: e.target.value ? Number(e.target.value) : null };
+                            set("volume_tiers", tiers);
+                          }}
+                          placeholder="∞"
+                          className={inputCls}
+                        />
+                      </L>
+                      <L label="% Descuento">
+                        <input
+                          type="number"
+                          value={tier.discount_percentage}
+                          onChange={(e) => {
+                            const tiers = [...(draft.volume_tiers || [])];
+                            tiers[idx] = { ...tier, discount_percentage: Number(e.target.value) || 0 };
+                            set("volume_tiers", tiers);
+                          }}
+                          className={inputCls}
+                        />
+                      </L>
+                      <div className="flex items-end gap-2">
+                        <L label="Precio fijo unitario (COP) opcional" full>
+                          <input
+                            type="number"
+                            value={tier.fixed_unit_price_cop ?? ""}
+                            onChange={(e) => {
+                              const tiers = [...(draft.volume_tiers || [])];
+                              tiers[idx] = {
+                                ...tier,
+                                fixed_unit_price_cop: e.target.value ? Number(e.target.value) : null,
+                              };
+                              set("volume_tiers", tiers);
+                            }}
+                            placeholder="Opcional"
+                            className={inputCls}
+                          />
+                        </L>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const tiers = (draft.volume_tiers || []).filter((_, i) => i !== idx);
+                            set("volume_tiers", tiers);
+                          }}
+                          className="mb-1 rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {(draft.volume_tiers || []).length === 0 && (
+                    <p className="text-xs text-muted-foreground">Sin rangos de descuento configurados.</p>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -775,6 +900,32 @@ function FieldEditor({
                     {t.label}
                   </option>
                 ))}
+              </select>
+            </L>
+            <L label="Posición / Índice (1, 2, 3…)">
+              <input
+                type="number"
+                value={d.sort_order}
+                onChange={(e) => set("sort_order", Number(e.target.value) || 0)}
+                className={inputCls}
+              />
+            </L>
+            <L label="URL de Vista Previa (Imagen/GIF/Video MP4)">
+              <input
+                value={d.media_url || ""}
+                onChange={(e) => set("media_url", e.target.value)}
+                placeholder="https://..."
+                className={inputCls}
+              />
+            </L>
+            <L label="Tipo de Media">
+              <select
+                value={d.media_type || "image"}
+                onChange={(e) => set("media_type", e.target.value as any)}
+                className={inputCls}
+              >
+                <option value="image">Imagen / GIF</option>
+                <option value="video">Video MP4/WebM</option>
               </select>
             </L>
             <L label="Texto de ayuda" full>

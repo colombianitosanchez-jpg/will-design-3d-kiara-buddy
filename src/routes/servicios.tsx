@@ -245,27 +245,31 @@ function ServiciosPage() {
                 </ul>
                 {(() => {
                   const q = quoterFor(s.id);
-                  return q ? (
-                    <div className="mt-6 flex flex-wrap items-center gap-3">
-                      <Link
-                        to="/cotizador"
-                        search={{ servicio: q.slug }}
-                        className="btn-primary text-sm"
-                      >
-                        Cotizar en línea
-                        <ArrowRight className="h-4 w-4" />
-                      </Link>
-                      {q.min_price_cop > 0 && (
-                        <span className="text-xs font-semibold text-muted-foreground">
-                          Desde {formatCOP(q.min_price_cop)}
-                        </span>
-                      )}
-                    </div>
-                  ) : (
+                  const hasCalc = q ? q.has_calculator !== false : false;
+                  if (q && hasCalc) {
+                    return (
+                      <div className="mt-6 flex flex-wrap items-center gap-3">
+                        <Link
+                          to="/cotizador"
+                          search={{ servicio: q.slug }}
+                          className="btn-primary text-sm"
+                        >
+                          Cotizar en línea
+                          <ArrowRight className="h-4 w-4" />
+                        </Link>
+                        {q.min_price_cop > 0 && (
+                          <span className="text-xs font-semibold text-muted-foreground">
+                            Desde {formatCOP(q.min_price_cop)}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  }
+                  const customMsg = q?.whatsapp_custom_message ||
+                    `Hola Will Design 3D! Me interesa solicitar información y cotización sobre el servicio: *${s.title}*\n\n📌 https://willdesign3d.com/servicios#${s.id}`;
+                  return (
                     <a
-                      href={`https://wa.me/573156724474?text=${encodeURIComponent(
-                        `Hola Will Design 3D! Me interesa solicitar información y cotización sobre el servicio: *${s.title}*\n\n📌 https://willdesign3d.com/servicios#${s.id}`,
-                      )}`}
+                      href={`https://wa.me/573156724474?text=${encodeURIComponent(customMsg)}`}
                       target="_blank"
                       rel="noreferrer"
                       className="btn-primary mt-6 text-sm inline-flex items-center gap-2"
