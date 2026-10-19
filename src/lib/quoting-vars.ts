@@ -6,6 +6,7 @@ export type CustomQuotingVar = {
   key: string;
   label: string;
   value: number;
+  unit?: string;
   formula?: string; // e.g. "(envio + impuesto - descuento) / 20"
   show_in_breakdown: boolean; // Elegir si se muestra al cliente o no
   help?: string;
@@ -21,6 +22,81 @@ export type QuotingVars = {
   custom_vars: CustomQuotingVar[];
 };
 
+export const BASE_GLOBAL_VARS_DEFAULTS: CustomQuotingVar[] = [
+  {
+    key: "fdm_gram_cost",
+    label: "Costo por gramo (FDM)",
+    value: 80,
+    unit: "COP/g",
+    formula: "",
+    show_in_breakdown: false,
+    help: "Filamento + desperdicio, en COP.",
+  },
+  {
+    key: "resin_ml_cost",
+    label: "Costo por ml (Resina)",
+    value: 150,
+    unit: "COP/ml",
+    formula: "",
+    show_in_breakdown: false,
+    help: "Resina por mililitro, en COP.",
+  },
+  {
+    key: "machine_hour_rate",
+    label: "Hora de máquina",
+    value: 2000,
+    unit: "COP/h",
+    formula: "",
+    show_in_breakdown: false,
+    help: "Desgaste y energía por hora.",
+  },
+  {
+    key: "labor_hour_rate",
+    label: "Hora de mano de obra",
+    value: 15000,
+    unit: "COP/h",
+    formula: "",
+    show_in_breakdown: false,
+    help: "Tiempo del equipo por hora.",
+  },
+  {
+    key: "default_margin",
+    label: "Margen por defecto",
+    value: 1.5,
+    unit: "x",
+    formula: "",
+    show_in_breakdown: false,
+    help: "Multiplicador sugerido, ej. 1.5.",
+  },
+  {
+    key: "failure_rate_percentage",
+    label: "Porcentaje de fallo (%)",
+    value: 15,
+    unit: "%",
+    formula: "",
+    show_in_breakdown: false,
+    help: "Se suma a los costos que usan variables globales.",
+  },
+  {
+    key: "porcentaje_disenador",
+    label: "Porcentaje del Diseñador",
+    value: 10,
+    unit: "%",
+    formula: "",
+    show_in_breakdown: false,
+    help: "Comisión o porcentaje para el diseñador del modelo.",
+  },
+  {
+    key: "tarifa_envio_base",
+    label: "Tarifa de Envío Base",
+    value: 12000,
+    unit: "COP",
+    formula: "",
+    show_in_breakdown: true,
+    help: "Envío base nacional o local en COP.",
+  },
+];
+
 export const DEFAULT_QUOTING_VARS: QuotingVars = {
   fdm_gram_cost: 80,
   resin_ml_cost: 150,
@@ -28,47 +104,29 @@ export const DEFAULT_QUOTING_VARS: QuotingVars = {
   labor_hour_rate: 15000,
   default_margin: 1.5,
   failure_rate_percentage: 15,
-  custom_vars: [
-    {
-      key: "porcentaje_disenador",
-      label: "Porcentaje del Diseñador",
-      value: 10,
-      formula: "",
-      show_in_breakdown: false,
-      help: "Comisión o porcentaje para el diseñador del modelo.",
-    },
-    {
-      key: "tarifa_envio_base",
-      label: "Tarifa de Envío Base",
-      value: 12000,
-      formula: "",
-      show_in_breakdown: true,
-      help: "Envío base nacional o local en COP.",
-    },
-  ],
+  custom_vars: BASE_GLOBAL_VARS_DEFAULTS,
 };
 
-/** Claves que un campo del cotizador puede usar como origen de su costo unitario. */
-export const PRICE_SOURCE_OPTIONS: { value: string; label: string }[] = [
-  { value: "fixed", label: "Número fijo del campo" },
-  { value: "fdm_gram_cost", label: "Costo por gramo (FDM)" },
-  { value: "resin_ml_cost", label: "Costo por ml (resina)" },
-  { value: "machine_hour_rate", label: "Hora de máquina" },
-  { value: "labor_hour_rate", label: "Hora de mano de obra" },
-];
+/** Genera dinámicamente las opciones de price_source basadas en todas las variables globales disponibles. */
+export function getDynamicPriceSourceOptions(vars?: QuotingVars): { value: string; label: string }[] {
+  const options = [{ value: "fixed", label: "Número fijo del campo" }];
 
-export const QUOTING_VAR_LABELS: { key: keyof Omit<QuotingVars, "custom_vars">; label: string; help: string }[] = [
-  { key: "fdm_gram_cost", label: "Costo por gramo (FDM)", help: "Filamento + desperdicio, en COP." },
-  { key: "resin_ml_cost", label: "Costo por ml (resina)", help: "Resina por mililitro, en COP." },
-  { key: "machine_hour_rate", label: "Hora de máquina", help: "Desgaste y energía por hora." },
-  { key: "labor_hour_rate", label: "Hora de mano de obra", help: "Tiempo del equipo por hora." },
-  { key: "default_margin", label: "Margen por defecto", help: "Multiplicador sugerido, ej. 1.5." },
-  {
-    key: "failure_rate_percentage",
-    label: "Porcentaje de fallo (%)",
-    help: "Se suma a los costos que usan variables globales.",
-  },
-];
+  if (!vars?.custom_vars || vars.custom_vars.length === 0) {
+    for (const def of BASE_GLOBAL_VARS_DEFAULTS) {
+      options.push({ value: def.key, label: `${def.label} (${def.key})` });
+    }
+    return options;
+  }
+
+  for (const v of vars.custom_vars) {
+    options.push({
+      value: v.key,
+      label: `${v.label || v.key} (${v.key})`,
+    });
+  }
+
+  return options;
+}
 
 export function normalizeQuotingVars(raw: unknown): QuotingVars {
   const obj = (raw ?? {}) as Record<string, unknown>;
@@ -78,23 +136,57 @@ export function normalizeQuotingVars(raw: unknown): QuotingVars {
   };
 
   const rawCustom = Array.isArray(obj.custom_vars) ? obj.custom_vars : [];
-  const custom_vars: CustomQuotingVar[] = rawCustom.map((item: any) => ({
-    key: String(item.key || "").trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_"),
-    label: String(item.label || item.key || "Variable"),
-    value: Number(item.value) || 0,
-    formula: item.formula ? String(item.formula) : "",
-    show_in_breakdown: Boolean(item.show_in_breakdown),
-    help: item.help ? String(item.help) : "",
-  })).filter((v) => Boolean(v.key));
+  let custom_vars: CustomQuotingVar[] = rawCustom
+    .map((item: any) => ({
+      key: String(item.key || "").trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_"),
+      label: String(item.label || item.key || "Variable"),
+      value: Number(item.value) || 0,
+      unit: item.unit ? String(item.unit) : "",
+      formula: item.formula ? String(item.formula) : "",
+      show_in_breakdown: Boolean(item.show_in_breakdown),
+      help: item.help ? String(item.help) : "",
+    }))
+    .filter((v) => Boolean(v.key));
+
+  if (custom_vars.length === 0) {
+    // Si no había custom_vars explícitas, migramos los valores legacy base a la lista editable
+    custom_vars = BASE_GLOBAL_VARS_DEFAULTS.map((def) => {
+      const legacyVal = num(def.key, def.value);
+      return { ...def, value: legacyVal };
+    });
+  } else {
+    // Garantizar que si alguna variable base falta en custom_vars, la incluimos
+    for (const def of BASE_GLOBAL_VARS_DEFAULTS) {
+      if (!custom_vars.some((c) => c.key === def.key)) {
+        custom_vars.push({
+          ...def,
+          value: num(def.key, def.value),
+        });
+      }
+    }
+  }
+
+  // Sincronizar los campos legacy de QuotingVars con los valores presentes en custom_vars
+  const findVal = (k: string, fallback: number) => {
+    const found = custom_vars.find((c) => c.key === k);
+    return found ? found.value : num(k, fallback);
+  };
+
+  const fdm = findVal("fdm_gram_cost", DEFAULT_QUOTING_VARS.fdm_gram_cost);
+  const resin = findVal("resin_ml_cost", DEFAULT_QUOTING_VARS.resin_ml_cost);
+  const machine = findVal("machine_hour_rate", DEFAULT_QUOTING_VARS.machine_hour_rate);
+  const labor = findVal("labor_hour_rate", DEFAULT_QUOTING_VARS.labor_hour_rate);
+  const margin = findVal("default_margin", DEFAULT_QUOTING_VARS.default_margin);
+  const failure = findVal("failure_rate_percentage", DEFAULT_QUOTING_VARS.failure_rate_percentage);
 
   return {
-    fdm_gram_cost: num("fdm_gram_cost", DEFAULT_QUOTING_VARS.fdm_gram_cost),
-    resin_ml_cost: num("resin_ml_cost", DEFAULT_QUOTING_VARS.resin_ml_cost),
-    machine_hour_rate: num("machine_hour_rate", DEFAULT_QUOTING_VARS.machine_hour_rate),
-    labor_hour_rate: num("labor_hour_rate", DEFAULT_QUOTING_VARS.labor_hour_rate),
-    default_margin: num("default_margin", DEFAULT_QUOTING_VARS.default_margin),
-    failure_rate_percentage: num("failure_rate_percentage", DEFAULT_QUOTING_VARS.failure_rate_percentage),
-    custom_vars: custom_vars.length > 0 ? custom_vars : DEFAULT_QUOTING_VARS.custom_vars,
+    fdm_gram_cost: fdm,
+    resin_ml_cost: resin,
+    machine_hour_rate: machine,
+    labor_hour_rate: labor,
+    default_margin: margin,
+    failure_rate_percentage: failure,
+    custom_vars,
   };
 }
 

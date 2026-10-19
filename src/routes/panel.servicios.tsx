@@ -157,6 +157,57 @@ const DEFAULT_SITE_SERVICES: Omit<SiteServiceItem, "id">[] = [
     is_active: true,
     sort_order: 50,
   },
+  {
+    slug: "cursos-3d-modelado",
+    title: "Curso de Modelado 3D",
+    lead: "Aprende a modelar tus propias piezas desde cero: de la idea al archivo listo para imprimir.",
+    icon: "graduation-cap",
+    color: "orange",
+    image_url: null,
+    media_type: "image",
+    quoter_service_id: null,
+    whatsapp_template: "Hola Will Design 3D! Me gustaría inscribirme o solicitar información sobre el Curso de Modelado 3D.",
+    requires_file: false,
+    bullets: ["Modelado CAD paramétrico", "Preparación de STL/OBJ", "Clases personalizadas presenciales o virtuales"],
+    kiara_tip: "Aprender a modelar te da autonomía total sobre tus proyectos de impresión.",
+    custom_buttons: [],
+    is_active: true,
+    sort_order: 60,
+  },
+  {
+    slug: "cursos-3d-impresion",
+    title: "Curso de Impresión 3D",
+    lead: "Domina el laminado, materiales y parámetros para lograr impresiones limpias y consistentes.",
+    icon: "graduation-cap",
+    color: "teal",
+    image_url: null,
+    media_type: "image",
+    quoter_service_id: null,
+    whatsapp_template: "Hola Will Design 3D! Quisiera más detalles para realizar el Curso de Impresión 3D.",
+    requires_file: false,
+    bullets: ["Configuración en OrcaSlicer / Cura", "Manejo de FDM y Resina MSLA", "Solución de problemas comunes"],
+    kiara_tip: "Entender la adherencia y la temperatura evita el 90 % de impresiones fallidas.",
+    custom_buttons: [],
+    is_active: true,
+    sort_order: 70,
+  },
+  {
+    slug: "cursos-3d-mantenimiento",
+    title: "Curso de Mantenimiento de Impresoras",
+    lead: "Calibración, limpieza y reparación: mantén tu impresora funcionando como el primer día.",
+    icon: "graduation-cap",
+    color: "wine",
+    image_url: null,
+    media_type: "image",
+    quoter_service_id: null,
+    whatsapp_template: "Hola Will Design 3D! Me interesa el Curso de Mantenimiento y Calibración de Impresoras 3D.",
+    requires_file: false,
+    bullets: ["Calibración de cama y PID", "Mantenimiento preventivo", "Cambio de componentes clave"],
+    kiara_tip: "Aprender a ajustar tu propia máquina te ahorra costos de taller en el futuro.",
+    custom_buttons: [],
+    is_active: true,
+    sort_order: 80,
+  },
 ];
 
 const inputCls =
@@ -549,6 +600,105 @@ function SortableServiceCard({
   );
 }
 
+function BulletsListEditor({
+  bullets,
+  onChange,
+}: {
+  bullets: string[];
+  onChange: (b: string[]) => void;
+}) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = Number(active.id.toString().replace("bullet-", ""));
+    const newIndex = Number(over.id.toString().replace("bullet-", ""));
+    if (isNaN(oldIndex) || isNaN(newIndex)) return;
+
+    onChange(arrayMove(bullets, oldIndex, newIndex));
+  };
+
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <SortableContext items={bullets.map((_, i) => `bullet-${i}`)} strategy={verticalListSortingStrategy}>
+        <div className="space-y-2">
+          {bullets.map((b, i) => (
+            <SortableBulletRow
+              key={`bullet-${i}`}
+              id={`bullet-${i}`}
+              text={b}
+              onChange={(val) => {
+                const next = [...bullets];
+                next[i] = val;
+                onChange(next);
+              }}
+              onRemove={() => onChange(bullets.filter((_, idx) => idx !== i))}
+            />
+          ))}
+          {bullets.length === 0 && (
+            <p className="text-xs text-muted-foreground italic">Sin puntos destacados.</p>
+          )}
+        </div>
+      </SortableContext>
+    </DndContext>
+  );
+}
+
+function SortableBulletRow({
+  id,
+  text,
+  onChange,
+  onRemove,
+}: {
+  id: string;
+  text: string;
+  onChange: (val: string) => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-2">
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="cursor-grab touch-none text-muted-foreground hover:text-foreground p-1 shrink-0"
+        title="Arrastrar para reordenar"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+
+      <input
+        value={text}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Escribe la viñeta o característica..."
+        className={inputCls}
+      />
+
+      <button
+        type="button"
+        onClick={onRemove}
+        className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-red-600 shrink-0"
+        title="Eliminar viñeta"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
 function ServiceModal({
   service,
   quoterServices,
@@ -563,15 +713,10 @@ function ServiceModal({
   onSave: (updated: SiteServiceItem) => void;
 }) {
   const [form, setForm] = useState<SiteServiceItem>(service);
-  const [bulletsText, setBulletsText] = useState((service.bullets || []).join("\n"));
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const bullets = bulletsText
-      .split("\n")
-      .map((b) => b.trim())
-      .filter(Boolean);
-    onSave({ ...form, bullets });
+    onSave(form);
   }
 
   return (
@@ -623,18 +768,20 @@ function ServiceModal({
 
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="text-xs font-semibold block">
-            Cotizador Vinculado
+            ¿Requiere Cotizador Dinámico?
             <select
-              value={form.quoter_service_id || ""}
-              onChange={(e) => setForm({ ...form, quoter_service_id: e.target.value || null })}
+              value={form.quoter_service_id ? "yes" : "no"}
+              onChange={(e) => {
+                const needs = e.target.value === "yes";
+                setForm({
+                  ...form,
+                  quoter_service_id: needs ? (form.quoter_service_id || quoterServices[0]?.id || null) : null,
+                });
+              }}
               className={inputCls}
             >
-              <option value="">— Ninguno (Botonera directa a WhatsApp) —</option>
-              {quoterServices.map((q) => (
-                <option key={q.id} value={q.id}>
-                  {q.name} ({q.slug})
-                </option>
-              ))}
+              <option value="yes">Sí — Vincular con Cotizador</option>
+              <option value="no">No — Botonera directa / Mensaje WhatsApp</option>
             </select>
           </label>
 
@@ -649,16 +796,33 @@ function ServiceModal({
           </label>
         </div>
 
-        <label className="text-xs font-semibold block">
-          Plantilla de Mensaje de WhatsApp (Si no tiene cotizador)
-          <textarea
-            rows={2}
-            value={form.whatsapp_template || ""}
-            onChange={(e) => setForm({ ...form, whatsapp_template: e.target.value })}
-            placeholder="Hola Will Design 3D! Quisiera consultar acerca del servicio..."
-            className={inputCls}
-          />
-        </label>
+        {form.quoter_service_id ? (
+          <label className="text-xs font-semibold block">
+            Cotizador Vinculado
+            <select
+              value={form.quoter_service_id}
+              onChange={(e) => setForm({ ...form, quoter_service_id: e.target.value || null })}
+              className={inputCls}
+            >
+              {quoterServices.map((q) => (
+                <option key={q.id} value={q.id}>
+                  {q.name} ({q.slug})
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <label className="text-xs font-semibold block">
+            Plantilla de Mensaje de WhatsApp Directo
+            <textarea
+              rows={2}
+              value={form.whatsapp_template || ""}
+              onChange={(e) => setForm({ ...form, whatsapp_template: e.target.value })}
+              placeholder="Hola Will Design 3D! Quisiera consultar acerca del servicio..."
+              className={inputCls}
+            />
+          </label>
+        )}
 
         <div className="flex items-center gap-3 rounded-xl border border-border p-3 bg-muted/20">
           <input
@@ -698,16 +862,25 @@ function ServiceModal({
           </label>
         </div>
 
-        <label className="text-xs font-semibold block">
-          Puntos destacados (uno por línea)
-          <textarea
-            rows={3}
-            value={bulletsText}
-            onChange={(e) => setBulletsText(e.target.value)}
-            placeholder="FDM: PLA, PETG, ABS&#10;Resina MSLA 12K&#10;Gran formato 50x50 cm"
-            className={inputCls}
+        <div className="border-t border-border pt-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Puntos destacados (Bullets)
+            </h4>
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, bullets: [...form.bullets, "Nuevo punto destacado"] })}
+              className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary border border-primary/20 px-3 py-1 text-xs font-bold hover:bg-primary/20"
+            >
+              <Plus className="h-3.5 w-3.5" /> Agregar punto
+            </button>
+          </div>
+
+          <BulletsListEditor
+            bullets={form.bullets}
+            onChange={(newBullets) => setForm({ ...form, bullets: newBullets })}
           />
-        </label>
+        </div>
 
         <label className="text-xs font-semibold block">
           Consejo de Kiara (KiaraTip)
