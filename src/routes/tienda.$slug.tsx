@@ -24,7 +24,12 @@ import { ProductCard } from "@/components/ProductCard";
 import { ProductButtons } from "@/components/ProductButtons";
 import { effectiveButtons, variantGallery } from "@/lib/product-variants";
 import { productPageUrl } from "@/lib/product-buttons";
-import { FileDropzone3D, file3dWaNote, type Dims3D } from "@/components/FileDropzone3D";
+import { lazy, Suspense } from "react";
+import { file3dWaNote, type Dims3D } from "@/components/FileDropzone3D";
+
+const FileDropzone3D = lazy(() =>
+  import("@/components/FileDropzone3D").then((m) => ({ default: m.FileDropzone3D }))
+);
 import DOMPurify from "isomorphic-dompurify";
 
 /** Solo etiquetas de formato seguras: nunca scripts ni atributos de eventos. */
@@ -428,14 +433,16 @@ function ProductPage() {
           </div>
 
           {product.accepts_3d_file && (
-            <FileDropzone3D
-              fileName={file3dName}
-              onFileChange={(name, d) => {
-                setFile3dName(name);
-                setFile3dDims(d ?? null);
-              }}
-              className="mt-6 max-w-md"
-            />
+            <Suspense fallback={<div className="mt-6 p-4 text-xs text-muted-foreground flex items-center gap-2 border border-dashed rounded-2xl"><Loader2 className="h-4 w-4 animate-spin" /> Cargando visor 3D...</div>}>
+              <FileDropzone3D
+                fileName={file3dName}
+                onFileChange={(name, d) => {
+                  setFile3dName(name);
+                  setFile3dDims(d ?? null);
+                }}
+                className="mt-6 max-w-md"
+              />
+            </Suspense>
           )}
 
           {shownButtons.length > 0 && (

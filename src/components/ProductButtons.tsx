@@ -29,7 +29,7 @@ export function ProductButtons({
   variantName,
   variantId,
 }: {
-  product: Product;
+  product?: Product;
   buttons: ProductButton[];
   className?: string;
   extraWhatsappNote?: string;
@@ -51,6 +51,7 @@ export function ProductButtons({
     b.action_type === "add_to_cart" || b.action_type === "checkout";
 
   function cartPayload() {
+    if (!product) return { product_id: "", slug: "", name: "", price_cop: 0, image_url: null };
     return {
       product_id: cartLineKey(product.id, variantId),
       slug: product.slug,
@@ -78,11 +79,11 @@ export function ProductButtons({
         const text = buildButtonWhatsappText(
           { ...button, whatsapp_message: msg },
           {
-            name: product.name,
-            slug: product.slug,
-            image_url: product.image_url,
-            images: product.images,
-            price: formatCOP(product.price_cop),
+            name: product?.name ?? "",
+            slug: product?.slug ?? "",
+            image_url: product?.image_url ?? null,
+            images: product?.images ?? [],
+            price: product ? formatCOP(product.price_cop) : "",
             variant_id: variantId ?? null,
           },
           extraWhatsappNote ?? "",
@@ -93,11 +94,13 @@ export function ProductButtons({
       }
 
       case "add_to_cart": {
+        if (!product) return;
         addItem(cartPayload());
         toast.success(`${product.name} se añadió al carrito`);
         return;
       }
       case "checkout": {
+        if (!product) return;
         addItem(cartPayload());
         router.navigate({ to: "/carrito" });
         return;

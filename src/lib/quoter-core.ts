@@ -64,6 +64,9 @@ export type QuoterVars = {
   failure_rate_percentage: number;
 };
 
+export type QuoterPricingMode = "formula" | "fixed" | "weight_material" | "hours" | "volume_tier";
+export type QuoterPriceDisplay = "final" | "breakdown";
+
 export type QuoterService = {
   id: string;
   slug: string;
@@ -77,6 +80,9 @@ export type QuoterService = {
   gastos_extra_cop: number;
   min_price_cop: number;
   margin_percent: number;
+  pricing_mode?: QuoterPricingMode;
+  uses_global_vars?: boolean;
+  price_display?: QuoterPriceDisplay;
   allow_quantity: boolean;
   allow_file: boolean;
   requires_approval?: boolean;
@@ -163,6 +169,9 @@ export function normalizeService(
     gastos_extra_cop: num(row['gastos_extra_cop']),
     min_price_cop: num(row['min_price_cop']),
     margin_percent: num(row['margin_percent']),
+    pricing_mode: (String(row['pricing_mode'] ?? "formula") as QuoterPricingMode) || "formula",
+    uses_global_vars: Boolean(row['uses_global_vars']),
+    price_display: (String(row['price_display'] ?? "final") as QuoterPriceDisplay) || "final",
     allow_quantity: row['allow_quantity'] !== false,
     allow_file: row['allow_file'] !== false,
     requires_approval: Boolean(row['requires_approval']),
