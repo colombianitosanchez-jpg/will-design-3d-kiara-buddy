@@ -14,8 +14,7 @@ import {
 } from "@/lib/quoter";
 import {
   DEFAULT_QUOTING_VARS,
-  PRICE_SOURCE_OPTIONS,
-  QUOTING_VAR_LABELS,
+  getDynamicPriceSourceOptions,
   quotingVarsQuery,
   saveQuotingVars,
   type QuotingVars,
@@ -32,13 +31,29 @@ import {
   Eye,
   EyeOff,
   Calculator,
-  ArrowUp,
-  ArrowDown,
+  GripVertical,
   Sparkles,
   Sliders,
   DollarSign,
   Info,
 } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 export const Route = createFileRoute("/panel/cotizador")({
   ssr: false,
@@ -93,10 +108,16 @@ function slugify(s: string) {
 function QuoterAdmin() {
   const qc = useQueryClient();
   const { data: services, isLoading } = useQuery(quoterServicesQuery(true));
+  const { data: qVars } = useQuery(quotingVarsQuery());
   const [openId, setOpenId] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
   const reload = () => qc.invalidateQueries({ queryKey: ["quoter-services"] });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   async function addService() {
     const name = window.prompt("Nombre del nuevo servicio a cotizar");
@@ -107,6 +128,23 @@ function QuoterAdmin() {
       sort_order: (services?.length ?? 0) + 1,
     });
     setMsg(error ? `Error: ${error.message}` : "Servicio creado.");
+    reload();
+  }
+
+  async function handleServiceDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !services) return;
+
+    const oldIndex = services.findIndex((s) => s.id === active.id);
+    const newIndex = services.findIndex((s) => s.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(services, oldIndex, newIndex);
+    await Promise.all(
+      reordered.map((svc, idx) =>
+        supabase.from("quoter_services").update({ sort_order: idx + 1 }).eq("id", svc.id)
+      )
+    );
     reload();
   }
 
@@ -139,23 +177,28 @@ function QuoterAdmin() {
 
       <GlobalVarsCard onMsg={setMsg} />
 
-      <div className="space-y-4">
-        {(services ?? []).map((s) => (
-          <ServiceCard
-            key={s.id}
-            service={s}
-            open={openId === s.id}
-            onToggle={() => setOpenId(openId === s.id ? null : s.id)}
-            onChanged={reload}
-            onMsg={setMsg}
-          />
-        ))}
-        {(services ?? []).length === 0 && (
-          <p className="rounded-2xl bg-muted p-6 text-sm text-muted-foreground">
-            Aún no hay servicios. Crea el primero con “Nuevo servicio”.
-          </p>
-        )}
-      </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleServiceDragEnd}>
+        <SortableContext items={(services ?? []).map((s) => s.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-4">
+            {(services ?? []).map((s) => (
+              <ServiceCard
+                key={s.id}
+                service={s}
+                quotingVars={qVars?.vars}
+                open={openId === s.id}
+                onToggle={() => setOpenId(openId === s.id ? null : s.id)}
+                onChanged={reload}
+                onMsg={setMsg}
+              />
+            ))}
+            {(services ?? []).length === 0 && (
+              <p className="rounded-2xl bg-muted p-6 text-sm text-muted-foreground">
+                Aún no hay servicios. Crea el primero con “Nuevo servicio”.
+              </p>
+            )}
+          </div>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 }
@@ -197,9 +240,10 @@ function GlobalVarsCard({ onMsg }: { onMsg: (m: string) => void }) {
       key: cleanKey,
       label: keyName.trim(),
       value: 0,
+      unit: "COP",
       formula: "",
       show_in_breakdown: false,
-      help: "Variable personalizada de cotización.",
+      help: "Variable de cotización.",
     };
 
     setDraft((prev) => ({
@@ -218,170 +262,151 @@ function GlobalVarsCard({ onMsg }: { onMsg: (m: string) => void }) {
 
   return (
     <div className="rounded-3xl border border-border bg-card p-5 space-y-4 shadow-sm">
-      <div>
-        <h2 className="text-lg font-black flex items-center gap-2">
-          <Sliders className="h-5 w-5 text-primary" /> Variables Globales del Taller
-        </h2>
-        <p className="mt-1 max-w-3xl text-xs text-muted-foreground">
-          Añade, edita o elimina variables globales. Puedes definir fórmulas de encadenamiento matemático (ej. sumas de envío, impuestos o comisiones) y seleccionar exactamente cuáles se muestran al cliente en el desglose final.
-        </p>
-      </div>
-
-      {/* Variables Estándar Base */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 pt-2">
-        {QUOTING_VAR_LABELS.map((v) => (
-          <L key={v.key} label={v.label}>
-            <input
-              type="number"
-              step="0.01"
-              value={draft[v.key]}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, [v.key]: Number(e.target.value) || 0 }))
-              }
-              className={inputCls}
-            />
-            <span className="mt-1 block text-[11px] text-muted-foreground">{v.help}</span>
-          </L>
-        ))}
-      </div>
-
-      {/* Variables Personalizadas y Fórmulas */}
-      <div className="border-t border-border pt-4">
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <div>
-            <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-              Variables Personalizadas & Fórmulas Encadenadas
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Ejemplo de fórmula: <code className="bg-muted px-1 py-0.5 rounded text-primary">(envio + impuesto - descuento) / 20</code>
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleAddCustomVar}
-            className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 px-4 py-1.5 text-xs font-bold hover:bg-primary/20"
-          >
-            <Plus className="h-4 w-4" /> Agregar Variable
-          </button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-black flex items-center gap-2">
+            <Sliders className="h-5 w-5 text-primary" /> Variables Globales Dinámicas del Taller
+          </h2>
+          <p className="mt-1 max-w-3xl text-xs text-muted-foreground">
+            Todas las variables son 100% editables: puedes ajustar etiqueta, unidad, valor por defecto, descripción, fórmulas encadenadas y si se muestra en el desglose final para el cliente.
+          </p>
         </div>
 
-        <div className="space-y-3">
-          {(draft.custom_vars || []).map((v, idx) => (
-            <div
-              key={v.key || idx}
-              className="grid gap-3 sm:grid-cols-12 items-start rounded-2xl border border-border bg-muted/20 p-3"
-            >
-              <div className="sm:col-span-3">
-                <L label="Identificador (Clave)">
-                  <input
-                    value={v.key}
-                    onChange={(e) => {
-                      const clean = slugify(e.target.value).replace(/-/g, "_");
-                      const next = [...draft.custom_vars];
-                      next[idx] = { ...v, key: clean };
-                      setDraft({ ...draft, custom_vars: next });
-                    }}
-                    className={inputCls}
-                  />
-                </L>
-              </div>
+        <button
+          type="button"
+          onClick={handleAddCustomVar}
+          className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 px-4 py-1.5 text-xs font-bold hover:bg-primary/20"
+        >
+          <Plus className="h-4 w-4" /> Agregar Variable Global
+        </button>
+      </div>
 
-              <div className="sm:col-span-3">
-                <L label="Etiqueta visible">
-                  <input
-                    value={v.label}
-                    onChange={(e) => {
-                      const next = [...draft.custom_vars];
-                      next[idx] = { ...v, label: e.target.value };
-                      setDraft({ ...draft, custom_vars: next });
-                    }}
-                    className={inputCls}
-                  />
-                </L>
-              </div>
-
-              <div className="sm:col-span-2">
-                <L label="Valor Base">
-                  <input
-                    type="number"
-                    value={v.value}
-                    onChange={(e) => {
-                      const next = [...draft.custom_vars];
-                      next[idx] = { ...v, value: Number(e.target.value) || 0 };
-                      setDraft({ ...draft, custom_vars: next });
-                    }}
-                    className={inputCls}
-                  />
-                </L>
-              </div>
-
-              <div className="sm:col-span-12">
-                <FormulaEditor
-                  value={v.formula || ""}
-                  onChange={(fVal) => {
+      <div className="space-y-3 pt-2">
+        {(draft.custom_vars || []).map((v, idx) => (
+          <div
+            key={v.key || idx}
+            className="grid gap-3 sm:grid-cols-12 items-start rounded-2xl border border-border bg-muted/20 p-3"
+          >
+            <div className="sm:col-span-3">
+              <L label="Identificador (Clave)">
+                <input
+                  value={v.key}
+                  onChange={(e) => {
+                    const clean = slugify(e.target.value).replace(/-/g, "_");
                     const next = [...draft.custom_vars];
-                    next[idx] = { ...v, formula: fVal };
+                    next[idx] = { ...v, key: clean };
                     setDraft({ ...draft, custom_vars: next });
                   }}
-                  label={`Fórmula para "${v.label || v.key}" (Opcional)`}
-                  placeholder="ej: (precio_bobina / peso_bobina) * 1.05"
-                  availableVars={[
-                    { key: "fdm_gram_cost", label: "Costo gramo FDM" },
-                    { key: "resin_ml_cost", label: "Costo ml Resina" },
-                    { key: "machine_hour_rate", label: "Hora Máquina" },
-                    { key: "labor_hour_rate", label: "Hora Mano de obra" },
-                    ...draft.custom_vars
-                      .filter((cv) => cv.key !== v.key)
-                      .map((cv) => ({ key: cv.key, label: cv.label })),
-                  ]}
+                  className={inputCls}
                 />
-              </div>
+              </L>
+            </div>
 
-              <div className="sm:col-span-10 flex flex-wrap items-center gap-4 text-xs">
-                <label className="inline-flex items-center gap-1.5 font-semibold cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={v.show_in_breakdown}
-                    onChange={(e) => {
-                      const next = [...draft.custom_vars];
-                      next[idx] = { ...v, show_in_breakdown: e.target.checked };
-                      setDraft({ ...draft, custom_vars: next });
-                    }}
-                    className="h-4 w-4 rounded accent-primary"
-                  />
-                  Mostrar en desglose al cliente
-                </label>
-
+            <div className="sm:col-span-3">
+              <L label="Etiqueta visible">
                 <input
-                  value={v.help || ""}
+                  value={v.label}
                   onChange={(e) => {
                     const next = [...draft.custom_vars];
-                    next[idx] = { ...v, help: e.target.value };
+                    next[idx] = { ...v, label: e.target.value };
                     setDraft({ ...draft, custom_vars: next });
                   }}
-                  placeholder="Descripción o nota interna..."
-                  className="flex-1 rounded-lg border border-input bg-background px-2 py-1 text-xs"
+                  className={inputCls}
                 />
-              </div>
-
-              <div className="sm:col-span-2 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => handleDeleteCustomVar(v.key)}
-                  className="rounded-lg p-2 text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
-                  title="Eliminar variable"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
+              </L>
             </div>
-          ))}
 
-          {(draft.custom_vars || []).length === 0 && (
-            <p className="text-xs text-muted-foreground">No hay variables personalizadas creadas.</p>
-          )}
-        </div>
+            <div className="sm:col-span-2">
+              <L label="Valor Base">
+                <input
+                  type="number"
+                  step="0.01"
+                  value={v.value}
+                  onChange={(e) => {
+                    const next = [...draft.custom_vars];
+                    const numVal = Number(e.target.value) || 0;
+                    next[idx] = { ...v, value: numVal };
+                    setDraft({ ...draft, custom_vars: next });
+                  }}
+                  className={inputCls}
+                />
+              </L>
+            </div>
+
+            <div className="sm:col-span-2">
+              <L label="Unidad (COP, %, g...)">
+                <input
+                  value={v.unit || ""}
+                  onChange={(e) => {
+                    const next = [...draft.custom_vars];
+                    next[idx] = { ...v, unit: e.target.value };
+                    setDraft({ ...draft, custom_vars: next });
+                  }}
+                  placeholder="COP, %, g"
+                  className={inputCls}
+                />
+              </L>
+            </div>
+
+            <div className="sm:col-span-2 flex justify-end">
+              <button
+                type="button"
+                onClick={() => handleDeleteCustomVar(v.key)}
+                className="rounded-lg p-2 text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
+                title="Eliminar variable"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="sm:col-span-12">
+              <FormulaEditor
+                value={v.formula || ""}
+                onChange={(fVal) => {
+                  const next = [...draft.custom_vars];
+                  next[idx] = { ...v, formula: fVal };
+                  setDraft({ ...draft, custom_vars: next });
+                }}
+                label={`Fórmula para "${v.label || v.key}" (Opcional)`}
+                placeholder="ej: (precio_bobina / peso_bobina) * 1.05"
+                availableVars={draft.custom_vars
+                  .filter((cv) => cv.key !== v.key)
+                  .map((cv) => ({ key: cv.key, label: cv.label || cv.key }))}
+              />
+            </div>
+
+            <div className="sm:col-span-12 flex flex-wrap items-center gap-4 text-xs">
+              <label className="inline-flex items-center gap-1.5 font-semibold cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={v.show_in_breakdown}
+                  onChange={(e) => {
+                    const next = [...draft.custom_vars];
+                    next[idx] = { ...v, show_in_breakdown: e.target.checked };
+                    setDraft({ ...draft, custom_vars: next });
+                  }}
+                  className="h-4 w-4 rounded accent-primary"
+                />
+                Mostrar en desglose al cliente
+              </label>
+
+              <input
+                value={v.help || ""}
+                onChange={(e) => {
+                  const next = [...draft.custom_vars];
+                  next[idx] = { ...v, help: e.target.value };
+                  setDraft({ ...draft, custom_vars: next });
+                }}
+                placeholder="Descripción o nota interna..."
+                className="flex-1 rounded-lg border border-input bg-background px-2 py-1 text-xs"
+              />
+            </div>
+          </div>
+        ))}
+
+        {(draft.custom_vars || []).length === 0 && (
+          <p className="text-xs text-muted-foreground">No hay variables globales configuradas.</p>
+        )}
       </div>
 
       <button
@@ -399,17 +424,34 @@ function GlobalVarsCard({ onMsg }: { onMsg: (m: string) => void }) {
 
 function ServiceCard({
   service,
+  quotingVars,
   open,
   onToggle,
   onChanged,
   onMsg,
 }: {
   service: QuoterService;
+  quotingVars?: QuotingVars;
   open: boolean;
   onToggle: () => void;
   onChanged: () => void;
   onMsg: (m: string) => void;
 }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: service.id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const fieldSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
   const [draft, setDraft] = useState(service);
   const [saving, setSaving] = useState(false);
   const [test, setTest] = useState<QuoterValues>(() => defaultValuesFor(service));
@@ -424,6 +466,23 @@ function ServiceCard({
 
   function set<K extends keyof QuoterService>(key: K, value: QuoterService[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
+  }
+
+  async function handleFieldDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = service.fields.findIndex((f) => f.id === active.id);
+    const newIndex = service.fields.findIndex((f) => f.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(service.fields, oldIndex, newIndex);
+    await Promise.all(
+      reordered.map((f, idx) =>
+        supabase.from("quoter_fields").update({ sort_order: idx + 1 }).eq("id", f.id)
+      )
+    );
+    onChanged();
   }
 
   async function save() {
@@ -556,8 +615,17 @@ function ServiceCard({
   }
 
   return (
-    <section className="rounded-3xl border border-border bg-card shadow-sm">
+    <section ref={setNodeRef} style={style} className="rounded-3xl border border-border bg-card shadow-sm">
       <div className="flex flex-wrap items-center gap-3 p-5">
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab touch-none text-muted-foreground hover:text-foreground p-1"
+          title="Arrastrar para reordenar servicio"
+        >
+          <GripVertical className="h-5 w-5" />
+        </button>
+
         <button onClick={onToggle} className="flex flex-1 items-center gap-2 text-left">
           {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           <span className="text-lg font-black">{service.name}</span>
@@ -925,24 +993,29 @@ function ServiceCard({
                   <Plus className="h-3.5 w-3.5" /> Agregar pregunta
                 </button>
               </div>
-              <div className="mt-3 space-y-3">
-                {service.fields.map((f, i) => (
-                  <FieldEditor
-                    key={f.id}
-                    field={f}
-                    index={i}
-                    total={service.fields.length}
-                    siblings={service.fields}
-                    onChanged={onChanged}
-                    onMsg={onMsg}
-                  />
-                ))}
-                {service.fields.length === 0 && (
-                  <p className="rounded-2xl bg-muted p-4 text-xs text-muted-foreground">
-                    Sin preguntas: el cliente solo verá el precio base.
-                  </p>
-                )}
-              </div>
+              <DndContext sensors={fieldSensors} collisionDetection={closestCenter} onDragEnd={handleFieldDragEnd}>
+                <SortableContext items={service.fields.map((f) => f.id)} strategy={verticalListSortingStrategy}>
+                  <div className="mt-3 space-y-3">
+                    {service.fields.map((f, i) => (
+                      <FieldEditor
+                        key={f.id}
+                        field={f}
+                        index={i}
+                        total={service.fields.length}
+                        siblings={service.fields}
+                        quotingVars={quotingVars}
+                        onChanged={onChanged}
+                        onMsg={onMsg}
+                      />
+                    ))}
+                    {service.fields.length === 0 && (
+                      <p className="rounded-2xl bg-muted p-4 text-xs text-muted-foreground">
+                        Sin preguntas: el cliente solo verá el precio base.
+                      </p>
+                    )}
+                  </div>
+                </SortableContext>
+              </DndContext>
             </div>
           </div>
 
@@ -1034,6 +1107,7 @@ function FieldEditor({
   index,
   total,
   siblings,
+  quotingVars,
   onChanged,
   onMsg,
 }: {
@@ -1041,9 +1115,25 @@ function FieldEditor({
   index: number;
   total: number;
   siblings: QuoterField[];
+  quotingVars?: QuotingVars;
   onChanged: () => void;
   onMsg: (m: string) => void;
 }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: field.id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const optionSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
   const [d, setD] = useState(field);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -1059,6 +1149,20 @@ function FieldEditor({
       const options = prev.options.map((o, idx) => (idx === i ? { ...o, ...patch } : o));
       return { ...prev, options };
     });
+  }
+
+  function handleOptionDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = Number(active.id.toString().replace("opt-", ""));
+    const newIndex = Number(over.id.toString().replace("opt-", ""));
+    if (isNaN(oldIndex) || isNaN(newIndex)) return;
+
+    setD((prev) => ({
+      ...prev,
+      options: arrayMove(prev.options, oldIndex, newIndex),
+    }));
   }
 
   async function save() {
@@ -1094,22 +1198,21 @@ function FieldEditor({
     onChanged();
   }
 
-  async function move(dir: -1 | 1) {
-    const other = siblings[index + dir];
-    if (!other) return;
-    await Promise.all([
-      supabase.from("quoter_fields").update({ sort_order: other.sort_order }).eq("id", field.id),
-      supabase.from("quoter_fields").update({ sort_order: field.sort_order }).eq("id", other.id),
-    ]);
-    onChanged();
-  }
-
   const isChoice = d.input_type === "select" || d.input_type === "toggle";
   const isRange = d.input_type === "slider" || d.input_type === "number";
 
   return (
-    <div className="rounded-2xl border border-border p-4">
+    <div ref={setNodeRef} style={style} className="rounded-2xl border border-border p-4 bg-card shadow-sm">
       <div className="flex flex-wrap items-center gap-2">
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab touch-none text-muted-foreground hover:text-foreground p-1"
+          title="Arrastrar para reordenar pregunta"
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+
         <button onClick={() => setOpen(!open)} className="flex flex-1 items-center gap-2 text-left">
           {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           <span className="font-bold">{field.label}</span>
@@ -1118,22 +1221,7 @@ function FieldEditor({
           </span>
           {!field.is_active && <span className="text-[11px] text-muted-foreground">Oculta</span>}
         </button>
-        <button
-          onClick={() => move(-1)}
-          disabled={index === 0}
-          className="rounded-lg p-1.5 hover:bg-muted disabled:opacity-30"
-          aria-label="Subir"
-        >
-          <ArrowUp className="h-4 w-4" />
-        </button>
-        <button
-          onClick={() => move(1)}
-          disabled={index === total - 1}
-          className="rounded-lg p-1.5 hover:bg-muted disabled:opacity-30"
-          aria-label="Bajar"
-        >
-          <ArrowDown className="h-4 w-4" />
-        </button>
+
         <button
           onClick={remove}
           className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-red-600"
@@ -1238,7 +1326,7 @@ function FieldEditor({
                     }
                     className={inputCls}
                   >
-                    {PRICE_SOURCE_OPTIONS.map((o) => (
+                    {getDynamicPriceSourceOptions(quotingVars).map((o) => (
                       <option key={o.value} value={o.value}>
                         {o.label}
                       </option>
@@ -1289,6 +1377,7 @@ function FieldEditor({
                 </h4>
                 {d.input_type === "select" && (
                   <button
+                    type="button"
                     onClick={() =>
                       set("options", [
                         ...d.options,
@@ -1302,69 +1391,79 @@ function FieldEditor({
                 )}
               </div>
               <p className="mt-1 text-[11px] text-muted-foreground">
-                Multiplicador: 1 = normal, 1.5 = 50% más caro. Recargo: valor fijo en COP.
+                Multiplicador: 1 = normal, 1.5 = 50% más caro. Recargo: valor fijo en COP. Usa el ícono para arrastrar.
               </p>
-              <div className="mt-2 space-y-2">
-                {(d.input_type === "toggle" && d.options.length === 0
-                  ? [{ label: "Sí", value: "si", multiplier: 1, add_cop: 0 }]
-                  : d.options
-                ).map((o, i) => (
-                  <div key={i} className="grid gap-2 sm:grid-cols-[1.4fr_1fr_0.8fr_0.8fr_auto]">
-                    <input
-                      value={o.label}
-                      placeholder="Etiqueta"
-                      onChange={(e) =>
-                        d.options.length === 0
-                          ? set("options", [{ ...o, label: e.target.value }])
-                          : setOption(i, { label: e.target.value })
-                      }
-                      className={inputCls}
-                    />
-                    <input
-                      value={o.value}
-                      placeholder="valor"
-                      onChange={(e) =>
-                        d.options.length === 0
-                          ? set("options", [{ ...o, value: e.target.value }])
-                          : setOption(i, { value: e.target.value })
-                      }
-                      className={inputCls}
-                    />
-                    <input
-                      type="number"
-                      step="0.05"
-                      value={o.multiplier ?? 1}
-                      onChange={(e) =>
-                        d.options.length === 0
-                          ? set("options", [{ ...o, multiplier: Number(e.target.value) || 1 }])
-                          : setOption(i, { multiplier: Number(e.target.value) || 1 })
-                      }
-                      className={inputCls}
-                      title="Multiplicador"
-                    />
-                    <input
-                      type="number"
-                      value={o.add_cop ?? 0}
-                      onChange={(e) =>
-                        d.options.length === 0
-                          ? set("options", [{ ...o, add_cop: Number(e.target.value) || 0 }])
-                          : setOption(i, { add_cop: Number(e.target.value) || 0 })
-                      }
-                      className={inputCls}
-                      title="Recargo COP"
-                    />
-                    {d.input_type === "select" && (
-                      <button
-                        onClick={() => set("options", d.options.filter((_, idx) => idx !== i))}
-                        className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-red-600"
-                        aria-label="Quitar opción"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
+
+              {d.input_type === "select" ? (
+                <DndContext sensors={optionSensors} collisionDetection={closestCenter} onDragEnd={handleOptionDragEnd}>
+                  <SortableContext items={d.options.map((_, i) => `opt-${i}`)} strategy={verticalListSortingStrategy}>
+                    <div className="mt-2 space-y-2">
+                      {d.options.map((o, i) => (
+                        <SortableOptionRow
+                          key={`opt-${i}`}
+                          id={`opt-${i}`}
+                          option={o}
+                          onChange={(patch) => setOption(i, patch)}
+                          onRemove={() => set("options", d.options.filter((_, idx) => idx !== i))}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+              ) : (
+                <div className="mt-2 space-y-2">
+                  {(d.options.length === 0
+                    ? [{ label: "Sí", value: "si", multiplier: 1, add_cop: 0 }]
+                    : d.options
+                  ).map((o, i) => (
+                    <div key={i} className="grid gap-2 sm:grid-cols-[1.4fr_1fr_0.8fr_0.8fr]">
+                      <input
+                        value={o.label}
+                        placeholder="Etiqueta"
+                        onChange={(e) =>
+                          d.options.length === 0
+                            ? set("options", [{ ...o, label: e.target.value }])
+                            : setOption(i, { label: e.target.value })
+                        }
+                        className={inputCls}
+                      />
+                      <input
+                        value={o.value}
+                        placeholder="valor"
+                        onChange={(e) =>
+                          d.options.length === 0
+                            ? set("options", [{ ...o, value: e.target.value }])
+                            : setOption(i, { value: e.target.value })
+                        }
+                        className={inputCls}
+                      />
+                      <input
+                        type="number"
+                        step="0.05"
+                        value={o.multiplier ?? 1}
+                        onChange={(e) =>
+                          d.options.length === 0
+                            ? set("options", [{ ...o, multiplier: Number(e.target.value) || 1 }])
+                            : setOption(i, { multiplier: Number(e.target.value) || 1 })
+                        }
+                        className={inputCls}
+                        title="Multiplicador"
+                      />
+                      <input
+                        type="number"
+                        value={o.add_cop ?? 0}
+                        onChange={(e) =>
+                          d.options.length === 0
+                            ? set("options", [{ ...o, add_cop: Number(e.target.value) || 0 }])
+                            : setOption(i, { add_cop: Number(e.target.value) || 0 })
+                        }
+                        className={inputCls}
+                        title="Recargo COP"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -1378,6 +1477,76 @@ function FieldEditor({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+function SortableOptionRow({
+  id,
+  option: o,
+  onChange,
+  onRemove,
+}: {
+  id: string;
+  option: QuoterOption;
+  onChange: (patch: Partial<QuoterOption>) => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="grid gap-2 sm:grid-cols-[auto_1.4fr_1fr_0.8fr_0.8fr_auto] items-center">
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="cursor-grab touch-none text-muted-foreground hover:text-foreground p-1"
+        title="Arrastrar opción"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+
+      <input
+        value={o.label}
+        placeholder="Etiqueta"
+        onChange={(e) => onChange({ label: e.target.value })}
+        className={inputCls}
+      />
+      <input
+        value={o.value}
+        placeholder="valor"
+        onChange={(e) => onChange({ value: e.target.value })}
+        className={inputCls}
+      />
+      <input
+        type="number"
+        step="0.05"
+        value={o.multiplier ?? 1}
+        onChange={(e) => onChange({ multiplier: Number(e.target.value) || 1 })}
+        className={inputCls}
+        title="Multiplicador"
+      />
+      <input
+        type="number"
+        value={o.add_cop ?? 0}
+        onChange={(e) => onChange({ add_cop: Number(e.target.value) || 0 })}
+        className={inputCls}
+        title="Recargo COP"
+      />
+      <button
+        type="button"
+        onClick={onRemove}
+        className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-red-600"
+        aria-label="Quitar opción"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
     </div>
   );
 }

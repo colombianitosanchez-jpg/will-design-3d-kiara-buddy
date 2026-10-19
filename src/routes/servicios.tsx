@@ -130,26 +130,35 @@ const DEFAULT_SERVICES = [
     ],
     kiaraTip: "El acabado Premium multiplica el impacto visual — pídelo si vas a exhibir la pieza.",
   },
-];
-
-const cursos = [
   {
     id: "cursos-3d-modelado",
+    slug: "cursos-3d-modelado",
+    icon: GraduationCap,
     title: "Curso de Modelado 3D",
-    lead: "Aprende a modelar tus propias piezas desde cero: de la idea al archivo listo para imprimir.",
     color: "orange",
+    lead: "Aprende a modelar tus propias piezas desde cero: de la idea al archivo listo para imprimir.",
+    bullets: ["Modelado CAD paramétrico", "Preparación de STL/OBJ", "Clases personalizadas presenciales o virtuales"],
+    kiaraTip: "Aprender a modelar te da autonomía total sobre tus proyectos de impresión.",
   },
   {
     id: "cursos-3d-impresion",
+    slug: "cursos-3d-impresion",
+    icon: GraduationCap,
     title: "Curso de Impresión 3D",
-    lead: "Domina el laminado, materiales y parámetros para lograr impresiones limpias y consistentes.",
     color: "teal",
+    lead: "Domina el laminado, materiales y parámetros para lograr impresiones limpias y consistentes.",
+    bullets: ["Configuración en OrcaSlicer / Cura", "Manejo de FDM y Resina MSLA", "Solución de problemas comunes"],
+    kiaraTip: "Entender la adherencia y la temperatura evita el 90 % de impresiones fallidas.",
   },
   {
     id: "cursos-3d-mantenimiento",
+    slug: "cursos-3d-mantenimiento",
+    icon: GraduationCap,
     title: "Curso de Mantenimiento de Impresoras",
-    lead: "Calibración, limpieza y reparación: mantén tu impresora funcionando como el primer día.",
     color: "wine",
+    lead: "Calibración, limpieza y reparación: mantén tu impresora funcionando como el primer día.",
+    bullets: ["Calibración de cama y PID", "Mantenimiento preventivo", "Cambio de componentes clave"],
+    kiaraTip: "Aprender a ajustar tu propia máquina te ahorra costos de taller en el futuro.",
   },
 ];
 
@@ -169,6 +178,7 @@ const iconMap: Record<string, any> = {
   sparkles: Sparkles,
   ruler: Ruler,
   "shopping-bag": ShoppingBag,
+  "graduation-cap": GraduationCap,
 };
 
 function ServiciosPage() {
@@ -352,60 +362,6 @@ function ServiciosPage() {
         })}
       </section>
 
-      <section className="border-t border-border bg-muted/30">
-        <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20">
-          <span className="chip-teal">Cursos 3D</span>
-          <h2 className="mt-3 text-3xl font-black sm:text-4xl">
-            Formación en <span style={{ color: "var(--brand-orange)" }}>impresión 3D</span>
-          </h2>
-          <p className="mt-3 max-w-2xl text-muted-foreground">
-            Clases presenciales y virtuales, con práctica real en nuestro taller de Bogotá.
-          </p>
-
-          <div className="mt-8 grid gap-5 md:grid-cols-3">
-            {cursos.map((c) => {
-              const col = colorFor(c.color);
-              return (
-                <article
-                  key={c.id}
-                  id={c.id}
-                  className="scroll-mt-24 rounded-3xl border border-border bg-card p-6 shadow-sm"
-                >
-                  <div
-                    className="grid h-12 w-12 place-items-center rounded-2xl"
-                    style={{
-                      background: `color-mix(in oklab, ${col} 15%, white)`,
-                      color: col,
-                    }}
-                  >
-                    <GraduationCap className="h-6 w-6" />
-                  </div>
-                  <h3 className="mt-4 text-xl font-black">{c.title}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">{c.lead}</p>
-                  {(() => {
-                    const q = quoterFor("cursos-3d");
-                    return q ? (
-                      <Link
-                        to="/cotizador"
-                        search={{ servicio: q.slug }}
-                        className="btn-primary mt-5 text-sm"
-                      >
-                        Cotizar el curso
-                        <ArrowRight className="h-4 w-4" />
-                      </Link>
-                    ) : (
-                      <Link to="/contacto" className="btn-primary mt-5 text-sm">
-                        Quiero inscribirme
-                        <ArrowRight className="h-4 w-4" />
-                      </Link>
-                    );
-                  })()}
-                </article>
-              );
-            })}
-          </div>
-        </div>
-      </section>
     </>
   );
 }
