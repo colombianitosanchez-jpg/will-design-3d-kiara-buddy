@@ -1,11 +1,24 @@
 // Motor del Cotizador (puro): tipos, normalización y matemática.
 // No importa Supabase, así puede usarse igual en el navegador y en el servidor.
 
+export type QuoterOptionMedia = {
+  url?: string;
+  type?: "image" | "video" | "gif";
+};
+
 export type QuoterOption = {
   label: string;
   value: string;
   multiplier?: number;
   add_cop?: number;
+  media?: QuoterOptionMedia;
+};
+
+export type VolumeDiscountTier = {
+  min_qty: number;
+  max_qty: number | null; // null represents infinity / no upper limit
+  discount_percentage: number; // e.g. 10 = 10% off
+  fixed_unit_price_cop?: number | null;
 };
 
 export type QuoterInputType = "slider" | "select" | "toggle" | "number" | "text";
@@ -37,6 +50,8 @@ export type QuoterField = {
   is_required: boolean;
   is_active: boolean;
   sort_order: number;
+  media_url?: string;
+  media_type?: "image" | "video" | "gif";
 };
 
 /** Variables globales del cotizador que pueden alimentar el costo de un campo. */
@@ -68,6 +83,9 @@ export type QuoterService = {
   approval_threshold_cop?: number;
   is_active: boolean;
   sort_order: number;
+  has_calculator?: boolean;
+  whatsapp_custom_message?: string;
+  volume_tiers?: VolumeDiscountTier[];
   fields: QuoterField[];
 };
 
@@ -95,15 +113,21 @@ export function normalizeField(row: Record<string, unknown>): QuoterField {
     multiplier: num(row['multiplier'], 1) || 1,
     options: rawOptions
       .filter((o): o is Record<string, unknown> => Boolean(o) && typeof o === "object")
-      .map((o) => ({
-        label: String(o['label'] ?? o['value'] ?? ""),
-        value: String(o['value'] ?? o['label'] ?? ""),
-        multiplier: num(o['multiplier'], 1) || 1,
-        add_cop: num(o['add_cop']),
-      })),
+      .map((o) => {
+        const media = o['media'] && typeof o['media'] === "object" ? (o['media'] as Record<string, unknown>) : {};
+        return {
+          label: String(o['label'] ?? o['value'] ?? ""),
+          value: String(o['value'] ?? o['label'] ?? ""),
+          multiplier: num(o['multiplier'], 1) || 1,
+          add_cop: num(o['add_cop']),
+          media: media.url ? { url: String(media.url), type: (media.type as any) || "image" } : undefined,
+        };
+      }),
     is_required: Boolean(row['is_required']),
     is_active: row['is_active'] !== false,
     sort_order: num(row['sort_order']),
+    media_url: row['media_url'] ? String(row['media_url']) : undefined,
+    media_type: row['media_type'] ? (String(row['media_type']) as any) : undefined,
   };
 }
 
@@ -111,6 +135,22 @@ export function normalizeService(
   row: Record<string, unknown>,
   fields: QuoterField[],
 ): QuoterService {
+  let volumeTiers: VolumeDiscountTier[] = [];
+  try {
+    if (Array.isArray(row['volume_tiers'])) {
+      volumeTiers = (row['volume_tiers'] as Record<string, unknown>[]).map((t) => ({
+        min_qty: num(t['min_qty'], 1),
+        max_qty: t['max_qty'] !== null && t['max_qty'] !== undefined ? num(t['max_qty']) : null,
+        discount_percentage: num(t['discount_percentage']),
+        fixed_unit_price_cop: t['fixed_unit_price_cop'] ? num(t['fixed_unit_price_cop']) : null,
+      }));
+    } else if (typeof row['volume_tiers'] === "string" && row['volume_tiers'].trim()) {
+      volumeTiers = JSON.parse(row['volume_tiers']);
+    }
+  } catch {
+    volumeTiers = [];
+  }
+
   return {
     id: String(row['id']),
     slug: String(row['slug']),
@@ -129,6 +169,9 @@ export function normalizeService(
     approval_threshold_cop: num(row['approval_threshold_cop']),
     is_active: row['is_active'] !== false,
     sort_order: num(row['sort_order']),
+    has_calculator: row['has_calculator'] !== false,
+    whatsapp_custom_message: row['whatsapp_custom_message'] ? String(row['whatsapp_custom_message']) : undefined,
+    volume_tiers: volumeTiers,
     fields: fields
       .filter((f) => f.service_id === String(row['id']))
       .sort((a, b) => a.sort_order - b.sort_order || a.label.localeCompare(b.label)),
@@ -249,9 +292,38 @@ export function computeQuote(
   const withMargin = subtotal + margin;
   const min = num(service.min_price_cop);
   const extra = num(service.gastos_extra_cop);
-  const unit = Math.max(min, withMargin) + extra;
+  let baseUnit = Math.max(min, withMargin) + extra;
   if (extra > 0) lines.push({ label: "Gastos extra", detail: "Montaje y post-procesado", amount: extra });
+
   const qty = Math.max(1, Math.round(num(quantity, 1)));
+
+  // Escalado de Descuentos por Volumen (Tiered Volume Discounts)
+  let unit = baseUnit;
+  if (service.volume_tiers && service.volume_tiers.length > 0) {
+    const sortedTiers = [...service.volume_tiers].sort((a, b) => a.min_qty - b.min_qty);
+    for (const tier of sortedTiers) {
+      if (qty >= tier.min_qty && (tier.max_qty === null || tier.max_qty === undefined || qty <= tier.max_qty)) {
+        if (tier.fixed_unit_price_cop && tier.fixed_unit_price_cop > 0) {
+          unit = tier.fixed_unit_price_cop;
+          lines.push({
+            label: "Tarifa fija por volumen",
+            detail: `${qty} unidades (Rango ${tier.min_qty}+)`,
+            amount: unit,
+          });
+        } else if (tier.discount_percentage && tier.discount_percentage > 0) {
+          const discountVal = baseUnit * (tier.discount_percentage / 100);
+          unit = Math.max(min, baseUnit - discountVal);
+          lines.push({
+            label: `Descuento por volumen (-${tier.discount_percentage}%)`,
+            detail: `${qty} unidades`,
+            amount: -discountVal,
+          });
+        }
+        break;
+      }
+    }
+  }
+
   const total = round100(unit * qty);
 
   const reqApproval = Boolean(

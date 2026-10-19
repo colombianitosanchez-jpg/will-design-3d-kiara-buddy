@@ -120,6 +120,15 @@ function FieldControl({
     return (
       <div>
         <span className="text-sm font-bold">{field.label}</span>
+        {field.media_url && (
+          <div className="mt-2 overflow-hidden rounded-2xl border border-border bg-muted/20">
+            {field.media_type === "video" ? (
+              <video src={field.media_url} autoPlay loop muted playsInline className="h-40 w-full object-cover" />
+            ) : (
+              <img src={field.media_url} alt={field.label} className="h-40 w-full object-cover" />
+            )}
+          </div>
+        )}
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
           {field.options.map((o) => {
             const active = o.value === value;
@@ -128,18 +137,29 @@ function FieldControl({
                 type="button"
                 key={o.value}
                 onClick={() => onChange(o.value)}
-                className={`rounded-xl border p-3 text-left text-sm transition ${
+                className={`flex flex-col gap-2 rounded-xl border p-3 text-left text-sm transition ${
                   active
                     ? "border-[var(--brand-orange)] bg-[color-mix(in_oklab,var(--brand-orange)_10%,white)] font-bold"
                     : "border-border hover:bg-muted"
                 }`}
               >
-                {o.label}
-                {o.add_cop ? (
-                  <span className="mt-0.5 block text-[11px] text-muted-foreground">
-                    +{formatCOP(o.add_cop)}
-                  </span>
-                ) : null}
+                {o.media?.url && (
+                  <div className="overflow-hidden rounded-lg bg-muted">
+                    {o.media.type === "video" ? (
+                      <video src={o.media.url} autoPlay loop muted playsInline className="h-24 w-full object-cover" />
+                    ) : (
+                      <img src={o.media.url} alt={o.label} className="h-24 w-full object-cover" />
+                    )}
+                  </div>
+                )}
+                <div>
+                  <div>{o.label}</div>
+                  {o.add_cop ? (
+                    <span className="mt-0.5 block text-[11px] text-muted-foreground font-normal">
+                      +{formatCOP(o.add_cop)}
+                    </span>
+                  ) : null}
+                </div>
               </button>
             );
           })}
