@@ -4,6 +4,7 @@ import { Quoter } from "@/components/Quoter";
 import { siteContentQuery } from "@/lib/catalog";
 import { quoterServicesQuery } from "@/lib/quoter";
 import { SITE_URL } from "@/lib/site-url";
+import { dehydrateQueryClient, hydrateQueryClient } from "@/lib/ssr-query";
 
 const searchSchema = z.object({
   servicio: z.string().max(80).optional(),
@@ -16,7 +17,7 @@ export const Route = createFileRoute("/cotizador")({
       context.queryClient.fetchQuery({ ...siteContentQuery(), staleTime: 0 }).catch(() => ({} as Record<string, string>)),
       context.queryClient.fetchQuery({ ...quoterServicesQuery(), staleTime: 0 }).catch(() => []),
     ]);
-    return { content };
+    return { content, dehydratedState: dehydrateQueryClient(context.queryClient) };
   },
   head: ({ loaderData }) => {
     const content = loaderData?.content ?? {};
@@ -43,6 +44,9 @@ export const Route = createFileRoute("/cotizador")({
 });
 
 function CotizadorPage() {
+  const { queryClient } = Route.useRouteContext();
+  const { dehydratedState } = Route.useLoaderData();
+  hydrateQueryClient(queryClient, dehydratedState);
   const { servicio } = Route.useSearch();
   return (
     <>
