@@ -40,7 +40,7 @@ export const getPublicQuoterServices = createServerFn({ method: "GET" })
 
 const computeSchema = z.object({
   serviceSlug: z.string().trim().min(1).max(160),
-  answers: z.record(z.unknown()).refine((answers) => Object.keys(answers).length <= 60, "Demasiadas respuestas"),
+  answers: z.record(z.string().max(160), z.union([z.string().max(500), z.number().finite(), z.boolean()])).refine((answers) => Object.keys(answers).length <= 60, "Demasiadas respuestas"),
   quantity: z.number().int().min(1).max(10000).default(1),
 });
 
@@ -48,6 +48,7 @@ export const computeQuoteServerFn = createServerFn({ method: "POST" })
   .validator((data: unknown) => computeSchema.parse(data))
   .handler(async ({ data }) => {
     const { serviceSlug, answers, quantity } = data;
+    const { getQuoterServices } = await import("@/lib/quoter.server");
     const services = await getQuoterServices();
     const service = services.find((s) => s.slug === serviceSlug || s.id === serviceSlug);
     if (!service) {
