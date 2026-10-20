@@ -141,7 +141,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       content.hero_subtitle?.trim() ||
       "Especialistas en impresión 3D de gran formato en Bogotá. Diseño, post-procesado, equipos e insumos y mantenimiento técnico."
     ).slice(0, 300);
-    const logo = content.site_og_image_url?.trim() ||
+    const logo = content.site_meta_thumbnail_url?.trim() ||
       "https://storage.googleapis.com/gpt-engineer-file-uploads/Hj8JfrWa2qQArO2BOXZdviQDjWA2/social-images/social-1783472807154-WILL_LOGO.webp";
     return {
       meta: [
