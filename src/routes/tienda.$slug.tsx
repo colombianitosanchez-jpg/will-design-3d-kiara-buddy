@@ -50,7 +50,7 @@ export const Route = createFileRoute("/tienda/$slug")({
     typeof search.v === "string" && search.v ? { v: search.v.slice(0, 64) } : {},
   loaderDeps: ({ search }) => ({ v: search.v }),
   loader: async ({ params, context, deps }) => {
-    const product = await context.queryClient.ensureQueryData(productBySlugQuery(params.slug));
+    const product = await context.queryClient.fetchQuery({ ...productBySlugQuery(params.slug), staleTime: 0 });
     if (!product) throw notFound();
     context.queryClient.prefetchQuery(productsQuery());
     return { product, variantId: deps.v ?? null };
