@@ -492,10 +492,31 @@ export function computeQuote(
     context[f.key] = n;
   }
 
-  // Si el servicio es de precio fijo
+  // Los servicios de precio fijo no suman recargos, pero sí conservan las respuestas del cliente.
   if (service.pricing_mode === "fixed") {
+    for (const field of service.fields) {
+      if (!field.is_active) continue;
+      const raw = safeValues[field.key] ?? "";
+      if (field.input_type === "slider" || field.input_type === "number") {
+        const value = num(raw);
+        answers.push({ label: field.label, value: `${value}${field.unit ? ` ${field.unit}` : ""}` });
+      } else if (field.input_type === "select") {
+        const option = field.options.find((item) => item.value === raw);
+        if (option) answers.push({ label: field.label, value: option.label });
+      } else if (field.input_type === "toggle") {
+        const option = field.options[0];
+        answers.push({ label: field.label, value: isOn(raw) ? (option?.label ?? "Sí") : "No" });
+      } else if (raw.trim()) {
+        answers.push({ label: field.label, value: raw.trim() });
+      }
+    }
+
     const unit = num(service.base_price_cop);
     const total = round100(unit * qty);
+    const requiresApproval = Boolean(
+      service.requires_approval ||
+        (service.approval_threshold_cop && service.approval_threshold_cop > 0 && total >= service.approval_threshold_cop),
+    );
     return {
       lines: [{ label: service.name, detail: `${qty} unidad(es)`, amount: total }],
       multiplier: 1,
@@ -505,7 +526,7 @@ export function computeQuote(
       quantity: qty,
       total_cop: total,
       min_applied: false,
-      requires_approval: false,
+      requires_approval: requiresApproval,
       answers,
     };
   }
