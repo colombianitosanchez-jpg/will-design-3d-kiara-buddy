@@ -326,7 +326,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
 
       const resumen = result.answers.map((a) => `${a.label}: ${a.value}`).join(" · ");
 
-      await saveQuote({
+      const savedQuote = await saveQuote({
         data: {
           customer_name: String(data.get("name") ?? ""),
           customer_email: String(data.get("email") ?? ""),
@@ -354,7 +354,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
           email: String(data.get("email") ?? ""),
           telefono: String(data.get("phone") ?? ""),
           resumen: result.answers.map((a) => `• ${a.label}: ${a.value}`).join("\n") + `\n• Cantidad: ${result.quantity}`,
-          total: formatCOP(result.total_cop),
+          total: formatCOP(Number.isFinite(officialTotal) ? officialTotal : result.total_cop),
           notas: notes.trim(),
           mediaUrl: file_name ? file_name : null,
         },
@@ -505,9 +505,10 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
                     />
                     <button
                       type="button"
-                      onClick={() => setQuantity((q) => q + 1)}
+                      onClick={() => setQuantity((q) => Math.min(100, q + 1))}
+                      disabled={quantity >= 100}
                       aria-label="Agregar una unidad"
-                      className="rounded-full border border-border p-2 hover:bg-muted"
+                      className="rounded-full border border-border p-2 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <Plus className="h-4 w-4" />
                     </button>
