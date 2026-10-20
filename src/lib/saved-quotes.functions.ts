@@ -30,13 +30,62 @@ const saveSchema = z.object({ items: z.array(itemSchema).min(1).max(40) });
 export const saveQuote = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => saveSchema.parse(data))
   .handler(async ({ data }) => {
-    // La inserción solo ocurre aquí, tras validar cada línea con zod.
     const { supabaseAdmin: sb } = await import("@/integrations/supabase/client.server");
-    // El total se recalcula en el servidor a partir de las líneas validadas.
-    const total = data.items.reduce((sum, i) => sum + i.price_cop * i.quantity, 0);
+    const { parseLineKey } = await import("@/lib/payment-rules");
+    const { parseVariants } = await import("@/lib/product-variants");
+    const { getQuoterServices, getQuotingVars } = await import("@/lib/quoter.server");
+    const { coerceAnswers, computeQuote } = await import("@/lib/quoter-core");
+
+    const productItems = data.items.filter((item) => item.kind !== "service");
+    const serviceItems = data.items.filter((item) => item.kind === "service");
+    const validServiceItems = serviceItems.filter((item) => Boolean(item.service_slug));
+    if (validServiceItems.length !== serviceItems.length) {
+      throw new Error("Hay un servicio sin identificador válido. Vuelve a agregarlo al carrito.");
+    }
+
+    const ids = [...new Set(productItems.map((item) => parseLineKey(item.product_id).productId))].filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+    const { data: products, error: productsError } = ids.length
+      ? await sb.from("products").select("id,name,slug,price_cop,active,quote_only,variants").in("id", ids)
+      : { data: [], error: null };
+    if (productsError) throw new Error(productsError.message);
+    const available = new Map((products ?? []).filter((product) => product.active && !product.quote_only).map((product) => [product.id, product] as const));
+
+    const normalizedProducts = productItems.map((item) => {
+      const { productId, variantId } = parseLineKey(item.product_id);
+      const product = available.get(productId);
+      if (!product) throw new Error("Un producto ya no está disponible. Actualiza tu carrito.");
+      const variant = variantId ? parseVariants(product.variants).find((candidate) => candidate.id === variantId && candidate.is_active) ?? null : null;
+      if (variantId && !variant) throw new Error("Una variante ya no está disponible. Actualiza tu carrito.");
+      return { ...item, name: variant ? `${product.name} — ${variant.name}` : product.name, slug: product.slug ?? item.slug, price_cop: variant?.price_cop ?? product.price_cop, kind: "product" as const };
+    });
+
+    let normalizedServices: SavedQuoteItem[] = [];
+    if (validServiceItems.length) {
+      const [services, vars] = await Promise.all([getQuoterServices(), getQuotingVars()]);
+      normalizedServices = validServiceItems.map((item) => {
+        const service = services.find((candidate) => candidate.slug === item.service_slug);
+        if (!service) throw new Error("Un servicio ya no está disponible. Actualiza tu carrito.");
+        const answers = coerceAnswers(service, item.answers ?? {});
+        const quote = computeQuote(service, answers, item.quantity, vars);
+        return {
+          ...item,
+          name: `Servicio: ${service.name}`,
+          slug: service.slug,
+          price_cop: Math.round(quote.unit_price_cop),
+          quantity: quote.quantity,
+          kind: "service" as const,
+          service_slug: service.slug,
+          answers,
+          detail: quote.answers.map((answer) => `${answer.label}: ${answer.value}`).join(" · ").slice(0, 600),
+        };
+      });
+    }
+
+    const normalizedItems: SavedQuoteItem[] = [...normalizedProducts, ...normalizedServices];
+    const total = normalizedItems.reduce((sum, item) => sum + item.price_cop * item.quantity, 0);
     const { data: row, error } = await sb
       .from("saved_quotes")
-      .insert({ items: data.items, total_price: total } as never)
+      .insert({ items: normalizedItems, total_price: total } as never)
       .select("id")
       .single();
     if (error) throw new Error(error.message);
