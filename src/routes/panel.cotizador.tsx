@@ -462,7 +462,7 @@ function ServiceCard({
     setTest(defaultValuesFor(service));
   }, [service]);
 
-  const preview = useMemo(() => computeQuote(draft, test, qty), [draft, test, qty]);
+  const preview = useMemo(() => computeQuote(draft, test, qty, quotingVars), [draft, test, qty, quotingVars]);
 
   function set<K extends keyof QuoterService>(key: K, value: QuoterService[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
@@ -544,6 +544,10 @@ function ServiceCard({
         is_active: draft.is_active,
         sort_order: draft.sort_order + 1,
         site_anchor: draft.site_anchor,
+        has_calculator: draft.has_calculator !== false,
+        whatsapp_custom_message: draft.whatsapp_custom_message || null,
+        volume_tiers: draft.volume_tiers || [],
+        formula: draft.formula || null,
       })
       .select("id")
       .single();
@@ -568,6 +572,9 @@ function ServiceCard({
         price_per_unit_cop: f.price_per_unit_cop,
         price_source: f.price_source,
         multiplier: f.multiplier,
+        formula: f.formula || null,
+        media_url: f.media_url || null,
+        media_type: f.media_type || "image",
         options: f.options,
         is_required: f.is_required,
         is_active: f.is_active,
