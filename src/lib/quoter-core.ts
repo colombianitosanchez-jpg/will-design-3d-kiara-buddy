@@ -129,10 +129,12 @@ export function evaluateFormula(
     .sort((a, b) => b.length - a.length);
   for (const key of keys) {
     const raw = Number(context[key]);
-    const value = Number.isFinite(raw) && Math.abs(raw) <= 1e15 ? raw : 0;
+    const numericValue = Number.isFinite(raw) && Math.abs(raw) <= 1e15 ? raw : 0;
+    // Evitar notación científica: el parser solo admite aritmética decimal explícita.
+    const literal = numericValue.toFixed(10).replace(/\\.?0+$/, "") || "0";
     const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const pattern = new RegExp("\\b" + escapedKey + "\\b", "g");
-    expr = expr.replace(pattern, String(value));
+    expr = expr.replace(pattern, literal);
   }
 
   expr = expr.replace(/\s+/g, "");
