@@ -22,6 +22,7 @@ import { CartProvider } from "../lib/cart";
 import { useQuery } from "@tanstack/react-query";
 import { siteContentQuery } from "../lib/catalog";
 import { getActiveTheme, applyThemeToDocument } from "../lib/theme";
+import { SITE_URL } from "../lib/site-url";
 
 function ThemeApplier() {
   const { data: content } = useQuery(siteContentQuery());
@@ -39,6 +40,24 @@ function ThemeApplier() {
       iconEl.href = content.site_favicon_url;
     }
   }, [content]);
+  return null;
+}
+
+/** Unregister a legacy PWA worker if an earlier deployment left one controlling the origin. */
+function LegacyServiceWorkerCleanup() {
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    void navigator.serviceWorker.getRegistrations().then((registrations) => {
+      registrations.forEach((registration) => void registration.unregister());
+    });
+    if ("caches" in window) {
+      void window.caches.keys().then((names) => {
+        names
+          .filter((name) => /will[-_ ]?design|workbox|vite[-_ ]?pwa|precache/i.test(name))
+          .forEach((name) => void window.caches.delete(name));
+      });
+    }
+  }, []);
   return null;
 }
 
@@ -104,65 +123,75 @@ function ErrorComponent({ error, reset }: { error: unknown; reset: () => void })
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Will Design 3D — Impresión 3D de gran formato en Bogotá" },
-      {
-        name: "description",
-        content:
-          "Especialistas en impresión 3D de gran formato en Bogotá. Diseño, post-procesado, venta de equipos e insumos, mantenimiento técnico. Supervisado por Kiara 🐾.",
-      },
-      { property: "og:title", content: "Will Design 3D — Impresión 3D de gran formato en Bogotá" },
-      {
-        property: "og:description",
-        content: "Especialistas en impresión 3D de gran formato en Bogotá. Diseño, post-procesado, venta de equipos e insumos, mantenimiento técnico. Supervisado por Kiara 🐾.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Will Design 3D — Impresión 3D de gran formato en Bogotá" },
-      { name: "twitter:description", content: "Especialistas en impresión 3D de gran formato en Bogotá. Diseño, post-procesado, venta de equipos e insumos, mantenimiento técnico. Supervisado por Kiara 🐾." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/Hj8JfrWa2qQArO2BOXZdviQDjWA2/social-images/social-1783472807154-WILL_LOGO.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/Hj8JfrWa2qQArO2BOXZdviQDjWA2/social-images/social-1783472807154-WILL_LOGO.webp" },
-    ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
-    ],
-    scripts: [
-      {
-        type: "application/ld+json",
-        children: JSON.stringify({
-          "@context": "https://schema.org",
-          "@graph": [
-            {
-              "@type": "Organization",
-              "@id": "https://will-design-3d.lovable.app/#organization",
-              name: "Will Design 3D",
-              url: "https://will-design-3d.lovable.app/",
-              description:
-                "Taller especializado en impresión 3D de gran formato en Bogotá: diseño, producción, post-procesado, equipos e insumos.",
-              areaServed: "Bogotá, Colombia",
-              sameAs: ["https://www.instagram.com/will_design2020"],
-            },
-            {
-              "@type": "WebSite",
-              "@id": "https://will-design-3d.lovable.app/#website",
-              url: "https://will-design-3d.lovable.app/",
-              name: "Will Design 3D",
-              inLanguage: "es-CO",
-              publisher: { "@id": "https://will-design-3d.lovable.app/#organization" },
-            },
-          ],
-        }),
-      },
-    ],
-  }),
-
+  loader: async ({ context }) => {
+    try {
+      const content = await context.queryClient.ensureQueryData(siteContentQuery());
+      return { content };
+    } catch (error) {
+      console.error("[SEO] No fue posible cargar metadatos desde site_content:", error);
+      return { content: {} as Record<string, string> };
+    }
+  },
+  head: ({ loaderData }) => {
+    const content = loaderData?.content ?? {};
+    const siteName = content.site_name?.trim() || "Will Design 3D";
+    const title = content.seo_title?.trim() || `${siteName} — Impresión 3D de gran formato en Bogotá`;
+    const description = (
+      content.seo_description?.trim() ||
+      content.hero_subtitle?.trim() ||
+      "Especialistas en impresión 3D de gran formato en Bogotá. Diseño, post-procesado, equipos e insumos y mantenimiento técnico."
+    ).slice(0, 300);
+    const logo = content.site_og_image_url?.trim() ||
+      "https://storage.googleapis.com/gpt-engineer-file-uploads/Hj8JfrWa2qQArO2BOXZdviQDjWA2/social-images/social-1783472807154-WILL_LOGO.webp";
+    return {
+      meta: [
+        { charSet: "utf-8" },
+        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        { title },
+        { name: "description", content: description },
+        { property: "og:site_name", content: siteName },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "website" },
+        { property: "og:image", content: logo },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+        { name: "twitter:image", content: logo },
+      ],
+      links: [
+        { rel: "stylesheet", href: appCss },
+        { rel: "icon", href: content.site_favicon_url?.trim() || "/favicon.ico" },
+      ],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@graph": [
+              {
+                "@type": "Organization",
+                "@id": `${SITE_URL}/#organization`,
+                name: siteName,
+                url: `${SITE_URL}/`,
+                description,
+                areaServed: "Bogotá, Colombia",
+                sameAs: [content.contact_instagram_url || "https://www.instagram.com/will_design2020"],
+              },
+              {
+                "@type": "WebSite",
+                "@id": `${SITE_URL}/#website`,
+                url: `${SITE_URL}/`,
+                name: siteName,
+                inLanguage: "es-CO",
+                publisher: { "@id": `${SITE_URL}/#organization` },
+              },
+            ],
+          }),
+        },
+      ],
+    };
+  },
 
   shellComponent: RootShell,
   component: RootComponent,
@@ -172,7 +201,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="es-CO">
       <head>
         <HeadContent />
       </head>
@@ -189,6 +218,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <LegacyServiceWorkerCleanup />
       <ThemeApplier />
       <AuthProvider>
         <CartProvider>
