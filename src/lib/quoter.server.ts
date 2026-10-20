@@ -1,28 +1,10 @@
 // Lectura del cotizador desde el servidor (Kiara y server functions).
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
 import { normalizeField, normalizeService, type QuoterService, type QuoterVars } from "@/lib/quoter-core";
 import { normalizeQuotingVars } from "@/lib/quoting-vars";
 
-function publicClient() {
-  const key = process.env['SUPABASE_PUBLISHABLE_KEY']!;
-  return createClient<Database>(process.env['SUPABASE_URL']!, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-    global: {
-      fetch: (input, init) => {
-        const h = new Headers(init?.headers);
-        if (key.startsWith("sb_") && h.get("Authorization") === `Bearer ${key}`)
-          h.delete("Authorization");
-        h.set("apikey", key);
-        return fetch(input, { ...init, headers: h });
-      },
-    },
-  });
-}
-
 /** Servicios activos del cotizador con sus preguntas, para uso en el servidor. */
 export async function getQuoterServices(): Promise<QuoterService[]> {
-  const sb = publicClient();
+  const { supabaseAdmin: sb } = await import("@/integrations/supabase/client.server");
   const [svc, fld] = await Promise.all([
     sb.from("quoter_services").select("*").eq("is_active", true).order("sort_order"),
     sb.from("quoter_fields").select("*").eq("is_active", true).order("sort_order"),
@@ -35,7 +17,7 @@ export async function getQuoterServices(): Promise<QuoterService[]> {
 
 /** Variables globales del cotizador leídas en el servidor. */
 export async function getQuotingVars(): Promise<QuoterVars> {
-  const sb = publicClient();
+  const { supabaseAdmin: sb } = await import("@/integrations/supabase/client.server");
   const { data } = await sb.from("admin_settings").select("id, quoting_vars").limit(1).maybeSingle();
   const raw = ((data as { quoting_vars?: unknown } | null)?.quoting_vars ?? {}) as Record<string, unknown>;
   return normalizeQuotingVars(raw) as QuoterVars;
