@@ -53,6 +53,13 @@ export const createQuoteRequest = createServerFn({ method: "POST" })
       throw new Error("Este servicio ya no está disponible. Actualiza la página e inténtalo de nuevo.");
     }
 
+    if (data.file_path && !service.allow_file) {
+      throw new Error("Este servicio no permite adjuntar archivos. Retira el archivo y vuelve a intentarlo.");
+    }
+    if (Boolean(data.file_path) !== Boolean(data.file_name)) {
+      throw new Error("El archivo adjunto está incompleto. Vuelve a cargarlo.");
+    }
+
     // El total recibido del navegador nunca es la fuente del precio guardado.
     const rawAnswers: Record<string, unknown> = {};
     for (const answer of data.answers) rawAnswers[answer.label] = answer.value;
