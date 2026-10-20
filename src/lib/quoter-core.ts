@@ -515,16 +515,44 @@ export function computeQuote(
       }
     }
 
-    const unit = num(service.base_price_cop);
+    const baseUnit = round100(basePriceCop);
+    let unit = baseUnit;
+    const sortedTiers = [...(service.volume_tiers ?? [])].sort((a, b) => a.min_qty - b.min_qty);
+    const appliedTier = sortedTiers.find((tier) =>
+      qty >= tier.min_qty && (tier.max_qty === null || tier.max_qty === undefined || qty <= tier.max_qty),
+    );
+    if (appliedTier) {
+      if (appliedTier.fixed_unit_price_cop && appliedTier.fixed_unit_price_cop > 0) {
+        unit = Math.min(1_000_000_000, appliedTier.fixed_unit_price_cop);
+      } else if (appliedTier.discount_percentage && appliedTier.discount_percentage > 0) {
+        const discountPercentage = Math.min(100, Math.max(0, appliedTier.discount_percentage));
+        unit = Math.max(0, baseUnit * (1 - discountPercentage / 100));
+      }
+    }
+
+    unit = round100(unit);
     const total = round100(unit * qty);
+    const baseTotal = round100(baseUnit * qty);
+    const lines: QuoterLine[] = appliedTier && unit !== baseUnit
+      ? [
+          { label: "Precio fijo del servicio", detail: `${baseUnit} COP/unidad × ${qty}`, amount: baseTotal },
+          {
+            label: appliedTier.fixed_unit_price_cop && appliedTier.fixed_unit_price_cop > 0
+              ? "Tarifa fija por volumen"
+              : `Descuento por volumen (-${Math.min(100, Math.max(0, appliedTier.discount_percentage ?? 0))}%)`,
+            detail: `${qty} unidades`,
+            amount: total - baseTotal,
+          },
+        ]
+      : [{ label: service.name, detail: `${qty} unidad(es)`, amount: total }];
     const requiresApproval = Boolean(
       service.requires_approval ||
         (service.approval_threshold_cop && service.approval_threshold_cop > 0 && total >= service.approval_threshold_cop),
     );
     return {
-      lines: [{ label: service.name, detail: `${qty} unidad(es)`, amount: total }],
+      lines,
       multiplier: 1,
-      subtotal_cop: total,
+      subtotal_cop: baseTotal,
       margin_cop: 0,
       unit_price_cop: unit,
       quantity: qty,
@@ -534,7 +562,6 @@ export function computeQuote(
       answers,
     };
   }
-
   let add = basePriceCop;
   let multiplier = 1;
 
@@ -612,17 +639,18 @@ export function computeQuote(
     for (const tier of sortedTiers) {
       if (qty >= tier.min_qty && (tier.max_qty === null || tier.max_qty === undefined || qty <= tier.max_qty)) {
         if (tier.fixed_unit_price_cop && tier.fixed_unit_price_cop > 0) {
-          unit = tier.fixed_unit_price_cop;
+          unit = Math.min(1_000_000_000, tier.fixed_unit_price_cop);
           lines.push({
             label: "Tarifa fija por volumen",
             detail: `${qty} unidades (Rango ${tier.min_qty}+)`,
             amount: unit,
           });
         } else if (tier.discount_percentage && tier.discount_percentage > 0) {
-          const discountVal = baseUnit * (tier.discount_percentage / 100);
+          const discountPercentage = Math.min(100, Math.max(0, tier.discount_percentage));
+          const discountVal = baseUnit * (discountPercentage / 100);
           unit = Math.max(min, baseUnit - discountVal);
           lines.push({
-            label: `Descuento por volumen (-${tier.discount_percentage}%)`,
+            label: `Descuento por volumen (-${discountPercentage}%)`,
             detail: `${qty} unidades`,
             amount: -discountVal,
           });
@@ -632,7 +660,8 @@ export function computeQuote(
     }
   }
 
-  const total = round100(unit * qty);
+  const roundedUnit = round100(unit);
+  const total = round100(roundedUnit * qty);
 
   const reqApproval = Boolean(
     service.requires_approval ||
@@ -644,7 +673,7 @@ export function computeQuote(
     multiplier,
     subtotal_cop: round100(subtotal),
     margin_cop: round100(margin),
-    unit_price_cop: round100(unit),
+    unit_price_cop: roundedUnit,
     quantity: qty,
     total_cop: total,
     min_applied: withMargin < min,
