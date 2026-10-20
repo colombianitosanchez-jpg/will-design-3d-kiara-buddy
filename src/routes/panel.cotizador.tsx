@@ -1192,6 +1192,9 @@ function FieldEditor({
         options: d.options,
         is_active: d.is_active,
         sort_order: d.sort_order,
+        is_required: d.is_required,
+        media_url: d.media_url || null,
+        media_type: d.media_type || "image",
       })
       .eq("id", d.id);
     setSaving(false);
@@ -1365,6 +1368,15 @@ function FieldEditor({
                 className={inputCls}
               />
             </L>
+            <label className="mt-1 inline-flex items-center gap-2 text-sm font-semibold">
+              <input
+                type="checkbox"
+                checked={d.is_required}
+                onChange={(e) => set("is_required", e.target.checked)}
+                className="h-4 w-4 accent-[var(--brand-orange)]"
+              />
+              Campo obligatorio
+            </label>
             <label className="mt-1 inline-flex items-center gap-2 text-sm font-semibold">
               <input
                 type="checkbox"
