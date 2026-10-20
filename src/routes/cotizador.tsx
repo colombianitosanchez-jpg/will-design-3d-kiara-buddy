@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { Quoter } from "@/components/Quoter";
+import { siteContentQuery } from "@/lib/catalog";
+import { quoterServicesQuery } from "@/lib/quoter";
+import { SITE_URL } from "@/lib/site-url";
 
 const searchSchema = z.object({
   servicio: z.string().max(80).optional(),
@@ -8,24 +11,34 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute("/cotizador")({
   validateSearch: searchSchema,
-  head: () => ({
-    meta: [
-      { title: "Cotizador de Impresión 3D en línea — Will Design 3D" },
-      {
-        name: "description",
-        content:
-          "Calcula al instante el precio de tu impresión 3D, diseño, escaneo o post-procesado. Ajusta material, tamaño y acabado y recibe tu cotización por WhatsApp.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:title", content: "Cotizador de Impresión 3D en línea — Will Design 3D" },
-      {
-        property: "og:description",
-        content:
-          "Precio estimado al instante para impresión 3D, diseño, escaneo y acabados. 100% configurable por nuestro equipo.",
-      },
-    ],
-  }),
+  loader: async ({ context }) => {
+    const [content] = await Promise.all([
+      context.queryClient.fetchQuery({ ...siteContentQuery(), staleTime: 0 }).catch(() => ({} as Record<string, string>)),
+      context.queryClient.fetchQuery({ ...quoterServicesQuery(), staleTime: 0 }).catch(() => []),
+    ]);
+    return { content };
+  },
+  head: ({ loaderData }) => {
+    const content = loaderData?.content ?? {};
+    const title = content.seo_quoter_title?.trim() || content.seo_title?.trim() ||
+      "Cotizador de Impresión 3D en línea — Will Design 3D";
+    const description = (
+      content.seo_quoter_description?.trim() || content.seo_description?.trim() ||
+      "Calcula el precio de tu impresión 3D, diseño, escaneo o post-procesado. Ajusta material, tamaño y acabado y recibe tu cotización por WhatsApp."
+    ).slice(0, 300);
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary_large_image" },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:url", content: `${SITE_URL}/cotizador` },
+      ],
+      links: [{ rel: "canonical", href: `${SITE_URL}/cotizador` }],
+    };
+  },
   component: CotizadorPage,
 });
 
