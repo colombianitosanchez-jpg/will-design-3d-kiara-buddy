@@ -43,6 +43,10 @@ const FIELDS: FieldDef[] = [
   { key: "seo_home_description", label: "Descripción SEO del inicio", type: "textarea", help: "Si está vacía, se usa la descripción SEO general.", section: "Marca y SEO", group: "Página de inicio" },
   { key: "seo_services_title", label: "Título SEO de servicios", type: "text", help: "Título para /servicios.", section: "Marca y SEO", group: "Página de servicios" },
   { key: "seo_services_description", label: "Descripción SEO de servicios", type: "textarea", help: "Descripción para /servicios.", section: "Marca y SEO", group: "Página de servicios" },
+  { key: "seo_store_title", label: "Título SEO de la tienda", type: "text", help: "Título para /tienda.", section: "Marca y SEO", group: "Página de tienda" },
+  { key: "seo_store_description", label: "Descripción SEO de la tienda", type: "textarea", help: "Descripción para /tienda.", section: "Marca y SEO", group: "Página de tienda" },
+  { key: "seo_quoter_title", label: "Título SEO del cotizador", type: "text", help: "Título para /cotizador.", section: "Marca y SEO", group: "Página del cotizador" },
+  { key: "seo_quoter_description", label: "Descripción SEO del cotizador", type: "textarea", help: "Descripción para /cotizador.", section: "Marca y SEO", group: "Página del cotizador" },
   // ---------------------------------------------------------------- Inicio
   { key: "hero_title", label: "Título del hero", type: "textarea", section: "Inicio", group: "Hero" },
   { key: "hero_subtitle", label: "Subtítulo del hero", type: "textarea", section: "Inicio", group: "Hero" },
