@@ -19,6 +19,7 @@ const FileDropzone3D = lazy(() =>
 );
 import { ProductButtons } from "@/components/ProductButtons";
 import { ShareButton } from "@/components/ShareButton";
+import { SITE_URL } from "@/lib/site-url";
 import { formatCOP, gradientKeyFor, type Product } from "@/lib/catalog";
 import { parseVariants, type ProductVariant } from "@/lib/product-variants";
 
@@ -82,7 +83,7 @@ export function ProductQuickView({
                 <ShareButton
                   title={product.name}
                   text={product.custom_share_text}
-                  url={`https://will-design-3d.lovable.app/tienda/${product.slug}`}
+                  url={`${SITE_URL}/tienda/${product.slug}`}
                   className="-mr-2 -mt-1 h-8 w-8 shrink-0 text-muted-foreground"
                 />
               </div>
