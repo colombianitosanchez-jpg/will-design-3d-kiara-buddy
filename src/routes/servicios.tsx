@@ -185,16 +185,9 @@ function ServiciosPage() {
   const { data: dbServices } = useQuery(siteServicesQuery());
   const { data: quoterServices } = useQuery(quoterServicesQuery());
 
-  // Cuando hay servicios administrados en BD, la vinculación explícita del panel es la fuente de verdad.
-  // El emparejamiento por slug solo se usa con la lista de respaldo antigua.
-  const usingDatabaseServices = Boolean(dbServices && dbServices.length > 0);
   const quoterFor = (idOrSlug: string, quoterId?: string | null) => {
-    if (usingDatabaseServices) {
-      if (!quoterId) return null;
-      return (quoterServices ?? []).find((q) => q.id === quoterId) ?? null;
-    }
     if (quoterId) {
-      const found = (quoterServices ?? []).find((q) => q.id === quoterId || q.slug === quoterId);
+      const found = (quoterServices ?? []).find((q) => q.id === quoterId);
       if (found) return found;
     }
     return (quoterServices ?? []).find((service) => service.slug === idOrSlug || service.site_anchor === idOrSlug) ?? null;
