@@ -482,7 +482,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
       )}
 
       {/* Paso 2: configurar */}
-      {service && result && (
+      {service && (
         <div className="mt-10 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
           <div className="rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
             <div className="flex flex-wrap items-center gap-3">
@@ -662,7 +662,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--brand-orange)] px-7 py-3.5 text-base font-black text-white shadow-lg disabled:opacity-60"
               >
                 {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
-                Enviar cotización por {formatCOP(result.total_cop)}
+                {calculating ? "Calculando precio…" : result ? `Enviar cotización por ${formatCOP(result.total_cop)}` : "Calcular cotización"}
               </button>
 
               {sendError && (
@@ -708,7 +708,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
             {calculationError && (
               <p role="alert" className="mt-2 text-xs font-semibold text-red-600">{calculationError}</p>
             )}
-            {result.quantity > 1 && (
+            {!calculating && !calculationError && result && result.quantity > 1 && (
               <p className="mt-1 text-xs text-muted-foreground">
                 {formatCOP(result.unit_price_cop)} por unidad × {result.quantity}
               </p>
@@ -718,7 +718,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
               {(!result && !calculationError && !calculating) && (
                 <p className="text-xs text-muted-foreground">Configura el servicio para calcular tu precio.</p>
               )}
-              {(result?.lines ?? []).map((l, i) => (
+              {(!calculating && !calculationError ? result?.lines ?? [] : []).map((l, i) => (
                 <div key={`${l.label}-${i}`} className="flex justify-between gap-3 text-muted-foreground">
                   <span>
                     {l.label}
@@ -730,7 +730,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
 
             </div>
 
-            {result.requires_approval && (
+            {!calculating && !calculationError && result?.requires_approval && (
               <div className="mt-3 rounded-2xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
                 <span className="font-bold block">⚠️ Requiere revisión previa:</span>
                 Esta cotización supera el umbral automático. Tras enviarla por WhatsApp, nuestro equipo la aprobará formalmente.
