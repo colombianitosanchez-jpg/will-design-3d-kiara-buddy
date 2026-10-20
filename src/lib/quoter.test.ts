@@ -251,4 +251,26 @@ describe("Quoter Engine & Formula Parser AST", () => {
     const result = computeQuote(service, { peso_gramos: "2" }, 1, chainedVars);
     expect(result.total_cop).toBe(400);
   });
+
+  test("normaliza un toggle por la etiqueta de su opción configurada", () => {
+    const toggleService: QuoterService = {
+      ...mockService,
+      fields: [
+        {
+          ...mockService.fields[0],
+          key: "acabado_extra",
+          label: "Acabado premium",
+          input_type: "toggle",
+          default_value: "no",
+          options: [{ label: "Imprimación premium", value: "si", multiplier: 1, add_cop: 5000 }],
+        },
+      ],
+    };
+
+    const values = coerceAnswers(toggleService, { "Acabado premium": "Imprimación premium" });
+    expect(values.acabado_extra).toBe("si");
+    expect(computeQuote(toggleService, values, 1, mockVars).total_cop).toBeGreaterThan(
+      computeQuote(toggleService, { acabado_extra: "no" }, 1, mockVars).total_cop,
+    );
+  });
 });
