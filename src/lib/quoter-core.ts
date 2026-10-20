@@ -436,11 +436,47 @@ export function computeQuote(
     context.failure_rate_percentage = num(vars.failure_rate_percentage);
 
     if (vars.custom_vars) {
-      for (const cv of vars.custom_vars) {
-        if (!cv.key) continue;
-        const computed = cv.formula ? evaluateFormula(cv.formula, context) : cv.value;
-        context[cv.key] = computed;
+      const customByKey = new Map(
+        vars.custom_vars.filter((variable) => Boolean(variable.key)).map((variable) => [variable.key, variable] as const),
+      );
+      const pending = new Set<string>();
+
+      // Primero registrar los valores directos y posponer las variables calculadas.
+      for (const variable of customByKey.values()) {
+        if (variable.formula?.trim()) pending.add(variable.key);
+        else context[variable.key] = num(variable.value);
       }
+
+      // Resolver dependencias en varias pasadas, aunque el panel tenga las variables en otro orden.
+      for (let pass = 0; pass < customByKey.size && pending.size > 0; pass++) {
+        let progressed = false;
+        for (const key of [...pending]) {
+          const variable = customByKey.get(key);
+          if (!variable?.formula?.trim()) {
+            pending.delete(key);
+            progressed = true;
+            continue;
+          }
+
+          const normalizedFormula = variable.formula.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, "$1");
+          const dependencies = normalizedFormula.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) ?? [];
+          if (dependencies.includes(key)) {
+            context[key] = 0;
+            pending.delete(key);
+            progressed = true;
+            continue;
+          }
+          if (dependencies.some((dependency) => pending.has(dependency))) continue;
+
+          context[key] = evaluateFormula(variable.formula, context);
+          pending.delete(key);
+          progressed = true;
+        }
+        if (!progressed) break;
+      }
+
+      // Una dependencia circular no debe generar números arbitrarios ni bloquear las cotizaciones.
+      for (const key of pending) context[key] = 0;
     }
   }
 
