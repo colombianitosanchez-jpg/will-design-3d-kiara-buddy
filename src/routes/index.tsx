@@ -25,9 +25,9 @@ import { SITE_URL } from "@/lib/site-url";
 export const Route = createFileRoute("/")({
   loader: async ({ context }) => {
     const [content] = await Promise.all([
-      context.queryClient.ensureQueryData(siteContentQuery()).catch(() => ({} as Record<string, string>)),
-      context.queryClient.ensureQueryData(productsQuery()).catch(() => []),
-      context.queryClient.ensureQueryData(heroCarouselQuery()).catch(() => []),
+      context.queryClient.fetchQuery({ ...siteContentQuery(), staleTime: 0 }).catch(() => ({} as Record<string, string>)),
+      context.queryClient.fetchQuery({ ...productsQuery(), staleTime: 0 }).catch(() => []),
+      context.queryClient.fetchQuery({ ...heroCarouselQuery(), staleTime: 0 }).catch(() => []),
     ]);
     return { content };
   },
