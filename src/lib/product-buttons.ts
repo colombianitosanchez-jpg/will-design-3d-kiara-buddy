@@ -136,7 +136,7 @@ export function productPageUrl(slug?: string | null, variantId?: string | null):
   const origin =
     typeof window !== "undefined" && window.location?.origin
       ? window.location.origin
-      : "https://will-design-3d.lovable.app";
+      : SITE_URL;
   return `${origin}/tienda/${slug}${variantId ? `?v=${encodeURIComponent(variantId)}` : ""}`;
 }
 
