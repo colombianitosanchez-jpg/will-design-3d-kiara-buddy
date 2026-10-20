@@ -38,6 +38,17 @@ export const Route = createFileRoute("/tienda/")({
     ...(typeof search.marca === "string" ? { marca: search.marca } : {}),
     ...(typeof search.atributo === "string" ? { atributo: search.atributo } : {}),
   }),
+  loader: async ({ context }) => {
+    const [content] = await Promise.all([
+      context.queryClient.fetchQuery({ ...siteContentQuery(), staleTime: 0 }).catch(() => ({} as Record<string, string>)),
+      context.queryClient.fetchQuery({ ...productsQuery(), staleTime: 0 }).catch(() => []),
+      context.queryClient.fetchQuery({ ...categoriesQuery(), staleTime: 0 }).catch(() => []),
+      context.queryClient.fetchQuery({ ...brandsQuery(), staleTime: 0 }).catch(() => []),
+      context.queryClient.fetchQuery({ ...attributesQuery(), staleTime: 0 }).catch(() => []),
+      context.queryClient.fetchQuery({ ...categoryAttributesQuery(), staleTime: 0 }).catch(() => []),
+    ]);
+    return { content, dehydratedState: dehydrateQueryClient(context.queryClient) };
+  },
   head: ({ loaderData }) => {
     const content = loaderData?.content ?? {};
     const title = content.seo_store_title?.trim() || content.seo_title?.trim() ||
@@ -57,18 +68,6 @@ export const Route = createFileRoute("/tienda/")({
       ],
       links: [{ rel: "canonical", href: `${SITE_URL}/tienda` }],
     };
-  },
-
-  loader: async ({ context }) => {
-    const [content] = await Promise.all([
-      context.queryClient.fetchQuery({ ...siteContentQuery(), staleTime: 0 }).catch(() => ({} as Record<string, string>)),
-      context.queryClient.fetchQuery({ ...productsQuery(), staleTime: 0 }).catch(() => []),
-      context.queryClient.fetchQuery({ ...categoriesQuery(), staleTime: 0 }).catch(() => []),
-      context.queryClient.fetchQuery({ ...brandsQuery(), staleTime: 0 }).catch(() => []),
-      context.queryClient.fetchQuery({ ...attributesQuery(), staleTime: 0 }).catch(() => []),
-      context.queryClient.fetchQuery({ ...categoryAttributesQuery(), staleTime: 0 }).catch(() => []),
-    ]);
-    return { content, dehydratedState: dehydrateQueryClient(context.queryClient) };
   },
   component: TiendaPage,
 });
