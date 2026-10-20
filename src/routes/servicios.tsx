@@ -16,24 +16,39 @@ import {
   FileUp,
 } from "lucide-react";
 import { KiaraTip } from "@/components/KiaraTip";
+import { siteContentQuery } from "@/lib/catalog";
 import { quoterServicesQuery, formatCOP } from "@/lib/quoter";
 import { supabase } from "@/integrations/supabase/client";
 import { parseProductButtons } from "@/lib/product-buttons";
 import { ProductButtons } from "@/components/ProductButtons";
 
 export const Route = createFileRoute("/servicios")({
-  head: () => ({
-    meta: [
-      { title: "Servicios de Impresión 3D — Will Design 3D" },
-      {
-        name: "description",
-        content:
-          "Impresión 3D a pedido, diseño personalizado, mantenimiento de impresoras, upgrades, post-procesado y prototipado industrial en Bogotá.",
-      },
-      { property: "og:title", content: "Servicios de Impresión 3D — Will Design 3D" },
-      { property: "og:description", content: "Impresión 3D a pedido, diseño personalizado, mantenimiento, upgrades y post-procesado profesional en Bogotá." },
-    ],
-  }),
+  loader: async ({ context }) => {
+    const [siteContent] = await Promise.all([
+      context.queryClient.fetchQuery(siteContentQuery()),
+      context.queryClient.prefetchQuery(siteServicesQuery()),
+    ]);
+    return { siteContent };
+  },
+  head: ({ loaderData }: any) => {
+    const siteContent = loaderData?.siteContent;
+    const title = siteContent?.seo_services_title || `Servicios de Impresión 3D | ${siteContent?.site_title || "Will Design 3D"}`;
+    const desc = siteContent?.seo_services_description || siteContent?.site_description || "Servicios profesionales de impresión 3D a pedido, diseño CAD, escaneo 3D, post-procesado y mantenimiento técnico en Bogotá.";
+    const image = siteContent?.seo_services_image || siteContent?.site_meta_thumbnail_url || "https://storage.googleapis.com/gpt-engineer-file-uploads/Hj8JfrWa2qQArO2BOXZdviQDjWA2/social-images/social-1783472807154-WILL_LOGO.webp";
+
+    return {
+      meta: [
+        { title },
+        { name: "description", content: desc },
+        { property: "og:title", content: title },
+        { property: "og:description", content: desc },
+        { property: "og:image", content: image },
+        { name: "twitter:image", content: image },
+        { property: "og:url", content: "https://will-design-3d.lovable.app/servicios" },
+      ],
+      links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/servicios" }],
+    };
+  },
   component: ServiciosPage,
 });
 

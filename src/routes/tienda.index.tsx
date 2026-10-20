@@ -36,25 +36,33 @@ export const Route = createFileRoute("/tienda/")({
     ...(typeof search.marca === "string" ? { marca: search.marca } : {}),
     ...(typeof search.atributo === "string" ? { atributo: search.atributo } : {}),
   }),
-  head: () => ({
-    meta: [
-      { title: "Tienda 3D — Impresoras, filamentos y accesorios" },
-      {
-        name: "description",
-        content:
-          "Catálogo de impresoras 3D, filamentos, resinas, repuestos, escáners 3D, lápices y cámaras 3D. Asesoría técnica incluida.",
-      },
-      { property: "og:title", content: "Tienda 3D — Will Design 3D" },
-      { property: "og:description", content: "Impresoras, filamentos, resinas, repuestos y accesorios 3D con asesoría técnica en Bogotá." },
-      { property: "og:url", content: "https://will-design-3d.lovable.app/tienda" },
-    ],
-    links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/tienda" }],
-  }),
+  loader: async ({ context }) => {
+    const [siteContent] = await Promise.all([
+      context.queryClient.fetchQuery(siteContentQuery()),
+      context.queryClient.prefetchQuery(productsQuery()),
+      context.queryClient.prefetchQuery(categoriesQuery()),
+      context.queryClient.prefetchQuery(attributesQuery()),
+    ]);
+    return { siteContent };
+  },
+  head: ({ loaderData }: any) => {
+    const siteContent = loaderData?.siteContent;
+    const title = siteContent?.seo_store_title || `Tienda 3D — Impresoras, filamentos y repuestos | ${siteContent?.site_title || "Will Design 3D"}`;
+    const desc = siteContent?.seo_store_description || siteContent?.site_description || "Catálogo oficial de impresoras 3D, filamentos, resinas, repuestos y accesorios con asesoría técnica en Bogotá.";
+    const image = siteContent?.seo_store_image || siteContent?.site_meta_thumbnail_url || "https://storage.googleapis.com/gpt-engineer-file-uploads/Hj8JfrWa2qQArO2BOXZdviQDjWA2/social-images/social-1783472807154-WILL_LOGO.webp";
 
-  loader: ({ context }) => {
-    context.queryClient.prefetchQuery(productsQuery());
-    context.queryClient.prefetchQuery(categoriesQuery());
-    context.queryClient.prefetchQuery(attributesQuery());
+    return {
+      meta: [
+        { title },
+        { name: "description", content: desc },
+        { property: "og:title", content: title },
+        { property: "og:description", content: desc },
+        { property: "og:image", content: image },
+        { name: "twitter:image", content: image },
+        { property: "og:url", content: "https://will-design-3d.lovable.app/tienda" },
+      ],
+      links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/tienda" }],
+    };
   },
   component: TiendaPage,
 });

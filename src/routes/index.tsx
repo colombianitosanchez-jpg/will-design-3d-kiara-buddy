@@ -19,32 +19,36 @@ import { useSiteContent } from "@/hooks/use-site-content";
 import { heroCarouselQuery } from "@/lib/hero-carousel";
 import { HeroMedia } from "@/components/HeroMedia";
 import { parseHomeOrder, type HomeSectionKey } from "@/lib/home-sections";
-
+import { siteServicesQuery } from "./servicios";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Impresión 3D de gran formato en Bogotá | Will Design 3D" },
-      {
-        name: "description",
-        content:
-          "Taller de impresión 3D de gran formato en Bogotá: piezas a pedido, diseño, post-procesado, venta de equipos e insumos y mantenimiento técnico.",
-      },
-      { property: "og:title", content: "Impresión 3D de gran formato en Bogotá | Will Design 3D" },
-      {
-        property: "og:description",
-        content:
-          "Piezas 3D de gran formato, diseño, post-procesado, equipos e insumos y mantenimiento técnico en Bogotá.",
-      },
-      { property: "og:url", content: "https://will-design-3d.lovable.app/" },
-    ],
-    links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/" }],
-  }),
+  loader: async ({ context }) => {
+    const [siteContent] = await Promise.all([
+      context.queryClient.fetchQuery(siteContentQuery()),
+      context.queryClient.prefetchQuery(productsQuery()),
+      context.queryClient.prefetchQuery(heroCarouselQuery()),
+      context.queryClient.prefetchQuery(siteServicesQuery()),
+    ]);
+    return { siteContent };
+  },
+  head: ({ loaderData }: any) => {
+    const siteContent = loaderData?.siteContent;
+    const title = siteContent?.seo_home_title || siteContent?.site_title || "Will Design 3D — Taller de Impresión 3D en Bogotá";
+    const desc = siteContent?.seo_home_description || siteContent?.site_description || "Taller de impresión 3D en Bogotá: piezas a pedido, diseño, post-procesado, venta de equipos e insumos y mantenimiento técnico.";
+    const image = siteContent?.seo_home_image || siteContent?.site_meta_thumbnail_url || "https://storage.googleapis.com/gpt-engineer-file-uploads/Hj8JfrWa2qQArO2BOXZdviQDjWA2/social-images/social-1783472807154-WILL_LOGO.webp";
 
-  loader: ({ context }) => {
-    context.queryClient.prefetchQuery(productsQuery());
-    context.queryClient.prefetchQuery(siteContentQuery());
-    context.queryClient.prefetchQuery(heroCarouselQuery());
+    return {
+      meta: [
+        { title },
+        { name: "description", content: desc },
+        { property: "og:title", content: title },
+        { property: "og:description", content: desc },
+        { property: "og:image", content: image },
+        { name: "twitter:image", content: image },
+        { property: "og:url", content: "https://will-design-3d.lovable.app/" },
+      ],
+      links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/" }],
+    };
   },
   component: Home,
 });
@@ -193,12 +197,31 @@ function Hero() {
 
 function Services() {
   const ref = useScrollReveal<HTMLElement>();
+  const { data: dbServices } = useQuery(siteServicesQuery());
+
   const colorFor = (a: string) =>
     a === "orange"
       ? "var(--brand-orange)"
       : a === "teal"
         ? "var(--brand-teal)"
         : "var(--brand-wine)";
+
+  const list = (dbServices && dbServices.length > 0)
+    ? dbServices.map((s: any) => ({
+        id: s.id,
+        slug: s.slug,
+        title: s.title,
+        desc: s.lead,
+        accent: s.color || "orange",
+      }))
+    : services.map((s: any) => ({
+        id: s.title,
+        slug: "impresion-3d",
+        title: s.title,
+        desc: s.desc,
+        accent: s.accent,
+      }));
+
   return (
     <section ref={ref} id="servicios" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
       <div className="mx-auto max-w-2xl text-center">
@@ -215,11 +238,11 @@ function Services() {
       </div>
 
       <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {services.map((s) => {
+        {list.map((s: any) => {
           const c = colorFor(s.accent);
           return (
             <article
-              key={s.title}
+              key={s.id || s.title}
               className="group relative overflow-hidden rounded-3xl border border-border bg-card p-6 transition hover:-translate-y-1 hover:shadow-xl"
             >
               <div
@@ -234,12 +257,13 @@ function Services() {
                   color: c,
                 }}
               >
-                <s.icon className="h-6 w-6" />
+                <Boxes className="h-6 w-6" />
               </div>
               <h3 className="mt-4 text-lg font-bold">{s.title}</h3>
               <p className="mt-2 text-sm text-muted-foreground">{s.desc}</p>
               <Link
                 to="/servicios"
+                hash={s.slug || undefined}
                 className="mt-4 inline-flex items-center gap-1 text-sm font-semibold transition group-hover:gap-2"
                 style={{ color: c }}
               >

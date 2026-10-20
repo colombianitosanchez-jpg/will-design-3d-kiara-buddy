@@ -87,10 +87,166 @@ const FIELDS: FieldDef[] = [
   { key: "kiara_message", label: "Mensaje de Kiara (widget)", type: "textarea", section: "Kiara", group: "Asistente" },
   { key: "kiara_image_url", label: "Foto de Kiara", type: "image", help: "Se usa en widget y página Nosotros.", section: "Kiara", group: "Asistente" },
 
-  // ------------------------------------------------------------ Favicon y Meta
-  { key: "site_favicon_url", label: "Favicon de la pestaña (.ico, .png, .gif, .svg)", type: "image", help: "Ícono visible en la pestaña del navegador. Soporta GIFs e imágenes.", section: "Marca y SEO", group: "Favicon e Íconos de Buscadores" },
-  { key: "site_meta_thumbnail_url", label: "Miniatura para Google y Redes Sociales", type: "image", help: "Imagen mostrada en resultados de Google y al compartir el enlace en WhatsApp/redes sociales.", section: "Marca y SEO", group: "Favicon e Íconos de Buscadores" },
+  // ------------------------------------------------------------ Marca y SEO Global
+  { key: "site_title", label: "Título SEO Global del Sitio", type: "text", help: "Título por defecto cuando una página no especifica uno propio. Recomendado: 50–60 caracteres.", section: "Marca y SEO", group: "SEO Global" },
+  { key: "site_description", label: "Descripción SEO Global", type: "textarea", help: "Descripción general del taller para buscadores y redes. Recomendado: 120–160 caracteres.", section: "Marca y SEO", group: "SEO Global" },
+  { key: "site_favicon_url", label: "Favicon de la pestaña (.ico, .png, .gif, .svg)", type: "image", help: "Ícono visible en la pestaña del navegador.", section: "Marca y SEO", group: "Marca y Logotipos" },
+  { key: "site_meta_thumbnail_url", label: "Miniatura Social Global por Defecto", type: "image", help: "Imagen principal para Google, WhatsApp, Facebook y Twitter (1200×630 px recomendado).", section: "Marca y SEO", group: "Marca y Logotipos" },
+  { key: "site_meta_thumbnail_alt", label: "Texto Alternativo de Miniatura Social", type: "text", help: "Descripción para lectores de pantalla de la miniatura principal.", section: "Marca y SEO", group: "Marca y Logotipos" },
+  { key: "site_business_name", label: "Nombre Comercial Oficial", type: "text", help: "Nombre que aparece en esquemas JSON-LD de Google. Ej: Will Design 3D", section: "Marca y SEO", group: "Datos de Empresa (JSON-LD)" },
+  { key: "site_area_served", label: "Área o Ciudad de Servicio", type: "text", help: "Ej: Bogotá, Colombia", section: "Marca y SEO", group: "Datos de Empresa (JSON-LD)" },
+  { key: "site_indexable_global", label: "Permitir Indexación en Buscadores (robots)", type: "switch", help: "Desactívalo solo si deseas colocar la web en modo privado/mantenimiento.", section: "Marca y SEO", group: "Indexación" },
+
+  // ------------------------------------------------------------ SEO por Páginas
+  { key: "seo_home_title", label: "Título SEO — Página de Inicio", type: "text", help: "Deja en blanco para usar Título Global.", section: "Marca y SEO", group: "Página de Inicio" },
+  { key: "seo_home_description", label: "Descripción SEO — Página de Inicio", type: "textarea", help: "Deja en blanco para usar Descripción Global.", section: "Marca y SEO", group: "Página de Inicio" },
+  { key: "seo_home_image", label: "Imagen Social — Página de Inicio", type: "image", help: "Opcional. Si no se sube, usa Miniatura Global.", section: "Marca y SEO", group: "Página de Inicio" },
+
+  { key: "seo_store_title", label: "Título SEO — Tienda", type: "text", section: "Marca y SEO", group: "Página de Tienda" },
+  { key: "seo_store_description", label: "Descripción SEO — Tienda", type: "textarea", section: "Marca y SEO", group: "Página de Tienda" },
+  { key: "seo_store_image", label: "Imagen Social — Tienda", type: "image", section: "Marca y SEO", group: "Página de Tienda" },
+
+  { key: "seo_services_title", label: "Título SEO — Servicios", type: "text", section: "Marca y SEO", group: "Página de Servicios" },
+  { key: "seo_services_description", label: "Descripción SEO — Servicios", type: "textarea", section: "Marca y SEO", group: "Página de Servicios" },
+  { key: "seo_services_image", label: "Imagen Social — Servicios", type: "image", section: "Marca y SEO", group: "Página de Servicios" },
+
+  { key: "seo_gallery_title", label: "Título SEO — Galería", type: "text", section: "Marca y SEO", group: "Página de Galería" },
+  { key: "seo_gallery_description", label: "Descripción SEO — Galería", type: "textarea", section: "Marca y SEO", group: "Página de Galería" },
+  { key: "seo_gallery_image", label: "Imagen Social — Galería", type: "image", section: "Marca y SEO", group: "Página de Galería" },
+
+  { key: "seo_about_title", label: "Título SEO — Nosotros", type: "text", section: "Marca y SEO", group: "Página de Nosotros" },
+  { key: "seo_about_description", label: "Descripción SEO — Nosotros", type: "textarea", section: "Marca y SEO", group: "Página de Nosotros" },
+  { key: "seo_about_image", label: "Imagen Social — Nosotros", type: "image", section: "Marca y SEO", group: "Página de Nosotros" },
+
+  { key: "seo_contact_title", label: "Título SEO — Contacto", type: "text", section: "Marca y SEO", group: "Página de Contacto" },
+  { key: "seo_contact_description", label: "Descripción SEO — Contacto", type: "textarea", section: "Marca y SEO", group: "Página de Contacto" },
+  { key: "seo_contact_image", label: "Imagen Social — Contacto", type: "image", section: "Marca y SEO", group: "Página de Contacto" },
 ];
+
+function SeoPreviewCard({ values }: { values: Record<string, string> }) {
+  const [selectedPage, setSelectedPage] = useState<"home" | "store" | "services" | "gallery" | "about" | "contact">("home");
+
+  const pageMap = {
+    home: {
+      url: "https://will-design-3d.lovable.app/",
+      title: values.seo_home_title || values.site_title || "Will Design 3D — Taller de Impresión 3D en Bogotá",
+      desc: values.seo_home_description || values.site_description || "Taller especializado en impresión 3D, diseño paramétrico, prototipado y mantenimiento técnico en Bogotá.",
+      img: values.seo_home_image || values.site_meta_thumbnail_url || "https://storage.googleapis.com/gpt-engineer-file-uploads/Hj8JfrWa2qQArO2BOXZdviQDjWA2/social-images/social-1783472807154-WILL_LOGO.webp",
+    },
+    store: {
+      url: "https://will-design-3d.lovable.app/tienda",
+      title: values.seo_store_title || `Tienda 3D | ${values.site_title || "Will Design 3D"}`,
+      desc: values.seo_store_description || values.site_description || "Catálogo oficial de impresoras 3D, filamentos, resinas y repuestos en Bogotá.",
+      img: values.seo_store_image || values.site_meta_thumbnail_url || "https://storage.googleapis.com/gpt-engineer-file-uploads/Hj8JfrWa2qQArO2BOXZdviQDjWA2/social-images/social-1783472807154-WILL_LOGO.webp",
+    },
+    services: {
+      url: "https://will-design-3d.lovable.app/servicios",
+      title: values.seo_services_title || `Servicios de Impresión 3D | ${values.site_title || "Will Design 3D"}`,
+      desc: values.seo_services_description || values.site_description || "Servicios profesionales de impresión 3D, diseño CAD, escaneo 3D, post-procesado y mantenimiento técnico.",
+      img: values.seo_services_image || values.site_meta_thumbnail_url || "https://storage.googleapis.com/gpt-engineer-file-uploads/Hj8JfrWa2qQArO2BOXZdviQDjWA2/social-images/social-1783472807154-WILL_LOGO.webp",
+    },
+    gallery: {
+      url: "https://will-design-3d.lovable.app/galeria",
+      title: values.seo_gallery_title || `Portafolio y Galería 3D | ${values.site_title || "Will Design 3D"}`,
+      desc: values.seo_gallery_description || values.site_description || "Muestra en vivo de proyectos impresos en 3D, prototipos y acabados reales.",
+      img: values.seo_gallery_image || values.site_meta_thumbnail_url || "https://storage.googleapis.com/gpt-engineer-file-uploads/Hj8JfrWa2qQArO2BOXZdviQDjWA2/social-images/social-1783472807154-WILL_LOGO.webp",
+    },
+    about: {
+      url: "https://will-design-3d.lovable.app/nosotros",
+      title: values.seo_about_title || `Nosotros | ${values.site_title || "Will Design 3D"}`,
+      desc: values.seo_about_description || values.site_description || "Conoce la historia de Will Design 3D y nuestra supervisora canina Kiara.",
+      img: values.seo_about_image || values.site_meta_thumbnail_url || "https://storage.googleapis.com/gpt-engineer-file-uploads/Hj8JfrWa2qQArO2BOXZdviQDjWA2/social-images/social-1783472807154-WILL_LOGO.webp",
+    },
+    contact: {
+      url: "https://will-design-3d.lovable.app/contacto",
+      title: values.seo_contact_title || `Contacto | ${values.site_title || "Will Design 3D"}`,
+      desc: values.seo_contact_description || values.site_description || "Contáctanos por WhatsApp, correo o agenda una visita a nuestro taller en Bogotá.",
+      img: values.seo_contact_image || values.site_meta_thumbnail_url || "https://storage.googleapis.com/gpt-engineer-file-uploads/Hj8JfrWa2qQArO2BOXZdviQDjWA2/social-images/social-1783472807154-WILL_LOGO.webp",
+    },
+  };
+
+  const curr = pageMap[selectedPage];
+
+  return (
+    <Card className="border-2 border-primary/30 bg-card">
+      <CardHeader>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <CardTitle className="text-lg font-black flex items-center gap-2">
+              <span>🔍</span> Vista Previa SEO e Impacto Social
+            </CardTitle>
+            <CardDescription>
+              Simulación de cómo ven Google y WhatsApp/redes sociales tus enlaces al compartirlos.
+            </CardDescription>
+          </div>
+          <Select value={selectedPage} onValueChange={(v: any) => setSelectedPage(v)}>
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="home">Página de Inicio (/)</SelectItem>
+              <SelectItem value="store">Tienda (/tienda)</SelectItem>
+              <SelectItem value="services">Servicios (/servicios)</SelectItem>
+              <SelectItem value="gallery">Galería (/galeria)</SelectItem>
+              <SelectItem value="about">Nosotros (/nosotros)</SelectItem>
+              <SelectItem value="contact">Contacto (/contacto)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Google Preview */}
+          <div className="rounded-2xl border border-border bg-white p-4 text-black dark:bg-slate-900 dark:text-white">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-2">
+              Google Search Result
+            </span>
+            <div className="text-xs text-emerald-700 dark:text-emerald-400 font-mono truncate">{curr.url}</div>
+            <div className="text-base font-medium text-blue-700 dark:text-blue-400 hover:underline cursor-pointer line-clamp-1 mt-0.5">
+              {curr.title}
+            </div>
+            <div className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 mt-1">
+              {curr.desc}
+            </div>
+            <div className="mt-3 flex items-center gap-3 text-[11px] text-muted-foreground border-t pt-2 border-border">
+              <span>Título: <strong>{curr.title.length}</strong> / 60 chars</span>
+              <span>Desc: <strong>{curr.desc.length}</strong> / 160 chars</span>
+            </div>
+          </div>
+
+          {/* Social Media Preview */}
+          <div className="rounded-2xl border border-border bg-slate-50 dark:bg-slate-950 p-4">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-2">
+              WhatsApp / Facebook / Twitter Card
+            </span>
+            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+              <div className="aspect-[1.91/1] w-full overflow-hidden bg-muted">
+                {curr.img ? (
+                  <img src={curr.img} alt="Preview" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="grid h-full w-full place-items-center text-xs text-muted-foreground">
+                    Sin miniatura configurada
+                  </div>
+                )}
+              </div>
+              <div className="p-3">
+                <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider block">
+                  WILL-DESIGN-3D.LOVABLE.APP
+                </span>
+                <p className="text-sm font-bold text-foreground line-clamp-1 mt-0.5">{curr.title}</p>
+                <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{curr.desc}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-3 text-xs text-amber-900 dark:text-amber-200">
+          💡 <strong>Nota de Caché Externa:</strong> Al guardar cambios, la web los refleja inmediatamente. Sin embargo, Facebook y WhatsApp mantienen su propia caché de imágenes por días. Para forzar a Facebook/WhatsApp a leer tu nueva miniatura, puedes usar la herramienta pública <em>Facebook Sharing Debugger</em>.
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 function ThemeManagerTab({
   values,
@@ -814,6 +970,9 @@ function ContenidoAdmin() {
           );
           return (
             <TabsContent key={section} value={section} className="mt-6 space-y-5">
+              {section === "Marca y SEO" && (
+                <SeoPreviewCard values={values} />
+              )}
               {groups.map((group) => (
                 <Card key={group}>
                   <CardHeader>
