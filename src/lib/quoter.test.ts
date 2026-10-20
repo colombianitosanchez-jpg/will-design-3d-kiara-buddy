@@ -273,4 +273,20 @@ describe("Quoter Engine & Formula Parser AST", () => {
       computeQuote(toggleService, { acabado_extra: "no" }, 1, mockVars).total_cop,
     );
   });
+
+  test("un servicio fijo conserva las respuestas y aplica la revisión manual", () => {
+    const fixedService: QuoterService = {
+      ...mockService,
+      pricing_mode: "fixed",
+      base_price_cop: 150000,
+      min_price_cop: 0,
+      gastos_extra_cop: 0,
+      margin_percent: 0,
+      approval_threshold_cop: 250000,
+    };
+    const result = computeQuote(fixedService, { peso_gramos: "250" }, 2, mockVars);
+    expect(result.answers).toEqual([{ label: "Peso de la pieza", value: "250 g" }]);
+    expect(result.requires_approval).toBe(true);
+    expect(result.total_cop).toBe(300000);
+  });
 });
