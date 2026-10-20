@@ -325,6 +325,7 @@ export function defaultValuesFor(service: QuoterService): QuoterValues {
       out[f.key] = String(f.min_value);
     else out[f.key] = "";
   }
+  for (const field of service.fields) out[field.key] = normalizeFieldValue(field, out[field.key]);
   return out;
 }
 
@@ -672,7 +673,14 @@ export function coerceAnswersDetailed(
       continue;
     }
     if (field.input_type === "toggle") {
-      values[field.key] = isOn(val) ? "si" : "no";
+      const normalizedValue = norm(val);
+      const explicitlyFalse = ["no", "false", "0", "off"].includes(normalizedValue);
+      const enabledOption = field.options[0];
+      const matchesEnabledOption = Boolean(
+        enabledOption &&
+          (norm(enabledOption.label) === normalizedValue || norm(enabledOption.value) === normalizedValue),
+      );
+      values[field.key] = !explicitlyFalse && (isOn(val) || matchesEnabledOption) ? "si" : "no";
       matched.add(field.key);
       continue;
     }
