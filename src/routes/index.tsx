@@ -21,6 +21,7 @@ import { HeroMedia } from "@/components/HeroMedia";
 import { parseHomeOrder, type HomeSectionKey } from "@/lib/home-sections";
 import { SITE_URL } from "@/lib/site-url";
 import { quoterServicesQuery } from "@/lib/quoter";
+import { dehydrateQueryClient, hydrateQueryClient } from "@/lib/ssr-query";
 
 
 export const Route = createFileRoute("/")({
@@ -31,7 +32,7 @@ export const Route = createFileRoute("/")({
       context.queryClient.fetchQuery({ ...heroCarouselQuery(), staleTime: 0 }).catch(() => []),
       context.queryClient.fetchQuery({ ...quoterServicesQuery(), staleTime: 0 }).catch(() => []),
     ]);
-    return { content };
+    return { content, dehydratedState: dehydrateQueryClient(context.queryClient) };
   },
   head: ({ loaderData }) => {
     const content = loaderData?.content ?? {};
@@ -105,6 +106,9 @@ const SECTION_COMPONENTS: Record<HomeSectionKey, () => React.ReactNode> = {
 };
 
 function Home() {
+  const { queryClient } = Route.useRouteContext();
+  const { dehydratedState } = Route.useLoaderData();
+  hydrateQueryClient(queryClient, dehydratedState);
   const { getText } = useSiteContent();
   const order = parseHomeOrder(getText("home_sections_order", ""));
   return (
