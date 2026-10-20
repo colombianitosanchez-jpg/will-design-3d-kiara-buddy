@@ -125,7 +125,7 @@ function ErrorComponent({ error, reset }: { error: unknown; reset: () => void })
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   loader: async ({ context }) => {
     try {
-      const content = await context.queryClient.ensureQueryData(siteContentQuery());
+      const content = await context.queryClient.fetchQuery({ ...siteContentQuery(), staleTime: 0 });
       return { content };
     } catch (error) {
       console.error("[SEO] No fue posible cargar metadatos desde site_content:", error);
