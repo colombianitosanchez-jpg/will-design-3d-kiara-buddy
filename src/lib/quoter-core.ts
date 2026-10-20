@@ -468,7 +468,7 @@ export function computeQuote(
           }
 
           const normalizedFormula = variable.formula.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, "$1");
-          const dependencies = normalizedFormula.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) ?? [];
+          const dependencies: string[] = normalizedFormula.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) ?? [];
           if (dependencies.includes(key)) {
             context[key] = 0;
             pending.delete(key);
