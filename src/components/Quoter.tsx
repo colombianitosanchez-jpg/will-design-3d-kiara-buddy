@@ -41,6 +41,7 @@ import {
   type QuoterService,
   type QuoterField,
   type QuoterValues,
+  coerceAnswersDetailed,
 } from "@/lib/quoter";
 
 const ICONS: Record<string, LucideIcon> = {
@@ -308,6 +309,11 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!service || !result || fileError) return;
+    const { missingRequired } = coerceAnswersDetailed(service, values);
+    if (missingRequired.length > 0) {
+      setSendError("Completa los campos obligatorios: " + missingRequired.map((field) => field.label).join(", "));
+      return;
+    }
     const data = new FormData(e.currentTarget);
 
     setSending(true);
