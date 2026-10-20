@@ -345,6 +345,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
           file_path,
         },
       });
+      const officialTotal = Number(savedQuote.total_cop);
 
       const msgText = buildWhatsAppQuoteMessage(
         contact.whatsapp_quote_template,
