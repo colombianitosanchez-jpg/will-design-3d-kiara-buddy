@@ -171,6 +171,7 @@ export async function fetchProductBySlug(slug: string): Promise<Product | null> 
     .from("products")
     .select(PRODUCT_SELECT)
     .eq("slug", slug)
+    .eq("active", true)
     .maybeSingle();
   if (error) throw error;
   return data ? normalize(data) : null;
