@@ -712,7 +712,11 @@ function ServiceModal({
   onClose: () => void;
   onSave: (updated: SiteServiceItem) => void;
 }) {
-  const [form, setForm] = useState<SiteServiceItem>(service);
+  const [form, setForm] = useState<SiteServiceItem>(() => {
+    if (service.quoter_service_id) return service;
+    const legacyLink = quoterServices.find((q) => q.slug === service.slug || q.site_anchor === service.slug);
+    return legacyLink ? { ...service, quoter_service_id: legacyLink.id } : service;
+  });
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
