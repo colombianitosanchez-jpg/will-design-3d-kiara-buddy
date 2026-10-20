@@ -258,6 +258,11 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
   /** Agrega el servicio cotizado al carrito como una línea de servicio. */
   function addQuoteToCart() {
     if (!service || !result) return;
+    const { missingRequired } = coerceAnswersDetailed(service, values);
+    if (missingRequired.length > 0) {
+      toast.error("Completa los campos obligatorios: " + missingRequired.map((field) => field.label).join(", "));
+      return;
+    }
     const answers: Record<string, string> = { ...values };
     const key = `svc:${service.slug}:${JSON.stringify(answers)}`;
     addItem(
