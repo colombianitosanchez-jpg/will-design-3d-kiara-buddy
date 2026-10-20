@@ -1,7 +1,7 @@
 // Server Functions para el motor de Cotizaciones (Server-side calculation)
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { computeQuote, coerceAnswers } from "@/lib/quoter-core";
+import { computeQuote, coerceAnswersDetailed } from "@/lib/quoter-core";
 import { getQuoterServices, getQuotingVars } from "@/lib/quoter.server";
 
 const computeSchema = z.object({
@@ -21,8 +21,11 @@ export const computeQuoteServerFn = createServerFn({ method: "POST" })
     }
 
     const vars = await getQuotingVars();
-    const coerced = coerceAnswers(service, answers);
-    const result = computeQuote(service, coerced, quantity, vars as any);
+    const { values, missingRequired } = coerceAnswersDetailed(service, answers);
+    if (missingRequired.length > 0) {
+      throw new Error("Completa los campos obligatorios: " + missingRequired.map((field) => field.label).join(", "));
+    }
+    const result = computeQuote(service, values, quantity, vars);
 
     // Si el servicio está configurado como 'final', se oculta el desglose detallado de costos
     const isBreakdown = service.price_display === "breakdown";
