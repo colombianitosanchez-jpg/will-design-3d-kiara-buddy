@@ -26,10 +26,10 @@ export const confirmQuoteOrder = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => schema.parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { getQuoterServices } = await import("@/lib/quoter.server");
+    const { getQuoterServices, getQuotingVars } = await import("@/lib/quoter.server");
     const { computeQuote, coerceAnswersDetailed } = await import("@/lib/quoter-core");
 
-    const services = await getQuoterServices();
+    const [services, vars] = await Promise.all([getQuoterServices(), getQuotingVars()]);
     const service = services.find((s) => s.slug === data.service_slug);
     if (!service) throw new Error("El servicio de la cotización ya no está disponible");
 
@@ -45,7 +45,7 @@ export const confirmQuoteOrder = createServerFn({ method: "POST" })
       );
     }
 
-    const quote = computeQuote(service, values, data.quantity);
+    const quote = computeQuote(service, values, data.quantity, vars);
     const unitPrice = Math.round(quote.unit_price_cop);
     const total = Math.round(quote.total_cop);
 
@@ -68,7 +68,7 @@ export const confirmQuoteOrder = createServerFn({ method: "POST" })
     const { error: iErr } = await supabaseAdmin.from("order_items").insert({
       order_id: order.id,
       product_name: service.name,
-      quantity: data.quantity,
+      quantity: quote.quantity,
       unit_price_cop: unitPrice,
     });
     if (iErr) throw new Error(iErr.message);
