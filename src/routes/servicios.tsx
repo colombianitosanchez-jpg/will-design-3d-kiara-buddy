@@ -22,6 +22,7 @@ import { parseProductButtons } from "@/lib/product-buttons";
 import { ProductButtons } from "@/components/ProductButtons";
 import { siteContentQuery } from "@/lib/catalog";
 import { SITE_URL } from "@/lib/site-url";
+import { dehydrateQueryClient, hydrateQueryClient } from "@/lib/ssr-query";
 
 export const Route = createFileRoute("/servicios")({
   loader: async ({ context }) => {
@@ -30,7 +31,7 @@ export const Route = createFileRoute("/servicios")({
       context.queryClient.fetchQuery({ ...siteServicesQuery(), staleTime: 0 }).catch(() => null),
       context.queryClient.fetchQuery({ ...quoterServicesQuery(), staleTime: 0 }).catch(() => []),
     ]);
-    return { content };
+    return { content, dehydratedState: dehydrateQueryClient(context.queryClient) };
   },
   head: ({ loaderData }) => {
     const content = loaderData?.content ?? {};
@@ -200,6 +201,9 @@ const iconMap: Record<string, any> = {
 };
 
 function ServiciosPage() {
+  const { queryClient } = Route.useRouteContext();
+  const { dehydratedState } = Route.useLoaderData();
+  hydrateQueryClient(queryClient, dehydratedState);
   const { data: dbServices } = useQuery(siteServicesQuery());
   const { data: quoterServices } = useQuery(quoterServicesQuery());
 
