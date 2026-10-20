@@ -1,3 +1,5 @@
+import { SITE_URL } from "@/lib/site-url";
+
 /** Botones personalizables por producto, configurados desde /panel/productos. */
 
 export const BUTTON_VARIANTS = ["default", "secondary", "destructive", "outline", "ghost"] as const;
