@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { MessageCircle, Instagram, MapPin, Mail, Send } from "lucide-react";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
+import { SITE_URL } from "@/lib/site-url";
 
 
 export const Route = createFileRoute("/contacto")({
@@ -17,7 +18,7 @@ export const Route = createFileRoute("/contacto")({
       },
       { property: "og:title", content: "Contacto — Will Design 3D" },
       { property: "og:description", content: "Contáctanos por WhatsApp, Instagram o correo. Estamos en Bogotá." },
-      { property: "og:url", content: "https://will-design-3d.lovable.app/contacto" },
+      { property: "og:url", content: `${SITE_URL}/contacto` },
     ],
     links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/contacto" }],
     scripts: [
@@ -27,7 +28,7 @@ export const Route = createFileRoute("/contacto")({
           "@context": "https://schema.org",
           "@type": "LocalBusiness",
           name: "Will Design 3D",
-          url: "https://will-design-3d.lovable.app/",
+          url: `${SITE_URL}/`,
           description:
             "Taller de impresión 3D de gran formato en Bogotá: piezas a pedido, diseño, post-procesado, equipos e insumos y mantenimiento técnico.",
           address: {
