@@ -31,6 +31,7 @@ const FileDropzone3D = lazy(() =>
   import("@/components/FileDropzone3D").then((m) => ({ default: m.FileDropzone3D }))
 );
 import DOMPurify from "isomorphic-dompurify";
+import { SITE_URL } from "@/lib/site-url";
 
 /** Solo etiquetas de formato seguras: nunca scripts ni atributos de eventos. */
 function sanitizeRichText(html: string | null | undefined): string {
@@ -68,7 +69,7 @@ export const Route = createFileRoute("/tienda/$slug")({
     const p = v
       ? { ...base0, name: `${base0.name} — ${v.name}`, image_url: v.image_url ?? base0.image_url, price_cop: v.price_cop ?? base0.price_cop, stock: v.stock ?? base0.stock }
       : base0;
-    const url = `https://will-design-3d.lovable.app/tienda/${params.slug}`;
+    const url = `${SITE_URL}/tienda/${params.slug}`;
     const base = (p.short || p.description || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
     const description = (
       base.length >= 50
