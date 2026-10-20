@@ -32,6 +32,7 @@ const FileDropzone3D = lazy(() =>
 );
 import DOMPurify from "isomorphic-dompurify";
 import { SITE_URL } from "@/lib/site-url";
+import { dehydrateQueryClient, hydrateQueryClient } from "@/lib/ssr-query";
 
 /** Solo etiquetas de formato seguras: nunca scripts ni atributos de eventos. */
 function sanitizeRichText(html: string | null | undefined): string {
@@ -53,7 +54,7 @@ export const Route = createFileRoute("/tienda/$slug")({
     const product = await context.queryClient.fetchQuery({ ...productBySlugQuery(params.slug), staleTime: 0 });
     if (!product) throw notFound();
     context.queryClient.prefetchQuery(productsQuery());
-    return { product, variantId: deps.v ?? null };
+    return { product, variantId: deps.v ?? null, dehydratedState: dehydrateQueryClient(context.queryClient) };
   },
   head: ({ params, loaderData }) => {
     if (!loaderData) {
@@ -153,7 +154,9 @@ const GRADIENTS: Record<string, string> = {
 };
 
 function ProductPage() {
-  const { product, variantId: initialVariantId } = Route.useLoaderData() as { product: Product; variantId: string | null };
+  const { queryClient } = Route.useRouteContext();
+  const { product, variantId: initialVariantId, dehydratedState } = Route.useLoaderData();
+  hydrateQueryClient(queryClient, dehydratedState);
   const { data: allProducts = [] } = useQuery(productsQuery());
   const related = allProducts
     .filter((p) => p.category?.slug === product.category?.slug && p.slug !== product.slug)
