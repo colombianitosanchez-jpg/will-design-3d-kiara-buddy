@@ -7,40 +7,50 @@ import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 
 
 export const Route = createFileRoute("/contacto")({
-  head: () => ({
-    meta: [
-      { title: "Contacto — Will Design 3D en Bogotá" },
-      {
-        name: "description",
-        content:
-          "Escríbenos por WhatsApp o correo. Impresión 3D, diseño, mantenimiento y venta de equipos en Bogotá.",
-      },
-      { property: "og:title", content: "Contacto — Will Design 3D" },
-      { property: "og:description", content: "Contáctanos por WhatsApp, Instagram o correo. Estamos en Bogotá." },
-      { property: "og:url", content: "https://will-design-3d.lovable.app/contacto" },
-    ],
-    links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/contacto" }],
-    scripts: [
-      {
-        type: "application/ld+json",
-        children: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "LocalBusiness",
-          name: "Will Design 3D",
-          url: "https://will-design-3d.lovable.app/",
-          description:
-            "Taller de impresión 3D de gran formato en Bogotá: piezas a pedido, diseño, post-procesado, equipos e insumos y mantenimiento técnico.",
-          address: {
-            "@type": "PostalAddress",
-            addressLocality: "Bogotá",
-            addressCountry: "CO",
-          },
-          areaServed: "Bogotá, Colombia",
-          sameAs: ["https://www.instagram.com/will_design2020"],
-        }),
-      },
-    ],
-  }),
+  loader: async ({ context }) => {
+    const siteContent = await context.queryClient.fetchQuery(siteContentQuery());
+    return { siteContent };
+  },
+  head: ({ loaderData }: any) => {
+    const siteContent = loaderData?.siteContent;
+    const title = siteContent?.seo_contact_title || `Contacto | ${siteContent?.site_title || "Will Design 3D"}`;
+    const desc = siteContent?.seo_contact_description || "Contáctanos por WhatsApp, correo o Instagram para cotizar tu proyecto de impresión 3D en Bogotá.";
+    const image = siteContent?.seo_contact_image || siteContent?.site_meta_thumbnail_url || "https://storage.googleapis.com/gpt-engineer-file-uploads/Hj8JfrWa2qQArO2BOXZdviQDjWA2/social-images/social-1783472807154-WILL_LOGO.webp";
+    const businessName = siteContent?.site_business_name || "Will Design 3D";
+    const areaServed = siteContent?.site_area_served || "Bogotá, Colombia";
+
+    return {
+      meta: [
+        { title },
+        { name: "description", content: desc },
+        { property: "og:title", content: title },
+        { property: "og:description", content: desc },
+        { property: "og:image", content: image },
+        { name: "twitter:image", content: image },
+        { property: "og:url", content: "https://will-design-3d.lovable.app/contacto" },
+      ],
+      links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/contacto" }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "LocalBusiness",
+            name: businessName,
+            url: "https://will-design-3d.lovable.app/",
+            description: desc,
+            address: {
+              "@type": "PostalAddress",
+              addressLocality: "Bogotá",
+              addressCountry: "CO",
+            },
+            areaServed: areaServed,
+            sameAs: ["https://www.instagram.com/will_design2020"],
+          }),
+        },
+      ],
+    };
+  },
 
   component: ContactoPage,
 });

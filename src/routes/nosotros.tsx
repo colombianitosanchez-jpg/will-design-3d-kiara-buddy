@@ -6,18 +6,29 @@ import logoAsset from "@/assets/will_logo.asset.json";
 import { siteContentQuery } from "@/lib/catalog";
 
 export const Route = createFileRoute("/nosotros")({
-  head: () => ({
-    meta: [
-      { title: "Nosotros — Will Design 3D en Bogotá" },
-      {
-        name: "description",
-        content:
-          "Somos Will Design 3D, un taller especializado en impresión 3D de gran formato en Bogotá. Diseño, producción y asesoría con Kiara al mando.",
-      },
-      { property: "og:title", content: "Nosotros — Will Design 3D" },
-      { property: "og:description", content: "Taller de impresión 3D en Bogotá. Diseño, producción, asesoría y mucho ❤️." },
-    ],
-  }),
+  loader: async ({ context }) => {
+    const siteContent = await context.queryClient.fetchQuery(siteContentQuery());
+    return { siteContent };
+  },
+  head: ({ loaderData }: any) => {
+    const siteContent = loaderData?.siteContent;
+    const title = siteContent?.seo_about_title || `Nosotros | ${siteContent?.site_title || "Will Design 3D"}`;
+    const desc = siteContent?.seo_about_description || siteContent?.about_short || "Somos Will Design 3D, un taller especializado en impresión 3D en Bogotá. Diseño, producción y asesoría.";
+    const image = siteContent?.seo_about_image || siteContent?.site_meta_thumbnail_url || "https://storage.googleapis.com/gpt-engineer-file-uploads/Hj8JfrWa2qQArO2BOXZdviQDjWA2/social-images/social-1783472807154-WILL_LOGO.webp";
+
+    return {
+      meta: [
+        { title },
+        { name: "description", content: desc },
+        { property: "og:title", content: title },
+        { property: "og:description", content: desc },
+        { property: "og:image", content: image },
+        { name: "twitter:image", content: image },
+        { property: "og:url", content: "https://will-design-3d.lovable.app/nosotros" },
+      ],
+      links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/nosotros" }],
+    };
+  },
   component: NosotrosPage,
 });
 
