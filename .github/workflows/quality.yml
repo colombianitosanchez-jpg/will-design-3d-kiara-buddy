@@ -20,6 +20,7 @@ jobs:
           bun-version: latest
       - name: Install dependencies
         run: bun install --frozen-lockfile
+      # package.json maps test to Vitest; use the script so the same suite runs locally and in CI.
       - name: Run Vitest suite
         run: bun run test
       - name: TypeScript typecheck
