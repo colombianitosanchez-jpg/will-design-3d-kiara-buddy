@@ -28,6 +28,7 @@ import {
 import { ProductCard } from "@/components/ProductCard";
 import { getMatchingVariants, type ProductVariant } from "@/lib/product-variants";
 import { SITE_URL } from "@/lib/site-url";
+import { dehydrateQueryClient, hydrateQueryClient } from "@/lib/ssr-query";
 
 export const Route = createFileRoute("/tienda/")({
   validateSearch: (
@@ -67,12 +68,15 @@ export const Route = createFileRoute("/tienda/")({
       context.queryClient.fetchQuery({ ...attributesQuery(), staleTime: 0 }).catch(() => []),
       context.queryClient.fetchQuery({ ...categoryAttributesQuery(), staleTime: 0 }).catch(() => []),
     ]);
-    return { content };
+    return { content, dehydratedState: dehydrateQueryClient(context.queryClient) };
   },
   component: TiendaPage,
 });
 
 function TiendaPage() {
+  const { queryClient } = Route.useRouteContext();
+  const { dehydratedState } = Route.useLoaderData();
+  hydrateQueryClient(queryClient, dehydratedState);
   const { data: products = [], isLoading } = useQuery(productsQuery());
   const { data: allCategories = [] } = useQuery(categoriesQuery());
   const { data: brands = [] } = useQuery(brandsQuery());
