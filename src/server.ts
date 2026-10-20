@@ -49,7 +49,28 @@ export default {
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      const normalized = await normalizeCatastrophicSsrResponse(response);
+
+      // HTML and generated SEO endpoints must revalidate on every request.
+      // Hashed JS/CSS assets keep Vite's long-lived immutable caching behavior.
+      const contentType = normalized.headers.get("content-type") ?? "";
+      const pathname = new URL(request.url).pathname;
+      if (
+        contentType.includes("text/html") ||
+        pathname === "/sitemap.xml" ||
+        pathname === "/robots.txt"
+      ) {
+        const headers = new Headers(normalized.headers);
+        headers.set("Cache-Control", "no-cache, no-store, must-revalidate");
+        headers.set("Pragma", "no-cache");
+        headers.set("Expires", "0");
+        return new Response(normalized.body, {
+          status: normalized.status,
+          statusText: normalized.statusText,
+          headers,
+        });
+      }
+      return normalized;
     } catch (error) {
       console.error(error);
       return new Response(renderErrorPage(), {
