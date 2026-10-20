@@ -5,9 +5,9 @@ import { computeQuote, coerceAnswers } from "@/lib/quoter-core";
 import { getQuoterServices, getQuotingVars } from "@/lib/quoter.server";
 
 const computeSchema = z.object({
-  serviceSlug: z.string().trim().min(1),
-  answers: z.record(z.unknown()),
-  quantity: z.number().min(1).default(1),
+  serviceSlug: z.string().trim().min(1).max(160),
+  answers: z.record(z.unknown()).refine((answers) => Object.keys(answers).length <= 60, "Demasiadas respuestas"),
+  quantity: z.number().int().min(1).max(10000).default(1),
 });
 
 export const computeQuoteServerFn = createServerFn({ method: "POST" })
