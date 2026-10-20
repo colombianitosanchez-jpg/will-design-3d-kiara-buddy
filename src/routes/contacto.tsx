@@ -20,7 +20,7 @@ export const Route = createFileRoute("/contacto")({
       { property: "og:description", content: "Contáctanos por WhatsApp, Instagram o correo. Estamos en Bogotá." },
       { property: "og:url", content: `${SITE_URL}/contacto` },
     ],
-    links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/contacto" }],
+    links: [{ rel: "canonical", href: `${SITE_URL}/contacto` }],
     scripts: [
       {
         type: "application/ld+json",
