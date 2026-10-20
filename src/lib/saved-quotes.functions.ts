@@ -34,7 +34,7 @@ export const saveQuote = createServerFn({ method: "POST" })
     const { parseLineKey } = await import("@/lib/payment-rules");
     const { parseVariants } = await import("@/lib/product-variants");
     const { getQuoterServices, getQuotingVars } = await import("@/lib/quoter.server");
-    const { coerceAnswers, computeQuote } = await import("@/lib/quoter-core");
+    const { coerceAnswersDetailed, computeQuote } = await import("@/lib/quoter-core");
 
     const productItems = data.items.filter((item) => item.kind !== "service");
     const serviceItems = data.items.filter((item) => item.kind === "service");
@@ -65,7 +65,10 @@ export const saveQuote = createServerFn({ method: "POST" })
       normalizedServices = validServiceItems.map((item) => {
         const service = services.find((candidate) => candidate.slug === item.service_slug);
         if (!service) throw new Error("Un servicio ya no está disponible. Actualiza tu carrito.");
-        const answers = coerceAnswers(service, item.answers ?? {});
+        const { values: answers, missingRequired } = coerceAnswersDetailed(service, item.answers ?? {});
+        if (missingRequired.length > 0) {
+          throw new Error("Completa los campos requeridos de " + service.name + ": " + missingRequired.map((field) => field.label).join(", "));
+        }
         const quote = computeQuote(service, answers, item.quantity, vars);
         return {
           ...item,
