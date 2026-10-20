@@ -2,17 +2,15 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { QuoterService } from "@/lib/quoter-core";
-import { computeQuote, coerceAnswersDetailed } from "@/lib/quoter-core";
-import { getQuoterServices, getQuotingVars } from "@/lib/quoter.server";
 
 
 /** Lista pública del cotizador: entrega preguntas y descripciones, nunca los costos internos ni las fórmulas. */
 export const getPublicQuoterServices = createServerFn({ method: "GET" })
   .inputValidator((data: unknown) => z.object({}).parse(data))
   .handler(async (): Promise<QuoterService[]> => {
+    const { getQuoterServices } = await import("@/lib/quoter.server");
     const services = await getQuoterServices();
     return services.map((service) => {
-      const allowPublicBreakdown = service.price_display === "breakdown";
       return {
         ...service,
         // El precio mínimo puede mostrarse como "Desde"; los costes reales no salen del servidor.
@@ -20,6 +18,10 @@ export const getPublicQuoterServices = createServerFn({ method: "GET" })
         gastos_extra_cop: 0,
         margin_percent: 0,
         formula: undefined,
+        uses_global_vars: false,
+        requires_approval: false,
+        approval_threshold_cop: 0,
+        volume_tiers: [],
         fields: service.fields.map((field) => ({
           ...field,
           price_per_unit_cop: 0,
@@ -29,7 +31,7 @@ export const getPublicQuoterServices = createServerFn({ method: "GET" })
           options: field.options.map((option) => ({
             ...option,
             multiplier: 1,
-            add_cop: allowPublicBreakdown ? option.add_cop : 0,
+            add_cop: 0,
           })),
         })),
       };
@@ -52,6 +54,8 @@ export const computeQuoteServerFn = createServerFn({ method: "POST" })
       throw new Error(`Servicio de cotización "${serviceSlug}" no encontrado.`);
     }
 
+    const { computeQuote, coerceAnswersDetailed } = await import("@/lib/quoter-core");
+    const { getQuotingVars } = await import("@/lib/quoter.server");
     const vars = await getQuotingVars();
     const { values, missingRequired } = coerceAnswersDetailed(service, answers);
     if (missingRequired.length > 0) {
