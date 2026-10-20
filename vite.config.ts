@@ -17,7 +17,6 @@ export default defineConfig({
       // Explicit content-hashed filenames: deployed assets change URL when their content changes.
       rollupOptions: {
         output: {
-          entryFileNames: "assets/[name]-[hash].js",
           chunkFileNames: "assets/[name]-[hash].js",
           assetFileNames: "assets/[name]-[hash][extname]",
         },
