@@ -30,7 +30,11 @@ export const createCartOrder = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const productItems = data.items.filter((i) => i.kind !== "service");
-    const serviceItems = data.items.filter((i) => i.kind === "service" && i.service_slug);
+    const requestedServiceItems = data.items.filter((i) => i.kind === "service");
+    const serviceItems = requestedServiceItems.filter((i) => Boolean(i.service_slug));
+    if (serviceItems.length !== requestedServiceItems.length) {
+      throw new Error("Hay un servicio del carrito sin identificador válido. Elimínalo y vuelve a agregarlo.");
+    }
 
     const { parseLineKey, normalizeMethodIds, effectiveAllowed } = await import("@/lib/payment-rules");
     const { parseVariants } = await import("@/lib/product-variants");
@@ -85,13 +89,15 @@ export const createCartOrder = createServerFn({ method: "POST" })
       const [services, vars] = await Promise.all([getQuoterServices(), getQuotingVars()]);
       for (const item of serviceItems) {
         const svc = services.find((s) => s.slug === item.service_slug);
-        if (!svc) continue;
+        if (!svc) {
+          throw new Error("Un servicio del carrito ya no está disponible. Actualiza el carrito e inténtalo de nuevo.");
+        }
         const values = coerceAnswers(svc, item.answers ?? {});
-        const quote = computeQuote(svc, values, 1, vars);
+        const quote = computeQuote(svc, values, item.quantity, vars);
         lines.push({
           product_id: null,
           product_name: `Servicio: ${svc.name}`,
-          quantity: item.quantity,
+          quantity: quote.quantity,
           unit_price_cop: Math.round(quote.unit_price_cop),
         });
       }
