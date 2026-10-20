@@ -37,28 +37,37 @@ export const Route = createFileRoute("/tienda/")({
     ...(typeof search.marca === "string" ? { marca: search.marca } : {}),
     ...(typeof search.atributo === "string" ? { atributo: search.atributo } : {}),
   }),
-  head: () => ({
-    meta: [
-      { title: "Tienda 3D — Impresoras, filamentos y accesorios" },
-      {
-        name: "description",
-        content:
-          "Catálogo de impresoras 3D, filamentos, resinas, repuestos, escáners 3D, lápices y cámaras 3D. Asesoría técnica incluida.",
-      },
-      { property: "og:title", content: "Tienda 3D — Will Design 3D" },
-      { property: "og:description", content: "Impresoras, filamentos, resinas, repuestos y accesorios 3D con asesoría técnica en Bogotá." },
-      { property: "og:url", content: `${SITE_URL}/tienda` },
-    ],
-    links: [{ rel: "canonical", href: `${SITE_URL}/tienda` }],
-  }),
+  head: ({ loaderData }) => {
+    const content = loaderData?.content ?? {};
+    const title = content.seo_store_title?.trim() || content.seo_title?.trim() ||
+      "Tienda 3D — Impresoras, filamentos y accesorios";
+    const description = (
+      content.seo_store_description?.trim() || content.seo_description?.trim() ||
+      "Catálogo de impresoras 3D, filamentos, resinas, repuestos, escáneres 3D, lápices y cámaras 3D. Asesoría técnica incluida."
+    ).slice(0, 300);
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "website" },
+        { property: "og:url", content: `${SITE_URL}/tienda` },
+      ],
+      links: [{ rel: "canonical", href: `${SITE_URL}/tienda` }],
+    };
+  },
 
   loader: async ({ context }) => {
-    await Promise.all([
+    const [content] = await Promise.all([
+      context.queryClient.fetchQuery({ ...siteContentQuery(), staleTime: 0 }).catch(() => ({} as Record<string, string>)),
       context.queryClient.fetchQuery({ ...productsQuery(), staleTime: 0 }).catch(() => []),
       context.queryClient.fetchQuery({ ...categoriesQuery(), staleTime: 0 }).catch(() => []),
+      context.queryClient.fetchQuery({ ...brandsQuery(), staleTime: 0 }).catch(() => []),
       context.queryClient.fetchQuery({ ...attributesQuery(), staleTime: 0 }).catch(() => []),
-      context.queryClient.fetchQuery({ ...siteContentQuery(), staleTime: 0 }).catch(() => ({})),
+      context.queryClient.fetchQuery({ ...categoryAttributesQuery(), staleTime: 0 }).catch(() => []),
     ]);
+    return { content };
   },
   component: TiendaPage,
 });
