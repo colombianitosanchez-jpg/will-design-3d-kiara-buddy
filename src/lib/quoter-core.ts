@@ -118,46 +118,105 @@ export function evaluateFormula(
   expression: string | null | undefined,
   context: Record<string, number> = {},
 ): number {
-  if (!expression || typeof expression !== "string") return 0;
+  if (!expression || typeof expression !== "string" || expression.length > 512) return 0;
 
-  // Normalizar corchetes {{clave}} -> clave
   let expr = expression.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, "$1").trim();
   if (!expr) return 0;
 
-  // Sustituir identificadores del contexto (ordenados por longitud descendente para evitar colisiones)
-  const keys = Object.keys(context).sort((a, b) => b.length - a.length);
-  for (const k of keys) {
-    if (!k) continue;
-    const val = Number(context[k]);
-    const numVal = Number.isFinite(val) ? val : 0;
-    const regex = new RegExp(`\\b${k}\\b`, "g");
-    expr = expr.replace(regex, String(numVal));
+  // Las claves provienen de campos/variables del cotizador; solo se aceptan identificadores sencillos.
+  const keys = Object.keys(context)
+    .filter((key) => /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key))
+    .sort((a, b) => b.length - a.length);
+  for (const key of keys) {
+    const raw = Number(context[key]);
+    const value = Number.isFinite(raw) && Math.abs(raw) <= 1e15 ? raw : 0;
+    const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const pattern = new RegExp("\\b" + escapedKey + "\\b", "g");
+    expr = expr.replace(pattern, String(value));
   }
 
-  // Eliminar espacios en blanco
   expr = expr.replace(/\s+/g, "");
-
-  // Reemplazar identificadores no resueltos por 0
+  // Una variable desconocida no ejecuta código ni bloquea el cotizador; conserva el comportamiento previo de valor cero.
   expr = expr.replace(/\b[a-zA-Z_][a-zA-Z0-9_]*\b/g, "0");
+  if (expr.length > 4096 || !/^[0-9+\-*/().%^]+$/.test(expr)) return 0;
 
-  // Validar caracteres permitidos: dígitos, operadores, paréntesis, puntos decimales
-  if (!/^[0-9+\-*/().%^ ]+$/.test(expr)) {
-    return 0;
+  const tokenPattern = /\d+(?:\.\d*)?|\.\d+|[()+\-*/%^]/gy;
+  const tokens: string[] = [];
+  let position = 0;
+  while (position < expr.length) {
+    tokenPattern.lastIndex = position;
+    const match = tokenPattern.exec(expr);
+    if (!match || match.index !== position) return 0;
+    tokens.push(match[0]);
+    position = tokenPattern.lastIndex;
+    if (tokens.length > 512) return 0;
+  }
+
+  let cursor = 0;
+  const peek = () => tokens[cursor];
+  const take = () => tokens[cursor++];
+  const checked = (value: number): number => {
+    if (!Number.isFinite(value) || Math.abs(value) > 1e15) throw new Error("Resultado fuera de rango");
+    return value;
+  };
+
+  function parsePrimary(): number {
+    const token = take();
+    if (token === undefined) throw new Error("Falta un operando");
+    if (token === "(") {
+      const value = parseExpression();
+      if (take() !== ")") throw new Error("Paréntesis sin cerrar");
+      return value;
+    }
+    if (/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(token)) return checked(Number(token));
+    throw new Error("Token inesperado");
+  }
+
+  function parsePower(): number {
+    const base = parsePrimary();
+    if (peek() === "^") {
+      take();
+      return checked(base ** parseUnary());
+    }
+    return base;
+  }
+
+  function parseUnary(): number {
+    if (peek() === "+") {
+      take();
+      return parseUnary();
+    }
+    if (peek() === "-") {
+      take();
+      return checked(-parseUnary());
+    }
+    return parsePower();
+  }
+
+  function parseTerm(): number {
+    let value = parseUnary();
+    while (peek() === "*" || peek() === "/" || peek() === "%") {
+      const op = take();
+      const right = parseUnary();
+      if ((op === "/" || op === "%") && right === 0) throw new Error("División por cero");
+      value = checked(op === "*" ? value * right : op === "/" ? value / right : value % right);
+    }
+    return value;
+  }
+
+  function parseExpression(): number {
+    let value = parseTerm();
+    while (peek() === "+" || peek() === "-") {
+      const op = take();
+      const right = parseTerm();
+      value = checked(op === "+" ? value + right : value - right);
+    }
+    return value;
   }
 
   try {
-    // Reemplazar operador exponente ^ por **
-    const jsExpr = expr.replace(/\^/g, "**");
-
-    // Prevenir división directa por cero
-    if (/\/(0+(\.0+)?)(?![0-9])/.test(jsExpr)) {
-      return 0;
-    }
-
-    const fn = new Function(`"use strict"; return (${jsExpr});`);
-    const val = Number(fn());
-    if (!Number.isFinite(val) || Number.isNaN(val)) return 0;
-    return val;
+    const result = parseExpression();
+    return cursor === tokens.length ? result : 0;
   } catch {
     return 0;
   }
