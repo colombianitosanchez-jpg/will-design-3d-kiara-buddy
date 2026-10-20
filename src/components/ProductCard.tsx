@@ -14,6 +14,7 @@ import { useSiteContent } from "@/hooks/use-site-content";
 import { ProductButtons } from "@/components/ProductButtons";
 import { ProductQuickView } from "@/components/ProductQuickView";
 import { ShareButton } from "@/components/ShareButton";
+import { SITE_URL } from "@/lib/site-url";
 import type { ProductVariant } from "@/lib/product-variants";
 
 
@@ -76,7 +77,7 @@ export const ProductCard = memo(function ProductCard({ product, variant }: { pro
           <ShareButton
             title={product.name}
             text={product.custom_share_text}
-            url={`https://will-design-3d.lovable.app/tienda/${product.slug}`}
+            url={`${SITE_URL}/tienda/${product.slug}`}
             className="absolute right-2 top-2 h-8 w-8 rounded-full bg-background/80 text-foreground shadow-sm backdrop-blur hover:bg-background"
           />
           <button
