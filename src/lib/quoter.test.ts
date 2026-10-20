@@ -289,4 +289,46 @@ describe("Quoter Engine & Formula Parser AST", () => {
     expect(result.requires_approval).toBe(true);
     expect(result.total_cop).toBe(300000);
   });
+  test("precio fijo aplica descuento por volumen configurado", () => {
+    const fixedService: QuoterService = {
+      ...mockService,
+      pricing_mode: "fixed",
+      base_price_cop: 150000,
+      gastos_extra_cop: 0,
+      min_price_cop: 0,
+      margin_percent: 0,
+      volume_tiers: [{ min_qty: 2, max_qty: 5, discount_percentage: 10 }],
+    };
+    const result = computeQuote(fixedService, {}, 2, mockVars);
+    expect(result.unit_price_cop).toBe(135000);
+    expect(result.total_cop).toBe(270000);
+  });
+
+  test("el total siempre coincide con el precio unitario redondeado por cantidad", () => {
+    const irregularPrice: QuoterService = {
+      ...mockService,
+      base_price_cop: 100050,
+      min_price_cop: 0,
+      gastos_extra_cop: 0,
+      margin_percent: 0,
+      fields: [],
+      volume_tiers: [],
+    };
+    const result = computeQuote(irregularPrice, {}, 2);
+    expect(result.total_cop).toBe(result.unit_price_cop * result.quantity);
+  });
+
+  test("no usa costes globales cuando el servicio los tiene desactivados", () => {
+    const localOnly: QuoterService = {
+      ...mockService,
+      uses_global_vars: false,
+      base_price_cop: 0,
+      min_price_cop: 0,
+      gastos_extra_cop: 0,
+      margin_percent: 0,
+      volume_tiers: [],
+      fields: [{ ...mockService.fields[0], price_source: "fdm_gram_cost", price_per_unit_cop: 100 }],
+    };
+    expect(computeQuote(localOnly, { peso_gramos: "10" }, 1, mockVars).total_cop).toBe(1000);
+  });
 });
