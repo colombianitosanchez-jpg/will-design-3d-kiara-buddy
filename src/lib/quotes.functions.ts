@@ -1,5 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { computeQuote, coerceAnswersDetailed } from "@/lib/quoter-core";
+import { getQuoterServices, getQuotingVars } from "@/lib/quoter.server";
 
 const filePathSchema = z
   .string()
@@ -24,7 +26,7 @@ const schema = z.object({
   customer_name: z.string().trim().min(2).max(120),
   customer_email: z.string().trim().email().max(160),
   customer_phone: z.string().trim().max(40).optional().default(""),
-  service_id: z.string().uuid().nullable().optional().default(null),
+  service_id: z.string().uuid(),
   service_name: z.string().trim().max(160).optional().default(""),
   answers: z.array(answerSchema).max(60).optional().default([]),
   quantity: z.number().int().min(1).max(10000).optional().default(1),
@@ -45,6 +47,21 @@ const schema = z.object({
 export const createQuoteRequest = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => schema.parse(data))
   .handler(async ({ data }) => {
+    const [services, vars] = await Promise.all([getQuoterServices(), getQuotingVars()]);
+    const service = services.find((candidate) => candidate.id === data.service_id);
+    if (!service) {
+      throw new Error("Este servicio ya no está disponible. Actualiza la página e inténtalo de nuevo.");
+    }
+
+    // El total recibido del navegador nunca es la fuente del precio guardado.
+    const rawAnswers: Record<string, unknown> = {};
+    for (const answer of data.answers) rawAnswers[answer.label] = answer.value;
+    const { values, missingRequired } = coerceAnswersDetailed(service, rawAnswers);
+    if (missingRequired.length > 0) {
+      throw new Error("Completa los campos requeridos: " + missingRequired.map((field) => field.label).join(", "));
+    }
+    const calculation = computeQuote(service, values, data.quantity, vars);
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: row, error } = await supabaseAdmin
@@ -54,10 +71,10 @@ export const createQuoteRequest = createServerFn({ method: "POST" })
         customer_email: data.customer_email,
         customer_phone: data.customer_phone || null,
         service_id: data.service_id,
-        service_name: data.service_name,
-        answers: data.answers,
-        quantity: data.quantity,
-        estimated_total_cop: data.estimated_total_cop,
+        service_name: service.name,
+        answers: calculation.answers,
+        quantity: calculation.quantity,
+        estimated_total_cop: calculation.total_cop,
         design_state: data.design_state,
         size_label: data.size_label,
         length_cm: data.length_cm,
@@ -74,5 +91,15 @@ export const createQuoteRequest = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    return { ok: true as const, quote_id: row.id };
+    return {
+      ok: true as const,
+      quote_id: row.id,
+      service_name: service.name,
+      total_cop: calculation.total_cop,
+      unit_price_cop: calculation.unit_price_cop,
+      quantity: calculation.quantity,
+      requires_approval: calculation.requires_approval,
+      price_display: service.price_display || "final",
+      lines: service.price_display === "breakdown" ? calculation.lines : [],
+    };
   });
