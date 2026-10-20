@@ -6,7 +6,7 @@ const bodySchema = z.object({
   hours: z.number().min(0).max(1000).optional().default(0),
   material: z.string().trim().max(60).optional(),
   finish: z.string().trim().max(60).optional(),
-  quantity: z.number().min(1).max(1000).optional().default(1),
+  quantity: z.number().int().min(1).max(1000).optional().default(1),
   serviceSlug: z.string().trim().max(80).optional(),
   answers: z.record(z.unknown()).optional(),
 });
@@ -23,7 +23,7 @@ export const Route = createFileRoute("/api/calculate-quote")({
           return Response.json({ error: "Datos inválidos" }, { status: 400 });
         }
 
-        const { computeQuote, coerceAnswers } = await import("@/lib/quoter-core");
+        const { computeQuote, coerceAnswersDetailed } = await import("@/lib/quoter-core");
         const { getQuoterServices, getQuotingVars } = await import("@/lib/quoter.server");
 
         const services = await getQuoterServices();
@@ -41,8 +41,11 @@ export const Route = createFileRoute("/api/calculate-quote")({
           material: parsed.material,
         };
 
-        const coerced = coerceAnswers(service, answers);
-        const result = computeQuote(service, coerced, parsed.quantity, vars as any);
+        const { values, missingRequired } = coerceAnswersDetailed(service, answers);
+        if (missingRequired.length > 0) {
+          return Response.json({ error: "Completa los campos obligatorios: " + missingRequired.map((field) => field.label).join(", ") }, { status: 400 });
+        }
+        const result = computeQuote(service, values, parsed.quantity, vars);
         const isBreakdown = service.price_display === "breakdown";
 
         return Response.json({
