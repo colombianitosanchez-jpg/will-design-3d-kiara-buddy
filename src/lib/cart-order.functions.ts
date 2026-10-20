@@ -85,14 +85,17 @@ export const createCartOrder = createServerFn({ method: "POST" })
     // respuestas del cliente: nunca se confía en el precio enviado.
     if (serviceItems.length) {
       const { getQuoterServices, getQuotingVars } = await import("@/lib/quoter.server");
-      const { coerceAnswers, computeQuote } = await import("@/lib/quoter-core");
+      const { coerceAnswersDetailed, computeQuote } = await import("@/lib/quoter-core");
       const [services, vars] = await Promise.all([getQuoterServices(), getQuotingVars()]);
       for (const item of serviceItems) {
         const svc = services.find((s) => s.slug === item.service_slug);
         if (!svc) {
           throw new Error("Un servicio del carrito ya no está disponible. Actualiza el carrito e inténtalo de nuevo.");
         }
-        const values = coerceAnswers(svc, item.answers ?? {});
+        const { values, missingRequired } = coerceAnswersDetailed(svc, item.answers ?? {});
+        if (missingRequired.length > 0) {
+          throw new Error("Completa los campos requeridos de " + svc.name + ": " + missingRequired.map((field) => field.label).join(", "));
+        }
         const quote = computeQuote(svc, values, item.quantity, vars);
         lines.push({
           product_id: null,
