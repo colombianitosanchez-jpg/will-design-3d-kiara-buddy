@@ -352,7 +352,8 @@ export function computeQuote(
 ): QuoterResult {
   const lines: QuoterLine[] = [];
   const answers: { label: string; value: string }[] = [];
-  const qty = Math.min(10000, Math.max(1, Math.round(num(quantity, 1))));
+  const requestedQty = Math.min(10000, Math.max(1, Math.round(num(quantity, 1))));
+  const qty = service.allow_quantity ? requestedQty : 1;
   const safeValues: QuoterValues = { ...defaultValuesFor(service), ...values };
   for (const field of service.fields) {
     safeValues[field.key] = normalizeFieldValue(field, safeValues[field.key]);
