@@ -416,6 +416,8 @@ export function computeQuote(
   const answers: { label: string; value: string }[] = [];
   const requestedQty = Math.min(10000, Math.max(1, Math.round(num(quantity, 1))));
   const qty = service.allow_quantity ? requestedQty : 1;
+  // Las tarifas internas solo participan cuando el administrador activa las variables globales.
+  const pricingVars = service.uses_global_vars ? vars : undefined;
   const safeValues: QuoterValues = { ...defaultValuesFor(service), ...values };
   for (const field of service.fields) {
     safeValues[field.key] = normalizeFieldValue(field, safeValues[field.key]);
@@ -430,17 +432,17 @@ export function computeQuote(
   };
 
   // Agregar variables globales estándar al contexto
-  if (vars) {
-    context.fdm_gram_cost = num(vars.fdm_gram_cost);
-    context.resin_ml_cost = num(vars.resin_ml_cost);
-    context.machine_hour_rate = num(vars.machine_hour_rate);
-    context.labor_hour_rate = num(vars.labor_hour_rate);
-    context.default_margin = num(vars.default_margin);
-    context.failure_rate_percentage = num(vars.failure_rate_percentage);
+  if (pricingVars) {
+    context.fdm_gram_cost = num(pricingVars.fdm_gram_cost);
+    context.resin_ml_cost = num(pricingVars.resin_ml_cost);
+    context.machine_hour_rate = num(pricingVars.machine_hour_rate);
+    context.labor_hour_rate = num(pricingVars.labor_hour_rate);
+    context.default_margin = num(pricingVars.default_margin);
+    context.failure_rate_percentage = num(pricingVars.failure_rate_percentage);
 
-    if (vars.custom_vars) {
+    if (pricingVars.custom_vars) {
       const customByKey = new Map(
-        vars.custom_vars.filter((variable) => Boolean(variable.key)).map((variable) => [variable.key, variable] as const),
+        pricingVars.custom_vars.filter((variable) => Boolean(variable.key)).map((variable) => [variable.key, variable] as const),
       );
       const pending = new Set<string>();
 
@@ -519,7 +521,7 @@ export function computeQuote(
 
     if (f.input_type === "slider" || f.input_type === "number") {
       const v = num(raw);
-      const unitPrice = unitCostFor(f, vars, context);
+      const unitPrice = unitCostFor(f, pricingVars, context);
       const amount = f.formula ? unitPrice : v * unitPrice;
 
       answers.push({ label: f.label, value: `${v}${f.unit ? ` ${f.unit}` : ""}` });
