@@ -131,7 +131,7 @@ export function evaluateFormula(
     const raw = Number(context[key]);
     const numericValue = Number.isFinite(raw) && Math.abs(raw) <= 1e15 ? raw : 0;
     // Evitar notación científica: el parser solo admite aritmética decimal explícita.
-    const literal = numericValue.toFixed(10).replace(/\\.?0+$/, "") || "0";
+    const literal = numericValue.toFixed(10).replace(/\.?0+$/, "") || "0";
     const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const pattern = new RegExp("\\b" + escapedKey + "\\b", "g");
     expr = expr.replace(pattern, literal);
