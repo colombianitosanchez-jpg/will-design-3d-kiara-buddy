@@ -19,32 +19,38 @@ import { useSiteContent } from "@/hooks/use-site-content";
 import { heroCarouselQuery } from "@/lib/hero-carousel";
 import { HeroMedia } from "@/components/HeroMedia";
 import { parseHomeOrder, type HomeSectionKey } from "@/lib/home-sections";
+import { SITE_URL } from "@/lib/site-url";
 
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Impresión 3D de gran formato en Bogotá | Will Design 3D" },
-      {
-        name: "description",
-        content:
-          "Taller de impresión 3D de gran formato en Bogotá: piezas a pedido, diseño, post-procesado, venta de equipos e insumos y mantenimiento técnico.",
-      },
-      { property: "og:title", content: "Impresión 3D de gran formato en Bogotá | Will Design 3D" },
-      {
-        property: "og:description",
-        content:
-          "Piezas 3D de gran formato, diseño, post-procesado, equipos e insumos y mantenimiento técnico en Bogotá.",
-      },
-      { property: "og:url", content: "https://will-design-3d.lovable.app/" },
-    ],
-    links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/" }],
-  }),
-
-  loader: ({ context }) => {
-    context.queryClient.prefetchQuery(productsQuery());
-    context.queryClient.prefetchQuery(siteContentQuery());
-    context.queryClient.prefetchQuery(heroCarouselQuery());
+  loader: async ({ context }) => {
+    const [content] = await Promise.all([
+      context.queryClient.ensureQueryData(siteContentQuery()).catch(() => ({} as Record<string, string>)),
+      context.queryClient.ensureQueryData(productsQuery()).catch(() => []),
+      context.queryClient.ensureQueryData(heroCarouselQuery()).catch(() => []),
+    ]);
+    return { content };
+  },
+  head: ({ loaderData }) => {
+    const content = loaderData?.content ?? {};
+    const title = content.seo_home_title?.trim() || content.seo_title?.trim() ||
+      "Impresión 3D de gran formato en Bogotá | Will Design 3D";
+    const description = (
+      content.seo_home_description?.trim() || content.seo_description?.trim() ||
+      content.hero_subtitle?.trim() ||
+      "Taller de impresión 3D de gran formato en Bogotá: piezas a pedido, diseño, post-procesado, venta de equipos e insumos y mantenimiento técnico."
+    ).slice(0, 300);
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "website" },
+        { property: "og:url", content: `${SITE_URL}/` },
+      ],
+      links: [{ rel: "canonical", href: `${SITE_URL}/` }],
+    };
   },
   component: Home,
 });
