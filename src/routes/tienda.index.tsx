@@ -27,6 +27,7 @@ import {
 } from "@/lib/catalog";
 import { ProductCard } from "@/components/ProductCard";
 import { getMatchingVariants, type ProductVariant } from "@/lib/product-variants";
+import { SITE_URL } from "@/lib/site-url";
 
 export const Route = createFileRoute("/tienda/")({
   validateSearch: (
@@ -46,15 +47,18 @@ export const Route = createFileRoute("/tienda/")({
       },
       { property: "og:title", content: "Tienda 3D — Will Design 3D" },
       { property: "og:description", content: "Impresoras, filamentos, resinas, repuestos y accesorios 3D con asesoría técnica en Bogotá." },
-      { property: "og:url", content: "https://will-design-3d.lovable.app/tienda" },
+      { property: "og:url", content: `${SITE_URL}/tienda` },
     ],
-    links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/tienda" }],
+    links: [{ rel: "canonical", href: `${SITE_URL}/tienda` }],
   }),
 
-  loader: ({ context }) => {
-    context.queryClient.prefetchQuery(productsQuery());
-    context.queryClient.prefetchQuery(categoriesQuery());
-    context.queryClient.prefetchQuery(attributesQuery());
+  loader: async ({ context }) => {
+    await Promise.all([
+      context.queryClient.fetchQuery({ ...productsQuery(), staleTime: 0 }).catch(() => []),
+      context.queryClient.fetchQuery({ ...categoriesQuery(), staleTime: 0 }).catch(() => []),
+      context.queryClient.fetchQuery({ ...attributesQuery(), staleTime: 0 }).catch(() => []),
+      context.queryClient.fetchQuery({ ...siteContentQuery(), staleTime: 0 }).catch(() => ({})),
+    ]);
   },
   component: TiendaPage,
 });
