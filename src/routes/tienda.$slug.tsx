@@ -53,7 +53,7 @@ export const Route = createFileRoute("/tienda/$slug")({
   loader: async ({ params, context, deps }) => {
     const product = await context.queryClient.fetchQuery({ ...productBySlugQuery(params.slug), staleTime: 0 });
     if (!product) throw notFound();
-    context.queryClient.prefetchQuery(productsQuery());
+    await context.queryClient.fetchQuery({ ...productsQuery(), staleTime: 0 }).catch(() => []);
     return { product, variantId: deps.v ?? null, dehydratedState: dehydrateQueryClient(context.queryClient) };
   },
   head: ({ params, loaderData }) => {
