@@ -1,8 +1,40 @@
 // Server Functions para el motor de Cotizaciones (Server-side calculation)
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { QuoterService } from "@/lib/quoter-core";
 import { computeQuote, coerceAnswersDetailed } from "@/lib/quoter-core";
 import { getQuoterServices, getQuotingVars } from "@/lib/quoter.server";
+
+
+/** Lista pública del cotizador: entrega preguntas y descripciones, nunca los costos internos ni las fórmulas. */
+export const getPublicQuoterServices = createServerFn({ method: "GET" })
+  .inputValidator((data: unknown) => z.object({}).parse(data))
+  .handler(async (): Promise<QuoterService[]> => {
+    const services = await getQuoterServices();
+    return services.map((service) => {
+      const allowPublicBreakdown = service.price_display === "breakdown";
+      return {
+        ...service,
+        // El precio mínimo puede mostrarse como "Desde"; los costes reales no salen del servidor.
+        base_price_cop: 0,
+        gastos_extra_cop: 0,
+        margin_percent: 0,
+        formula: undefined,
+        fields: service.fields.map((field) => ({
+          ...field,
+          price_per_unit_cop: 0,
+          price_source: "fixed",
+          formula: undefined,
+          multiplier: 1,
+          options: field.options.map((option) => ({
+            ...option,
+            multiplier: 1,
+            add_cop: allowPublicBreakdown ? option.add_cop : 0,
+          })),
+        })),
+      };
+    });
+  });
 
 const computeSchema = z.object({
   serviceSlug: z.string().trim().min(1).max(160),
