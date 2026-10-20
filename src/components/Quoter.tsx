@@ -561,8 +561,8 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
                     />
                     <button
                       type="button"
-                      onClick={() => setQuantity((q) => Math.min(100, q + 1))}
-                      disabled={quantity >= 100}
+                      onClick={() => setQuantity((q) => Math.min(99, q + 1))}
+                      disabled={quantity >= 99}
                       aria-label="Agregar una unidad"
                       className="rounded-full border border-border p-2 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
                     >
