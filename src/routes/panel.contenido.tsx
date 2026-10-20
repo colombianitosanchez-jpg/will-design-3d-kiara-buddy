@@ -36,6 +36,13 @@ type FieldDef = {
 };
 
 const FIELDS: FieldDef[] = [
+  // -------------------------------------------------------------- SEO y redes
+  { key: "seo_title", label: "Título SEO general", type: "text", help: "Título predeterminado del sitio. Máximo recomendado: 60 caracteres.", section: "SEO", group: "Metadatos generales" },
+  { key: "seo_description", label: "Descripción SEO general", type: "textarea", help: "Descripción predeterminada para buscadores y redes. Máximo recomendado: 160 caracteres.", section: "SEO", group: "Metadatos generales" },
+  { key: "seo_home_title", label: "Título SEO del inicio", type: "text", help: "Si está vacío, se usa el título SEO general.", section: "SEO", group: "Página de inicio" },
+  { key: "seo_home_description", label: "Descripción SEO del inicio", type: "textarea", help: "Si está vacía, se usa la descripción SEO general.", section: "SEO", group: "Página de inicio" },
+  { key: "seo_services_title", label: "Título SEO de servicios", type: "text", help: "Título para /servicios.", section: "SEO", group: "Página de servicios" },
+  { key: "seo_services_description", label: "Descripción SEO de servicios", type: "textarea", help: "Descripción para /servicios.", section: "SEO", group: "Página de servicios" },
   // ---------------------------------------------------------------- Inicio
   { key: "hero_title", label: "Título del hero", type: "textarea", section: "Inicio", group: "Hero" },
   { key: "hero_subtitle", label: "Subtítulo del hero", type: "textarea", section: "Inicio", group: "Hero" },
