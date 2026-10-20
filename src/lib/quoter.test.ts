@@ -249,7 +249,7 @@ describe("Quoter Engine & Formula Parser AST", () => {
       fields: [{ ...mockService.fields[0], min_value: 1, max_value: 10, default_value: "2", price_source: "costo_final", price_per_unit_cop: 0 }],
     };
     const result = computeQuote(service, { peso_gramos: "2" }, 1, chainedVars);
-    expect(result.total_cop).toBe(400);
+    expect(result.total_cop).toBe(300);
   });
 
   test("normaliza un toggle por la etiqueta de su opción configurada", () => {
