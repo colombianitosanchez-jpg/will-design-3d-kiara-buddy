@@ -416,6 +416,10 @@ export function computeQuote(
   const answers: { label: string; value: string }[] = [];
   const requestedQty = Math.min(10000, Math.max(1, Math.round(num(quantity, 1))));
   const qty = service.allow_quantity ? requestedQty : 1;
+  const basePriceCop = Math.max(0, Math.min(1_000_000_000, num(service.base_price_cop)));
+  const minPriceCop = Math.max(0, Math.min(1_000_000_000, num(service.min_price_cop)));
+  const extraCostsCop = Math.max(0, Math.min(1_000_000_000, num(service.gastos_extra_cop)));
+  const marginPercent = Math.max(0, Math.min(1000, num(service.margin_percent)));
   // Las tarifas internas solo participan cuando el administrador activa las variables globales.
   const pricingVars = service.uses_global_vars ? vars : undefined;
   const safeValues: QuoterValues = { ...defaultValuesFor(service), ...values };
@@ -427,8 +431,8 @@ export function computeQuote(
   const context: Record<string, number> = {
     quantity: qty,
     cantidad: qty,
-    base_price: num(service.base_price_cop),
-    precio_base: num(service.base_price_cop),
+    base_price: basePriceCop,
+    precio_base: basePriceCop,
   };
 
   // Agregar variables globales estándar al contexto
@@ -531,7 +535,7 @@ export function computeQuote(
     };
   }
 
-  let add = num(service.base_price_cop);
+  let add = basePriceCop;
   let multiplier = 1;
 
   if (add > 0) lines.push({ label: "Base del servicio", detail: service.name, amount: add });
@@ -594,11 +598,11 @@ export function computeQuote(
   }
 
   const subtotal = add * multiplier;
-  const margin = subtotal * (num(service.margin_percent) / 100);
+  const margin = subtotal * (marginPercent / 100);
   const withMargin = subtotal + margin;
-  const min = num(service.min_price_cop);
-  const extra = num(service.gastos_extra_cop);
-  let baseUnit = Math.max(min, withMargin) + extra;
+  const min = minPriceCop;
+  const extra = extraCostsCop;
+  let baseUnit = Math.min(1_000_000_000, Math.max(min, withMargin) + extra);
   if (extra > 0) lines.push({ label: "Gastos extra", detail: "Montaje y post-procesado", amount: extra });
 
   // Escalado de Descuentos por Volumen (Tiered Volume Discounts)
