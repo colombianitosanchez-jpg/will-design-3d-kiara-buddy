@@ -20,6 +20,7 @@ import { heroCarouselQuery } from "@/lib/hero-carousel";
 import { HeroMedia } from "@/components/HeroMedia";
 import { parseHomeOrder, type HomeSectionKey } from "@/lib/home-sections";
 import { SITE_URL } from "@/lib/site-url";
+import { quoterServicesQuery } from "@/lib/quoter";
 
 
 export const Route = createFileRoute("/")({
@@ -28,6 +29,7 @@ export const Route = createFileRoute("/")({
       context.queryClient.fetchQuery({ ...siteContentQuery(), staleTime: 0 }).catch(() => ({} as Record<string, string>)),
       context.queryClient.fetchQuery({ ...productsQuery(), staleTime: 0 }).catch(() => []),
       context.queryClient.fetchQuery({ ...heroCarouselQuery(), staleTime: 0 }).catch(() => []),
+      context.queryClient.fetchQuery({ ...quoterServicesQuery(), staleTime: 0 }).catch(() => []),
     ]);
     return { content };
   },
