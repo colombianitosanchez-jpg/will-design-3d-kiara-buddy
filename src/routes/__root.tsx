@@ -23,6 +23,7 @@ import { useQuery } from "@tanstack/react-query";
 import { siteContentQuery } from "../lib/catalog";
 import { getActiveTheme, applyThemeToDocument } from "../lib/theme";
 import { SITE_URL } from "../lib/site-url";
+import { dehydrateQueryClient, hydrateQueryClient } from "../lib/ssr-query";
 
 function ThemeApplier() {
   const { data: content } = useQuery(siteContentQuery());
@@ -126,10 +127,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   loader: async ({ context }) => {
     try {
       const content = await context.queryClient.fetchQuery({ ...siteContentQuery(), staleTime: 0 });
-      return { content };
+      return { content, dehydratedState: dehydrateQueryClient(context.queryClient) };
     } catch (error) {
       console.error("[SEO] No fue posible cargar metadatos desde site_content:", error);
-      return { content: {} as Record<string, string> };
+      return { content: {} as Record<string, string>, dehydratedState: dehydrateQueryClient(context.queryClient) };
     }
   },
   head: ({ loaderData }) => {
@@ -215,6 +216,9 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const { dehydratedState } = Route.useLoaderData();
+  // Restore SSR data before ThemeApplier, the header, and route children render.
+  hydrateQueryClient(queryClient, dehydratedState);
 
   return (
     <QueryClientProvider client={queryClient}>
