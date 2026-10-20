@@ -27,15 +27,14 @@ import kiaraAsset from "@/assets/kiara.asset.json";
 import { siteContentQuery, getContactInfo, waLink, buildWhatsAppQuoteMessage } from "@/lib/catalog";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { useCart } from "@/lib/cart";
-import { quotingVarsQuery } from "@/lib/quoting-vars";
 import { Link } from "@tanstack/react-router";
 
 import { supabase } from "@/integrations/supabase/client";
 import { createQuoteRequest } from "@/lib/quotes.functions";
+import { computeQuoteServerFn } from "@/lib/quoter.functions";
 import {
   quoterServicesQuery,
   defaultValuesFor,
-  computeQuote,
   formatCOP,
   isOn,
   type QuoterService,
@@ -222,6 +221,18 @@ function FieldControl({
 
 /* --------------------------------- Cotizador -------------------------------- */
 
+type PublicQuoteResult = {
+  service_id: string;
+  service_name: string;
+  total_cop: number;
+  unit_price_cop: number;
+  quantity: number;
+  requires_approval: boolean;
+  answers: { label: string; value: string }[];
+  lines: { label: string; detail: string; amount: number }[];
+  price_display: string;
+};
+
 export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } = {}) {
   const { data: services, isLoading } = useQuery(quoterServicesQuery());
   const { data: content } = useQuery(siteContentQuery());
@@ -229,7 +240,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
 
   const contact = getContactInfo(content);
   const saveQuote = useServerFn(createQuoteRequest);
-  const { data: quotingVars } = useQuery(quotingVarsQuery());
+  const calculateQuote = useServerFn(computeQuoteServerFn);
   const { items: cartItems, addItem } = useCart();
 
 
@@ -243,6 +254,9 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const [serverResult, setServerResult] = useState<PublicQuoteResult | null>(null);
+  const [calculating, setCalculating] = useState(false);
+  const [calculationError, setCalculationError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const service = useMemo(
@@ -250,14 +264,42 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
     [services, serviceId],
   );
 
-  const result = useMemo(
-    () => (service ? computeQuote(service, values, quantity, quotingVars?.vars) : null),
-    [service, values, quantity, quotingVars],
-  );
+  // Solo se envían las respuestas a servidor; nunca se descarga al navegador la tabla real de costes.
+  useEffect(() => {
+    if (!service) {
+      setServerResult(null);
+      setCalculationError(null);
+      setCalculating(false);
+      return;
+    }
+
+    let cancelled = false;
+    setCalculating(true);
+    setCalculationError(null);
+    const timer = window.setTimeout(() => {
+      void calculateQuote({ data: { serviceSlug: service.slug, answers: values, quantity } })
+        .then((response) => {
+          if (!cancelled) setServerResult(response as PublicQuoteResult);
+        })
+        .catch((error: unknown) => {
+          if (!cancelled) setCalculationError(error instanceof Error ? error.message : "No se pudo calcular el precio.");
+        })
+        .finally(() => {
+          if (!cancelled) setCalculating(false);
+        });
+    }, 160);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [calculateQuote, service, values, quantity]);
+
+  const result = serverResult && serverResult.service_id === service?.id ? serverResult : null;
 
   /** Agrega el servicio cotizado al carrito como una línea de servicio. */
   function addQuoteToCart() {
-    if (!service || !result) return;
+    if (!service || !result || calculating || calculationError) return;
     const { missingRequired } = coerceAnswersDetailed(service, values);
     if (missingRequired.length > 0) {
       toast.error("Completa los campos obligatorios: " + missingRequired.map((field) => field.label).join(", "));
@@ -284,6 +326,8 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
 
   function pick(s: QuoterService) {
     setServiceId(s.id);
+    setServerResult(null);
+    setCalculationError(null);
     setValues(defaultValuesFor(s));
     setQuantity(1);
     setSent(false);
@@ -313,7 +357,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!service || !result || fileError) return;
+    if (!service || !result || calculating || calculationError || fileError) return;
     const { missingRequired } = coerceAnswersDetailed(service, values);
     if (missingRequired.length > 0) {
       setSendError("Completa los campos obligatorios: " + missingRequired.map((field) => field.label).join(", "));
@@ -614,7 +658,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
 
               <button
                 type="submit"
-                disabled={sending}
+                disabled={sending || calculating || !result || Boolean(calculationError)}
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--brand-orange)] px-7 py-3.5 text-base font-black text-white shadow-lg disabled:opacity-60"
               >
                 {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
@@ -658,7 +702,12 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
             <p className="text-xs font-bold uppercase tracking-wide text-[var(--brand-wine)]">
               Tu precio estimado
             </p>
-            <p className="mt-1 text-4xl font-black leading-none">{formatCOP(result.total_cop)}</p>
+            <p className="mt-1 text-4xl font-black leading-none">
+              {calculating ? "Calculando…" : result ? formatCOP(result.total_cop) : "—"}
+            </p>
+            {calculationError && (
+              <p role="alert" className="mt-2 text-xs font-semibold text-red-600">{calculationError}</p>
+            )}
             {result.quantity > 1 && (
               <p className="mt-1 text-xs text-muted-foreground">
                 {formatCOP(result.unit_price_cop)} por unidad × {result.quantity}
@@ -666,7 +715,10 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
             )}
 
             <div className="mt-4 space-y-1 border-t border-dashed border-border pt-3 text-xs">
-              {result.lines.map((l, i) => (
+              {(!result && !calculationError && !calculating) && (
+                <p className="text-xs text-muted-foreground">Configura el servicio para calcular tu precio.</p>
+              )}
+              {(result?.lines ?? []).map((l, i) => (
                 <div key={`${l.label}-${i}`} className="flex justify-between gap-3 text-muted-foreground">
                   <span>
                     {l.label}
@@ -675,23 +727,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
                   <span className="whitespace-nowrap">{formatCOP(l.amount)}</span>
                 </div>
               ))}
-              {result.multiplier !== 1 && (
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Ajuste por opciones</span>
-                  <span>×{result.multiplier.toFixed(2)}</span>
-                </div>
-              )}
-              {result.margin_cop > 0 && (
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Servicio y garantía</span>
-                  <span>{formatCOP(result.margin_cop)}</span>
-                </div>
-              )}
-              {result.min_applied && (
-                <p className="pt-1 text-[11px] text-muted-foreground">
-                  Se aplicó el valor mínimo de este servicio.
-                </p>
-              )}
+
             </div>
 
             {result.requires_approval && (
@@ -704,7 +740,8 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
             <button
               type="button"
               onClick={addQuoteToCart}
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-[var(--brand-teal-deep)] px-5 py-2.5 text-sm font-black text-[var(--brand-teal-deep)] transition hover:bg-muted"
+              disabled={!result || calculating || Boolean(calculationError)}
+              className="mt-4 inline-flex w-full disabled:cursor-not-allowed disabled:opacity-50 items-center justify-center gap-2 rounded-full border-2 border-[var(--brand-teal-deep)] px-5 py-2.5 text-sm font-black text-[var(--brand-teal-deep)] transition hover:bg-muted"
             >
               <ShoppingCart className="h-4 w-4" /> Agregar al carrito
             </button>
