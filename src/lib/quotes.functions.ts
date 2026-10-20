@@ -1,7 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { computeQuote, coerceAnswersDetailed } from "@/lib/quoter-core";
-import { getQuoterServices, getQuotingVars } from "@/lib/quoter.server";
 
 const filePathSchema = z
   .string()
@@ -47,6 +45,10 @@ const schema = z.object({
 export const createQuoteRequest = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => schema.parse(data))
   .handler(async ({ data }) => {
+    const [{ computeQuote, coerceAnswersDetailed }, { getQuoterServices, getQuotingVars }] = await Promise.all([
+      import("@/lib/quoter-core"),
+      import("@/lib/quoter.server"),
+    ]);
     const [services, vars] = await Promise.all([getQuoterServices(), getQuotingVars()]);
     const service = services.find((candidate) => candidate.id === data.service_id);
     if (!service) {
