@@ -179,4 +179,53 @@ describe("Quoter Engine & Formula Parser AST", () => {
     });
     expect(values["peso_gramos"]).toBe("250");
   });
+
+  test("evaluateFormula acepta potencias con precedencia matemática y rechaza JavaScript", () => {
+    expect(evaluateFormula("2^3^2")).toBe(512);
+    expect(evaluateFormula("globalThis.process.exit()")).toBe(0);
+    expect(evaluateFormula("100 / 0")).toBe(0);
+  });
+
+  test("limita valores numéricos al rango configurado antes de calcular", () => {
+    const boundedService: QuoterService = {
+      ...mockService,
+      base_price_cop: 1000,
+      gastos_extra_cop: 0,
+      min_price_cop: 0,
+      margin_percent: 0,
+      volume_tiers: [],
+      allow_quantity: true,
+      fields: [
+        {
+          ...mockService.fields[0],
+          min_value: 1,
+          max_value: 10,
+          step_value: 1,
+          default_value: "1",
+          price_source: "fixed",
+          price_per_unit_cop: 100,
+        },
+      ],
+    };
+
+    expect(computeQuote(boundedService, { peso_gramos: "999" }).total_cop).toBe(2000);
+    expect(computeQuote(boundedService, { peso_gramos: "10" }).total_cop).toBe(2000);
+  });
+
+  test("un servicio que no permite cantidad se cotiza como una unidad", () => {
+    const fixedService: QuoterService = {
+      ...mockService,
+      pricing_mode: "fixed",
+      base_price_cop: 1500,
+      gastos_extra_cop: 0,
+      min_price_cop: 0,
+      margin_percent: 0,
+      allow_quantity: false,
+      fields: [],
+    };
+
+    const result = computeQuote(fixedService, {}, 7, mockVars);
+    expect(result.quantity).toBe(1);
+    expect(result.total_cop).toBe(1500);
+  });
 });
