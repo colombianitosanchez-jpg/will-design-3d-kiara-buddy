@@ -20,20 +20,38 @@ import { quoterServicesQuery, formatCOP } from "@/lib/quoter";
 import { supabase } from "@/integrations/supabase/client";
 import { parseProductButtons } from "@/lib/product-buttons";
 import { ProductButtons } from "@/components/ProductButtons";
+import { siteContentQuery } from "@/lib/catalog";
+import { SITE_URL } from "@/lib/site-url";
 
 export const Route = createFileRoute("/servicios")({
-  head: () => ({
-    meta: [
-      { title: "Servicios de Impresión 3D — Will Design 3D" },
-      {
-        name: "description",
-        content:
-          "Impresión 3D a pedido, diseño personalizado, mantenimiento de impresoras, upgrades, post-procesado y prototipado industrial en Bogotá.",
-      },
-      { property: "og:title", content: "Servicios de Impresión 3D — Will Design 3D" },
-      { property: "og:description", content: "Impresión 3D a pedido, diseño personalizado, mantenimiento, upgrades y post-procesado profesional en Bogotá." },
-    ],
-  }),
+  loader: async ({ context }) => {
+    const [content] = await Promise.all([
+      context.queryClient.ensureQueryData(siteContentQuery()).catch(() => ({} as Record<string, string>)),
+      context.queryClient.ensureQueryData(siteServicesQuery()).catch(() => null),
+      context.queryClient.ensureQueryData(quoterServicesQuery()).catch(() => []),
+    ]);
+    return { content };
+  },
+  head: ({ loaderData }) => {
+    const content = loaderData?.content ?? {};
+    const title = content.seo_services_title?.trim() || content.seo_title?.trim() ||
+      "Servicios de Impresión 3D — Will Design 3D";
+    const description = (
+      content.seo_services_description?.trim() || content.seo_description?.trim() ||
+      "Impresión 3D a pedido, diseño personalizado, mantenimiento de impresoras, upgrades, post-procesado y prototipado industrial en Bogotá."
+    ).slice(0, 300);
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "website" },
+        { property: "og:url", content: `${SITE_URL}/servicios` },
+      ],
+      links: [{ rel: "canonical", href: `${SITE_URL}/servicios` }],
+    };
+  },
   component: ServiciosPage,
 });
 
