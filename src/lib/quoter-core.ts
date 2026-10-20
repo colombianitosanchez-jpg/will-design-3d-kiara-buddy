@@ -289,6 +289,32 @@ export function isOn(value: string | undefined) {
   return v === "si" || v === "sí" || v === "true" || v === "1" || v === "yes";
 }
 
+/** Normaliza entradas antes de calcular: la validación HTML por sí sola se puede eludir. */
+function normalizeFieldValue(field: QuoterField, raw: unknown): string {
+  const value = String(raw ?? "").trim();
+
+  if (field.input_type === "slider" || field.input_type === "number") {
+    const fallback = Number(field.default_value);
+    const parsed = value === "" ? fallback : Number(value);
+    const min = Math.min(field.min_value, field.max_value);
+    const max = Math.max(field.min_value, field.max_value);
+    const finite = Number.isFinite(parsed) ? parsed : min;
+    const bounded = Math.min(max, Math.max(min, finite));
+    const step = Math.abs(num(field.step_value, 1)) || 1;
+    const snapped = min + Math.round((bounded - min) / step) * step;
+    return String(Number(Math.min(max, Math.max(min, snapped)).toFixed(8)));
+  }
+
+  if (field.input_type === "select") {
+    return field.options.some((option) => option.value === value)
+      ? value
+      : field.default_value || field.options[0]?.value || "";
+  }
+
+  if (field.input_type === "toggle") return isOn(value) ? "si" : "no";
+  return value.slice(0, 300);
+}
+
 /**
  * Costo unitario de un campo: su número fijo, variable global o fórmula calculada.
  */
@@ -326,7 +352,11 @@ export function computeQuote(
 ): QuoterResult {
   const lines: QuoterLine[] = [];
   const answers: { label: string; value: string }[] = [];
-  const qty = Math.max(1, Math.round(num(quantity, 1)));
+  const qty = Math.min(10000, Math.max(1, Math.round(num(quantity, 1))));
+  const safeValues: QuoterValues = { ...defaultValuesFor(service), ...values };
+  for (const field of service.fields) {
+    safeValues[field.key] = normalizeFieldValue(field, safeValues[field.key]);
+  }
 
   // Construcción del contexto numérico completo para fórmulas
   const context: Record<string, number> = {
@@ -356,7 +386,7 @@ export function computeQuote(
 
   // Agregar entradas numéricas del cliente al contexto
   for (const f of service.fields) {
-    const raw = values[f.key] ?? "";
+    const raw = safeValues[f.key] ?? "";
     const n = num(raw);
     context[f.key] = n;
   }
@@ -386,7 +416,7 @@ export function computeQuote(
 
   for (const f of service.fields) {
     if (!f.is_active) continue;
-    const raw = values[f.key] ?? "";
+    const raw = safeValues[f.key] ?? "";
 
     if (f.input_type === "slider" || f.input_type === "number") {
       const v = num(raw);
@@ -551,7 +581,7 @@ export function coerceAnswersDetailed(
     if (field.input_type === "slider" || field.input_type === "number") {
       const n = Number(String(val).replace(/[^0-9.,-]/g, "").replace(",", "."));
       if (!Number.isFinite(n)) continue;
-      values[field.key] = String(n);
+      values[field.key] = normalizeFieldValue(field, String(n));
       matched.add(field.key);
       continue;
     }
