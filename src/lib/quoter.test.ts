@@ -228,4 +228,27 @@ describe("Quoter Engine & Formula Parser AST", () => {
     expect(result.quantity).toBe(1);
     expect(result.total_cop).toBe(1500);
   });
+
+  test("resuelve fórmulas encadenadas aunque la variable dependiente aparezca primero", () => {
+    const chainedVars: QuoterVars = {
+      ...mockVars,
+      custom_vars: [
+        { key: "costo_final", label: "Costo final", value: 0, formula: "costo_gramo_calculado * 2", show_in_breakdown: false },
+        { key: "precio_bobina", label: "Precio bobina", value: 80000, show_in_breakdown: false },
+        { key: "peso_bobina", label: "Peso bobina", value: 1000, show_in_breakdown: false },
+        { key: "costo_gramo_calculado", label: "Costo por gramo", value: 0, formula: "(precio_bobina / peso_bobina) * 1.05", show_in_breakdown: false },
+      ],
+    };
+    const service: QuoterService = {
+      ...mockService,
+      base_price_cop: 0,
+      gastos_extra_cop: 0,
+      min_price_cop: 0,
+      margin_percent: 0,
+      volume_tiers: [],
+      fields: [{ ...mockService.fields[0], min_value: 1, max_value: 10, default_value: "2", price_source: "costo_final", price_per_unit_cop: 0 }],
+    };
+    const result = computeQuote(service, { peso_gramos: "2" }, 1, chainedVars);
+    expect(result.total_cop).toBe(400);
+  });
 });
