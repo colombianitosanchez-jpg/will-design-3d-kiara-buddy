@@ -38,29 +38,36 @@ export const Route = createFileRoute("/tienda/")({
   }),
   loader: async ({ context }) => {
     const [siteContent] = await Promise.all([
-      context.queryClient.fetchQuery(siteContentQuery()),
-      context.queryClient.prefetchQuery(productsQuery()),
-      context.queryClient.prefetchQuery(categoriesQuery()),
-      context.queryClient.prefetchQuery(attributesQuery()),
+      context.queryClient.ensureQueryData(siteContentQuery()),
+      context.queryClient.ensureQueryData(productsQuery()),
+      context.queryClient.ensureQueryData(categoriesQuery()),
+      context.queryClient.ensureQueryData(attributesQuery()),
     ]);
     return { siteContent };
   },
   head: ({ loaderData }: any) => {
     const siteContent = loaderData?.siteContent;
-    const title = siteContent?.seo_store_title || `Tienda 3D — Impresoras, filamentos y repuestos | ${siteContent?.site_title || "Will Design 3D"}`;
-    const desc = siteContent?.seo_store_description || siteContent?.site_description || "Catálogo oficial de impresoras 3D, filamentos, resinas, repuestos y accesorios con asesoría técnica en Bogotá.";
-    const image = siteContent?.seo_store_image || siteContent?.site_meta_thumbnail_url || "https://storage.googleapis.com/gpt-engineer-file-uploads/Hj8JfrWa2qQArO2BOXZdviQDjWA2/social-images/social-1783472807154-WILL_LOGO.webp";
+    const title = siteContent?.seo_store_title || siteContent?.site_title || "Tienda — Will Design 3D";
+    const desc = siteContent?.seo_store_description || siteContent?.site_description || "";
+    const image = siteContent?.seo_store_image || siteContent?.site_meta_thumbnail_url || siteContent?.site_logo_url || "";
+
+    const metaTags: Array<Record<string, string>> = [
+      { title },
+      { name: "description", content: desc },
+      { property: "og:title", content: title },
+      { property: "og:description", content: desc },
+      { property: "og:url", content: "https://will-design-3d.lovable.app/tienda" },
+    ];
+
+    if (image) {
+      metaTags.push(
+        { property: "og:image", content: image },
+        { name: "twitter:image", content: image }
+      );
+    }
 
     return {
-      meta: [
-        { title },
-        { name: "description", content: desc },
-        { property: "og:title", content: title },
-        { property: "og:description", content: desc },
-        { property: "og:image", content: image },
-        { name: "twitter:image", content: image },
-        { property: "og:url", content: "https://will-design-3d.lovable.app/tienda" },
-      ],
+      meta: metaTags,
       links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/tienda" }],
     };
   },

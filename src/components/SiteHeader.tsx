@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Menu, MessageCircle, ChevronDown, ShoppingCart } from "lucide-react";
-import logoAsset from "@/assets/will_logo.asset.json";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
 import { ShareButton, DEFAULT_SHARE_TEXT } from "@/components/ShareButton";
@@ -289,7 +288,10 @@ export function SiteHeader() {
   const { data: content } = useQuery(siteContentQuery());
   const { data: menu } = useQuery(menuItemsQuery());
   const contact = getContactInfo(content);
-  const WHATSAPP_URL = waLink(contact.whatsapp, "Hola Will Design 3D");
+  const logoUrl = content?.site_logo_url?.trim();
+  const businessName = content?.site_business_name?.trim() || "Will Design 3D";
+  const subtitle = content?.site_subtitle?.trim() || "";
+  const WHATSAPP_URL = waLink(contact.whatsapp, `Hola ${businessName}`);
   const roots = menu ?? [];
 
   return (
@@ -299,21 +301,24 @@ export function SiteHeader() {
           to="/"
           className="flex flex-shrink-0 min-w-max items-center gap-3 whitespace-nowrap"
         >
-          <img
-            src={logoAsset.url}
-            alt="Will Design 3D"
-            width={44}
-            height={44}
-            className="h-11 w-11 shrink-0 rounded-lg object-cover"
-          />
+          {logoUrl && (
+            <img
+              src={logoUrl}
+              alt={businessName}
+              width={44}
+              height={44}
+              className="h-11 w-11 shrink-0 rounded-lg object-cover"
+            />
+          )}
           <div className="leading-tight">
             <p className="text-base font-black tracking-tight sm:text-lg">
-              Will Design{" "}
-              <span style={{ color: "var(--brand-orange)" }}>3D</span>
+              {businessName}
             </p>
-            <p className="hidden text-[11px] text-muted-foreground sm:block">
-              Impresión 3D · Bogotá
-            </p>
+            {subtitle && (
+              <p className="hidden text-[11px] text-muted-foreground sm:block">
+                {subtitle}
+              </p>
+            )}
           </div>
         </Link>
 

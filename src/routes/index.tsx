@@ -24,29 +24,36 @@ import { siteServicesQuery } from "./servicios";
 export const Route = createFileRoute("/")({
   loader: async ({ context }) => {
     const [siteContent] = await Promise.all([
-      context.queryClient.fetchQuery(siteContentQuery()),
-      context.queryClient.prefetchQuery(productsQuery()),
-      context.queryClient.prefetchQuery(heroCarouselQuery()),
-      context.queryClient.prefetchQuery(siteServicesQuery()),
+      context.queryClient.ensureQueryData(siteContentQuery()),
+      context.queryClient.ensureQueryData(productsQuery()),
+      context.queryClient.ensureQueryData(heroCarouselQuery()),
+      context.queryClient.ensureQueryData(siteServicesQuery()),
     ]);
     return { siteContent };
   },
   head: ({ loaderData }: any) => {
     const siteContent = loaderData?.siteContent;
-    const title = siteContent?.seo_home_title || siteContent?.site_title || "Will Design 3D — Taller de Impresión 3D en Bogotá";
-    const desc = siteContent?.seo_home_description || siteContent?.site_description || "Taller de impresión 3D en Bogotá: piezas a pedido, diseño, post-procesado, venta de equipos e insumos y mantenimiento técnico.";
-    const image = siteContent?.seo_home_image || siteContent?.site_meta_thumbnail_url || "https://storage.googleapis.com/gpt-engineer-file-uploads/Hj8JfrWa2qQArO2BOXZdviQDjWA2/social-images/social-1783472807154-WILL_LOGO.webp";
+    const title = siteContent?.seo_home_title || siteContent?.site_title || "Will Design 3D";
+    const desc = siteContent?.seo_home_description || siteContent?.site_description || "";
+    const image = siteContent?.seo_home_image || siteContent?.site_meta_thumbnail_url || siteContent?.site_logo_url || "";
+
+    const metaTags: Array<Record<string, string>> = [
+      { title },
+      { name: "description", content: desc },
+      { property: "og:title", content: title },
+      { property: "og:description", content: desc },
+      { property: "og:url", content: "https://will-design-3d.lovable.app/" },
+    ];
+
+    if (image) {
+      metaTags.push(
+        { property: "og:image", content: image },
+        { name: "twitter:image", content: image }
+      );
+    }
 
     return {
-      meta: [
-        { title },
-        { name: "description", content: desc },
-        { property: "og:title", content: title },
-        { property: "og:description", content: desc },
-        { property: "og:image", content: image },
-        { name: "twitter:image", content: image },
-        { property: "og:url", content: "https://will-design-3d.lovable.app/" },
-      ],
+      meta: metaTags,
       links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/" }],
     };
   },
@@ -76,18 +83,15 @@ function Home() {
 
 function Hero() {
   const { getText } = useSiteContent();
-  const title = getText("hero_title", "Llevamos tus ideas a la realidad. Sin límites de tamaño.");
-  const subtitle = getText(
-    "hero_subtitle",
-    "Especialistas en Impresión 3D de gran formato en Bogotá. Diseño, producción y acabados profesionales bajo un mismo techo.",
-  );
-  const image = getText("hero_image_url", heroImg);
-  const badge = getText("hero_badge_title", "Escultura 1.8 m — PLA reforzado");
+  const title = getText("hero_title", "");
+  const subtitle = getText("hero_subtitle", "");
+  const image = getText("hero_image_url", "");
+  const badge = getText("hero_badge_title", "");
   const stats = [
-    { k: getText("hero_stat_1_k", "50×50"), v: getText("hero_stat_1_v", "cm mínimo") },
-    { k: getText("hero_stat_2_k", "∞"), v: getText("hero_stat_2_v", "sin límite") },
-    { k: getText("hero_stat_3_k", "+200"), v: getText("hero_stat_3_v", "proyectos") },
-  ];
+    { k: getText("hero_stat_1_k", ""), v: getText("hero_stat_1_v", "") },
+    { k: getText("hero_stat_2_k", ""), v: getText("hero_stat_2_v", "") },
+    { k: getText("hero_stat_3_k", ""), v: getText("hero_stat_3_v", "") },
+  ].filter((s) => s.k || s.v);
 
 
   return (
@@ -122,16 +126,18 @@ function Hero() {
             </Link>
           </div>
 
-          <dl className="mt-10 grid max-w-md grid-cols-3 gap-4">
-            {stats.map((s, i) => (
-              <div key={i} className="rounded-2xl border border-border bg-card p-3 text-center">
-                <dt className="text-xl font-black" style={{ color: "var(--brand-wine)" }}>
-                  {s.k}
-                </dt>
-                <dd className="text-[11px] text-muted-foreground">{s.v}</dd>
-              </div>
-            ))}
-          </dl>
+          {stats.length > 0 && (
+            <dl className="mt-10 grid max-w-md grid-cols-3 gap-4">
+              {stats.map((s, i) => (
+                <div key={i} className="rounded-2xl border border-border bg-card p-3 text-center">
+                  <dt className="text-xl font-black" style={{ color: "var(--brand-wine)" }}>
+                    {s.k}
+                  </dt>
+                  <dd className="text-[11px] text-muted-foreground">{s.v}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
         </div>
 
         <div className="relative">

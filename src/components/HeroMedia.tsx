@@ -8,7 +8,7 @@ import { DEFAULT_SLIDE_MS, heroCarouselQuery } from "@/lib/hero-carousel";
 const MEDIA_CLASS = "aspect-[4/3] w-full rounded-3xl object-cover shadow-2xl ring-1 ring-border";
 
 /** Carrusel de fotos y videos del hero; cada elemento tiene su propia duración. */
-export function HeroMedia({ fallbackImage }: { fallbackImage: string }) {
+export function HeroMedia({ fallbackImage }: { fallbackImage?: string }) {
   const { data } = useQuery(heroCarouselQuery());
   const slides = data ?? [];
   const [api, setApi] = useState<CarouselApi>();
@@ -57,10 +57,11 @@ export function HeroMedia({ fallbackImage }: { fallbackImage: string }) {
   }, [api, schedule, clear]);
 
   if (slides.length === 0) {
+    if (!fallbackImage) return null;
     return (
       <img
         src={fallbackImage}
-        alt="Impresión 3D de gran formato Will Design 3D"
+        alt="Will Design 3D"
         width={1600}
         height={1000}
         className={MEDIA_CLASS}
