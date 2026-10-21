@@ -389,8 +389,13 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
       {!service && (
         <div className="mt-10">
           {isLoading ? (
-            <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Cargando servicios…
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-36 animate-pulse rounded-3xl border border-border bg-card/50"
+                />
+              ))}
             </div>
           ) : (services ?? []).length === 0 ? (
             <p className="text-center text-sm text-muted-foreground">

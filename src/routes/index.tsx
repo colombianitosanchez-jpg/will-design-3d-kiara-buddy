@@ -9,27 +9,30 @@ import {
   ArrowRight,
   Ruler,
 } from "lucide-react";
-import heroImg from "@/assets/hero.jpg";
 import { Quoter } from "@/components/Quoter";
 import { InstagramFeed } from "@/components/InstagramFeed";
 import { ProductCard } from "@/components/ProductCard";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
-import { productsQuery, siteContentQuery } from "@/lib/catalog";
+import { categoriesQuery, productsQuery, siteContentQuery } from "@/lib/catalog";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { heroCarouselQuery } from "@/lib/hero-carousel";
 import { HeroMedia } from "@/components/HeroMedia";
 import { parseHomeOrder, type HomeSectionKey } from "@/lib/home-sections";
 import { siteServicesQuery } from "./servicios";
+import { menuItemsQuery } from "@/lib/menu";
 
 export const Route = createFileRoute("/")({
   loader: async ({ context }) => {
-    const [siteContent] = await Promise.all([
-      context.queryClient.ensureQueryData(siteContentQuery()),
-      context.queryClient.ensureQueryData(productsQuery()),
-      context.queryClient.ensureQueryData(heroCarouselQuery()),
-      context.queryClient.ensureQueryData(siteServicesQuery()),
-    ]);
-    return { siteContent };
+    const [siteContent, products, heroCarousel, siteServices, categories, menuItems] =
+      await Promise.all([
+        context.queryClient.ensureQueryData(siteContentQuery()),
+        context.queryClient.ensureQueryData(productsQuery()),
+        context.queryClient.ensureQueryData(heroCarouselQuery()),
+        context.queryClient.ensureQueryData(siteServicesQuery()),
+        context.queryClient.ensureQueryData(categoriesQuery()),
+        context.queryClient.ensureQueryData(menuItemsQuery()),
+      ]);
+    return { siteContent, products, heroCarousel, siteServices, categories, menuItems };
   },
   head: ({ loaderData }: any) => {
     const siteContent = loaderData?.siteContent;

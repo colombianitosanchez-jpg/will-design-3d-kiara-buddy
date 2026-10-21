@@ -7,6 +7,7 @@ import { siteContentQuery } from "@/lib/catalog";
  * getText(key, fallback) devuelve el texto del panel o el fallback.
  */
 export function useSiteContent() {
+  // Utiliza el caché hidratado por SSR desde el loader de la ruta con queryKey ["site_content"]
   const query = useQuery(siteContentQuery());
   const data = query.data ?? {};
 
