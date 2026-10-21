@@ -90,6 +90,7 @@ const FIELDS: FieldDef[] = [
   // ------------------------------------------------------------ Marca y SEO Global
   { key: "site_title", label: "Título SEO Global del Sitio", type: "text", help: "Título por defecto cuando una página no especifica uno propio. Recomendado: 50–60 caracteres.", section: "Marca y SEO", group: "SEO Global" },
   { key: "site_description", label: "Descripción SEO Global", type: "textarea", help: "Descripción general del taller para buscadores y redes. Recomendado: 120–160 caracteres.", section: "Marca y SEO", group: "SEO Global" },
+  { key: "site_logo_url", label: "Logotipo Principal del Sitio", type: "image", help: "Logo oficial visible en header y footer", section: "Marca y SEO", group: "Marca y Logotipos" },
   { key: "site_favicon_url", label: "Favicon de la pestaña (.ico, .png, .gif, .svg)", type: "image", help: "Ícono visible en la pestaña del navegador.", section: "Marca y SEO", group: "Marca y Logotipos" },
   { key: "site_meta_thumbnail_url", label: "Miniatura Social Global por Defecto", type: "image", help: "Imagen principal para Google, WhatsApp, Facebook y Twitter (1200×630 px recomendado).", section: "Marca y SEO", group: "Marca y Logotipos" },
   { key: "site_meta_thumbnail_alt", label: "Texto Alternativo de Miniatura Social", type: "text", help: "Descripción para lectores de pantalla de la miniatura principal.", section: "Marca y SEO", group: "Marca y Logotipos" },
