@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useMatches } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Menu, MessageCircle, ChevronDown, ShoppingCart } from "lucide-react";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
@@ -41,14 +41,16 @@ function MenuNode({ node, onNavigate }: { node: MenuNodeData; onNavigate?: () =>
   if (node.children.length > 0) {
     return (
       <DropdownMenuSub>
-        <DropdownMenuSubTrigger className="text-sm font-medium">
-          {href ? (
-            <a href={href} onClick={onNavigate} className="flex-1">
-              {node.label}
-            </a>
-          ) : (
-            node.label
-          )}
+        <DropdownMenuSubTrigger
+          className="text-sm font-medium"
+          onClick={() => {
+            if (href) {
+              onNavigate?.();
+              window.location.href = href;
+            }
+          }}
+        >
+          <span>{node.label}</span>
         </DropdownMenuSubTrigger>
         <DropdownMenuSubContent className="min-w-48">
           {node.children.map((child) => (
@@ -88,16 +90,19 @@ function DesktopRoot({ node }: { node: MenuNodeData }) {
     >
       <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
         <DropdownMenuTrigger asChild>
-          <div className={`${linkClass} inline-flex cursor-pointer items-center gap-1 outline-none`}>
-            {href ? (
-              <a href={href} onClick={() => setOpen(false)}>
-                {node.label}
-              </a>
-            ) : (
-              <span>{node.label}</span>
-            )}
+          <button
+            type="button"
+            className={`${linkClass} inline-flex cursor-pointer items-center gap-1 outline-none`}
+            onClick={() => {
+              if (href) {
+                setOpen(false);
+                window.location.href = href;
+              }
+            }}
+          >
+            <span>{node.label}</span>
             <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
-          </div>
+          </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="start"
@@ -285,8 +290,16 @@ function MobileNav({ roots, whatsappUrl }: { roots: MenuNodeData[]; whatsappUrl:
 }
 
 export function SiteHeader() {
-  const { data: content } = useQuery(siteContentQuery());
-  const { data: menu } = useQuery(menuItemsQuery());
+  const matches = useMatches() as any[];
+  const rootLoaderData = matches.find((m) => m.routeId === "__root__")?.loaderData;
+  const { data: content } = useQuery({
+    ...siteContentQuery(),
+    initialData: rootLoaderData?.siteContent,
+  });
+  const { data: menu } = useQuery({
+    ...menuItemsQuery(),
+    initialData: rootLoaderData?.menuItems,
+  });
   const contact = getContactInfo(content);
   const logoUrl = content?.site_logo_url?.trim();
   const businessName = content?.site_business_name?.trim() || "Will Design 3D";

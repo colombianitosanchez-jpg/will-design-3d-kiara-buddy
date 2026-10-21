@@ -16,6 +16,7 @@ const DEFAULT_STATE: LiveState = {
 };
 
 let currentState: LiveState = DEFAULT_STATE;
+let initialized = false;
 const listeners = new Set<() => void>();
 
 function read(): LiveState {
@@ -41,8 +42,9 @@ function write(state: LiveState) {
   listeners.forEach((l) => l());
 }
 
-// Hydrate from storage on first client access
-if (typeof window !== "undefined") {
+function initClient() {
+  if (typeof window === "undefined" || initialized) return;
+  initialized = true;
   currentState = read();
   window.addEventListener("storage", (e) => {
     if (e.key === STORAGE_KEY) {
@@ -53,6 +55,9 @@ if (typeof window !== "undefined") {
 }
 
 export function setLive(next: Partial<LiveState>) {
+  if (!initialized) {
+    initClient();
+  }
   write({ ...currentState, ...next });
 }
 
@@ -60,6 +65,10 @@ export function useLive(): LiveState {
   return useSyncExternalStore(
     (cb) => {
       listeners.add(cb);
+      if (typeof window !== "undefined" && !initialized) {
+        initClient();
+        cb();
+      }
       return () => listeners.delete(cb);
     },
     () => currentState,

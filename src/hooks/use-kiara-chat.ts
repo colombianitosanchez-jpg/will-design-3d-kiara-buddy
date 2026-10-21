@@ -3,7 +3,7 @@ import { createMessage, sendChat, type ChatMessage, type KiaraTool } from "@/lib
 
 export function useKiaraChat(initialGreeting: string) {
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
-    createMessage("assistant", initialGreeting),
+    createMessage("assistant", initialGreeting, "initial-greeting"),
   ]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +63,7 @@ export function useKiaraChat(initialGreeting: string) {
   );
 
   const reset = useCallback((greeting: string) => {
-    setMessages([createMessage("assistant", greeting)]);
+    setMessages([createMessage("assistant", greeting, "initial-greeting")]);
     setError(null);
   }, []);
 

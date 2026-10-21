@@ -1,4 +1,5 @@
-import { Link } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
+import { Link, useMatches } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Instagram, MessageCircle, MapPin } from "lucide-react";
 import { ShareButton } from "@/components/ShareButton";
@@ -6,9 +7,25 @@ import { siteContentQuery, categoriesQuery, getContactInfo, waLink } from "@/lib
 import { siteServicesQuery } from "@/routes/servicios";
 
 export function SiteFooter() {
-  const { data: content } = useQuery(siteContentQuery());
-  const { data: dbServices = [] } = useQuery(siteServicesQuery());
-  const { data: allCategories = [] } = useQuery(categoriesQuery());
+  const [year, setYear] = useState(2025);
+
+  useEffect(() => {
+    setYear(new Date().getFullYear());
+  }, []);
+  const matches = useMatches() as any[];
+  const rootLoaderData = matches.find((m) => m.routeId === "__root__")?.loaderData;
+  const { data: content } = useQuery({
+    ...siteContentQuery(),
+    initialData: rootLoaderData?.siteContent,
+  });
+  const { data: dbServices = [] } = useQuery({
+    ...siteServicesQuery(),
+    initialData: rootLoaderData?.siteServices,
+  });
+  const { data: allCategories = [] } = useQuery({
+    ...categoriesQuery(),
+    initialData: rootLoaderData?.categories,
+  });
 
   const contact = getContactInfo(content);
   const logoUrl = content?.site_logo_url?.trim();
@@ -134,7 +151,7 @@ export function SiteFooter() {
       </div>
       <div className="border-t border-border">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-4 text-xs text-muted-foreground sm:flex-row sm:px-6">
-          <p>© {new Date().getFullYear()} Will Design 3D. Todos los derechos reservados.</p>
+          <p>© {year} Will Design 3D. Todos los derechos reservados.</p>
           <p className="flex items-center gap-3">
             <Link to="/panel" className="hover:underline">Panel</Link>
             <span>· Hecho con 🐾 en Bogotá</span>

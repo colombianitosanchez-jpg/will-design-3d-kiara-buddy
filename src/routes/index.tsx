@@ -167,7 +167,11 @@ function Hero() {
 
 function Services() {
   const ref = useScrollReveal<HTMLElement>();
-  const { data: dbServices } = useQuery(siteServicesQuery());
+  const loaderData = Route.useLoaderData();
+  const { data: dbServices } = useQuery({
+    ...siteServicesQuery(),
+    initialData: loaderData?.siteServices,
+  });
   const { getText } = useSiteContent();
 
   const servicesTitle = getText("services_section_title", "Nuestros servicios");
@@ -247,8 +251,12 @@ function Services() {
 }
 
 function FeaturedProducts() {
+  const loaderData = Route.useLoaderData();
   // Reutiliza exactamente la misma consulta que /tienda (única fuente de verdad).
-  const { data: products, isPending, isError } = useQuery(productsQuery());
+  const { data: products, isPending, isError } = useQuery({
+    ...productsQuery(),
+    initialData: loaderData?.products,
+  });
 
   const list = products ?? [];
   const marked = list.filter((p) => p.featured);
