@@ -56,8 +56,9 @@ export function HeroMedia({ fallbackImage }: { fallbackImage?: string }) {
     };
   }, [api, schedule, clear]);
 
+  // Si no hay slides en el carrusel, usa el fallbackImage de CMS o retorna null (sin spinner ni imágenes estáticas antiguas)
   if (slides.length === 0) {
-    if (!fallbackImage) return null;
+    if (!fallbackImage?.trim()) return null;
     return (
       <img
         src={fallbackImage}
