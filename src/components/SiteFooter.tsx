@@ -2,14 +2,24 @@ import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Instagram, MessageCircle, MapPin } from "lucide-react";
 import { ShareButton } from "@/components/ShareButton";
-import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
+import { siteContentQuery, categoriesQuery, getContactInfo, waLink } from "@/lib/catalog";
+import { siteServicesQuery } from "@/routes/servicios";
 
 export function SiteFooter() {
   const { data: content } = useQuery(siteContentQuery());
+  const { data: dbServices = [] } = useQuery(siteServicesQuery());
+  const { data: allCategories = [] } = useQuery(categoriesQuery());
+
   const contact = getContactInfo(content);
   const logoUrl = content?.site_logo_url?.trim();
   const businessName = content?.site_business_name?.trim() || "Will Design 3D";
   const footerDesc = content?.site_description?.trim() || "";
+
+  const publishedServices = dbServices.filter((s: any) => s.is_active !== false).slice(0, 6);
+  const publishedCategories = allCategories
+    .filter((c) => c.is_active && !c.parent_id)
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .slice(0, 6);
 
   return (
     <footer className="mt-16 border-t border-border bg-card">
@@ -39,61 +49,47 @@ export function SiteFooter() {
           </p>
         </div>
 
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Servicios
-          </p>
-          <ul className="mt-3 space-y-2 text-sm">
-            <li>
-              <Link to="/servicios" className="hover:underline">
-                Impresión 3D a pedido
-              </Link>
-            </li>
-            <li>
-              <Link to="/servicios" className="hover:underline">
-                Diseño 3D personalizado
-              </Link>
-            </li>
-            <li>
-              <Link to="/servicios" className="hover:underline">
-                Mantenimiento y upgrades
-              </Link>
-            </li>
-            <li>
-              <Link to="/servicios" className="hover:underline">
-                Post-procesado y pintura
-              </Link>
-            </li>
-          </ul>
-        </div>
+        {publishedServices.length > 0 && (
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Servicios
+            </p>
+            <ul className="mt-3 space-y-2 text-sm">
+              {publishedServices.map((s: any) => (
+                <li key={s.id || s.slug}>
+                  <Link
+                    to="/servicios"
+                    hash={s.slug || undefined}
+                    className="hover:underline"
+                  >
+                    {s.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Tienda
-          </p>
-          <ul className="mt-3 space-y-2 text-sm">
-            <li>
-              <Link to="/tienda" className="hover:underline">
-                Impresoras 3D
-              </Link>
-            </li>
-            <li>
-              <Link to="/tienda" className="hover:underline">
-                Filamentos y resinas
-              </Link>
-            </li>
-            <li>
-              <Link to="/tienda" className="hover:underline">
-                Escáners y accesorios
-              </Link>
-            </li>
-            <li>
-              <Link to="/tienda" className="hover:underline">
-                Repuestos
-              </Link>
-            </li>
-          </ul>
-        </div>
+        {publishedCategories.length > 0 && (
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Tienda
+            </p>
+            <ul className="mt-3 space-y-2 text-sm">
+              {publishedCategories.map((c) => (
+                <li key={c.id}>
+                  <Link
+                    to="/tienda"
+                    search={{ categoria: c.slug }}
+                    className="hover:underline"
+                  >
+                    {c.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div>
           <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
