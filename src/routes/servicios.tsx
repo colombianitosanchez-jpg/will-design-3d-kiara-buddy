@@ -61,121 +61,11 @@ export const siteServicesQuery = () =>
         .select("*")
         .eq("is_active", true)
         .order("sort_order", { ascending: true });
-      if (error || !data || data.length === 0) return null;
+      if (error || !data) return [];
       return data;
     },
     staleTime: 60_000,
   });
-
-const DEFAULT_SERVICES = [
-  {
-    id: "impresion-3d",
-    slug: "impresion-3d",
-    icon: Boxes,
-    title: "Impresión 3D a Pedido",
-    color: "orange",
-    lead: "Producimos tus piezas en FDM y resina, con especialidad en gran formato (50×50 cm o más).",
-    bullets: [
-      "FDM: PLA, PETG, ABS, TPU, PA, PC",
-      "Resina MSLA hasta 12K para alto detalle",
-      "Volumen de producción y prototipos únicos",
-      "Cotización por WhatsApp con archivo o boceto",
-    ],
-    kiaraTip: "Si tu archivo aún no está optimizado, avísanos: revisamos huecos y grosores gratis.",
-    requires_file: true,
-  },
-  {
-    id: "modelado-3d",
-    slug: "modelado-3d",
-    icon: PenTool,
-    title: "Diseño 3D Personalizado",
-    color: "teal",
-    lead: "Modelamos desde cero usando tus referencias, planos o fotografías. Ideal si no tienes archivo.",
-    bullets: [
-      "Modelado paramétrico e ingeniería inversa",
-      "Escultura orgánica para figuras y arte",
-      "Optimización de piezas para impresión",
-      "Entregamos STL/OBJ/STEP",
-    ],
-    kiaraTip: "Cuéntanos función y tamaño primero — un buen diseño ahorra horas de impresión.",
-    requires_file: true,
-  },
-  {
-    id: "servicio-tecnico",
-    slug: "servicio-tecnico",
-    icon: Wrench,
-    title: "Mantenimiento y Reparación",
-    color: "wine",
-    lead: "Servicio técnico especializado para impresoras FDM y de resina de cualquier marca.",
-    bullets: [
-      "Diagnóstico y calibración completa",
-      "Cambio de hotend, boquillas, correas y termistores",
-      "Nivelación automática y firmware",
-      "Servicio en taller o a domicilio en Bogotá",
-    ],
-    kiaraTip: "Un mantenimiento cada 500 h de impresión evita el 80 % de las fallas comunes.",
-  },
-  {
-    id: "escaneo-3d",
-    slug: "escaneo-3d",
-    icon: ScanLine,
-    title: "Escaneo 3D",
-    color: "teal",
-    lead: "Digitalizamos objetos, espacios y piezas reales para obtener modelos 3D listos para editar o imprimir.",
-    bullets: [
-      "Escaneo de objetos pequeños con alta precisión",
-      "Escaneo de espacios y ambientes (tours 3D)",
-      "Limpieza y reparación de malla",
-      "Entrega en STL/OBJ y ingeniería inversa",
-    ],
-    kiaraTip: "Si la pieza es brillante u oscura, la tratamos con spray mate para que el escáner la lea mejor.",
-  },
-  {
-    id: "postprocesado",
-    slug: "postprocesado",
-    icon: Ruler,
-    title: "Post-procesado y Acabados",
-    color: "orange",
-    lead: "Convertimos una pieza recién impresa en un producto terminado profesional.",
-    bullets: [
-      "Lijado y masillado",
-      "Aplicación de primer y pintura",
-      "Acabados metalizados, mate o brillo",
-      "Ensamble y montaje final",
-    ],
-    kiaraTip: "El acabado Premium multiplica el impacto visual — pídelo si vas a exhibir la pieza.",
-  },
-  {
-    id: "cursos-3d-modelado",
-    slug: "cursos-3d-modelado",
-    icon: GraduationCap,
-    title: "Curso de Modelado 3D",
-    color: "orange",
-    lead: "Aprende a modelar tus propias piezas desde cero: de la idea al archivo listo para imprimir.",
-    bullets: ["Modelado CAD paramétrico", "Preparación de STL/OBJ", "Clases personalizadas presenciales o virtuales"],
-    kiaraTip: "Aprender a modelar te da autonomía total sobre tus proyectos de impresión.",
-  },
-  {
-    id: "cursos-3d-impresion",
-    slug: "cursos-3d-impresion",
-    icon: GraduationCap,
-    title: "Curso de Impresión 3D",
-    color: "teal",
-    lead: "Domina el laminado, materiales y parámetros para lograr impresiones limpias y consistentes.",
-    bullets: ["Configuración en OrcaSlicer / Cura", "Manejo de FDM y Resina MSLA", "Solución de problemas comunes"],
-    kiaraTip: "Entender la adherencia y la temperatura evita el 90 % de impresiones fallidas.",
-  },
-  {
-    id: "cursos-3d-mantenimiento",
-    slug: "cursos-3d-mantenimiento",
-    icon: GraduationCap,
-    title: "Curso de Mantenimiento de Impresoras",
-    color: "wine",
-    lead: "Calibración, limpieza y reparación: mantén tu impresora funcionando como el primer día.",
-    bullets: ["Calibración de cama y PID", "Mantenimiento preventivo", "Cambio de componentes clave"],
-    kiaraTip: "Aprender a ajustar tu propia máquina te ahorra costos de taller en el futuro.",
-  },
-];
 
 const colorFor = (a: string) =>
   a === "orange"
@@ -225,7 +115,7 @@ function ServiciosPage() {
         kiaraTip: s.kiara_tip,
         custom_buttons: parseProductButtons(s.custom_buttons),
       }))
-    : DEFAULT_SERVICES;
+    : [];
 
   return (
     <>

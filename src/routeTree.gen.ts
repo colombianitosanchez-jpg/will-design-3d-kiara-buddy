@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CarritoRouteImport } from './routes/carrito'
 import { Route as ContactoRouteImport } from './routes/contacto'
 import { Route as CotizadorRouteImport } from './routes/cotizador'
+import { Route as FaviconDoticoRouteImport } from './routes/favicon[.]ico'
 import { Route as GaleriaRouteImport } from './routes/galeria'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as NosotrosRouteImport } from './routes/nosotros'
@@ -80,6 +81,11 @@ const ContactoRoute = ContactoRouteImport.update({
 const CotizadorRoute = CotizadorRouteImport.update({
   id: '/cotizador',
   path: '/cotizador',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaviconDoticoRoute = FaviconDoticoRouteImport.update({
+  id: '/favicon.ico',
+  path: '/favicon.ico',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GaleriaRoute = GaleriaRouteImport.update({
@@ -272,6 +278,7 @@ export interface FileRoutesByFullPath {
   '/carrito': typeof CarritoRoute
   '/contacto': typeof ContactoRoute
   '/cotizador': typeof CotizadorRoute
+  '/favicon.ico': typeof FaviconDoticoRoute
   '/galeria': typeof GaleriaRoute
   '/login': typeof LoginRoute
   '/nosotros': typeof NosotrosRoute
@@ -315,6 +322,7 @@ export interface FileRoutesByTo {
   '/carrito': typeof CarritoRoute
   '/contacto': typeof ContactoRoute
   '/cotizador': typeof CotizadorRoute
+  '/favicon.ico': typeof FaviconDoticoRoute
   '/galeria': typeof GaleriaRoute
   '/login': typeof LoginRoute
   '/nosotros': typeof NosotrosRoute
@@ -358,6 +366,7 @@ export interface FileRoutesById {
   '/carrito': typeof CarritoRoute
   '/contacto': typeof ContactoRoute
   '/cotizador': typeof CotizadorRoute
+  '/favicon.ico': typeof FaviconDoticoRoute
   '/galeria': typeof GaleriaRoute
   '/login': typeof LoginRoute
   '/nosotros': typeof NosotrosRoute
@@ -404,6 +413,7 @@ export interface FileRouteTypes {
     | '/carrito'
     | '/contacto'
     | '/cotizador'
+    | '/favicon.ico'
     | '/galeria'
     | '/login'
     | '/nosotros'
@@ -447,6 +457,7 @@ export interface FileRouteTypes {
     | '/carrito'
     | '/contacto'
     | '/cotizador'
+    | '/favicon.ico'
     | '/galeria'
     | '/login'
     | '/nosotros'
@@ -489,6 +500,7 @@ export interface FileRouteTypes {
     | '/carrito'
     | '/contacto'
     | '/cotizador'
+    | '/favicon.ico'
     | '/galeria'
     | '/login'
     | '/nosotros'
@@ -534,6 +546,7 @@ export interface RootRouteChildren {
   CarritoRoute: typeof CarritoRoute
   ContactoRoute: typeof ContactoRoute
   CotizadorRoute: typeof CotizadorRoute
+  FaviconDoticoRoute: typeof FaviconDoticoRoute
   GaleriaRoute: typeof GaleriaRoute
   LoginRoute: typeof LoginRoute
   NosotrosRoute: typeof NosotrosRoute
@@ -591,6 +604,13 @@ declare module '@tanstack/react-router' {
       path: '/cotizador'
       fullPath: '/cotizador'
       preLoaderRoute: typeof CotizadorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/favicon.ico': {
+      id: '/favicon.ico'
+      path: '/favicon.ico'
+      fullPath: '/favicon.ico'
+      preLoaderRoute: typeof FaviconDoticoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/galeria': {
@@ -926,6 +946,7 @@ const rootRouteChildren: RootRouteChildren = {
   CarritoRoute: CarritoRoute,
   ContactoRoute: ContactoRoute,
   CotizadorRoute: CotizadorRoute,
+  FaviconDoticoRoute: FaviconDoticoRoute,
   GaleriaRoute: GaleriaRoute,
   LoginRoute: LoginRoute,
   NosotrosRoute: NosotrosRoute,

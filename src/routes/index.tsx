@@ -53,45 +53,6 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-const services = [
-  {
-    icon: Boxes,
-    title: "Impresión 3D de Gran Formato",
-    desc: "Especialidad en 50x50 y sin límite de tamaño. Piezas monumentales con precisión milimétrica.",
-    accent: "orange",
-  },
-  {
-    icon: Sparkles,
-    title: "Post-procesado",
-    desc: "Lijado, masillado, pintura y acabados profesionales a medida para un resultado impecable.",
-    accent: "teal",
-  },
-  {
-    icon: ShoppingBag,
-    title: "Venta de Equipos e Insumos",
-    desc: "Impresoras 3D, filamentos y resinas de las mejores marcas al mejor precio.",
-    accent: "wine",
-  },
-  {
-    icon: PenTool,
-    title: "Diseño 3D Personalizado",
-    desc: "Modelado desde cero. Convertimos tu idea, boceto o fotografía en un archivo listo para imprimir.",
-    accent: "orange",
-  },
-  {
-    icon: Wrench,
-    title: "Mantenimiento Técnico",
-    desc: "Servicio técnico especializado y upgrades para tu impresora 3D. Diagnóstico y calibración.",
-    accent: "teal",
-  },
-  {
-    icon: Ruler,
-    title: "Prototipado Industrial",
-    desc: "Convierte tu proyecto en un prototipo funcional para validar diseño, ergonomía y mercado.",
-    accent: "wine",
-  },
-];
-
 const SECTION_COMPONENTS: Record<HomeSectionKey, () => React.ReactNode> = {
   hero: Hero,
   services: Services,
@@ -214,13 +175,7 @@ function Services() {
         desc: s.lead,
         accent: s.color || "orange",
       }))
-    : services.map((s: any) => ({
-        id: s.title,
-        slug: "impresion-3d",
-        title: s.title,
-        desc: s.desc,
-        accent: s.accent,
-      }));
+    : [];
 
   return (
     <section ref={ref} id="servicios" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">

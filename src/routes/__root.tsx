@@ -28,16 +28,6 @@ function ThemeApplier() {
   useEffect(() => {
     const activeTheme = getActiveTheme(content);
     applyThemeToDocument(activeTheme);
-
-    if (content?.site_favicon_url) {
-      let iconEl = document.querySelector("link[rel='icon']") as HTMLLinkElement | null;
-      if (!iconEl) {
-        iconEl = document.createElement("link");
-        iconEl.rel = "icon";
-        document.head.appendChild(iconEl);
-      }
-      iconEl.href = content.site_favicon_url;
-    }
   }, [content]);
   return null;
 }
@@ -134,7 +124,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       ],
       links: [
         { rel: "stylesheet", href: appCss },
-        { rel: "icon", href: favicon, type: "image/x-icon" },
+        { rel: "icon", href: "/favicon.ico" },
+        { rel: "shortcut icon", href: "/favicon.ico" },
+        { rel: "apple-touch-icon", href: "/favicon.ico" },
       ],
       scripts: [
         {
