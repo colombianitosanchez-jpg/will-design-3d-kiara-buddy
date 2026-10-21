@@ -199,7 +199,7 @@ export async function fetchAttributes(): Promise<Attribute[]> {
   const { data, error } = await supabase
     .from("attributes")
     .select(
-      "id,slug,name,input_type,is_filterable,sort_order,values:attribute_values(id,attribute_id,slug,label,color_hex,image_url,sort_order)",
+      "id,slug,name,input_type,is_filterable,sort_order,values:attribute_values(id,attribute_id,slug,label,color_hex,sort_order)",
     )
     .order("sort_order");
   if (error) throw error;
