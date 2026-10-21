@@ -24,11 +24,11 @@ import { ProductButtons } from "@/components/ProductButtons";
 
 export const Route = createFileRoute("/servicios")({
   loader: async ({ context }) => {
-    const [siteContent] = await Promise.all([
+    const [siteContent, siteServices] = await Promise.all([
       context.queryClient.ensureQueryData(siteContentQuery()),
       context.queryClient.ensureQueryData(siteServicesQuery()),
     ]);
-    return { siteContent };
+    return { siteContent, siteServices };
   },
   head: ({ loaderData }: any) => {
     const siteContent = loaderData?.siteContent;
@@ -94,8 +94,15 @@ const iconMap: Record<string, any> = {
 };
 
 function ServiciosPage() {
-  const { data: siteContent } = useQuery(siteContentQuery());
-  const { data: dbServices } = useQuery(siteServicesQuery());
+  const loaderData = Route.useLoaderData();
+  const { data: siteContent } = useQuery({
+    ...siteContentQuery(),
+    initialData: loaderData?.siteContent,
+  });
+  const { data: dbServices } = useQuery({
+    ...siteServicesQuery(),
+    initialData: loaderData?.siteServices,
+  });
   const { data: quoterServices } = useQuery(quoterServicesQuery());
   const contact = getContactInfo(siteContent);
 
@@ -153,7 +160,16 @@ function ServiciosPage() {
       </section>
 
       <section className="mx-auto max-w-7xl space-y-14 px-4 py-14 sm:px-6 md:py-20">
-        {servicesList.map((s: any, i: number) => {
+        {servicesList.length === 0 ? (
+          <div className="rounded-3xl border border-dashed border-border bg-card p-10 text-center">
+            <Printer className="mx-auto h-10 w-10 text-muted-foreground" />
+            <h3 className="mt-4 text-lg font-bold">No hay servicios configurados</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Los servicios se administran desde el panel de control.
+            </p>
+          </div>
+        ) : (
+          servicesList.map((s: any, i: number) => {
           const c = colorFor(s.color);
           const flip = i % 2 === 1;
           const IconComp = s.icon || Printer;
@@ -277,7 +293,8 @@ function ServiciosPage() {
               </div>
             </article>
           );
-        })}
+        })
+        )}
       </section>
 
     </>
