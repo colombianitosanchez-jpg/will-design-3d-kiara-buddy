@@ -330,14 +330,21 @@ function PhotoGallery({ photos, handle }: { photos: PortfolioPhoto[]; handle: st
           }
 
           return (
-            <button
+            <div
               key={item.id}
-              type="button"
+              role="button"
+              tabIndex={0}
               onClick={() => setZoom(item)}
-              className="block text-left focus:outline-none focus:ring-2 focus:ring-primary rounded-2xl"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setZoom(item);
+                }
+              }}
+              className="block cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-primary rounded-2xl"
             >
               {cardContent}
-            </button>
+            </div>
           );
         })}
       </div>

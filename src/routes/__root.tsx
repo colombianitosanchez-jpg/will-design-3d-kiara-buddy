@@ -97,13 +97,13 @@ function ErrorComponent({ error, reset }: { error: unknown; reset: () => void })
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   loader: async ({ context }) => {
-    const [siteContent] = await Promise.all([
+    const [siteContent, menuItems, categories, siteServices] = await Promise.all([
       context.queryClient.ensureQueryData(siteContentQuery()),
       context.queryClient.ensureQueryData(menuItemsQuery()),
       context.queryClient.ensureQueryData(categoriesQuery()),
       context.queryClient.ensureQueryData(siteServicesQuery()),
     ]);
-    return { siteContent };
+    return { siteContent, menuItems, categories, siteServices };
   },
   head: ({ loaderData }: any) => {
     const siteContent = loaderData?.siteContent;

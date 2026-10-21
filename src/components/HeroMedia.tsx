@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useMatches } from "@tanstack/react-router";
 import type { CarouselApi } from "@/components/ui/carousel";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { DEFAULT_SLIDE_MS, heroCarouselQuery } from "@/lib/hero-carousel";
@@ -9,7 +9,12 @@ const MEDIA_CLASS = "aspect-[4/3] w-full rounded-3xl object-cover shadow-2xl rin
 
 /** Carrusel de fotos y videos del hero; cada elemento tiene su propia duración. */
 export function HeroMedia({ fallbackImage }: { fallbackImage?: string }) {
-  const { data } = useQuery(heroCarouselQuery());
+  const matches = useMatches() as any[];
+  const homeMatch = matches.find((m) => m.routeId === "/")?.loaderData;
+  const { data } = useQuery({
+    ...heroCarouselQuery(),
+    initialData: homeMatch?.heroCarousel,
+  });
   const slides = data ?? [];
   const [api, setApi] = useState<CarouselApi>();
   const pausedRef = useRef(false);
