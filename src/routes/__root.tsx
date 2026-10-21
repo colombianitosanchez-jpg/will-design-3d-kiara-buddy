@@ -7,15 +7,18 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SiteHeader } from "../components/SiteHeader";
 import { SiteFooter } from "../components/SiteFooter";
 import { LiveBanner } from "../components/LiveBanner";
-import { KiaraWidget } from "../components/KiaraWidget";
 import { Toaster } from "../components/ui/sonner";
+
+const KiaraWidget = lazy(() =>
+  import("../components/KiaraWidget").then((m) => ({ default: m.KiaraWidget }))
+);
 import { AuthProvider } from "../hooks/use-auth";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { CartProvider } from "../lib/cart";
@@ -210,7 +213,9 @@ function RootComponent() {
               </ErrorBoundary>
             </main>
             <SiteFooter />
-            <KiaraWidget />
+            <Suspense fallback={null}>
+              <KiaraWidget />
+            </Suspense>
             <Toaster />
           </div>
         </CartProvider>
