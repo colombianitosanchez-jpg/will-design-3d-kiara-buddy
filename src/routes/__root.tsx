@@ -112,10 +112,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     const siteContent = loaderData?.siteContent;
     const title = siteContent?.site_title || "Will Design 3D";
     const desc = siteContent?.site_description || "";
+    // Ideal OG image dimensions: 1200x630. If logo is used as fallback, note it may not match 1200x630 OG ratio.
     const image = siteContent?.site_meta_thumbnail_url || siteContent?.site_logo_url || "";
     const favicon = siteContent?.site_favicon_url || "/favicon.ico";
     const businessName = siteContent?.site_business_name || "Will Design 3D";
     const areaServed = siteContent?.site_area_served || "";
+    const instagramUrl = siteContent?.contact_instagram_url || "https://www.instagram.com/will_design2020";
 
     const metaTags: Array<Record<string, string>> = [
       { charSet: "utf-8" },
@@ -158,7 +160,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
                 url: "https://will-design-3d.lovable.app/",
                 description: desc,
                 areaServed: areaServed,
-                sameAs: ["https://www.instagram.com/will_design2020"],
+                sameAs: [instagramUrl],
               },
               {
                 "@type": "WebSite",
