@@ -30,7 +30,6 @@ export type AttributeValue = {
   slug: string;
   label: string;
   color_hex: string | null;
-  image_url?: string | null;
   sort_order: number;
 };
 
@@ -196,6 +195,7 @@ export async function fetchBrands(): Promise<Brand[]> {
 }
 
 export async function fetchAttributes(): Promise<Attribute[]> {
+  // Nota: se excluye la columna image_url de attribute_values para evitar error 42703 en Supabase
   const { data, error } = await supabase
     .from("attributes")
     .select(

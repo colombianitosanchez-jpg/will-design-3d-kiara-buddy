@@ -39,13 +39,14 @@ export const Route = createFileRoute("/")({
     const title = siteContent?.seo_home_title || siteContent?.site_title || "Will Design 3D";
     const desc = siteContent?.seo_home_description || siteContent?.site_description || "";
     const image = siteContent?.seo_home_image || siteContent?.site_meta_thumbnail_url || siteContent?.site_logo_url || "";
+    const canonicalUrl = typeof window !== 'undefined' ? window.location.origin : siteContent?.site_url || "https://willdesign3d.com";
 
     const metaTags: Array<Record<string, string>> = [
       { title },
       { name: "description", content: desc },
       { property: "og:title", content: title },
       { property: "og:description", content: desc },
-      { property: "og:url", content: "https://will-design-3d.lovable.app/" },
+      { property: "og:url", content: canonicalUrl },
     ];
 
     if (image) {
@@ -57,7 +58,7 @@ export const Route = createFileRoute("/")({
 
     return {
       meta: metaTags,
-      links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/" }],
+      links: [{ rel: "canonical", href: canonicalUrl }],
     };
   },
   component: Home,
@@ -111,7 +112,7 @@ function Hero() {
         <div>
           <span className="chip-teal">
             <span className="h-1.5 w-1.5 rounded-full bg-current" />
-            Bogotá · Colombia
+            {getText("site_area_served", getText("contact_location_short", "Bogotá · Colombia"))}
           </span>
           <h1 className="mt-4 text-4xl font-black leading-[1.05] sm:text-5xl md:text-6xl">
             {title}
