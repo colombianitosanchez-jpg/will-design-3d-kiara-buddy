@@ -2,30 +2,36 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Target, Eye, Heart, MapPin, Wrench, ArrowRight } from "lucide-react";
 import kiaraAsset from "@/assets/kiara.asset.json";
-import logoAsset from "@/assets/will_logo.asset.json";
 import { siteContentQuery } from "@/lib/catalog";
 
 export const Route = createFileRoute("/nosotros")({
   loader: async ({ context }) => {
-    const siteContent = await context.queryClient.fetchQuery(siteContentQuery());
+    const siteContent = await context.queryClient.ensureQueryData(siteContentQuery());
     return { siteContent };
   },
   head: ({ loaderData }: any) => {
     const siteContent = loaderData?.siteContent;
-    const title = siteContent?.seo_about_title || `Nosotros | ${siteContent?.site_title || "Will Design 3D"}`;
-    const desc = siteContent?.seo_about_description || siteContent?.about_short || "Somos Will Design 3D, un taller especializado en impresión 3D en Bogotá. Diseño, producción y asesoría.";
-    const image = siteContent?.seo_about_image || siteContent?.site_meta_thumbnail_url || "https://storage.googleapis.com/gpt-engineer-file-uploads/Hj8JfrWa2qQArO2BOXZdviQDjWA2/social-images/social-1783472807154-WILL_LOGO.webp";
+    const title = siteContent?.seo_about_title || siteContent?.site_title || "Nosotros — Will Design 3D";
+    const desc = siteContent?.seo_about_description || siteContent?.about_short || siteContent?.site_description || "";
+    const image = siteContent?.seo_about_image || siteContent?.site_meta_thumbnail_url || siteContent?.site_logo_url || "";
+
+    const metaTags: Array<Record<string, string>> = [
+      { title },
+      { name: "description", content: desc },
+      { property: "og:title", content: title },
+      { property: "og:description", content: desc },
+      { property: "og:url", content: "https://will-design-3d.lovable.app/nosotros" },
+    ];
+
+    if (image) {
+      metaTags.push(
+        { property: "og:image", content: image },
+        { name: "twitter:image", content: image }
+      );
+    }
 
     return {
-      meta: [
-        { title },
-        { name: "description", content: desc },
-        { property: "og:title", content: title },
-        { property: "og:description", content: desc },
-        { property: "og:image", content: image },
-        { name: "twitter:image", content: image },
-        { property: "og:url", content: "https://will-design-3d.lovable.app/nosotros" },
-      ],
+      meta: metaTags,
       links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/nosotros" }],
     };
   },
@@ -34,9 +40,10 @@ export const Route = createFileRoute("/nosotros")({
 
 function NosotrosPage() {
   const { data: content } = useQuery(siteContentQuery());
-  const about =
-    content?.about_short ||
-    "Nacimos en 2020 con una impresora prestada, muchas ganas y una pastora alemana que se robaba los rollos de filamento. Hoy seguimos aquí — con más máquinas, más experiencia y la misma perra al mando.";
+  const about = content?.about_short?.trim() || "";
+  const logoUrl = content?.site_logo_url?.trim();
+  const businessName = content?.site_business_name?.trim() || "Will Design 3D";
+
   return (
     <>
       <section className="border-b border-border bg-muted/30">
@@ -47,17 +54,21 @@ function NosotrosPage() {
               Un taller 3D con{" "}
               <span style={{ color: "var(--brand-orange)" }}>alma</span>
             </h1>
-            <p className="mt-4 max-w-2xl text-lg text-muted-foreground whitespace-pre-line">
-              {about}
-            </p>
+            {about && (
+              <p className="mt-4 max-w-2xl text-lg text-muted-foreground whitespace-pre-line">
+                {about}
+              </p>
+            )}
           </div>
-          <img
-            src={logoAsset.url}
-            alt="Will Design 3D"
-            width={160}
-            height={160}
-            className="hidden h-40 w-40 rounded-3xl object-cover shadow-lg md:block"
-          />
+          {logoUrl && (
+            <img
+              src={logoUrl}
+              alt={businessName}
+              width={160}
+              height={160}
+              className="hidden h-40 w-40 rounded-3xl object-cover shadow-lg md:block"
+            />
+          )}
         </div>
       </section>
 

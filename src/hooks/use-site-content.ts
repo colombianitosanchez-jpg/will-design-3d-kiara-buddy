@@ -13,7 +13,7 @@ export function useSiteContent() {
   const getText = useCallback(
     (key: string, fallback = "") => {
       const value = data[key]?.trim();
-      return value || fallback;
+      return value ?? fallback;
     },
     [data],
   );

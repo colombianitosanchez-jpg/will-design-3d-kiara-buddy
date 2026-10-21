@@ -2,34 +2,38 @@ import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Instagram, MessageCircle, MapPin } from "lucide-react";
 import { ShareButton } from "@/components/ShareButton";
-import logoAsset from "@/assets/will_logo.asset.json";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 
 export function SiteFooter() {
   const { data: content } = useQuery(siteContentQuery());
   const contact = getContactInfo(content);
+  const logoUrl = content?.site_logo_url?.trim();
+  const businessName = content?.site_business_name?.trim() || "Will Design 3D";
+  const footerDesc = content?.site_description?.trim() || "";
 
   return (
     <footer className="mt-16 border-t border-border bg-card">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-4">
         <div>
           <div className="flex items-center gap-3">
-            <img
-              src={logoAsset.url}
-              alt="Will Design 3D"
-              width={40}
-              height={40}
-              className="h-10 w-10 rounded-lg object-cover"
-            />
+            {logoUrl && (
+              <img
+                src={logoUrl}
+                alt={businessName}
+                width={40}
+                height={40}
+                className="h-10 w-10 rounded-lg object-cover"
+              />
+            )}
             <p className="text-base font-black">
-              Will Design{" "}
-              <span style={{ color: "var(--brand-orange)" }}>3D</span>
+              {businessName}
             </p>
           </div>
-          <p className="mt-3 text-sm text-muted-foreground">
-            Tu socio integral en impresión 3D en Colombia. Diseño, producción y
-            asesoría técnica.
-          </p>
+          {footerDesc && (
+            <p className="mt-3 text-sm text-muted-foreground">
+              {footerDesc}
+            </p>
+          )}
           <p className="mt-4 text-sm font-medium">
             Supervisado por Kiara <span aria-hidden>🐾</span>
           </p>

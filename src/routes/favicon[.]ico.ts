@@ -1,8 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-const DEFAULT_FAVICON_URL =
-  "https://storage.googleapis.com/gpt-engineer-file-uploads/Hj8JfrWa2qQArO2BOXZdviQDjWA2/social-images/social-1783472807154-WILL_LOGO.webp";
-
 function getEnv(key: string): string | undefined {
   if (typeof process !== "undefined" && process.env && process.env[key]) {
     return process.env[key];
@@ -13,23 +10,23 @@ function getEnv(key: string): string | undefined {
   return undefined;
 }
 
-async function getFaviconUrl(): Promise<string> {
+async function getFaviconUrl(): Promise<string | null> {
   const url = getEnv("VITE_SUPABASE_URL");
   const key = getEnv("VITE_SUPABASE_PUBLISHABLE_KEY");
-  if (!url || !key) return DEFAULT_FAVICON_URL;
+  if (!url || !key) return null;
   try {
     const res = await fetch(`${url}/rest/v1/site_content?key=eq.site_favicon_url&select=value`, {
       headers: { apikey: key, Authorization: `Bearer ${key}` },
     });
-    if (!res.ok) return DEFAULT_FAVICON_URL;
+    if (!res.ok) return null;
     const data = await res.json();
     if (Array.isArray(data) && data[0]?.value) {
-      return data[0].value.trim() || DEFAULT_FAVICON_URL;
+      return data[0].value.trim() || null;
     }
   } catch {
-    // fallback to default logo
+    // failure
   }
-  return DEFAULT_FAVICON_URL;
+  return null;
 }
 
 export const Route = createFileRoute("/favicon.ico")({
@@ -37,6 +34,9 @@ export const Route = createFileRoute("/favicon.ico")({
     handlers: {
       GET: async () => {
         const targetUrl = await getFaviconUrl();
+        if (!targetUrl) {
+          return new Response(null, { status: 404 });
+        }
 
         try {
           const imgRes = await fetch(targetUrl);

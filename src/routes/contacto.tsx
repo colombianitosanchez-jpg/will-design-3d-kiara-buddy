@@ -8,27 +8,34 @@ import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 
 export const Route = createFileRoute("/contacto")({
   loader: async ({ context }) => {
-    const siteContent = await context.queryClient.fetchQuery(siteContentQuery());
+    const siteContent = await context.queryClient.ensureQueryData(siteContentQuery());
     return { siteContent };
   },
   head: ({ loaderData }: any) => {
     const siteContent = loaderData?.siteContent;
-    const title = siteContent?.seo_contact_title || `Contacto | ${siteContent?.site_title || "Will Design 3D"}`;
-    const desc = siteContent?.seo_contact_description || "Contáctanos por WhatsApp, correo o Instagram para cotizar tu proyecto de impresión 3D en Bogotá.";
-    const image = siteContent?.seo_contact_image || siteContent?.site_meta_thumbnail_url || "https://storage.googleapis.com/gpt-engineer-file-uploads/Hj8JfrWa2qQArO2BOXZdviQDjWA2/social-images/social-1783472807154-WILL_LOGO.webp";
+    const title = siteContent?.seo_contact_title || siteContent?.site_title || "Contacto — Will Design 3D";
+    const desc = siteContent?.seo_contact_description || siteContent?.site_description || "";
+    const image = siteContent?.seo_contact_image || siteContent?.site_meta_thumbnail_url || siteContent?.site_logo_url || "";
     const businessName = siteContent?.site_business_name || "Will Design 3D";
-    const areaServed = siteContent?.site_area_served || "Bogotá, Colombia";
+    const areaServed = siteContent?.site_area_served || "";
+
+    const metaTags: Array<Record<string, string>> = [
+      { title },
+      { name: "description", content: desc },
+      { property: "og:title", content: title },
+      { property: "og:description", content: desc },
+      { property: "og:url", content: "https://will-design-3d.lovable.app/contacto" },
+    ];
+
+    if (image) {
+      metaTags.push(
+        { property: "og:image", content: image },
+        { name: "twitter:image", content: image }
+      );
+    }
 
     return {
-      meta: [
-        { title },
-        { name: "description", content: desc },
-        { property: "og:title", content: title },
-        { property: "og:description", content: desc },
-        { property: "og:image", content: image },
-        { name: "twitter:image", content: image },
-        { property: "og:url", content: "https://will-design-3d.lovable.app/contacto" },
-      ],
+      meta: metaTags,
       links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/contacto" }],
       scripts: [
         {
@@ -45,7 +52,6 @@ export const Route = createFileRoute("/contacto")({
               addressCountry: "CO",
             },
             areaServed: areaServed,
-            sameAs: ["https://www.instagram.com/will_design2020"],
           }),
         },
       ],

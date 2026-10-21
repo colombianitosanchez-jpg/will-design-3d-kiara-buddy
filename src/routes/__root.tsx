@@ -95,38 +95,45 @@ function ErrorComponent({ error, reset }: { error: unknown; reset: () => void })
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   loader: async ({ context }) => {
-    const siteContent = await context.queryClient.fetchQuery(siteContentQuery());
+    const siteContent = await context.queryClient.ensureQueryData(siteContentQuery());
     return { siteContent };
   },
   head: ({ loaderData }: any) => {
     const siteContent = loaderData?.siteContent;
-    const title = siteContent?.site_title || "Will Design 3D — Taller de Impresión 3D y Servicios en Bogotá";
-    const desc = siteContent?.site_description || "Taller de impresión 3D en Bogotá: diseño, prototipado, post-procesado, venta de equipos e insumos y mantenimiento técnico.";
-    const image = siteContent?.site_meta_thumbnail_url || "https://storage.googleapis.com/gpt-engineer-file-uploads/Hj8JfrWa2qQArO2BOXZdviQDjWA2/social-images/social-1783472807154-WILL_LOGO.webp";
+    const title = siteContent?.site_title || "Will Design 3D";
+    const desc = siteContent?.site_description || "";
+    const image = siteContent?.site_meta_thumbnail_url || siteContent?.site_logo_url || "";
     const favicon = siteContent?.site_favicon_url || "/favicon.ico";
     const businessName = siteContent?.site_business_name || "Will Design 3D";
-    const areaServed = siteContent?.site_area_served || "Bogotá, Colombia";
+    const areaServed = siteContent?.site_area_served || "";
+
+    const metaTags: Array<Record<string, string>> = [
+      { charSet: "utf-8" },
+      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { title },
+      { name: "description", content: desc },
+      { property: "og:title", content: title },
+      { property: "og:description", content: desc },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: title },
+      { name: "twitter:description", content: desc },
+    ];
+
+    if (image) {
+      metaTags.push(
+        { property: "og:image", content: image },
+        { name: "twitter:image", content: image }
+      );
+    }
 
     return {
-      meta: [
-        { charSet: "utf-8" },
-        { name: "viewport", content: "width=device-width, initial-scale=1" },
-        { title },
-        { name: "description", content: desc },
-        { property: "og:title", content: title },
-        { property: "og:description", content: desc },
-        { property: "og:type", content: "website" },
-        { name: "twitter:card", content: "summary_large_image" },
-        { name: "twitter:title", content: title },
-        { name: "twitter:description", content: desc },
-        { property: "og:image", content: image },
-        { name: "twitter:image", content: image },
-      ],
+      meta: metaTags,
       links: [
         { rel: "stylesheet", href: appCss },
-        { rel: "icon", href: "/favicon.ico" },
-        { rel: "shortcut icon", href: "/favicon.ico" },
-        { rel: "apple-touch-icon", href: "/favicon.ico" },
+        { rel: "icon", href: favicon },
+        { rel: "shortcut icon", href: favicon },
+        { rel: "apple-touch-icon", href: favicon },
       ],
       scripts: [
         {

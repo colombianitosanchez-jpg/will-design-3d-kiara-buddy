@@ -4,25 +4,32 @@ import { siteContentQuery } from "@/lib/catalog";
 
 export const Route = createFileRoute("/galeria")({
   loader: async ({ context }) => {
-    const siteContent = await context.queryClient.fetchQuery(siteContentQuery());
+    const siteContent = await context.queryClient.ensureQueryData(siteContentQuery());
     return { siteContent };
   },
   head: ({ loaderData }: any) => {
     const siteContent = loaderData?.siteContent;
-    const title = siteContent?.seo_gallery_title || `Portafolio y Galería 3D | ${siteContent?.site_title || "Will Design 3D"}`;
-    const desc = siteContent?.seo_gallery_description || "Portafolio en vivo y fotos del taller: piezas impresas en 3D, prototipos y acabados en Bogotá.";
-    const image = siteContent?.seo_gallery_image || siteContent?.site_meta_thumbnail_url || "https://storage.googleapis.com/gpt-engineer-file-uploads/Hj8JfrWa2qQArO2BOXZdviQDjWA2/social-images/social-1783472807154-WILL_LOGO.webp";
+    const title = siteContent?.seo_gallery_title || siteContent?.site_title || "Galería — Will Design 3D";
+    const desc = siteContent?.seo_gallery_description || siteContent?.site_description || "";
+    const image = siteContent?.seo_gallery_image || siteContent?.site_meta_thumbnail_url || siteContent?.site_logo_url || "";
+
+    const metaTags: Array<Record<string, string>> = [
+      { title },
+      { name: "description", content: desc },
+      { property: "og:title", content: title },
+      { property: "og:description", content: desc },
+      { property: "og:url", content: "https://will-design-3d.lovable.app/galeria" },
+    ];
+
+    if (image) {
+      metaTags.push(
+        { property: "og:image", content: image },
+        { name: "twitter:image", content: image }
+      );
+    }
 
     return {
-      meta: [
-        { title },
-        { name: "description", content: desc },
-        { property: "og:title", content: title },
-        { property: "og:description", content: desc },
-        { property: "og:image", content: image },
-        { name: "twitter:image", content: image },
-        { property: "og:url", content: "https://will-design-3d.lovable.app/galeria" },
-      ],
+      meta: metaTags,
       links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/galeria" }],
     };
   },

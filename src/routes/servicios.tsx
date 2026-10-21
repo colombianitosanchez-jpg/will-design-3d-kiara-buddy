@@ -16,7 +16,7 @@ import {
   FileUp,
 } from "lucide-react";
 import { KiaraTip } from "@/components/KiaraTip";
-import { siteContentQuery } from "@/lib/catalog";
+import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 import { quoterServicesQuery, formatCOP } from "@/lib/quoter";
 import { supabase } from "@/integrations/supabase/client";
 import { parseProductButtons } from "@/lib/product-buttons";
@@ -25,27 +25,34 @@ import { ProductButtons } from "@/components/ProductButtons";
 export const Route = createFileRoute("/servicios")({
   loader: async ({ context }) => {
     const [siteContent] = await Promise.all([
-      context.queryClient.fetchQuery(siteContentQuery()),
-      context.queryClient.prefetchQuery(siteServicesQuery()),
+      context.queryClient.ensureQueryData(siteContentQuery()),
+      context.queryClient.ensureQueryData(siteServicesQuery()),
     ]);
     return { siteContent };
   },
   head: ({ loaderData }: any) => {
     const siteContent = loaderData?.siteContent;
-    const title = siteContent?.seo_services_title || `Servicios de Impresión 3D | ${siteContent?.site_title || "Will Design 3D"}`;
-    const desc = siteContent?.seo_services_description || siteContent?.site_description || "Servicios profesionales de impresión 3D a pedido, diseño CAD, escaneo 3D, post-procesado y mantenimiento técnico en Bogotá.";
-    const image = siteContent?.seo_services_image || siteContent?.site_meta_thumbnail_url || "https://storage.googleapis.com/gpt-engineer-file-uploads/Hj8JfrWa2qQArO2BOXZdviQDjWA2/social-images/social-1783472807154-WILL_LOGO.webp";
+    const title = siteContent?.seo_services_title || siteContent?.site_title || "Servicios — Will Design 3D";
+    const desc = siteContent?.seo_services_description || siteContent?.site_description || "";
+    const image = siteContent?.seo_services_image || siteContent?.site_meta_thumbnail_url || siteContent?.site_logo_url || "";
+
+    const metaTags: Array<Record<string, string>> = [
+      { title },
+      { name: "description", content: desc },
+      { property: "og:title", content: title },
+      { property: "og:description", content: desc },
+      { property: "og:url", content: "https://will-design-3d.lovable.app/servicios" },
+    ];
+
+    if (image) {
+      metaTags.push(
+        { property: "og:image", content: image },
+        { name: "twitter:image", content: image }
+      );
+    }
 
     return {
-      meta: [
-        { title },
-        { name: "description", content: desc },
-        { property: "og:title", content: title },
-        { property: "og:description", content: desc },
-        { property: "og:image", content: image },
-        { name: "twitter:image", content: image },
-        { property: "og:url", content: "https://will-design-3d.lovable.app/servicios" },
-      ],
+      meta: metaTags,
       links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/servicios" }],
     };
   },
@@ -87,8 +94,13 @@ const iconMap: Record<string, any> = {
 };
 
 function ServiciosPage() {
+  const { data: siteContent } = useQuery(siteContentQuery());
   const { data: dbServices } = useQuery(siteServicesQuery());
   const { data: quoterServices } = useQuery(quoterServicesQuery());
+  const contact = getContactInfo(siteContent);
+
+  const servicesHeaderTitle = siteContent?.services_page_title || "Un servicio integral de impresión 3D";
+  const servicesHeaderDesc = siteContent?.services_page_description || "";
 
   const quoterFor = (idOrSlug: string, quoterId?: string | null) => {
     if (quoterId) {
@@ -123,15 +135,16 @@ function ServiciosPage() {
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20">
           <span className="chip-teal">Servicios</span>
           <h1 className="mt-3 text-4xl font-black sm:text-5xl md:text-6xl">
-            Un servicio integral de{" "}
-            <span style={{ color: "var(--brand-orange)" }}>impresión 3D</span>
+            {servicesHeaderTitle}
           </h1>
-          <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-            Diseño, producción, acabados y soporte técnico bajo un mismo techo en Bogotá.
-          </p>
+          {servicesHeaderDesc && (
+            <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
+              {servicesHeaderDesc}
+            </p>
+          )}
           <ShareButton
-            title="Servicios de Impresión 3D — Will Design 3D"
-            text="Mira los servicios de impresión 3D de Will Design 3D"
+            title={`Servicios — ${siteContent?.site_business_name || "Will Design 3D"}`}
+            text="Mira nuestros servicios"
             url="https://will-design-3d.lovable.app/servicios"
             label="Compartir"
             className="mt-4 gap-2 text-muted-foreground"
@@ -215,10 +228,10 @@ function ServiciosPage() {
                       );
                     }
                     const customMsg = s.whatsapp_template || q?.whatsapp_custom_message ||
-                      `Hola Will Design 3D! Me interesa solicitar información y cotización sobre el servicio: *${s.title}*\n\n📌 https://willdesign3d.com/servicios#${s.id}`;
+                      `Hola ${siteContent?.site_business_name || "Will Design 3D"}! Me interesa solicitar información y cotización sobre el servicio: *${s.title}*`;
                     return (
                       <a
-                        href={`https://wa.me/573156724474?text=${encodeURIComponent(customMsg)}`}
+                        href={waLink(contact.whatsapp, customMsg)}
                         target="_blank"
                         rel="noreferrer"
                         className="btn-primary mt-6 text-sm inline-flex items-center gap-2"
