@@ -20,7 +20,9 @@ import { AuthProvider } from "../hooks/use-auth";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { CartProvider } from "../lib/cart";
 import { useQuery } from "@tanstack/react-query";
-import { siteContentQuery } from "../lib/catalog";
+import { siteContentQuery, categoriesQuery } from "../lib/catalog";
+import { siteServicesQuery } from "./servicios";
+import { menuItemsQuery } from "../lib/menu";
 import { getActiveTheme, applyThemeToDocument } from "../lib/theme";
 
 function ThemeApplier() {
@@ -95,7 +97,12 @@ function ErrorComponent({ error, reset }: { error: unknown; reset: () => void })
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   loader: async ({ context }) => {
-    const siteContent = await context.queryClient.ensureQueryData(siteContentQuery());
+    const [siteContent] = await Promise.all([
+      context.queryClient.ensureQueryData(siteContentQuery()),
+      context.queryClient.ensureQueryData(menuItemsQuery()),
+      context.queryClient.ensureQueryData(categoriesQuery()),
+      context.queryClient.ensureQueryData(siteServicesQuery()),
+    ]);
     return { siteContent };
   },
   head: ({ loaderData }: any) => {
