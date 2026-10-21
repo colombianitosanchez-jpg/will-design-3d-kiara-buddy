@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Plus, Save, Trash2, X, BookOpen } from "lucide-react";
+import { Loader2, Plus, Save, Trash2, X, BookOpen, Bot, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/panel/conocimiento")({
   ssr: false,
@@ -42,6 +42,15 @@ const CATEGORY_LABEL: Record<Category, string> = {
 };
 
 function KnowledgeAdmin() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      navigate({ to: "/panel/kiara" });
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [navigate]);
+
   const [rows, setRows] = useState<KbRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState<string | null>(null);
@@ -106,6 +115,24 @@ function KnowledgeAdmin() {
 
   return (
     <>
+      <div className="mb-6 rounded-2xl border-2 border-primary/40 bg-primary/10 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Bot className="h-6 w-6 text-primary" />
+            <div>
+              <p className="font-bold text-sm">Esta sección se ha movido a la Base de Conocimiento en /panel/kiara</p>
+              <p className="text-xs text-muted-foreground">Redirigiendo automáticamente a /panel/kiara...</p>
+            </div>
+          </div>
+          <Link
+            to="/panel/kiara"
+            className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:opacity-90"
+          >
+            Ir a /panel/kiara <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-black">Base de Conocimiento</h1>

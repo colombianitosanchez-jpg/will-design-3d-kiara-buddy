@@ -86,7 +86,9 @@ const FIELDS: FieldDef[] = [
   { key: "whatsapp_quote_template", label: "Plantilla del mensaje de WhatsApp para Cotizaciones", type: "textarea", help: "Admite variables: {{servicio}}, {{cliente}}, {{email}}, {{telefono}}, {{resumen}}, {{total}}, {{notas}}, {{media_link}}", section: "Contacto", group: "Canales" },
 
   // ----------------------------------------------------------------- Kiara
+  // DEPRECATED: movido a /panel/kiara
   { key: "kiara_message", label: "Mensaje de Kiara (widget)", type: "textarea", section: "Kiara", group: "Asistente" },
+  // DEPRECATED: movido a /panel/kiara
   { key: "kiara_image_url", label: "Foto de Kiara", type: "image", help: "Se usa en widget y página Nosotros.", section: "Kiara", group: "Asistente" },
 
   // ------------------------------------------------------------ Marca y SEO Global

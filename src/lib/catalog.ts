@@ -30,6 +30,7 @@ export type AttributeValue = {
   slug: string;
   label: string;
   color_hex: string | null;
+  image_url?: string | null;
   sort_order: number;
 };
 
