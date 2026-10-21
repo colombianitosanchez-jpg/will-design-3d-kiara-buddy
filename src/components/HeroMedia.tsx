@@ -17,6 +17,7 @@ export function HeroMedia({ fallbackImage }: { fallbackImage?: string }) {
   });
   const slides = data ?? [];
   const [api, setApi] = useState<CarouselApi>();
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const pausedRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -39,6 +40,12 @@ export function HeroMedia({ fallbackImage }: { fallbackImage?: string }) {
 
   useEffect(() => {
     if (!api) return;
+
+    const onSelect = () => {
+      setSelectedIndex(api.selectedScrollSnap());
+      schedule();
+    };
+
     const onPointerDown = () => {
       pausedRef.current = true;
       clear();
@@ -47,14 +54,15 @@ export function HeroMedia({ fallbackImage }: { fallbackImage?: string }) {
       pausedRef.current = false;
       schedule();
     };
-    api.on("select", schedule);
-    api.on("reInit", schedule);
+
+    api.on("select", onSelect);
+    api.on("reInit", onSelect);
     api.on("pointerDown", onPointerDown);
     api.on("pointerUp", onPointerUp);
     schedule();
     return () => {
-      api.off("select", schedule);
-      api.off("reInit", schedule);
+      api.off("select", onSelect);
+      api.off("reInit", onSelect);
       api.off("pointerDown", onPointerDown);
       api.off("pointerUp", onPointerUp);
       clear();
@@ -90,19 +98,34 @@ export function HeroMedia({ fallbackImage }: { fallbackImage?: string }) {
       }}
     >
       <CarouselContent className="ml-0">
-        {slides.map((item) => {
+        {slides.map((item, index) => {
+          const isActive = index === selectedIndex;
+          const isFirst = index === 0;
+
           const media =
             item.media_type === "video" ? (
               <video
                 src={item.media_url}
-                autoPlay
+                poster={fallbackImage}
+                preload="metadata"
+                autoPlay={isActive}
                 loop
                 muted
                 playsInline
+                width={1600}
+                height={1000}
                 className={MEDIA_CLASS}
               />
             ) : (
-              <img src={item.media_url} alt="Slide" className={MEDIA_CLASS} />
+              <img
+                src={item.media_url}
+                alt={`Slide ${index + 1}`}
+                width={1600}
+                height={1000}
+                loading={isFirst ? "eager" : "lazy"}
+                {...(isFirst ? { fetchPriority: "high" as const } : {})}
+                className={MEDIA_CLASS}
+              />
             );
           return (
             <CarouselItem key={item.id} className="pl-0">

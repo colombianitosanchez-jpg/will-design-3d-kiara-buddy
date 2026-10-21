@@ -74,5 +74,15 @@ export function ProductMedia({
     );
   }
 
-  return <img src={src} alt={alt} className={className} loading="lazy" decoding="async" />;
+  return (
+    <img
+      src={src}
+      alt={alt}
+      width={800}
+      height={600}
+      className={className}
+      loading="lazy"
+      decoding="async"
+    />
+  );
 }
