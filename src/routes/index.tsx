@@ -165,6 +165,10 @@ function Hero() {
 function Services() {
   const ref = useScrollReveal<HTMLElement>();
   const { data: dbServices } = useQuery(siteServicesQuery());
+  const { getText } = useSiteContent();
+
+  const servicesTitle = getText("services_section_title", "Nuestros servicios");
+  const servicesSubtitle = getText("services_section_subtitle", "");
 
   const colorFor = (a: string) =>
     a === "orange"
@@ -183,19 +187,20 @@ function Services() {
       }))
     : [];
 
+  if (list.length === 0) return null;
+
   return (
     <section ref={ref} id="servicios" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
       <div className="mx-auto max-w-2xl text-center">
         <span className="chip-teal">Nuestros servicios</span>
         <h2 className="mt-3 text-3xl font-black sm:text-4xl md:text-5xl">
-          Todo lo que necesitas para{" "}
-          <span style={{ color: "var(--brand-orange)" }}>materializar</span> tu
-          idea
+          {servicesTitle}
         </h2>
-        <p className="mt-3 text-muted-foreground">
-          Desde el modelado inicial hasta el acabado final — un servicio integral
-          para creadores, empresas y makers.
-        </p>
+        {servicesSubtitle && (
+          <p className="mt-3 text-muted-foreground">
+            {servicesSubtitle}
+          </p>
+        )}
       </div>
 
       <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
