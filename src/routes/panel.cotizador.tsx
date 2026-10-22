@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -20,7 +20,8 @@ import {
   type QuotingVars,
   type CustomQuotingVar,
 } from "@/lib/quoting-vars";
-import { FormulaEditor, type FormulaVarTag } from "@/components/FormulaEditor";
+import { calcQuote, DEFAULT_RULES, type PricingRules } from "@/lib/pricing";
+import { FormulaEditor } from "@/components/FormulaEditor";
 import {
   Loader2,
   Plus,
@@ -32,11 +33,18 @@ import {
   EyeOff,
   Calculator,
   GripVertical,
-  Sparkles,
   Sliders,
   DollarSign,
-  Info,
+  FileText,
+  Boxes,
+  Check,
 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   DndContext,
   closestCenter,
@@ -59,11 +67,11 @@ export const Route = createFileRoute("/panel/cotizador")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Cotizador · Panel Will Design 3D" },
+      { title: "Cotizador Unificado · Panel Will Design 3D" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
-  component: QuoterAdmin,
+  component: QuoterUnifiedAdmin,
 });
 
 const inputCls =
@@ -105,7 +113,63 @@ function slugify(s: string) {
     .replace(/(^-|-$)/g, "");
 }
 
-function QuoterAdmin() {
+function QuoterUnifiedAdmin() {
+  const [activeTab, setActiveTab] = useState("servicios");
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-black flex items-center gap-2">
+            <Calculator className="h-8 w-8 text-[var(--brand-orange)]" />
+            Cotizador Unificado
+          </h1>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            Gestión completa de servicios cotizables, variables dinámicas globales, reglas de precios base y textos públicos del cotizador.
+          </p>
+        </div>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="flex h-auto w-full flex-wrap justify-start border-b border-border bg-transparent p-0">
+          <TabsTrigger value="servicios" className="flex items-center gap-2 py-2.5">
+            <Boxes className="h-4 w-4" /> Servicios Cotizables
+          </TabsTrigger>
+          <TabsTrigger value="variables" className="flex items-center gap-2 py-2.5">
+            <Sliders className="h-4 w-4" /> Variables Globales
+          </TabsTrigger>
+          <TabsTrigger value="reglas" className="flex items-center gap-2 py-2.5">
+            <DollarSign className="h-4 w-4" /> Reglas de Precios Base
+          </TabsTrigger>
+          <TabsTrigger value="textos" className="flex items-center gap-2 py-2.5">
+            <FileText className="h-4 w-4" /> Textos y Plantillas
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="servicios" className="mt-6">
+          <TabServiciosCotizables />
+        </TabsContent>
+
+        <TabsContent value="variables" className="mt-6">
+          <TabVariablesGlobales />
+        </TabsContent>
+
+        <TabsContent value="reglas" className="mt-6">
+          <TabReglasPreciosBase />
+        </TabsContent>
+
+        <TabsContent value="textos" className="mt-6">
+          <TabTextosPlantillas />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+// =============================================================================
+// TAB 1: SERVICIOS COTIZABLES
+// =============================================================================
+function TabServiciosCotizables() {
   const qc = useQueryClient();
   const { data: services, isLoading } = useQuery(quoterServicesQuery(true));
   const { data: qVars } = useQuery(quotingVarsQuery());
@@ -151,31 +215,29 @@ function QuoterAdmin() {
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground p-8">
-        <Loader2 className="h-4 w-4 animate-spin" /> Cargando cotizador…
+        <Loader2 className="h-4 w-4 animate-spin" /> Cargando servicios…
       </div>
     );
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-black">Cotizador Independiente & Variables</h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Configura las reglas de cálculo, variables globales, fórmulas encadenadas y visibilidad de desglose para cada servicio público o para Kiara.
+          <h2 className="text-xl font-bold">Servicios y Preguntas del Cotizador</h2>
+          <p className="text-xs text-muted-foreground">
+            Configura los servicios que el cliente puede cotizar online y sus campos de entrada.
           </p>
         </div>
-        <button
+        <Button
           onClick={addService}
-          className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-wine)] px-5 py-2.5 text-sm font-bold text-white shadow hover:opacity-90"
+          className="bg-[var(--brand-wine)] hover:opacity-90 text-white font-bold rounded-full"
         >
-          <Plus className="h-4 w-4" /> Nuevo servicio
-        </button>
+          <Plus className="mr-2 h-4 w-4" /> Nuevo Servicio
+        </Button>
       </div>
 
       {msg && <p className="text-xs font-semibold text-primary">{msg}</p>}
-
-      <GlobalVarsCard onMsg={setMsg} />
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleServiceDragEnd}>
         <SortableContext items={(services ?? []).map((s) => s.id)} strategy={verticalListSortingStrategy}>
@@ -203,8 +265,10 @@ function QuoterAdmin() {
   );
 }
 
-/** Variables globales que alimentan los precios y cálculos. Permite CRUD completo de variables personalizadas y fórmulas encadenadas. */
-function GlobalVarsCard({ onMsg }: { onMsg: (m: string) => void }) {
+// =============================================================================
+// TAB 2: VARIABLES GLOBALES
+// =============================================================================
+function TabVariablesGlobales() {
   const qc = useQueryClient();
   const { data } = useQuery(quotingVarsQuery());
   const [draft, setDraft] = useState<QuotingVars>(DEFAULT_QUOTING_VARS);
@@ -216,16 +280,16 @@ function GlobalVarsCard({ onMsg }: { onMsg: (m: string) => void }) {
 
   async function save() {
     if (!data?.id) {
-      onMsg("Error: no encontramos la fila de ajustes de variables.");
+      alert("Error: no encontramos la fila de ajustes de variables.");
       return;
     }
     setSaving(true);
     try {
       await saveQuotingVars(data.id, draft);
-      onMsg("Variables globales guardadas con éxito.");
+      alert("Variables globales guardadas con éxito.");
       void qc.invalidateQueries({ queryKey: ["admin_settings", "quoting_vars"] });
     } catch (err) {
-      onMsg(`Error al guardar variables: ${(err as Error).message}`);
+      alert(`Error al guardar variables: ${(err as Error).message}`);
     } finally {
       setSaving(false);
     }
@@ -261,167 +325,532 @@ function GlobalVarsCard({ onMsg }: { onMsg: (m: string) => void }) {
   }
 
   return (
-    <div className="rounded-3xl border border-border bg-card p-5 space-y-4 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <h2 className="text-lg font-black flex items-center gap-2">
-            <Sliders className="h-5 w-5 text-primary" /> Variables Globales Dinámicas del Taller
-          </h2>
-          <p className="mt-1 max-w-3xl text-xs text-muted-foreground">
-            Todas las variables son 100% editables: puedes ajustar etiqueta, unidad, valor por defecto, descripción, fórmulas encadenadas y si se muestra en el desglose final para el cliente.
-          </p>
+          <CardTitle>Variables Globales Dinámicas del Taller</CardTitle>
+          <CardDescription className="max-w-3xl">
+            Variables compartidas entre servicios para cálculos de costos y fórmulas.
+          </CardDescription>
+        </div>
+        <Button variant="outline" size="sm" onClick={handleAddCustomVar} className="rounded-full font-bold">
+          <Plus className="mr-2 h-4 w-4" /> Agregar Variable
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-3">
+          {(draft.custom_vars || []).map((v, idx) => (
+            <div
+              key={v.key || idx}
+              className="grid gap-3 sm:grid-cols-12 items-start rounded-2xl border border-border bg-muted/20 p-3"
+            >
+              <div className="sm:col-span-3">
+                <L label="Clave">
+                  <input
+                    value={v.key}
+                    onChange={(e) => {
+                      const clean = slugify(e.target.value).replace(/-/g, "_");
+                      const next = [...draft.custom_vars];
+                      next[idx] = { ...v, key: clean };
+                      setDraft({ ...draft, custom_vars: next });
+                    }}
+                    className={inputCls}
+                  />
+                </L>
+              </div>
+
+              <div className="sm:col-span-3">
+                <L label="Etiqueta visible">
+                  <input
+                    value={v.label}
+                    onChange={(e) => {
+                      const next = [...draft.custom_vars];
+                      next[idx] = { ...v, label: e.target.value };
+                      setDraft({ ...draft, custom_vars: next });
+                    }}
+                    className={inputCls}
+                  />
+                </L>
+              </div>
+
+              <div className="sm:col-span-2">
+                <L label="Valor Base">
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={v.value}
+                    onChange={(e) => {
+                      const next = [...draft.custom_vars];
+                      const numVal = Number(e.target.value) || 0;
+                      next[idx] = { ...v, value: numVal };
+                      setDraft({ ...draft, custom_vars: next });
+                    }}
+                    className={inputCls}
+                  />
+                </L>
+              </div>
+
+              <div className="sm:col-span-2">
+                <L label="Unidad">
+                  <input
+                    value={v.unit || ""}
+                    onChange={(e) => {
+                      const next = [...draft.custom_vars];
+                      next[idx] = { ...v, unit: e.target.value };
+                      setDraft({ ...draft, custom_vars: next });
+                    }}
+                    placeholder="COP, %, g"
+                    className={inputCls}
+                  />
+                </L>
+              </div>
+
+              <div className="sm:col-span-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => handleDeleteCustomVar(v.key)}
+                  className="rounded-lg p-2 text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                  title="Eliminar variable"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="sm:col-span-12">
+                <FormulaEditor
+                  value={v.formula || ""}
+                  onChange={(fVal) => {
+                    const next = [...draft.custom_vars];
+                    next[idx] = { ...v, formula: fVal };
+                    setDraft({ ...draft, custom_vars: next });
+                  }}
+                  label={`Fórmula para "${v.label || v.key}" (Opcional)`}
+                  placeholder="ej: (precio_bobina / peso_bobina) * 1.05"
+                  availableVars={draft.custom_vars
+                    .filter((cv) => cv.key !== v.key)
+                    .map((cv) => ({ key: cv.key, label: cv.label || cv.key }))}
+                />
+              </div>
+
+              <div className="sm:col-span-12 flex flex-wrap items-center gap-4 text-xs">
+                <label className="inline-flex items-center gap-1.5 font-semibold cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={v.show_in_breakdown}
+                    onChange={(e) => {
+                      const next = [...draft.custom_vars];
+                      next[idx] = { ...v, show_in_breakdown: e.target.checked };
+                      setDraft({ ...draft, custom_vars: next });
+                    }}
+                    className="h-4 w-4 rounded accent-primary"
+                  />
+                  Mostrar en desglose al cliente
+                </label>
+
+                <input
+                  value={v.help || ""}
+                  onChange={(e) => {
+                    const next = [...draft.custom_vars];
+                    next[idx] = { ...v, help: e.target.value };
+                    setDraft({ ...draft, custom_vars: next });
+                  }}
+                  placeholder="Descripción o nota interna..."
+                  className="flex-1 rounded-lg border border-input bg-background px-2 py-1 text-xs"
+                />
+              </div>
+            </div>
+          ))}
+
+          {(draft.custom_vars || []).length === 0 && (
+            <p className="text-xs text-muted-foreground">No hay variables globales configuradas.</p>
+          )}
         </div>
 
-        <button
-          type="button"
-          onClick={handleAddCustomVar}
-          className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 px-4 py-1.5 text-xs font-bold hover:bg-primary/20"
+        <Button
+          onClick={save}
+          disabled={saving}
+          className="bg-[var(--brand-wine)] text-white font-bold rounded-full"
         >
-          <Plus className="h-4 w-4" /> Agregar Variable Global
-        </button>
+          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+          Guardar variables globales
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+// =============================================================================
+// TAB 3: REGLAS DE PRECIOS BASE (Desde panel.cotizaciones.tsx)
+// =============================================================================
+type PricingRow = PricingRules & { id: string };
+
+function TabReglasPreciosBase() {
+  const [rules, setRules] = useState<PricingRow | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [test, setTest] = useState({ grams: 120, hours: 4, material: "PLA", finish: "Basico", quantity: 1 });
+
+  async function load() {
+    setLoading(true);
+    const { data } = await supabase
+      .from("pricing_rules")
+      .select("*")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (data) {
+      setRules({
+        id: data.id,
+        name: data.name,
+        base_price_per_gram_cop: Number(data.base_price_per_gram_cop),
+        machine_hour_cop: Number(data.machine_hour_cop),
+        setup_fee_cop: Number(data.setup_fee_cop),
+        margin_percent: Number(data.margin_percent),
+        min_price_cop: Number(data.min_price_cop),
+        material_multipliers: (data.material_multipliers as Record<string, number>) ?? {},
+        finish_multipliers: (data.finish_multipliers as Record<string, number>) ?? {},
+        is_active: data.is_active,
+      });
+    } else {
+      const ins = await supabase
+        .from("pricing_rules")
+        .insert({ ...DEFAULT_RULES, is_active: true })
+        .select("id")
+        .single();
+      if (ins.data) setRules({ ...DEFAULT_RULES, id: ins.data.id, is_active: true });
+    }
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const preview = useMemo(
+    () => (rules ? calcQuote(rules, test) : null),
+    [rules, test],
+  );
+
+  async function save() {
+    if (!rules) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("pricing_rules")
+      .update({
+        name: rules.name,
+        base_price_per_gram_cop: rules.base_price_per_gram_cop,
+        machine_hour_cop: rules.machine_hour_cop,
+        setup_fee_cop: rules.setup_fee_cop,
+        margin_percent: rules.margin_percent,
+        min_price_cop: rules.min_price_cop,
+        material_multipliers: rules.material_multipliers,
+        finish_multipliers: rules.finish_multipliers,
+        is_active: rules.is_active ?? true,
+      })
+      .eq("id", rules.id);
+    setSaving(false);
+    if (error) alert("Error: " + error.message);
+    else alert("Reglas de precios guardadas.");
+  }
+
+  function setNum(key: keyof PricingRules, value: string) {
+    setRules((r) => (r ? { ...r, [key]: Number(value) || 0 } : r));
+  }
+
+  function setMult(field: "material_multipliers" | "finish_multipliers", key: string, value: string) {
+    setRules((r) => (r ? { ...r, [field]: { ...r[field], [key]: Number(value) || 0 } } : r));
+  }
+
+  function addMult(field: "material_multipliers" | "finish_multipliers") {
+    const name = window.prompt(field === "material_multipliers" ? "Nombre del material" : "Nombre del acabado");
+    if (!name?.trim()) return;
+    setRules((r) => (r ? { ...r, [field]: { ...r[field], [name.trim()]: 1 } } : r));
+  }
+
+  function removeMult(field: "material_multipliers" | "finish_multipliers", key: string) {
+    setRules((r) => {
+      if (!r) return r;
+      const next = { ...r[field] };
+      delete next[key];
+      return { ...r, [field]: next };
+    });
+  }
+
+  if (loading || !rules) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-muted-foreground p-8">
+        <Loader2 className="h-4 w-4 animate-spin" /> Cargando reglas de precios…
       </div>
+    );
+  }
 
-      <div className="space-y-3 pt-2">
-        {(draft.custom_vars || []).map((v, idx) => (
-          <div
-            key={v.key || idx}
-            className="grid gap-3 sm:grid-cols-12 items-start rounded-2xl border border-border bg-muted/20 p-3"
-          >
-            <div className="sm:col-span-3">
-              <L label="Identificador (Clave)">
-                <input
-                  value={v.key}
-                  onChange={(e) => {
-                    const clean = slugify(e.target.value).replace(/-/g, "_");
-                    const next = [...draft.custom_vars];
-                    next[idx] = { ...v, key: clean };
-                    setDraft({ ...draft, custom_vars: next });
-                  }}
-                  className={inputCls}
-                />
-              </L>
+  const numFields: [keyof PricingRules, string, string][] = [
+    ["base_price_per_gram_cop", "Precio por gramo (COP)", "Costo base del material por gramo."],
+    ["machine_hour_cop", "Hora de máquina (COP)", "Cuánto cobras por cada hora de impresión."],
+    ["setup_fee_cop", "Costo de preparación (COP)", "Valor fijo por preparar el archivo y la máquina."],
+    ["margin_percent", "Margen de ganancia (%)", "Porcentaje que se suma al costo."],
+    ["min_price_cop", "Precio mínimo (COP)", "Ninguna cotización quedará por debajo de este valor."],
+  ];
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Valores Base de Precios</CardTitle>
+            <CardDescription>
+              Valores globales por defecto para cálculos directos de impresión.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {numFields.map(([key, label, help]) => (
+                <label key={key} className="block">
+                  <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                    {label}
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={String(rules[key] ?? 0)}
+                    onChange={(e) => setNum(key, e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <span className="mt-1 block text-[11px] text-muted-foreground">{help}</span>
+                </label>
+              ))}
             </div>
+          </CardContent>
+        </Card>
 
-            <div className="sm:col-span-3">
-              <L label="Etiqueta visible">
-                <input
-                  value={v.label}
-                  onChange={(e) => {
-                    const next = [...draft.custom_vars];
-                    next[idx] = { ...v, label: e.target.value };
-                    setDraft({ ...draft, custom_vars: next });
-                  }}
-                  className={inputCls}
-                />
-              </L>
-            </div>
-
-            <div className="sm:col-span-2">
-              <L label="Valor Base">
-                <input
-                  type="number"
-                  step="0.01"
-                  value={v.value}
-                  onChange={(e) => {
-                    const next = [...draft.custom_vars];
-                    const numVal = Number(e.target.value) || 0;
-                    next[idx] = { ...v, value: numVal };
-                    setDraft({ ...draft, custom_vars: next });
-                  }}
-                  className={inputCls}
-                />
-              </L>
-            </div>
-
-            <div className="sm:col-span-2">
-              <L label="Unidad (COP, %, g...)">
-                <input
-                  value={v.unit || ""}
-                  onChange={(e) => {
-                    const next = [...draft.custom_vars];
-                    next[idx] = { ...v, unit: e.target.value };
-                    setDraft({ ...draft, custom_vars: next });
-                  }}
-                  placeholder="COP, %, g"
-                  className={inputCls}
-                />
-              </L>
-            </div>
-
-            <div className="sm:col-span-2 flex justify-end">
-              <button
-                type="button"
-                onClick={() => handleDeleteCustomVar(v.key)}
-                className="rounded-lg p-2 text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
-                title="Eliminar variable"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="sm:col-span-12">
-              <FormulaEditor
-                value={v.formula || ""}
-                onChange={(fVal) => {
-                  const next = [...draft.custom_vars];
-                  next[idx] = { ...v, formula: fVal };
-                  setDraft({ ...draft, custom_vars: next });
-                }}
-                label={`Fórmula para "${v.label || v.key}" (Opcional)`}
-                placeholder="ej: (precio_bobina / peso_bobina) * 1.05"
-                availableVars={draft.custom_vars
-                  .filter((cv) => cv.key !== v.key)
-                  .map((cv) => ({ key: cv.key, label: cv.label || cv.key }))}
-              />
-            </div>
-
-            <div className="sm:col-span-12 flex flex-wrap items-center gap-4 text-xs">
-              <label className="inline-flex items-center gap-1.5 font-semibold cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={v.show_in_breakdown}
-                  onChange={(e) => {
-                    const next = [...draft.custom_vars];
-                    next[idx] = { ...v, show_in_breakdown: e.target.checked };
-                    setDraft({ ...draft, custom_vars: next });
-                  }}
-                  className="h-4 w-4 rounded accent-primary"
-                />
-                Mostrar en desglose al cliente
-              </label>
-
-              <input
-                value={v.help || ""}
-                onChange={(e) => {
-                  const next = [...draft.custom_vars];
-                  next[idx] = { ...v, help: e.target.value };
-                  setDraft({ ...draft, custom_vars: next });
-                }}
-                placeholder="Descripción o nota interna..."
-                className="flex-1 rounded-lg border border-input bg-background px-2 py-1 text-xs"
-              />
-            </div>
-          </div>
+        {(
+          [
+            ["material_multipliers", "Multiplicadores por material"],
+            ["finish_multipliers", "Multiplicadores por acabado"],
+          ] as const
+        ).map(([field, title]) => (
+          <Card key={field}>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>{title}</CardTitle>
+              <Button size="sm" variant="outline" onClick={() => addMult(field)} className="rounded-full font-bold">
+                <Plus className="mr-1 h-3.5 w-3.5" /> Agregar
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {Object.entries(rules[field]).map(([key, val]) => (
+                  <div key={key} className="flex items-center gap-2">
+                    <span className="flex-1 text-sm font-semibold">{key}</span>
+                    <input
+                      type="number"
+                      step="0.05"
+                      min={0}
+                      value={String(val)}
+                      onChange={(e) => setMult(field, key, e.target.value)}
+                      className="w-24 rounded-lg border border-input bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+                    />
+                    <button
+                      onClick={() => removeMult(field, key)}
+                      className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-red-600"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         ))}
 
-        {(draft.custom_vars || []).length === 0 && (
-          <p className="text-xs text-muted-foreground">No hay variables globales configuradas.</p>
-        )}
+        <Button onClick={save} disabled={saving} className="bg-[var(--brand-wine)] text-white font-bold rounded-full">
+          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+          Guardar Reglas de Precios
+        </Button>
       </div>
 
-      <button
-        onClick={save}
-        disabled={saving}
-        className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-wine)] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60 shadow"
-      >
-        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-        Guardar variables globales
-      </button>
+      <aside className="h-fit rounded-3xl border border-border bg-card p-5 lg:sticky lg:top-6">
+        <h2 className="flex items-center gap-2 text-lg font-bold">
+          <Calculator className="h-5 w-5 text-[var(--brand-orange)]" /> Simulador de Reglas
+        </h2>
+        <div className="mt-4 space-y-3">
+          <label className="block">
+            <span className="text-xs font-bold uppercase text-muted-foreground">Gramos</span>
+            <input
+              type="number"
+              min={0}
+              value={test.grams}
+              onChange={(e) => setTest((t) => ({ ...t, grams: Number(e.target.value) || 0 }))}
+              className={inputCls}
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs font-bold uppercase text-muted-foreground">Horas</span>
+            <input
+              type="number"
+              min={0}
+              step="0.5"
+              value={test.hours}
+              onChange={(e) => setTest((t) => ({ ...t, hours: Number(e.target.value) || 0 }))}
+              className={inputCls}
+            />
+          </label>
+        </div>
+
+        {preview && (
+          <div className="mt-4 space-y-1 border-t border-dashed border-border pt-3 text-xs">
+            <div className="flex justify-between border-t border-border pt-2 text-base font-black">
+              <span>Total Estimado</span>
+              <span>{formatCOP(preview.total_cop)}</span>
+            </div>
+          </div>
+        )}
+      </aside>
     </div>
   );
 }
 
+// =============================================================================
+// TAB 4: TEXTOS Y PLANTILLAS DEL COTIZADOR
+// =============================================================================
+function TabTextosPlantillas() {
+  const queryClient = useQueryClient();
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
+  const keys = [
+    "quoter_badge",
+    "quoter_title",
+    "quoter_subtitle",
+    "quoter_service_label",
+    "quoter_disclaimer",
+    "whatsapp_quote_template",
+  ];
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      const { data } = await supabase
+        .from("site_content")
+        .select("key, value")
+        .in("key", keys);
+      const map: Record<string, string> = {};
+      ((data ?? []) as { key: string; value: string }[]).forEach((r) => (map[r.key] = r.value ?? ""));
+      setValues(map);
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const rows = keys.map((k) => ({
+        key: k,
+        value: values[k] ?? "",
+        section: "Cotizadores",
+      }));
+      const { error } = await supabase.from("site_content").upsert(rows, { onConflict: "key" });
+      if (error) throw error;
+      await queryClient.invalidateQueries({ queryKey: ["site_content"] });
+      alert("Textos del cotizador guardados correctamente.");
+    } catch (e) {
+      alert("Error al guardar: " + (e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-muted-foreground p-8">
+        <Loader2 className="h-4 w-4 animate-spin" /> Cargando textos del cotizador…
+      </div>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Textos Públicos y Plantilla de WhatsApp</CardTitle>
+        <CardDescription>
+          Configura los encabezados, avisos legales del cotizador web y la plantilla del mensaje enviado a WhatsApp.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <Label className="text-xs font-bold">Etiqueta Superior (Badge)</Label>
+          <Input
+            value={values.quoter_badge ?? ""}
+            onChange={(e) => setValues((v) => ({ ...v, quoter_badge: e.target.value }))}
+            placeholder="Ej: Cotizador Online"
+            className="mt-1"
+          />
+        </div>
+
+        <div>
+          <Label className="text-xs font-bold">Título del Cotizador</Label>
+          <Textarea
+            rows={2}
+            value={values.quoter_title ?? ""}
+            onChange={(e) => setValues((v) => ({ ...v, quoter_title: e.target.value }))}
+            placeholder="Calcula el costo estimado de tu proyecto en segundos"
+            className="mt-1"
+          />
+        </div>
+
+        <div>
+          <Label className="text-xs font-bold">Subtítulo / Instrucciones</Label>
+          <Textarea
+            rows={2}
+            value={values.quoter_subtitle ?? ""}
+            onChange={(e) => setValues((v) => ({ ...v, quoter_subtitle: e.target.value }))}
+            placeholder="Selecciona el servicio, ajusta los parámetros y obtén una cotización inmediata"
+            className="mt-1"
+          />
+        </div>
+
+        <div>
+          <Label className="text-xs font-bold">Aviso Legal / Disclaimer</Label>
+          <Textarea
+            rows={2}
+            value={values.quoter_disclaimer ?? ""}
+            onChange={(e) => setValues((v) => ({ ...v, quoter_disclaimer: e.target.value }))}
+            placeholder="El precio generado es estimado y sujeto a revisión técnica del archivo 3D."
+            className="mt-1"
+          />
+        </div>
+
+        <div>
+          <Label className="text-xs font-bold">Plantilla Mensaje de WhatsApp</Label>
+          <p className="text-[11px] text-muted-foreground mb-1">
+            Variables disponibles: {"{{servicio}}"}, {"{{cliente}}"}, {"{{email}}"}, {"{{telefono}}"}, {"{{resumen}}"}, {"{{total}}"}, {"{{notas}}"}, {"{{media_link}}"}
+          </p>
+          <Textarea
+            rows={6}
+            value={values.whatsapp_quote_template ?? ""}
+            onChange={(e) => setValues((v) => ({ ...v, whatsapp_quote_template: e.target.value }))}
+            className="font-mono text-xs mt-1"
+          />
+        </div>
+
+        <Button
+          onClick={handleSave}
+          disabled={saving}
+          className="bg-[var(--brand-wine)] text-white font-bold rounded-full"
+        >
+          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+          Guardar Textos del Cotizador
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// HELPER COMPONENTS FROM ORIGINAL PANEL.COTIZADOR
+// -----------------------------------------------------------------------------
 function ServiceCard({
   service,
   quotingVars,
@@ -519,67 +948,6 @@ function ServiceCard({
     onChanged();
   }
 
-  async function duplicateService() {
-    const newName = `${draft.name} (Copia)`;
-    const newSlug = `${draft.slug}-copia-${Date.now().toString().slice(-4)}`;
-    const { data: newSvc, error: svcErr } = await supabase
-      .from("quoter_services")
-      .insert({
-        name: newName,
-        slug: newSlug,
-        tagline: draft.tagline,
-        description: draft.description,
-        icon: draft.icon,
-        base_price_cop: draft.base_price_cop,
-        gastos_extra_cop: draft.gastos_extra_cop,
-        min_price_cop: draft.min_price_cop,
-        margin_percent: draft.margin_percent,
-        pricing_mode: draft.pricing_mode || "formula",
-        uses_global_vars: draft.uses_global_vars ?? false,
-        price_display: draft.price_display || "final",
-        allow_quantity: draft.allow_quantity,
-        allow_file: draft.allow_file,
-        requires_approval: draft.requires_approval,
-        approval_threshold_cop: draft.approval_threshold_cop,
-        is_active: draft.is_active,
-        sort_order: draft.sort_order + 1,
-        site_anchor: draft.site_anchor,
-      })
-      .select("id")
-      .single();
-
-    if (svcErr || !newSvc) {
-      onMsg(`Error al duplicar: ${svcErr?.message}`);
-      return;
-    }
-
-    if (draft.fields.length > 0) {
-      const newFields = draft.fields.map((f) => ({
-        service_id: newSvc.id,
-        key: f.key,
-        label: f.label,
-        help: f.help,
-        input_type: f.input_type,
-        min_value: f.min_value,
-        max_value: f.max_value,
-        step_value: f.step_value,
-        default_value: f.default_value,
-        unit: f.unit,
-        price_per_unit_cop: f.price_per_unit_cop,
-        price_source: f.price_source,
-        multiplier: f.multiplier,
-        options: f.options,
-        is_required: f.is_required,
-        is_active: f.is_active,
-        sort_order: f.sort_order,
-      }));
-      await supabase.from("quoter_fields").insert(newFields);
-    }
-
-    onMsg(`Servicio “${newName}” duplicado con éxito.`);
-    onChanged();
-  }
-
   async function toggleActive() {
     await supabase
       .from("quoter_services")
@@ -657,71 +1025,6 @@ function ServiceCard({
       {open && (
         <div className="grid gap-6 border-t border-border p-5 lg:grid-cols-[1.5fr_1fr]">
           <div className="space-y-6">
-            {/* Configuración del Modo de Precios y Reglas del Cotizador */}
-            <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-3">
-              <h4 className="text-sm font-bold text-primary flex items-center gap-2">
-                <Calculator className="h-4 w-4" /> Reglas de Cotización Independiente
-              </h4>
-
-              <div className="grid gap-3 sm:grid-cols-3">
-                <L label="Modo de Precio">
-                  <select
-                    value={draft.pricing_mode || "formula"}
-                    onChange={(e) => set("pricing_mode", e.target.value as any)}
-                    className={inputCls}
-                  >
-                    {PRICING_MODES.map((m) => (
-                      <option key={m.value} value={m.value}>
-                        {m.label}
-                      </option>
-                    ))}
-                  </select>
-                </L>
-
-                <L label="Visibilidad para el Cliente">
-                  <select
-                    value={draft.price_display || "final"}
-                    onChange={(e) => set("price_display", e.target.value as any)}
-                    className={inputCls}
-                  >
-                    <option value="final">Ocultar desglose (Solo Precio Final)</option>
-                    <option value="breakdown">Mostrar desglose autorizado</option>
-                  </select>
-                </L>
-
-                <L label="Variables Globales">
-                  <label className="mt-2 inline-flex items-center gap-2 text-xs font-semibold cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(draft.uses_global_vars)}
-                      onChange={(e) => set("uses_global_vars", e.target.checked)}
-                      className="h-4 w-4 rounded accent-primary"
-                    />
-                    Usar variables globales del taller
-                  </label>
-                </L>
-              </div>
-
-              {draft.pricing_mode === "formula" && (
-                <div className="pt-2">
-                  <FormulaEditor
-                    value={draft.formula || ""}
-                    onChange={(val) => set("formula", val)}
-                    label="Fórmula Maestra del Servicio (Anula la suma simple de campos si está definida)"
-                    placeholder="Ej: (peso_gramos * fdm_gram_cost) + (horas_impresion * machine_hour_rate) + base_price"
-                    availableVars={[
-                      { key: "base_price", label: "Precio Base" },
-                      { key: "fdm_gram_cost", label: "Costo gramo FDM" },
-                      { key: "resin_ml_cost", label: "Costo ml Resina" },
-                      { key: "machine_hour_rate", label: "Hora Máquina" },
-                      { key: "labor_hour_rate", label: "Hora Mano de obra" },
-                      ...draft.fields.map((f) => ({ key: f.key, label: f.label })),
-                    ]}
-                  />
-                </div>
-              )}
-            </div>
-
             <div className="grid gap-4 sm:grid-cols-2">
               <L label="Nombre">
                 <input value={draft.name} onChange={(e) => set("name", e.target.value)} className={inputCls} />
@@ -741,46 +1044,12 @@ function ServiceCard({
                   className={inputCls}
                 />
               </L>
-              <L label="Ícono">
-                <select value={draft.icon} onChange={(e) => set("icon", e.target.value)} className={inputCls}>
-                  {ICON_OPTIONS.map((i) => (
-                    <option key={i} value={i}>
-                      {i}
-                    </option>
-                  ))}
-                </select>
-              </L>
-              <L label="Ancla en /servicios (ej: impresion-3d)">
-                <input
-                  value={draft.site_anchor}
-                  onChange={(e) => set("site_anchor", e.target.value)}
-                  placeholder="impresion-3d"
-                  className={inputCls}
-                />
-              </L>
-              <L label="Orden en la web">
-                <input
-                  type="number"
-                  value={draft.sort_order}
-                  onChange={(e) => set("sort_order", Number(e.target.value) || 0)}
-                  className={inputCls}
-                />
-              </L>
               <L label="Precio base (COP)">
                 <input
                   type="number"
                   min={0}
                   value={draft.base_price_cop}
                   onChange={(e) => set("base_price_cop", Number(e.target.value) || 0)}
-                  className={inputCls}
-                />
-              </L>
-              <L label="Gastos extra (COP)">
-                <input
-                  type="number"
-                  min={0}
-                  value={draft.gastos_extra_cop}
-                  onChange={(e) => set("gastos_extra_cop", Number(e.target.value) || 0)}
                   className={inputCls}
                 />
               </L>
@@ -793,176 +1062,6 @@ function ServiceCard({
                   className={inputCls}
                 />
               </L>
-              <L label="Margen (%)">
-                <input
-                  type="number"
-                  min={0}
-                  value={draft.margin_percent}
-                  onChange={(e) => set("margin_percent", Number(e.target.value) || 0)}
-                  className={inputCls}
-                />
-              </L>
-              <L label="Umbral para requerir aprobación humana (COP)">
-                <input
-                  type="number"
-                  min={0}
-                  placeholder="Ej: 500000"
-                  value={draft.approval_threshold_cop || 0}
-                  onChange={(e) => set("approval_threshold_cop", Number(e.target.value) || 0)}
-                  className={inputCls}
-                />
-              </L>
-              <L label="Módulo Calculador Activo">
-                <label className="mt-2 inline-flex items-center gap-2 text-sm font-semibold">
-                  <input
-                    type="checkbox"
-                    checked={draft.has_calculator !== false}
-                    onChange={(e) => set("has_calculator", e.target.checked)}
-                    className="h-4 w-4 accent-[var(--brand-orange)]"
-                  />
-                  {draft.has_calculator !== false ? "Sí (Mostrar cotizador)" : "No (Ir directo a WhatsApp)"}
-                </label>
-              </L>
-              {draft.has_calculator === false && (
-                <L label="Mensaje personalizado para WhatsApp" full>
-                  <textarea
-                    rows={2}
-                    value={draft.whatsapp_custom_message || ""}
-                    onChange={(e) => set("whatsapp_custom_message", e.target.value)}
-                    placeholder="Hola Will Design 3D! Quisiera consultar sobre el servicio…"
-                    className={inputCls}
-                  />
-                </L>
-              )}
-              <div className="flex flex-wrap items-center gap-4 sm:col-span-2">
-                <label className="inline-flex items-center gap-2 text-sm font-semibold">
-                  <input
-                    type="checkbox"
-                    checked={draft.allow_quantity}
-                    onChange={(e) => set("allow_quantity", e.target.checked)}
-                    className="h-4 w-4 accent-[var(--brand-orange)]"
-                  />
-                  Permitir cantidad
-                </label>
-                <label className="inline-flex items-center gap-2 text-sm font-semibold">
-                  <input
-                    type="checkbox"
-                    checked={draft.allow_file}
-                    onChange={(e) => set("allow_file", e.target.checked)}
-                    className="h-4 w-4 accent-[var(--brand-orange)]"
-                  />
-                  Permitir subir archivo
-                </label>
-                <label className="inline-flex items-center gap-2 text-sm font-semibold">
-                  <input
-                    type="checkbox"
-                    checked={draft.requires_approval || false}
-                    onChange={(e) => set("requires_approval", e.target.checked)}
-                    className="h-4 w-4 accent-[var(--brand-orange)]"
-                  />
-                  Requerir aprobación manual siempre
-                </label>
-              </div>
-
-              {/* Escalas de Descuento por Volumen */}
-              <div className="rounded-2xl border border-border bg-muted/20 p-4 sm:col-span-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-bold">Descuentos por Volumen (Volume Tiers)</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Configura tarifas escalonadas según la cantidad de unidades.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      set("volume_tiers", [
-                        ...(draft.volume_tiers || []),
-                        { min_qty: 6, max_qty: 20, discount_percentage: 10, fixed_unit_price_cop: null },
-                      ])
-                    }
-                    className="inline-flex items-center gap-1 rounded-full bg-[var(--brand-teal-deep)] px-3 py-1 text-xs font-bold text-white"
-                  >
-                    <Plus className="h-3.5 w-3.5" /> Agregar rango
-                  </button>
-                </div>
-
-                <div className="mt-3 space-y-2">
-                  {(draft.volume_tiers || []).map((tier, idx) => (
-                    <div key={idx} className="grid gap-2 sm:grid-cols-4 items-center">
-                      <L label="Cantidad mín">
-                        <input
-                          type="number"
-                          min={1}
-                          value={tier.min_qty}
-                          onChange={(e) => {
-                            const tiers = [...(draft.volume_tiers || [])];
-                            tiers[idx] = { ...tier, min_qty: Number(e.target.value) || 1 };
-                            set("volume_tiers", tiers);
-                          }}
-                          className={inputCls}
-                        />
-                      </L>
-                      <L label="Cantidad máx (o vacío)">
-                        <input
-                          type="number"
-                          value={tier.max_qty ?? ""}
-                          onChange={(e) => {
-                            const tiers = [...(draft.volume_tiers || [])];
-                            tiers[idx] = { ...tier, max_qty: e.target.value ? Number(e.target.value) : null };
-                            set("volume_tiers", tiers);
-                          }}
-                          placeholder="∞"
-                          className={inputCls}
-                        />
-                      </L>
-                      <L label="% Descuento">
-                        <input
-                          type="number"
-                          value={tier.discount_percentage}
-                          onChange={(e) => {
-                            const tiers = [...(draft.volume_tiers || [])];
-                            tiers[idx] = { ...tier, discount_percentage: Number(e.target.value) || 0 };
-                            set("volume_tiers", tiers);
-                          }}
-                          className={inputCls}
-                        />
-                      </L>
-                      <div className="flex items-end gap-2">
-                        <L label="Precio fijo unitario (COP) opcional" full>
-                          <input
-                            type="number"
-                            value={tier.fixed_unit_price_cop ?? ""}
-                            onChange={(e) => {
-                              const tiers = [...(draft.volume_tiers || [])];
-                              tiers[idx] = {
-                                ...tier,
-                                fixed_unit_price_cop: e.target.value ? Number(e.target.value) : null,
-                              };
-                              set("volume_tiers", tiers);
-                            }}
-                            placeholder="Opcional"
-                            className={inputCls}
-                          />
-                        </L>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const tiers = (draft.volume_tiers || []).filter((_, i) => i !== idx);
-                            set("volume_tiers", tiers);
-                          }}
-                          className="mb-1 rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  {(draft.volume_tiers || []).length === 0 && (
-                    <p className="text-xs text-muted-foreground">Sin rangos de descuento configurados.</p>
-                  )}
-                </div>
-              </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -973,13 +1072,6 @@ function ServiceCard({
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Guardar servicio
-              </button>
-              <button
-                onClick={duplicateService}
-                type="button"
-                className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2.5 text-sm font-bold hover:bg-muted"
-              >
-                Duplicar servicio
               </button>
             </div>
 
@@ -1008,92 +1100,32 @@ function ServiceCard({
                         onMsg={onMsg}
                       />
                     ))}
-                    {service.fields.length === 0 && (
-                      <p className="rounded-2xl bg-muted p-4 text-xs text-muted-foreground">
-                        Sin preguntas: el cliente solo verá el precio base.
-                      </p>
-                    )}
                   </div>
                 </SortableContext>
               </DndContext>
             </div>
           </div>
 
-          {/* Simulador */}
           <aside className="h-fit rounded-3xl border border-border bg-background p-5 lg:sticky lg:top-6">
             <h3 className="flex items-center gap-2 text-lg font-bold">
               <Calculator className="h-5 w-5 text-[var(--brand-orange)]" /> Simulador
             </h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Prueba lo que verá el cliente con los valores actuales.
-            </p>
             <div className="mt-4 space-y-3">
               {draft.fields.map((f) => (
                 <div key={f.id}>
                   <span className="text-xs font-bold uppercase text-muted-foreground">{f.label}</span>
-                  {f.input_type === "select" || f.input_type === "toggle" ? (
-                    <select
-                      value={test[f.key] ?? ""}
-                      onChange={(e) => setTest((t) => ({ ...t, [f.key]: e.target.value }))}
-                      className={inputCls}
-                    >
-                      {f.input_type === "toggle" ? (
-                        <>
-                          <option value="no">No</option>
-                          <option value="si">{f.options[0]?.label ?? "Sí"}</option>
-                        </>
-                      ) : (
-                        f.options.map((o) => (
-                          <option key={o.value} value={o.value}>
-                            {o.label}
-                          </option>
-                        ))
-                      )}
-                    </select>
-                  ) : (
-                    <input
-                      type={f.input_type === "text" ? "text" : "number"}
-                      value={test[f.key] ?? ""}
-                      onChange={(e) => setTest((t) => ({ ...t, [f.key]: e.target.value }))}
-                      className={inputCls}
-                    />
-                  )}
-                </div>
-              ))}
-              {draft.allow_quantity && (
-                <div>
-                  <span className="text-xs font-bold uppercase text-muted-foreground">Cantidad</span>
                   <input
                     type="number"
-                    min={1}
-                    value={qty}
-                    onChange={(e) => setQty(Number(e.target.value) || 1)}
+                    value={test[f.key] ?? ""}
+                    onChange={(e) => setTest((t) => ({ ...t, [f.key]: e.target.value }))}
                     className={inputCls}
                   />
                 </div>
-              )}
+              ))}
             </div>
-
-            <div className="mt-4 space-y-1 border-t border-dashed border-border pt-3 text-xs">
-              {draft.price_display === "final" ? (
-                <div className="text-xs text-muted-foreground italic mb-2">
-                  (El desglose estará oculto para el cliente final; solo verá el total)
-                </div>
-              ) : (
-                preview.lines.map((l, i) => (
-                  <div key={i} className="flex justify-between gap-2 text-muted-foreground">
-                    <span>
-                      {l.label}
-                      {l.detail ? ` · ${l.detail}` : ""}
-                    </span>
-                    <span>{formatCOP(l.amount)}</span>
-                  </div>
-                ))
-              )}
-              <div className="flex justify-between border-t border-border pt-2 text-base font-black">
-                <span>Total Calculado</span>
-                <span>{formatCOP(preview.total_cop)}</span>
-              </div>
+            <div className="mt-4 border-t border-border pt-2 text-base font-black flex justify-between">
+              <span>Total</span>
+              <span>{formatCOP(preview.total_cop)}</span>
             </div>
           </aside>
         </div>
@@ -1104,9 +1136,6 @@ function ServiceCard({
 
 function FieldEditor({
   field,
-  index,
-  total,
-  siblings,
   quotingVars,
   onChanged,
   onMsg,
@@ -1129,11 +1158,6 @@ function FieldEditor({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const optionSensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
-
   const [d, setD] = useState(field);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -1142,27 +1166,6 @@ function FieldEditor({
 
   function set<K extends keyof QuoterField>(k: K, v: QuoterField[K]) {
     setD((prev) => ({ ...prev, [k]: v }));
-  }
-
-  function setOption(i: number, patch: Partial<QuoterOption>) {
-    setD((prev) => {
-      const options = prev.options.map((o, idx) => (idx === i ? { ...o, ...patch } : o));
-      return { ...prev, options };
-    });
-  }
-
-  function handleOptionDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = Number(active.id.toString().replace("opt-", ""));
-    const newIndex = Number(over.id.toString().replace("opt-", ""));
-    if (isNaN(oldIndex) || isNaN(newIndex)) return;
-
-    setD((prev) => ({
-      ...prev,
-      options: arrayMove(prev.options, oldIndex, newIndex),
-    }));
   }
 
   async function save() {
@@ -1198,9 +1201,6 @@ function FieldEditor({
     onChanged();
   }
 
-  const isChoice = d.input_type === "select" || d.input_type === "toggle";
-  const isRange = d.input_type === "slider" || d.input_type === "number";
-
   return (
     <div ref={setNodeRef} style={style} className="rounded-2xl border border-border p-4 bg-card shadow-sm">
       <div className="flex flex-wrap items-center gap-2">
@@ -1208,7 +1208,7 @@ function FieldEditor({
           {...attributes}
           {...listeners}
           className="cursor-grab touch-none text-muted-foreground hover:text-foreground p-1"
-          title="Arrastrar para reordenar pregunta"
+          title="Arrastrar"
         >
           <GripVertical className="h-4 w-4" />
         </button>
@@ -1216,337 +1216,23 @@ function FieldEditor({
         <button onClick={() => setOpen(!open)} className="flex flex-1 items-center gap-2 text-left">
           {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           <span className="font-bold">{field.label}</span>
-          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-bold text-muted-foreground">
-            {INPUT_TYPES.find((t) => t.value === field.input_type)?.label}
-          </span>
-          {!field.is_active && <span className="text-[11px] text-muted-foreground">Oculta</span>}
         </button>
 
-        <button
-          onClick={remove}
-          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-red-600"
-          aria-label="Eliminar"
-        >
+        <button onClick={remove} className="rounded-lg p-1.5 text-muted-foreground hover:text-red-600">
           <Trash2 className="h-4 w-4" />
         </button>
       </div>
 
       {open && (
-        <div className="mt-4 space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <L label="Etiqueta">
-              <input value={d.label} onChange={(e) => set("label", e.target.value)} className={inputCls} />
-            </L>
-            <L label="Tipo de control">
-              <select
-                value={d.input_type}
-                onChange={(e) => set("input_type", e.target.value as QuoterField["input_type"])}
-                className={inputCls}
-              >
-                {INPUT_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </L>
-            <L label="Posición / Índice (1, 2, 3…)">
-              <input
-                type="number"
-                value={d.sort_order}
-                onChange={(e) => set("sort_order", Number(e.target.value) || 0)}
-                className={inputCls}
-              />
-            </L>
-            <L label="URL de Vista Previa (Imagen/GIF/Video MP4)">
-              <input
-                value={d.media_url || ""}
-                onChange={(e) => set("media_url", e.target.value)}
-                placeholder="https://..."
-                className={inputCls}
-              />
-            </L>
-            <L label="Tipo de Media">
-              <select
-                value={d.media_type || "image"}
-                onChange={(e) => set("media_type", e.target.value as any)}
-                className={inputCls}
-              >
-                <option value="image">Imagen / GIF</option>
-                <option value="video">Video MP4/WebM</option>
-              </select>
-            </L>
-            <L label="Texto de ayuda" full>
-              <input value={d.help} onChange={(e) => set("help", e.target.value)} className={inputCls} />
-            </L>
-            {isRange && (
-              <>
-                <L label="Mínimo">
-                  <input
-                    type="number"
-                    value={d.min_value}
-                    onChange={(e) => set("min_value", Number(e.target.value) || 0)}
-                    className={inputCls}
-                  />
-                </L>
-                <L label="Máximo">
-                  <input
-                    type="number"
-                    value={d.max_value}
-                    onChange={(e) => set("max_value", Number(e.target.value) || 0)}
-                    className={inputCls}
-                  />
-                </L>
-                <L label="Paso">
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={d.step_value}
-                    onChange={(e) => set("step_value", Number(e.target.value) || 1)}
-                    className={inputCls}
-                  />
-                </L>
-                <L label="Unidad (g, cm, h…)">
-                  <input value={d.unit} onChange={(e) => set("unit", e.target.value)} className={inputCls} />
-                </L>
-                <L label="Precio por unidad (COP)">
-                  <input
-                    type="number"
-                    value={d.price_per_unit_cop}
-                    onChange={(e) => set("price_per_unit_cop", Number(e.target.value) || 0)}
-                    disabled={d.price_source !== "fixed"}
-                    className={`${inputCls} disabled:opacity-50`}
-                  />
-                </L>
-                <L label="¿De dónde sale el costo?">
-                  <select
-                    value={d.price_source ?? "fixed"}
-                    onChange={(e) =>
-                      set("price_source", e.target.value as QuoterField["price_source"])
-                    }
-                    className={inputCls}
-                  >
-                    {getDynamicPriceSourceOptions(quotingVars).map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </L>
-
-                <div className="sm:col-span-2 pt-2">
-                  <FormulaEditor
-                    value={d.formula || ""}
-                    onChange={(fVal) => set("formula", fVal)}
-                    label={`Fórmula específica para "${d.label}" (Opcional)`}
-                    placeholder="Ej: (peso_gramos * fdm_gram_cost) * 1.10"
-                    availableVars={[
-                      { key: "fdm_gram_cost", label: "Costo gramo FDM" },
-                      { key: "resin_ml_cost", label: "Costo ml Resina" },
-                      { key: "machine_hour_rate", label: "Hora Máquina" },
-                      { key: "labor_hour_rate", label: "Hora Mano obra" },
-                      { key: d.key, label: d.label },
-                    ]}
-                  />
-                </div>
-              </>
-            )}
-            <L label="Valor por defecto">
-              <input
-                value={d.default_value}
-                onChange={(e) => set("default_value", e.target.value)}
-                className={inputCls}
-              />
-            </L>
-            <label className="mt-1 inline-flex items-center gap-2 text-sm font-semibold">
-              <input
-                type="checkbox"
-                checked={d.is_active}
-                onChange={(e) => set("is_active", e.target.checked)}
-                className="h-4 w-4 accent-[var(--brand-orange)]"
-              />
-              Visible para el cliente
-            </label>
-          </div>
-
-          {isChoice && (
-            <div className="rounded-2xl bg-muted/50 p-3">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-bold">
-                  {d.input_type === "toggle" ? "Recargo cuando dice “Sí”" : "Opciones"}
-                </h4>
-                {d.input_type === "select" && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      set("options", [
-                        ...d.options,
-                        { label: "Nueva opción", value: `opcion-${d.options.length + 1}`, multiplier: 1, add_cop: 0 },
-                      ])
-                    }
-                    className="inline-flex items-center gap-1 rounded-full bg-[var(--brand-teal-deep)] px-3 py-1 text-xs font-bold text-white"
-                  >
-                    <Plus className="h-3 w-3" /> Opción
-                  </button>
-                )}
-              </div>
-              <p className="mt-1 text-[11px] text-muted-foreground">
-                Multiplicador: 1 = normal, 1.5 = 50% más caro. Recargo: valor fijo en COP. Usa el ícono para arrastrar.
-              </p>
-
-              {d.input_type === "select" ? (
-                <DndContext sensors={optionSensors} collisionDetection={closestCenter} onDragEnd={handleOptionDragEnd}>
-                  <SortableContext items={d.options.map((_, i) => `opt-${i}`)} strategy={verticalListSortingStrategy}>
-                    <div className="mt-2 space-y-2">
-                      {d.options.map((o, i) => (
-                        <SortableOptionRow
-                          key={`opt-${i}`}
-                          id={`opt-${i}`}
-                          option={o}
-                          onChange={(patch) => setOption(i, patch)}
-                          onRemove={() => set("options", d.options.filter((_, idx) => idx !== i))}
-                        />
-                      ))}
-                    </div>
-                  </SortableContext>
-                </DndContext>
-              ) : (
-                <div className="mt-2 space-y-2">
-                  {(d.options.length === 0
-                    ? [{ label: "Sí", value: "si", multiplier: 1, add_cop: 0 }]
-                    : d.options
-                  ).map((o, i) => (
-                    <div key={i} className="grid gap-2 sm:grid-cols-[1.4fr_1fr_0.8fr_0.8fr]">
-                      <input
-                        value={o.label}
-                        placeholder="Etiqueta"
-                        onChange={(e) =>
-                          d.options.length === 0
-                            ? set("options", [{ ...o, label: e.target.value }])
-                            : setOption(i, { label: e.target.value })
-                        }
-                        className={inputCls}
-                      />
-                      <input
-                        value={o.value}
-                        placeholder="valor"
-                        onChange={(e) =>
-                          d.options.length === 0
-                            ? set("options", [{ ...o, value: e.target.value }])
-                            : setOption(i, { value: e.target.value })
-                        }
-                        className={inputCls}
-                      />
-                      <input
-                        type="number"
-                        step="0.05"
-                        value={o.multiplier ?? 1}
-                        onChange={(e) =>
-                          d.options.length === 0
-                            ? set("options", [{ ...o, multiplier: Number(e.target.value) || 1 }])
-                            : setOption(i, { multiplier: Number(e.target.value) || 1 })
-                        }
-                        className={inputCls}
-                        title="Multiplicador"
-                      />
-                      <input
-                        type="number"
-                        value={o.add_cop ?? 0}
-                        onChange={(e) =>
-                          d.options.length === 0
-                            ? set("options", [{ ...o, add_cop: Number(e.target.value) || 0 }])
-                            : setOption(i, { add_cop: Number(e.target.value) || 0 })
-                        }
-                        className={inputCls}
-                        title="Recargo COP"
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          <button
-            onClick={save}
-            disabled={saving}
-            className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-teal-deep)] px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
-          >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+        <div className="mt-4 space-y-3">
+          <L label="Etiqueta">
+            <input value={d.label} onChange={(e) => set("label", e.target.value)} className={inputCls} />
+          </L>
+          <Button onClick={save} disabled={saving} size="sm" className="bg-[var(--brand-teal-deep)] text-white">
             Guardar pregunta
-          </button>
+          </Button>
         </div>
       )}
-    </div>
-  );
-}
-
-function SortableOptionRow({
-  id,
-  option: o,
-  onChange,
-  onRemove,
-}: {
-  id: string;
-  option: QuoterOption;
-  onChange: (patch: Partial<QuoterOption>) => void;
-  onRemove: () => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} className="grid gap-2 sm:grid-cols-[auto_1.4fr_1fr_0.8fr_0.8fr_auto] items-center">
-      <button
-        type="button"
-        {...attributes}
-        {...listeners}
-        className="cursor-grab touch-none text-muted-foreground hover:text-foreground p-1"
-        title="Arrastrar opción"
-      >
-        <GripVertical className="h-4 w-4" />
-      </button>
-
-      <input
-        value={o.label}
-        placeholder="Etiqueta"
-        onChange={(e) => onChange({ label: e.target.value })}
-        className={inputCls}
-      />
-      <input
-        value={o.value}
-        placeholder="valor"
-        onChange={(e) => onChange({ value: e.target.value })}
-        className={inputCls}
-      />
-      <input
-        type="number"
-        step="0.05"
-        value={o.multiplier ?? 1}
-        onChange={(e) => onChange({ multiplier: Number(e.target.value) || 1 })}
-        className={inputCls}
-        title="Multiplicador"
-      />
-      <input
-        type="number"
-        value={o.add_cop ?? 0}
-        onChange={(e) => onChange({ add_cop: Number(e.target.value) || 0 })}
-        className={inputCls}
-        title="Recargo COP"
-      />
-      <button
-        type="button"
-        onClick={onRemove}
-        className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-red-600"
-        aria-label="Quitar opción"
-      >
-        <Trash2 className="h-4 w-4" />
-      </button>
     </div>
   );
 }
