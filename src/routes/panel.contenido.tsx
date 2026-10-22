@@ -3,8 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Upload, Check, Eye, EyeOff, Film, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, Upload, Check, Eye, EyeOff, Film, ArrowUp, ArrowDown, Trash2, Layout } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -16,7 +15,6 @@ import { sanitizeWidgetId, parsePhotos, type PortfolioPhoto } from "@/components
 import { HomeSectionsOrder } from "@/components/HomeSectionsOrder";
 import { parseHomeOrder } from "@/lib/home-sections";
 import { ProductMedia, isVideoUrl } from "@/components/ProductMedia";
-import { PRESET_THEMES, resolveThemes, type SiteTheme, type ThemeAnimation } from "@/lib/theme";
 
 export const Route = createFileRoute("/panel/contenido")({
   ssr: false,
@@ -36,516 +34,47 @@ type FieldDef = {
 };
 
 const FIELDS: FieldDef[] = [
-  // ---------------------------------------------------------------- Inicio
-  { key: "hero_title", label: "Título del hero", type: "textarea", section: "Inicio", group: "Hero" },
-  { key: "services_section_title", label: "Título Sección Servicios", type: "text", section: "Inicio", group: "Servicios" },
-  { key: "services_section_subtitle", label: "Subtítulo Sección Servicios", type: "text", section: "Inicio", group: "Servicios" },
-  { key: "hero_subtitle", label: "Subtítulo del hero", type: "textarea", section: "Inicio", group: "Hero" },
+  // ---------------------------------------------------------------- Home Builder & Hero
+  { key: "hero_title", label: "Título del Hero", type: "textarea", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_subtitle", label: "Subtítulo del Hero", type: "textarea", section: "Inicio", group: "Hero Principal" },
   {
     key: "hero_image_url",
-    label: "Imagen del hero",
+    label: "Imagen del Hero (Respaldo)",
     type: "image",
-    help: "La multimedia principal se gestiona desde el módulo Carrusel. Esta imagen se usa como respaldo si no hay diapositivas activas.",
+    help: "Se usa como respaldo si el Carrusel Hero no tiene diapositivas activas.",
     section: "Inicio",
-    group: "Hero",
+    group: "Hero Principal",
   },
-  { key: "hero_badge_title", label: "Etiqueta flotante (pieza destacada)", type: "text", help: "Ej: Escultura 1.8 m — PLA reforzado", section: "Inicio", group: "Hero" },
-  { key: "hero_stat_1_k", label: "Estadística 1 · valor", type: "text", help: "Ej: 50×50", section: "Inicio", group: "Estadísticas" },
-  { key: "hero_stat_1_v", label: "Estadística 1 · descripción", type: "text", help: "Ej: cm mínimo", section: "Inicio", group: "Estadísticas" },
-  { key: "hero_stat_2_k", label: "Estadística 2 · valor", type: "text", section: "Inicio", group: "Estadísticas" },
-  { key: "hero_stat_2_v", label: "Estadística 2 · descripción", type: "text", section: "Inicio", group: "Estadísticas" },
-  { key: "hero_stat_3_k", label: "Estadística 3 · valor", type: "text", section: "Inicio", group: "Estadísticas" },
-  { key: "hero_stat_3_v", label: "Estadística 3 · descripción", type: "text", section: "Inicio", group: "Estadísticas" },
-  { key: "home_sections_order", label: "Orden de las secciones del inicio", type: "order", help: "Arrastra para decidir qué aparece primero al entrar a la página.", section: "Inicio", group: "Orden de la página" },
-  { key: "show_manual_gallery", label: "Mostrar sección de Portafolio Manual (Piezas que hemos impreso)", type: "switch", help: "Se muestra si está activo y hay al menos una foto subida.", section: "Inicio", group: "Portafolio (Instagram)" },
-  { key: "show_instagram_widget", label: "Mostrar sección de Instagram en vivo", type: "switch", help: "Se muestra si está activo y el ID del widget es válido.", section: "Inicio", group: "Portafolio (Instagram)" },
-  { key: "portfolio_display_order", label: "Orden de visualización", type: "select", help: "Decide qué sección del portafolio aparece primero en la página.", section: "Inicio", group: "Portafolio (Instagram)", options: [
+  { key: "hero_badge_title", label: "Etiqueta Flotante (Pieza destacada)", type: "text", help: "Ej: Escultura 1.8 m — PLA reforzado", section: "Inicio", group: "Hero Principal" },
+
+  // Estadísticas del Hero
+  { key: "hero_stat_1_k", label: "Estadística 1 · Valor", type: "text", help: "Ej: 50×50", section: "Inicio", group: "Estadísticas del Hero" },
+  { key: "hero_stat_1_v", label: "Estadística 1 · Descripción", type: "text", help: "Ej: cm mínimo", section: "Inicio", group: "Estadísticas del Hero" },
+  { key: "hero_stat_2_k", label: "Estadística 2 · Valor", type: "text", section: "Inicio", group: "Estadísticas del Hero" },
+  { key: "hero_stat_2_v", label: "Estadística 2 · Descripción", type: "text", section: "Inicio", group: "Estadísticas del Hero" },
+  { key: "hero_stat_3_k", label: "Estadística 3 · Valor", type: "text", section: "Inicio", group: "Estadísticas del Hero" },
+  { key: "hero_stat_3_v", label: "Estadística 3 · Descripción", type: "text", section: "Inicio", group: "Estadísticas del Hero" },
+
+  // Orden de la Página de Inicio
+  { key: "home_sections_order", label: "Orden de las Secciones del Inicio", type: "order", help: "Arrastra las secciones para decidir qué aparece primero al entrar a la página.", section: "Inicio", group: "Orden de Secciones" },
+
+  // Sección Servicios
+  { key: "services_section_title", label: "Título Sección Servicios", type: "text", section: "Inicio", group: "Sección Servicios" },
+  { key: "services_section_subtitle", label: "Subtítulo Sección Servicios", type: "text", section: "Inicio", group: "Sección Servicios" },
+
+  // Portafolio e Instagram
+  { key: "show_manual_gallery", label: "Mostrar Galería Manual de Portafolio", type: "switch", help: "Se muestra si está activo y hay al menos una foto/video subida.", section: "Inicio", group: "Portafolio y Redes" },
+  { key: "show_instagram_widget", label: "Mostrar Widget de Instagram en Vivo", type: "switch", help: "Se muestra si está activo y el ID del widget Elfsight es válido.", section: "Inicio", group: "Portafolio y Redes" },
+  { key: "portfolio_display_order", label: "Orden de Visualización del Portafolio", type: "select", help: "Decide cuál sección del portafolio aparece primero.", section: "Inicio", group: "Portafolio y Redes", options: [
     { value: "manual_first", label: "Fotos manuales primero, luego Instagram" },
     { value: "instagram_first", label: "Instagram primero, luego fotos manuales" },
   ] },
-  { key: "portfolio_images", label: "Fotos y videos de portafolio", type: "images", help: "Se muestran en la sección de portafolio del inicio y en /galeria. Puedes subir fotos y videos cortos (hasta 50MB), reordenar, cambiar visibilidad y definir enlaces de acción.", section: "Inicio", group: "Portafolio (Instagram)" },
-  { key: "elfsight_instagram_id", label: "ID del widget de Instagram (Elfsight)", type: "text", help: "Puedes pegar el ID completo ('elfsight-app-abc123'); quitamos el prefijo automáticamente.", section: "Inicio", group: "Portafolio (Instagram)" },
-  { key: "about_short", label: "Descripción corta 'Nosotros'", type: "textarea", section: "Inicio", group: "Página Nosotros" },
+  { key: "portfolio_images", label: "Fotos y Videos del Portafolio Manual", type: "images", help: "Se muestran en el inicio y en /galeria. Admite fotos y videos cortos (hasta 50MB).", section: "Inicio", group: "Portafolio y Redes" },
+  { key: "elfsight_instagram_id", label: "ID del Widget de Instagram (Elfsight)", type: "text", help: "Ej: elfsight-app-abc123", section: "Inicio", group: "Portafolio y Redes" },
 
-  // ------------------------------------------------------------ Cotizadores
-  { key: "quoter_badge", label: "Etiqueta superior", type: "text", help: "Ej: Cotizador", section: "Cotizadores", group: "Encabezado del cotizador" },
-  { key: "quoter_title", label: "Título del cotizador", type: "textarea", help: "Se muestra arriba del selector de servicio.", section: "Cotizadores", group: "Encabezado del cotizador" },
-  { key: "quoter_subtitle", label: "Instrucciones para el cliente", type: "textarea", help: "Ej: Elige qué necesitas, mueve los deslizadores y verás el precio estimado al instante.", section: "Cotizadores", group: "Encabezado del cotizador" },
-  { key: "quoter_service_label", label: "Texto del paso 'elegir servicio'", type: "text", help: "Ej: Selecciona el servicio", section: "Cotizadores", group: "Encabezado del cotizador" },
-  { key: "quoter_disclaimer", label: "Aviso legal del precio estimado", type: "textarea", help: "Ej: El valor final se confirma tras revisar tu archivo.", section: "Cotizadores", group: "Encabezado del cotizador" },
-
-  // --------------------------------------------------------------- Contacto
-  { key: "contact_whatsapp", label: "WhatsApp (solo dígitos, con país)", type: "text", help: "Ej: 573156724474 — se usa en todos los enlaces wa.me.", section: "Contacto", group: "Canales" },
-  { key: "contact_whatsapp_display", label: "WhatsApp (formato visible)", type: "text", help: "Ej: +57 315 672 4474", section: "Contacto", group: "Canales" },
-  { key: "contact_email", label: "Correo de contacto", type: "text", section: "Contacto", group: "Canales" },
-  { key: "contact_instagram_url", label: "URL de Instagram", type: "text", section: "Contacto", group: "Canales" },
-  { key: "contact_instagram_handle", label: "Usuario de Instagram (visible)", type: "text", help: "Ej: @will_design2020", section: "Contacto", group: "Canales" },
-  { key: "contact_location_text", label: "Ubicación (texto)", type: "text", help: "Ej: Bogotá, Colombia · atención por cita previa", section: "Contacto", group: "Ubicación" },
-  { key: "contact_location_short", label: "Ubicación corta (footer)", type: "text", help: "Ej: Bogotá, Colombia", section: "Contacto", group: "Ubicación" },
-  { key: "contact_map_embed_url", label: "URL del mapa (Google Maps embed)", type: "textarea", help: "Pega la URL del src del iframe de Google Maps.", section: "Contacto", group: "Ubicación" },
-  { key: "whatsapp_quote_template", label: "Plantilla del mensaje de WhatsApp para Cotizaciones", type: "textarea", help: "Admite variables: {{servicio}}, {{cliente}}, {{email}}, {{telefono}}, {{resumen}}, {{total}}, {{notas}}, {{media_link}}", section: "Contacto", group: "Canales" },
-
-  // ----------------------------------------------------------------- Kiara
-  // DEPRECATED: movido a /panel/kiara
-  { key: "kiara_message", label: "Mensaje de Kiara (widget)", type: "textarea", section: "Kiara", group: "Asistente" },
-  // DEPRECATED: movido a /panel/kiara
-  { key: "kiara_image_url", label: "Foto de Kiara", type: "image", help: "Se usa en widget y página Nosotros.", section: "Kiara", group: "Asistente" },
-
-  // ------------------------------------------------------------ Marca y SEO Global
-  { key: "site_title", label: "Título SEO Global del Sitio", type: "text", help: "Título por defecto cuando una página no especifica uno propio. Recomendado: 50–60 caracteres.", section: "Marca y SEO", group: "SEO Global" },
-  { key: "site_description", label: "Descripción SEO Global", type: "textarea", help: "Descripción general del taller para buscadores y redes. Recomendado: 120–160 caracteres.", section: "Marca y SEO", group: "SEO Global" },
-  { key: "site_logo_url", label: "Logotipo Principal del Sitio", type: "image", help: "Imagen del logo oficial visible en header y footer", section: "Marca y SEO", group: "Marca y Logotipos" },
-  { key: "site_subtitle", label: "Subtítulo del Header", type: "text", help: "Subtítulo pequeño al lado del logo", section: "Marca y SEO", group: "Marca y Logotipos" },
-  { key: "site_favicon_url", label: "Favicon de la pestaña (.ico, .png, .gif, .svg)", type: "image", help: "Ícono visible en la pestaña del navegador.", section: "Marca y SEO", group: "Marca y Logotipos" },
-  { key: "site_meta_thumbnail_url", label: "Miniatura Social Global por Defecto", type: "image", help: "Imagen principal para Google, WhatsApp, Facebook y Twitter (1200×630 px recomendado).", section: "Marca y SEO", group: "Marca y Logotipos" },
-  { key: "site_meta_thumbnail_alt", label: "Texto Alternativo de Miniatura Social", type: "text", help: "Descripción para lectores de pantalla de la miniatura principal.", section: "Marca y SEO", group: "Marca y Logotipos" },
-  { key: "site_business_name", label: "Nombre Comercial Oficial", type: "text", help: "Nombre que aparece en esquemas JSON-LD de Google. Ej: Will Design 3D", section: "Marca y SEO", group: "Datos de Empresa (JSON-LD)" },
-  { key: "site_area_served", label: "Área o Ciudad de Servicio", type: "text", help: "Ej: Bogotá, Colombia", section: "Marca y SEO", group: "Datos de Empresa (JSON-LD)" },
-  { key: "site_indexable_global", label: "Permitir Indexación en Buscadores (robots)", type: "switch", help: "Desactívalo solo si deseas colocar la web en modo privado/mantenimiento.", section: "Marca y SEO", group: "Indexación" },
-
-  // ------------------------------------------------------------ SEO por Páginas
-  { key: "seo_home_title", label: "Título SEO — Página de Inicio", type: "text", help: "Deja en blanco para usar Título Global.", section: "Marca y SEO", group: "Página de Inicio" },
-  { key: "seo_home_description", label: "Descripción SEO — Página de Inicio", type: "textarea", help: "Deja en blanco para usar Descripción Global.", section: "Marca y SEO", group: "Página de Inicio" },
-  { key: "seo_home_image", label: "Imagen Social — Página de Inicio", type: "image", help: "Opcional. Si no se sube, usa Miniatura Global.", section: "Marca y SEO", group: "Página de Inicio" },
-
-  { key: "seo_store_title", label: "Título SEO — Tienda", type: "text", section: "Marca y SEO", group: "Página de Tienda" },
-  { key: "seo_store_description", label: "Descripción SEO — Tienda", type: "textarea", section: "Marca y SEO", group: "Página de Tienda" },
-  { key: "seo_store_image", label: "Imagen Social — Tienda", type: "image", section: "Marca y SEO", group: "Página de Tienda" },
-
-  { key: "seo_services_title", label: "Título SEO — Servicios", type: "text", section: "Marca y SEO", group: "Página de Servicios" },
-  { key: "seo_services_description", label: "Descripción SEO — Servicios", type: "textarea", section: "Marca y SEO", group: "Página de Servicios" },
-  { key: "seo_services_image", label: "Imagen Social — Servicios", type: "image", section: "Marca y SEO", group: "Página de Servicios" },
-
-  { key: "seo_gallery_title", label: "Título SEO — Galería", type: "text", section: "Marca y SEO", group: "Página de Galería" },
-  { key: "seo_gallery_description", label: "Descripción SEO — Galería", type: "textarea", section: "Marca y SEO", group: "Página de Galería" },
-  { key: "seo_gallery_image", label: "Imagen Social — Galería", type: "image", section: "Marca y SEO", group: "Página de Galería" },
-
-  { key: "seo_about_title", label: "Título SEO — Nosotros", type: "text", section: "Marca y SEO", group: "Página de Nosotros" },
-  { key: "seo_about_description", label: "Descripción SEO — Nosotros", type: "textarea", section: "Marca y SEO", group: "Página de Nosotros" },
-  { key: "seo_about_image", label: "Imagen Social — Nosotros", type: "image", section: "Marca y SEO", group: "Página de Nosotros" },
-
-  { key: "seo_contact_title", label: "Título SEO — Contacto", type: "text", section: "Marca y SEO", group: "Página de Contacto" },
-  { key: "seo_contact_description", label: "Descripción SEO — Contacto", type: "textarea", section: "Marca y SEO", group: "Página de Contacto" },
-  { key: "seo_contact_image", label: "Imagen Social — Contacto", type: "image", section: "Marca y SEO", group: "Página de Contacto" },
+  // Nosotros
+  { key: "about_short", label: "Descripción Corta 'Nosotros'", type: "textarea", help: "Resumen que se muestra en la página principal.", section: "Inicio", group: "Sección Nosotros" },
 ];
-
-function SeoPreviewCard({ values }: { values: Record<string, string> }) {
-  const [selectedPage, setSelectedPage] = useState<"home" | "store" | "services" | "gallery" | "about" | "contact">("home");
-
-  const pageMap = {
-    home: {
-      url: "https://will-design-3d.lovable.app/",
-      title: values.seo_home_title || values.site_title || "Will Design 3D",
-      desc: values.seo_home_description || values.site_description || "",
-      img: values.seo_home_image || values.site_meta_thumbnail_url || values.site_logo_url || "",
-    },
-    store: {
-      url: "https://will-design-3d.lovable.app/tienda",
-      title: values.seo_store_title || values.site_title || "Tienda — Will Design 3D",
-      desc: values.seo_store_description || values.site_description || "",
-      img: values.seo_store_image || values.site_meta_thumbnail_url || values.site_logo_url || "",
-    },
-    services: {
-      url: "https://will-design-3d.lovable.app/servicios",
-      title: values.seo_services_title || values.site_title || "Servicios — Will Design 3D",
-      desc: values.seo_services_description || values.site_description || "",
-      img: values.seo_services_image || values.site_meta_thumbnail_url || values.site_logo_url || "",
-    },
-    gallery: {
-      url: "https://will-design-3d.lovable.app/galeria",
-      title: values.seo_gallery_title || values.site_title || "Galería — Will Design 3D",
-      desc: values.seo_gallery_description || values.site_description || "",
-      img: values.seo_gallery_image || values.site_meta_thumbnail_url || values.site_logo_url || "",
-    },
-    about: {
-      url: "https://will-design-3d.lovable.app/nosotros",
-      title: values.seo_about_title || values.site_title || "Nosotros — Will Design 3D",
-      desc: values.seo_about_description || values.site_description || "",
-      img: values.seo_about_image || values.site_meta_thumbnail_url || values.site_logo_url || "",
-    },
-    contact: {
-      url: "https://will-design-3d.lovable.app/contacto",
-      title: values.seo_contact_title || values.site_title || "Contacto — Will Design 3D",
-      desc: values.seo_contact_description || values.site_description || "",
-      img: values.seo_contact_image || values.site_meta_thumbnail_url || values.site_logo_url || "",
-    },
-  };
-
-  const curr = pageMap[selectedPage];
-
-  return (
-    <Card className="border-2 border-primary/30 bg-card">
-      <CardHeader>
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <CardTitle className="text-lg font-black flex items-center gap-2">
-              <span>🔍</span> Vista Previa SEO e Impacto Social
-            </CardTitle>
-            <CardDescription>
-              Simulación de cómo ven Google y WhatsApp/redes sociales tus enlaces al compartirlos.
-            </CardDescription>
-          </div>
-          <Select value={selectedPage} onValueChange={(v: any) => setSelectedPage(v)}>
-            <SelectTrigger className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="home">Página de Inicio (/)</SelectItem>
-              <SelectItem value="store">Tienda (/tienda)</SelectItem>
-              <SelectItem value="services">Servicios (/servicios)</SelectItem>
-              <SelectItem value="gallery">Galería (/galeria)</SelectItem>
-              <SelectItem value="about">Nosotros (/nosotros)</SelectItem>
-              <SelectItem value="contact">Contacto (/contacto)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Google Preview */}
-          <div className="rounded-2xl border border-border bg-white p-4 text-black dark:bg-slate-900 dark:text-white">
-            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-2">
-              Google Search Result
-            </span>
-            <div className="text-xs text-emerald-700 dark:text-emerald-400 font-mono truncate">{curr.url}</div>
-            <div className="text-base font-medium text-blue-700 dark:text-blue-400 hover:underline cursor-pointer line-clamp-1 mt-0.5">
-              {curr.title}
-            </div>
-            <div className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 mt-1">
-              {curr.desc}
-            </div>
-            <div className="mt-3 flex items-center gap-3 text-[11px] text-muted-foreground border-t pt-2 border-border">
-              <span>Título: <strong>{curr.title.length}</strong> / 60 chars</span>
-              <span>Desc: <strong>{curr.desc.length}</strong> / 160 chars</span>
-            </div>
-          </div>
-
-          {/* Social Media Preview */}
-          <div className="rounded-2xl border border-border bg-slate-50 dark:bg-slate-950 p-4">
-            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-2">
-              WhatsApp / Facebook / Twitter Card
-            </span>
-            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-              <div className="aspect-[1.91/1] w-full overflow-hidden bg-muted">
-                {curr.img ? (
-                  <img src={curr.img} alt="Preview" className="h-full w-full object-cover" />
-                ) : (
-                  <div className="grid h-full w-full place-items-center text-xs text-muted-foreground">
-                    Sin miniatura configurada
-                  </div>
-                )}
-              </div>
-              <div className="p-3">
-                <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider block">
-                  WILL-DESIGN-3D.LOVABLE.APP
-                </span>
-                <p className="text-sm font-bold text-foreground line-clamp-1 mt-0.5">{curr.title}</p>
-                <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{curr.desc}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-3 text-xs text-amber-900 dark:text-amber-200">
-          💡 <strong>Nota de Caché Externa:</strong> Al guardar cambios, la web los refleja inmediatamente. Sin embargo, Facebook y WhatsApp mantienen su propia caché de imágenes por días. Para forzar a Facebook/WhatsApp a leer tu nueva miniatura, puedes usar la herramienta pública <em>Facebook Sharing Debugger</em>.
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ThemeManagerTab({
-  values,
-  onChange,
-}: {
-  values: Record<string, string>;
-  onChange: (patch: Record<string, string>) => void;
-}) {
-  const activeThemeId = values.active_theme_id || "default";
-  const themes = resolveThemes(values.custom_themes);
-  const activeTheme = themes.find((t) => t.id === activeThemeId) || PRESET_THEMES[0];
-  const [editingTheme, setEditingTheme] = useState<SiteTheme | null>(null);
-
-  const targetEdit = editingTheme || activeTheme;
-
-  function selectTheme(id: string) {
-    onChange({ active_theme_id: id });
-    toast.success("Tema activado globalmente");
-  }
-
-  function handleCreateTheme(baseTheme?: SiteTheme) {
-    const newId = `custom_${Date.now()}`;
-    const newTheme: SiteTheme = {
-      id: newId,
-      name: baseTheme ? `${baseTheme.name} (Copia)` : "Nuevo Tema Custom",
-      description: "Tema personalizado editable",
-      isPreset: false,
-      colors: baseTheme ? { ...baseTheme.colors } : { ...PRESET_THEMES[0].colors },
-      buttonStyle: baseTheme ? { ...baseTheme.buttonStyle } : { animation: "none" },
-      customCss: baseTheme?.customCss || "",
-    };
-    const customList = themes.filter((t) => !t.isPreset);
-    const updatedCustom = [...customList, newTheme];
-    onChange({
-      custom_themes: JSON.stringify(updatedCustom),
-      active_theme_id: newId,
-    });
-    setEditingTheme(newTheme);
-    toast.success("Tema creado y activado");
-  }
-
-  function handleSaveEditingTheme(updated: SiteTheme) {
-    const customList = themes.filter((t) => !t.isPreset);
-    const nextCustom = customList.map((t) => (t.id === updated.id ? updated : t));
-    if (!customList.some((t) => t.id === updated.id)) {
-      nextCustom.push(updated);
-    }
-    onChange({ custom_themes: JSON.stringify(nextCustom) });
-    setEditingTheme(updated);
-    toast.success("Guardado en configuración de temas");
-  }
-
-  function handleDeleteTheme(id: string) {
-    const nextCustom = themes.filter((t) => !t.isPreset && t.id !== id);
-    const nextActive = activeThemeId === id ? "default" : activeThemeId;
-    onChange({
-      custom_themes: JSON.stringify(nextCustom),
-      active_theme_id: nextActive,
-    });
-    if (editingTheme?.id === id) setEditingTheme(null);
-    toast.success("Tema eliminado");
-  }
-
-  return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Selector de Tema Activo</CardTitle>
-          <CardDescription>
-            Elige qué tema y estilo visual se aplica a toda la tienda y página principal.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 sm:grid-cols-3">
-            {themes.map((t) => {
-              const isActive = t.id === activeThemeId;
-              return (
-                <div
-                  key={t.id}
-                  className={`flex flex-col justify-between rounded-2xl border p-4 transition ${
-                    isActive ? "border-primary bg-primary/10 ring-2 ring-primary" : "border-border bg-card"
-                  }`}
-                >
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-sm">{t.name}</h3>
-                      {t.isPreset && (
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                          Prediseñado
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{t.description}</p>
-                    {/* Previsualizador de Muestra de Colores */}
-                    <div className="mt-3 flex items-center gap-1.5">
-                      <span className="h-4 w-4 rounded-full border border-black/10" style={{ background: t.colors.brandOrange }} title="Naranja / Primario" />
-                      <span className="h-4 w-4 rounded-full border border-black/10" style={{ background: t.colors.brandTeal }} title="Teal / Secundario" />
-                      <span className="h-4 w-4 rounded-full border border-black/10" style={{ background: t.colors.brandWine }} title="Burgundy / Acento" />
-                      <span className="h-4 w-4 rounded-full border border-black/10" style={{ background: t.colors.background }} title="Fondo" />
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap items-center gap-2">
-                    {!isActive ? (
-                      <Button size="sm" onClick={() => selectTheme(t.id)}>
-                        Activar tema
-                      </Button>
-                    ) : (
-                      <span className="text-xs font-bold text-primary">✓ Activo</span>
-                    )}
-
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleCreateTheme(t)}
-                      title="Duplicar como plantilla editable"
-                    >
-                      Duplicar
-                    </Button>
-
-                    {!t.isPreset && (
-                      <>
-                        <Button size="sm" variant="secondary" onClick={() => setEditingTheme(t)}>
-                          Editar
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => handleDeleteTheme(t.id)}>
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-4">
-            <Button variant="outline" onClick={() => handleCreateTheme()}>
-              + Crear Nuevo Tema Personalizado
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Editor de Tema (si se seleccionó editar o crear) */}
-      {editingTheme && !editingTheme.isPreset && (
-        <Card className="border-2 border-primary/40">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Editando Tema: {editingTheme.name}</CardTitle>
-              <CardDescription>
-                Personaliza los colores exactos y los efectos visuales de los botones.
-              </CardDescription>
-            </div>
-            <Button variant="ghost" size="sm" onClick={() => setEditingTheme(null)}>
-              Cerrar editor
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <Label className="text-xs font-semibold">Nombre del Tema</Label>
-                <Input
-                  value={editingTheme.name}
-                  onChange={(e) =>
-                    handleSaveEditingTheme({ ...editingTheme, name: e.target.value })
-                  }
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-xs font-semibold">Descripción</Label>
-                <Input
-                  value={editingTheme.description}
-                  onChange={(e) =>
-                    handleSaveEditingTheme({ ...editingTheme, description: e.target.value })
-                  }
-                  className="mt-1"
-                />
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground my-2">
-                Paleta de Colores
-              </h4>
-              <div className="grid gap-3 sm:grid-cols-4">
-                <label className="text-xs font-semibold space-y-1 block">
-                  Color Naranja / Principal
-                  <Input
-                    type="text"
-                    value={editingTheme.colors.brandOrange}
-                    onChange={(e) =>
-                      handleSaveEditingTheme({
-                        ...editingTheme,
-                        colors: { ...editingTheme.colors, brandOrange: e.target.value, primary: e.target.value },
-                      })
-                    }
-                  />
-                </label>
-                <label className="text-xs font-semibold space-y-1 block">
-                  Color Teal / Secundario
-                  <Input
-                    type="text"
-                    value={editingTheme.colors.brandTeal}
-                    onChange={(e) =>
-                      handleSaveEditingTheme({
-                        ...editingTheme,
-                        colors: { ...editingTheme.colors, brandTeal: e.target.value, secondary: e.target.value },
-                      })
-                    }
-                  />
-                </label>
-                <label className="text-xs font-semibold space-y-1 block">
-                  Color Burgundy / Acento
-                  <Input
-                    type="text"
-                    value={editingTheme.colors.brandWine}
-                    onChange={(e) =>
-                      handleSaveEditingTheme({
-                        ...editingTheme,
-                        colors: { ...editingTheme.colors, brandWine: e.target.value, accent: e.target.value },
-                      })
-                    }
-                  />
-                </label>
-                <label className="text-xs font-semibold space-y-1 block">
-                  Fondo de Página
-                  <Input
-                    type="text"
-                    value={editingTheme.colors.background}
-                    onChange={(e) =>
-                      handleSaveEditingTheme({
-                        ...editingTheme,
-                        colors: { ...editingTheme.colors, background: e.target.value },
-                      })
-                    }
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground my-2">
-                Efectos y Estilo de Botones
-              </h4>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <Label className="text-xs font-semibold">Animación por Defecto de Botones</Label>
-                  <Select
-                    value={editingTheme.buttonStyle.animation || "none"}
-                    onValueChange={(val: ThemeAnimation) =>
-                      handleSaveEditingTheme({
-                        ...editingTheme,
-                        buttonStyle: { ...editingTheme.buttonStyle, animation: val },
-                      })
-                    }
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Sin Animación</SelectItem>
-                      <SelectItem value="neon_glow">Neón Cyberpunk ⚡</SelectItem>
-                      <SelectItem value="cyber_pulse">Pulso Dinámico 💫</SelectItem>
-                      <SelectItem value="shimmer">Brillo Shimmer ✨</SelectItem>
-                      <SelectItem value="festive_sparkle">Destello Festivo 🌟</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-xs font-semibold">CSS Personalizado Adicional</Label>
-              <Textarea
-                rows={3}
-                value={editingTheme.customCss || ""}
-                onChange={(e) =>
-                  handleSaveEditingTheme({ ...editingTheme, customCss: e.target.value })
-                }
-                placeholder=".btn-primary { border-radius: 4px; }"
-                className="font-mono text-xs mt-1"
-              />
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
-}
-
-const SECTIONS = [...Array.from(new Set(FIELDS.map((f) => f.section))), "Temas y Estilos"];
 
 function ContenidoAdmin() {
   const queryClient = useQueryClient();
@@ -568,7 +97,6 @@ function ContenidoAdmin() {
     load();
   }, []);
 
-  // Guardado automático: espera a que el usuario deje de escribir y guarda solo lo cambiado.
   const lastSaved = useRef<Record<string, string> | null>(null);
   useEffect(() => {
     if (loading) return;
@@ -930,19 +458,23 @@ function ContenidoAdmin() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> Cargando…
+      <div className="flex items-center gap-2 text-sm text-muted-foreground p-8">
+        <Loader2 className="h-4 w-4 animate-spin" /> Cargando contenido de la página principal…
       </div>
     );
   }
 
+  const groups = Array.from(new Set(FIELDS.map((f) => f.group)));
+
   return (
-    <>
+    <div className="space-y-6">
       <div className="sticky top-16 z-20 -mx-1 mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card/95 px-4 py-3 backdrop-blur">
         <div>
-          <h1 className="text-2xl font-black">Contenido del sitio</h1>
+          <h1 className="text-2xl font-black flex items-center gap-2">
+            <Layout className="h-6 w-6 text-primary" /> Home Builder & Contenido de la Página
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Cada cambio se guarda solo, sin tocar código.
+            Personaliza las secciones, el orden visual del inicio, textos y galería.
           </p>
         </div>
         <span className="inline-flex items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
@@ -951,52 +483,21 @@ function ContenidoAdmin() {
         </span>
       </div>
 
-      <Tabs defaultValue={SECTIONS[0]}>
-        <TabsList className="flex h-auto w-full flex-wrap justify-start">
-          {SECTIONS.map((s) => (
-            <TabsTrigger key={s} value={s}>
-              {s}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        {SECTIONS.map((section) => {
-          if (section === "Temas y Estilos") {
-            return (
-              <TabsContent key={section} value={section} className="mt-6 space-y-5">
-                <ThemeManagerTab
-                  values={values}
-                  onChange={(patch) => setValues((v) => ({ ...v, ...patch }))}
-                />
-              </TabsContent>
-            );
-          }
-          const groups = Array.from(
-            new Set(FIELDS.filter((f) => f.section === section).map((f) => f.group)),
-          );
-          return (
-            <TabsContent key={section} value={section} className="mt-6 space-y-5">
-              {section === "Marca y SEO" && (
-                <SeoPreviewCard values={values} />
-              )}
-              {groups.map((group) => (
-                <Card key={group}>
-                  <CardHeader>
-                    <CardTitle className="text-base">{group}</CardTitle>
-                    <CardDescription>
-                      {FIELDS.filter((f) => f.section === section && f.group === group).length} campos
-                      editables
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {FIELDS.filter((f) => f.section === section && f.group === group).map(renderField)}
-                  </CardContent>
-                </Card>
-              ))}
-            </TabsContent>
-          );
-        })}
-      </Tabs>
-    </>
+      <div className="space-y-6">
+        {groups.map((group) => (
+          <Card key={group}>
+            <CardHeader>
+              <CardTitle className="text-base">{group}</CardTitle>
+              <CardDescription>
+                {FIELDS.filter((f) => f.group === group).length} campos editables
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {FIELDS.filter((f) => f.group === group).map(renderField)}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
   );
 }
