@@ -927,9 +927,9 @@ function ServiceCard({
         gastos_extra_cop: draft.gastos_extra_cop,
         min_price_cop: draft.min_price_cop,
         margin_percent: draft.margin_percent,
-        pricing_mode: draft.pricing_mode || "formula",
+        pricing_mode: draft.pricing_mode || "",
         uses_global_vars: draft.uses_global_vars ?? false,
-        price_display: draft.price_display || "final",
+        price_display: draft.price_display || "",
         formula: draft.formula || null,
         allow_quantity: draft.allow_quantity,
         allow_file: draft.allow_file,
@@ -975,7 +975,7 @@ function ServiceCard({
       min_value: 0,
       max_value: 100,
       step_value: 1,
-      default_value: "10",
+      default_value: "",
       sort_order: service.fields.length + 1,
     });
     onMsg(error ? `Error: ${error.message}` : "Pregunta agregada.");

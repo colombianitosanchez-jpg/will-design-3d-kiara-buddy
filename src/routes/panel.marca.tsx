@@ -162,37 +162,37 @@ function SeoPreviewCard({ values }: { values: Record<string, string> }) {
   const pageMap = {
     home: {
       url: "https://willdesign3d.com/",
-      title: values.seo_home_title || values.site_title || "Will Design 3D",
+      title: values.seo_home_title || values.site_title || "",
       desc: values.seo_home_description || values.site_description || "",
       img: values.seo_home_image || values.site_meta_thumbnail_url || values.site_logo_url || "",
     },
     store: {
       url: "https://willdesign3d.com/tienda",
-      title: values.seo_store_title || values.site_title || "Tienda — Will Design 3D",
+      title: values.seo_store_title || values.site_title || "",
       desc: values.seo_store_description || values.site_description || "",
       img: values.seo_store_image || values.site_meta_thumbnail_url || values.site_logo_url || "",
     },
     services: {
       url: "https://willdesign3d.com/servicios",
-      title: values.seo_services_title || values.site_title || "Servicios — Will Design 3D",
+      title: values.seo_services_title || values.site_title || "",
       desc: values.seo_services_description || values.site_description || "",
       img: values.seo_services_image || values.site_meta_thumbnail_url || values.site_logo_url || "",
     },
     gallery: {
       url: "https://willdesign3d.com/galeria",
-      title: values.seo_gallery_title || values.site_title || "Galería — Will Design 3D",
+      title: values.seo_gallery_title || values.site_title || "",
       desc: values.seo_gallery_description || values.site_description || "",
       img: values.seo_gallery_image || values.site_meta_thumbnail_url || values.site_logo_url || "",
     },
     about: {
       url: "https://willdesign3d.com/nosotros",
-      title: values.seo_about_title || values.site_title || "Nosotros — Will Design 3D",
+      title: values.seo_about_title || values.site_title || "",
       desc: values.seo_about_description || values.site_description || "",
       img: values.seo_about_image || values.site_meta_thumbnail_url || values.site_logo_url || "",
     },
     contact: {
       url: "https://willdesign3d.com/contacto",
-      title: values.seo_contact_title || values.site_title || "Contacto — Will Design 3D",
+      title: values.seo_contact_title || values.site_title || "",
       desc: values.seo_contact_description || values.site_description || "",
       img: values.seo_contact_image || values.site_meta_thumbnail_url || values.site_logo_url || "",
     },
@@ -236,10 +236,10 @@ function SeoPreviewCard({ values }: { values: Record<string, string> }) {
             </span>
             <div className="text-xs text-emerald-700 dark:text-emerald-400 font-mono truncate">{curr.url}</div>
             <div className="text-base font-medium text-blue-700 dark:text-blue-400 hover:underline cursor-pointer line-clamp-1 mt-0.5">
-              {curr.title}
+              {curr.title || <span className="text-muted-foreground italic">Sin título configurado</span>}
             </div>
             <div className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 mt-1">
-              {curr.desc}
+              {curr.desc || <span className="text-muted-foreground italic">Sin descripción configurada</span>}
             </div>
           </div>
 
@@ -262,8 +262,12 @@ function SeoPreviewCard({ values }: { values: Record<string, string> }) {
                 <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider block">
                   WILLDESIGN3D.COM
                 </span>
-                <p className="text-sm font-bold text-foreground line-clamp-1 mt-0.5">{curr.title}</p>
-                <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{curr.desc}</p>
+                <p className="text-sm font-bold text-foreground line-clamp-1 mt-0.5">
+                  {curr.title || <span className="text-muted-foreground italic">Sin título configurado</span>}
+                </p>
+                <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                  {curr.desc || <span className="text-muted-foreground italic">Sin descripción configurada</span>}
+                </p>
               </div>
             </div>
           </div>

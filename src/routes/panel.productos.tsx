@@ -78,7 +78,7 @@ const empty: Omit<Product, "id"> = {
   slug: "",
   name: "",
   price_cop: 0,
-  btn_text: "Ver más",
+  btn_text: "",
   show_whatsapp: false,
   hide_default_cta: false,
   accepts_3d_file: false,
@@ -98,7 +98,7 @@ const empty: Omit<Product, "id"> = {
   active: true,
   stock: 0,
   variants: [],
-  variant_label: "Color",
+  variant_label: "",
   allowed_payment_method_ids: [],
 };
 
@@ -195,7 +195,7 @@ function ProductosAdmin() {
         custom_share_text: typeof r.custom_share_text === "string" ? r.custom_share_text : null,
         custom_buttons: parseProductButtons(r.custom_buttons),
         variants: parseVariants(r.variants),
-        variant_label: typeof r.variant_label === "string" && r.variant_label ? r.variant_label : "Color",
+        variant_label: typeof r.variant_label === "string" && r.variant_label ? r.variant_label : "",
         allowed_payment_method_ids: normalizeMethodIds(r.allowed_payment_method_ids),
       })) as Product[],
     );
@@ -584,7 +584,7 @@ function ProductModal({
         slug: (form.slug || slugify(form.name || "")).slice(0, 80),
         name: form.name ?? "",
         price_cop: Number(form.price_cop) || 0,
-        btn_text: form.btn_text?.trim() || "Ver más",
+        btn_text: form.btn_text?.trim() || "",
         show_whatsapp: !!form.show_whatsapp,
         hide_default_cta: !!form.hide_default_cta,
         accepts_3d_file: !!form.accepts_3d_file,
@@ -603,7 +603,7 @@ function ProductModal({
         featured: !!form.featured,
         active: form.active ?? true,
         stock: Number(form.stock) || 0,
-        variant_label: form.variant_label?.trim() || "Color",
+        variant_label: form.variant_label?.trim() || "",
         variants: (form.variants ?? []).map((v) => ({ ...v, name: v.name.trim() })),
         allowed_payment_method_ids: form.allowed_payment_method_ids ?? [],
       };
@@ -719,7 +719,7 @@ function ProductModal({
           </Field>
           <Field label="Texto de acción">
             <input
-              value={form.btn_text ?? "Ver más"}
+              value={form.btn_text ?? ""}
               onChange={(e) => set("btn_text", e.target.value)}
               className={inputCls}
               placeholder="Ver más, Cotizar, Reservar"
@@ -881,7 +881,7 @@ function ProductModal({
         <Field label="Variantes (colores, tamaños…) — opcional">
           <Suspense fallback={<div className="p-4 text-xs text-muted-foreground flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Cargando editor de variantes...</div>}>
             <VariantsEditor
-              label={form.variant_label ?? "Color"}
+              label={form.variant_label ?? ""}
               onLabelChange={(v) => set("variant_label", v)}
               variants={form.variants ?? []}
               onChange={(v) => set("variants", v)}
