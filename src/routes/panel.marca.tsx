@@ -13,7 +13,8 @@ import {
   Palette,
   Globe,
   Trash2,
-  Sparkles,
+  Plus,
+  GripVertical,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -23,7 +24,31 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PRESET_THEMES, resolveThemes, type SiteTheme, type ThemeAnimation } from "@/lib/theme";
+import {
+  PRESET_THEMES,
+  resolveThemes,
+  ensureThemePalette,
+  type SiteTheme,
+  type ThemeAnimation,
+  type ColorToken,
+} from "@/lib/theme";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 export const Route = createFileRoute("/panel/marca")({
   ssr: false,
@@ -277,6 +302,160 @@ function SeoPreviewCard({ values }: { values: Record<string, string> }) {
   );
 }
 
+function SortableColorRow({
+  token,
+  onUpdate,
+  onDelete,
+}: {
+  token: ColorToken;
+  onUpdate: (id: string, patch: Partial<ColorToken>) => void;
+  onDelete: (id: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: token.id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-sm"
+    >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="cursor-grab touch-none text-muted-foreground hover:text-foreground p-1"
+        title="Arrastrar para reordenar color"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+
+      <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg border border-border shadow-inner">
+        <input
+          type="color"
+          value={token.hex.startsWith("#") ? token.hex : "#000000"}
+          onChange={(e) => onUpdate(token.id, { hex: e.target.value })}
+          className="absolute -inset-2 h-14 w-14 cursor-pointer border-0"
+        />
+      </div>
+
+      <div className="flex-1 min-w-[140px]">
+        <Input
+          type="text"
+          value={token.name}
+          onChange={(e) => onUpdate(token.id, { name: e.target.value })}
+          placeholder="Nombre del color (Ej: Rojo Acento)"
+          className="h-9 text-xs font-semibold"
+        />
+      </div>
+
+      <div className="w-28 shrink-0">
+        <Input
+          type="text"
+          value={token.hex}
+          onChange={(e) => onUpdate(token.id, { hex: e.target.value })}
+          placeholder="#FF0000"
+          className="h-9 text-xs font-mono"
+        />
+      </div>
+
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        onClick={() => onDelete(token.id)}
+        className="h-9 w-9 text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
+        title="Eliminar color de la paleta"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
+function PaletteEditor({
+  palette,
+  onChange,
+}: {
+  palette: ColorToken[];
+  onChange: (newPalette: ColorToken[]) => void;
+}) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  function handleAddColor() {
+    const nextId = `color_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const newColor: ColorToken = {
+      id: nextId,
+      name: `Color ${palette.length + 1}`,
+      hex: "#3b82f6",
+    };
+    onChange([...palette, newColor]);
+    toast.success("Nuevo color añadido a la paleta");
+  }
+
+  function handleUpdateColor(id: string, patch: Partial<ColorToken>) {
+    onChange(palette.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+  }
+
+  function handleDeleteColor(id: string) {
+    if (palette.length <= 1) {
+      toast.error("El tema debe tener al menos un color en la paleta");
+      return;
+    }
+    onChange(palette.filter((c) => c.id !== id));
+    toast.success("Color eliminado");
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = palette.findIndex((c) => c.id === active.id);
+    const newIndex = palette.findIndex((c) => c.id === over.id);
+    if (oldIndex !== -1 && newIndex !== -1) {
+      onChange(arrayMove(palette, oldIndex, newIndex));
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={palette.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-2">
+            {palette.map((token) => (
+              <SortableColorRow
+                key={token.id}
+                token={token}
+                onUpdate={handleUpdateColor}
+                onDelete={handleDeleteColor}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={handleAddColor}
+        className="mt-2 text-xs font-bold"
+      >
+        <Plus className="mr-1.5 h-3.5 w-3.5" /> Agregar color a la paleta
+      </Button>
+    </div>
+  );
+}
+
 function ThemeManagerTab({
   values,
   onChange,
@@ -286,7 +465,6 @@ function ThemeManagerTab({
 }) {
   const activeThemeId = values.active_theme_id || "default";
   const themes = resolveThemes(values.custom_themes);
-  const activeTheme = themes.find((t) => t.id === activeThemeId) || PRESET_THEMES[0];
   const [editingTheme, setEditingTheme] = useState<SiteTheme | null>(null);
 
   function selectTheme(id: string) {
@@ -296,12 +474,13 @@ function ThemeManagerTab({
 
   function handleCreateTheme(baseTheme?: SiteTheme) {
     const newId = `custom_${Date.now()}`;
+    const baseColors = baseTheme ? ensureThemePalette(baseTheme.colors) : ensureThemePalette(PRESET_THEMES[0].colors);
     const newTheme: SiteTheme = {
       id: newId,
       name: baseTheme ? `${baseTheme.name} (Copia)` : "Nuevo Tema Custom",
       description: "Tema personalizado editable",
       isPreset: false,
-      colors: baseTheme ? { ...baseTheme.colors } : { ...PRESET_THEMES[0].colors },
+      colors: baseColors,
       buttonStyle: baseTheme ? { ...baseTheme.buttonStyle } : { animation: "none" },
       customCss: baseTheme?.customCss || "",
     };
@@ -316,14 +495,31 @@ function ThemeManagerTab({
   }
 
   function handleSaveEditingTheme(updated: SiteTheme) {
+    // Sincronizar brandOrange, brandTeal, brandWine, background con la paleta para retrocompatibilidad
+    const p = updated.colors.palette;
+    const brandOrange = p.find((c) => c.id === "brandOrange")?.hex || p[0]?.hex || updated.colors.brandOrange;
+    const brandTeal = p.find((c) => c.id === "brandTeal")?.hex || p[1]?.hex || updated.colors.brandTeal;
+    const brandWine = p.find((c) => c.id === "brandWine")?.hex || p[2]?.hex || updated.colors.brandWine;
+    const background = p.find((c) => c.id === "background")?.hex || p[3]?.hex || updated.colors.background;
+
+    const normalizedTheme: SiteTheme = {
+      ...updated,
+      colors: {
+        ...updated.colors,
+        brandOrange,
+        brandTeal,
+        brandWine,
+        background,
+      },
+    };
+
     const customList = themes.filter((t) => !t.isPreset);
-    const nextCustom = customList.map((t) => (t.id === updated.id ? updated : t));
-    if (!customList.some((t) => t.id === updated.id)) {
-      nextCustom.push(updated);
+    const nextCustom = customList.map((t) => (t.id === normalizedTheme.id ? normalizedTheme : t));
+    if (!customList.some((t) => t.id === normalizedTheme.id)) {
+      nextCustom.push(normalizedTheme);
     }
     onChange({ custom_themes: JSON.stringify(nextCustom) });
-    setEditingTheme(updated);
-    toast.success("Guardado en configuración de temas");
+    setEditingTheme(normalizedTheme);
   }
 
   function handleDeleteTheme(id: string) {
@@ -350,6 +546,7 @@ function ThemeManagerTab({
           <div className="grid gap-4 sm:grid-cols-3">
             {themes.map((t) => {
               const isActive = t.id === activeThemeId;
+              const palette = ensureThemePalette(t.colors).palette;
               return (
                 <div
                   key={t.id}
@@ -367,11 +564,15 @@ function ThemeManagerTab({
                       )}
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{t.description}</p>
-                    <div className="mt-3 flex items-center gap-1.5">
-                      <span className="h-4 w-4 rounded-full border border-black/10" style={{ background: t.colors.brandOrange }} title="Naranja" />
-                      <span className="h-4 w-4 rounded-full border border-black/10" style={{ background: t.colors.brandTeal }} title="Teal" />
-                      <span className="h-4 w-4 rounded-full border border-black/10" style={{ background: t.colors.brandWine }} title="Burgundy" />
-                      <span className="h-4 w-4 rounded-full border border-black/10" style={{ background: t.colors.background }} title="Fondo" />
+                    <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                      {palette.slice(0, 6).map((col) => (
+                        <span
+                          key={col.id}
+                          className="h-4 w-4 rounded-full border border-black/10 shadow-xs"
+                          style={{ background: col.hex }}
+                          title={`${col.name}: ${col.hex}`}
+                        />
+                      ))}
                     </div>
                   </div>
 
@@ -422,14 +623,14 @@ function ThemeManagerTab({
             <div>
               <CardTitle>Editando Tema: {editingTheme.name}</CardTitle>
               <CardDescription>
-                Personaliza los colores exactos y los efectos visuales de los botones.
+                Personaliza la paleta de colores dinámicos y los efectos visuales de los botones.
               </CardDescription>
             </div>
             <Button variant="ghost" size="sm" onClick={() => setEditingTheme(null)}>
               Cerrar editor
             </Button>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <Label className="text-xs font-semibold">Nombre del Tema</Label>
@@ -454,63 +655,21 @@ function ThemeManagerTab({
             </div>
 
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground my-2">
-                Paleta de Colores
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                Paleta de Colores Dinámica (Drag & Drop para reordenar)
               </h4>
-              <div className="grid gap-3 sm:grid-cols-4">
-                <label className="text-xs font-semibold space-y-1 block">
-                  Color Naranja / Principal
-                  <Input
-                    type="text"
-                    value={editingTheme.colors.brandOrange}
-                    onChange={(e) =>
-                      handleSaveEditingTheme({
-                        ...editingTheme,
-                        colors: { ...editingTheme.colors, brandOrange: e.target.value, primary: e.target.value },
-                      })
-                    }
-                  />
-                </label>
-                <label className="text-xs font-semibold space-y-1 block">
-                  Color Teal / Secundario
-                  <Input
-                    type="text"
-                    value={editingTheme.colors.brandTeal}
-                    onChange={(e) =>
-                      handleSaveEditingTheme({
-                        ...editingTheme,
-                        colors: { ...editingTheme.colors, brandTeal: e.target.value, secondary: e.target.value },
-                      })
-                    }
-                  />
-                </label>
-                <label className="text-xs font-semibold space-y-1 block">
-                  Color Burgundy / Acento
-                  <Input
-                    type="text"
-                    value={editingTheme.colors.brandWine}
-                    onChange={(e) =>
-                      handleSaveEditingTheme({
-                        ...editingTheme,
-                        colors: { ...editingTheme.colors, brandWine: e.target.value, accent: e.target.value },
-                      })
-                    }
-                  />
-                </label>
-                <label className="text-xs font-semibold space-y-1 block">
-                  Fondo de Página
-                  <Input
-                    type="text"
-                    value={editingTheme.colors.background}
-                    onChange={(e) =>
-                      handleSaveEditingTheme({
-                        ...editingTheme,
-                        colors: { ...editingTheme.colors, background: e.target.value },
-                      })
-                    }
-                  />
-                </label>
-              </div>
+              <PaletteEditor
+                palette={ensureThemePalette(editingTheme.colors).palette}
+                onChange={(newPalette) =>
+                  handleSaveEditingTheme({
+                    ...editingTheme,
+                    colors: {
+                      ...editingTheme.colors,
+                      palette: newPalette,
+                    },
+                  })
+                }
+              />
             </div>
 
             <div>

@@ -4,24 +4,32 @@
 
 export type ThemeAnimation = "none" | "neon_glow" | "cyber_pulse" | "shimmer" | "festive_sparkle";
 
+export type ColorToken = {
+  id: string;
+  name: string;
+  hex: string;
+  oklch?: string;
+};
+
 export type ThemeColors = {
+  palette: ColorToken[];
   brandOrange: string;
   brandTeal: string;
   brandWine: string;
   background: string;
-  foreground: string;
-  card: string;
-  cardForeground: string;
-  primary: string;
-  primaryForeground: string;
-  secondary: string;
-  secondaryForeground: string;
-  muted: string;
-  mutedForeground: string;
-  accent: string;
-  accentForeground: string;
-  border: string;
-  ring: string;
+  foreground?: string;
+  card?: string;
+  cardForeground?: string;
+  primary?: string;
+  primaryForeground?: string;
+  secondary?: string;
+  secondaryForeground?: string;
+  muted?: string;
+  mutedForeground?: string;
+  accent?: string;
+  accentForeground?: string;
+  border?: string;
+  ring?: string;
 };
 
 export type SiteTheme = {
@@ -32,11 +40,38 @@ export type SiteTheme = {
   colors: ThemeColors;
   buttonStyle: {
     animation: ThemeAnimation;
-    mediaUrl?: string; // GIF, MP4, WebM o Imagen
-    mediaType?: "gif" | "video" | "image";
+    mediaUrl?: string; // GIF, MP4, WebM, Lottie o Imagen
+    mediaType?: "gif" | "video" | "image" | "lottie";
   };
   customCss?: string;
 };
+
+export function ensureThemePalette(colors: Partial<ThemeColors>): ThemeColors {
+  const brandOrange = colors.brandOrange || "#f97316";
+  const brandTeal = colors.brandTeal || "#14b8a6";
+  const brandWine = colors.brandWine || "#881337";
+  const background = colors.background || "#ffffff";
+
+  let palette = Array.isArray(colors.palette) ? colors.palette : [];
+
+  if (palette.length === 0) {
+    palette = [
+      { id: "brandOrange", name: "Naranja Principal", hex: brandOrange.startsWith("#") ? brandOrange : "#f97316" },
+      { id: "brandTeal", name: "Teal Secundario", hex: brandTeal.startsWith("#") ? brandTeal : "#14b8a6" },
+      { id: "brandWine", name: "Burgundy Acento", hex: brandWine.startsWith("#") ? brandWine : "#881337" },
+      { id: "background", name: "Fondo de Página", hex: background.startsWith("#") ? background : "#ffffff" },
+    ];
+  }
+
+  return {
+    ...colors,
+    brandOrange,
+    brandTeal,
+    brandWine,
+    background,
+    palette,
+  };
+}
 
 export const PRESET_THEMES: SiteTheme[] = [
   {
@@ -44,25 +79,18 @@ export const PRESET_THEMES: SiteTheme[] = [
     name: "Will Design Estándar",
     description: "Paleta oficial limpia y moderna basada en los colores de marca original.",
     isPreset: true,
-    colors: {
-      brandOrange: "oklch(0.74 0.17 55)",
-      brandTeal: "oklch(0.62 0.11 200)",
-      brandWine: "oklch(0.42 0.13 20)",
-      background: "oklch(0.99 0.005 90)",
-      foreground: "oklch(0.22 0.03 25)",
-      card: "oklch(1 0 0)",
-      cardForeground: "oklch(0.22 0.03 25)",
-      primary: "oklch(0.74 0.17 55)",
-      primaryForeground: "oklch(0.99 0.005 90)",
-      secondary: "oklch(0.62 0.11 200)",
-      secondaryForeground: "oklch(0.99 0.005 90)",
-      muted: "oklch(0.96 0.01 80)",
-      mutedForeground: "oklch(0.45 0.03 30)",
-      accent: "oklch(0.42 0.13 20)",
-      accentForeground: "oklch(0.99 0.005 90)",
-      border: "oklch(0.9 0.015 60)",
-      ring: "oklch(0.74 0.17 55)",
-    },
+    colors: ensureThemePalette({
+      brandOrange: "#f97316",
+      brandTeal: "#14b8a6",
+      brandWine: "#881337",
+      background: "#ffffff",
+      palette: [
+        { id: "brandOrange", name: "Naranja Principal", hex: "#f97316" },
+        { id: "brandTeal", name: "Teal Secundario", hex: "#14b8a6" },
+        { id: "brandWine", name: "Burgundy Acento", hex: "#881337" },
+        { id: "background", name: "Fondo de Página", hex: "#ffffff" },
+      ],
+    }),
     buttonStyle: {
       animation: "none",
     },
@@ -72,25 +100,18 @@ export const PRESET_THEMES: SiteTheme[] = [
     name: "Cyberpunk Neon ⚡",
     description: "Estilo futurista de alto impacto: fondo oscuro obsidiana, bordes neón cyan/magenta y animaciones electro.",
     isPreset: true,
-    colors: {
-      brandOrange: "oklch(0.75 0.25 140)", // Cyan Neón
-      brandTeal: "oklch(0.68 0.28 320)", // Magenta Neón
-      brandWine: "oklch(0.55 0.25 280)", // Púrpura eléctrico
-      background: "oklch(0.12 0.03 260)", // Obsidiana ultra oscuro
-      foreground: "oklch(0.96 0.05 200)", // Texto cyan claro brillante
-      card: "oklch(0.16 0.04 260)",
-      cardForeground: "oklch(0.96 0.05 200)",
-      primary: "oklch(0.75 0.25 140)",
-      primaryForeground: "oklch(0.1 0.05 260)",
-      secondary: "oklch(0.68 0.28 320)",
-      secondaryForeground: "oklch(0.98 0 0)",
-      muted: "oklch(0.22 0.05 260)",
-      mutedForeground: "oklch(0.75 0.08 200)",
-      accent: "oklch(0.55 0.25 280)",
-      accentForeground: "oklch(0.98 0 0)",
-      border: "oklch(0.35 0.12 280)",
-      ring: "oklch(0.75 0.25 140)",
-    },
+    colors: ensureThemePalette({
+      brandOrange: "#00f3ff",
+      brandTeal: "#ff0055",
+      brandWine: "#9d00ff",
+      background: "#0f172a",
+      palette: [
+        { id: "brandOrange", name: "Cyan Neón", hex: "#00f3ff" },
+        { id: "brandTeal", name: "Magenta Neón", hex: "#ff0055" },
+        { id: "brandWine", name: "Púrpura Eléctrico", hex: "#9d00ff" },
+        { id: "background", name: "Obsidiana Oscuro", hex: "#0f172a" },
+      ],
+    }),
     buttonStyle: {
       animation: "neon_glow",
     },
@@ -105,25 +126,18 @@ export const PRESET_THEMES: SiteTheme[] = [
     name: "Temporada & Festivo 🌟",
     description: "Edición especial con dorados brillantes, rojo carmesí y elegancia nocturna.",
     isPreset: true,
-    colors: {
-      brandOrange: "oklch(0.78 0.18 80)", // Dorado ámbar
-      brandTeal: "oklch(0.5 0.2 25)", // Rojo Carmesí
-      brandWine: "oklch(0.3 0.12 25)", // Noche profunda
-      background: "oklch(0.98 0.02 85)",
-      foreground: "oklch(0.2 0.05 30)",
-      card: "oklch(1 0 0)",
-      cardForeground: "oklch(0.2 0.05 30)",
-      primary: "oklch(0.78 0.18 80)",
-      primaryForeground: "oklch(0.15 0.05 30)",
-      secondary: "oklch(0.5 0.2 25)",
-      secondaryForeground: "oklch(0.98 0 0)",
-      muted: "oklch(0.94 0.03 85)",
-      mutedForeground: "oklch(0.45 0.05 30)",
-      accent: "oklch(0.3 0.12 25)",
-      accentForeground: "oklch(0.98 0 0)",
-      border: "oklch(0.88 0.04 80)",
-      ring: "oklch(0.78 0.18 80)",
-    },
+    colors: ensureThemePalette({
+      brandOrange: "#eab308",
+      brandTeal: "#dc2626",
+      brandWine: "#450a0a",
+      background: "#fefce8",
+      palette: [
+        { id: "brandOrange", name: "Dorado Ámbar", hex: "#eab308" },
+        { id: "brandTeal", name: "Rojo Carmesí", hex: "#dc2626" },
+        { id: "brandWine", name: "Noche Profunda", hex: "#450a0a" },
+        { id: "background", name: "Fondo Calidez", hex: "#fefce8" },
+      ],
+    }),
     buttonStyle: {
       animation: "festive_sparkle",
     },
@@ -136,43 +150,61 @@ export function resolveThemes(customThemesRaw?: string | null): SiteTheme[] {
     try {
       const parsed = JSON.parse(customThemesRaw);
       if (Array.isArray(parsed)) {
-        customThemes = parsed;
+        customThemes = parsed.map((t) => ({
+          ...t,
+          colors: ensureThemePalette(t.colors || {}),
+        }));
       }
     } catch {
       customThemes = [];
     }
   }
-  return [...PRESET_THEMES, ...customThemes];
+
+  const presets = PRESET_THEMES.map((t) => ({
+    ...t,
+    colors: ensureThemePalette(t.colors),
+  }));
+
+  return [...presets, ...customThemes];
 }
 
 export function getActiveTheme(content?: Record<string, string>): SiteTheme {
   const activeId = content?.active_theme_id || "default";
   const allThemes = resolveThemes(content?.custom_themes);
-  return allThemes.find((t) => t.id === activeId) || PRESET_THEMES[0];
+  const matched = allThemes.find((t) => t.id === activeId) || PRESET_THEMES[0];
+  return {
+    ...matched,
+    colors: ensureThemePalette(matched.colors),
+  };
 }
 
 export function applyThemeToDocument(theme: SiteTheme) {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
 
-  const c = theme.colors;
+  const c = ensureThemePalette(theme.colors);
   root.style.setProperty("--brand-orange", c.brandOrange);
   root.style.setProperty("--brand-teal", c.brandTeal);
   root.style.setProperty("--brand-wine", c.brandWine);
   root.style.setProperty("--background", c.background);
-  root.style.setProperty("--foreground", c.foreground);
-  root.style.setProperty("--card", c.card);
-  root.style.setProperty("--card-foreground", c.cardForeground);
-  root.style.setProperty("--primary", c.primary);
-  root.style.setProperty("--primary-foreground", c.primaryForeground);
-  root.style.setProperty("--secondary", c.secondary);
-  root.style.setProperty("--secondary-foreground", c.secondaryForeground);
-  root.style.setProperty("--muted", c.muted);
-  root.style.setProperty("--muted-foreground", c.mutedForeground);
-  root.style.setProperty("--accent", c.accent);
-  root.style.setProperty("--accent-foreground", c.accentForeground);
-  root.style.setProperty("--border", c.border);
-  root.style.setProperty("--ring", c.ring);
+
+  if (c.foreground) root.style.setProperty("--foreground", c.foreground);
+  if (c.card) root.style.setProperty("--card", c.card);
+  if (c.cardForeground) root.style.setProperty("--card-foreground", c.cardForeground);
+  if (c.primary) root.style.setProperty("--primary", c.primary);
+  if (c.primaryForeground) root.style.setProperty("--primary-foreground", c.primaryForeground);
+  if (c.secondary) root.style.setProperty("--secondary", c.secondary);
+  if (c.secondaryForeground) root.style.setProperty("--secondary-foreground", c.secondaryForeground);
+  if (c.muted) root.style.setProperty("--muted", c.muted);
+  if (c.mutedForeground) root.style.setProperty("--muted-foreground", c.mutedForeground);
+  if (c.accent) root.style.setProperty("--accent", c.accent);
+  if (c.accentForeground) root.style.setProperty("--accent-foreground", c.accentForeground);
+  if (c.border) root.style.setProperty("--border", c.border);
+  if (c.ring) root.style.setProperty("--ring", c.ring);
+
+  c.palette.forEach((token) => {
+    root.style.setProperty(`--theme-color-${token.id}`, token.hex);
+  });
 
   // Inyectar / actualizar el bloque de CSS personalizado del tema activo
   let styleEl = document.getElementById("active-theme-custom-css");

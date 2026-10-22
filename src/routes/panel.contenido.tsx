@@ -3,7 +3,21 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Upload, Check, Eye, EyeOff, Film, ArrowUp, ArrowDown, Trash2, Layout } from "lucide-react";
+import {
+  Loader2,
+  Upload,
+  Check,
+  Eye,
+  EyeOff,
+  Film,
+  ArrowUp,
+  ArrowDown,
+  Trash2,
+  Layout,
+  Plus,
+  GripVertical,
+  Sparkles,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -15,18 +29,86 @@ import { sanitizeWidgetId, parsePhotos, type PortfolioPhoto } from "@/components
 import { HomeSectionsOrder } from "@/components/HomeSectionsOrder";
 import { parseHomeOrder } from "@/lib/home-sections";
 import { ProductMedia, isVideoUrl } from "@/components/ProductMedia";
+import { useSiteContent } from "@/hooks/use-site-content";
+import { getActiveTheme } from "@/lib/theme";
+import { Lottie } from "lottie-react";
+import { motion } from "framer-motion";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 export const Route = createFileRoute("/panel/contenido")({
   ssr: false,
   component: ContenidoAdmin,
 });
 
+export type HeroStatItem = {
+  id: string;
+  k: string;
+  v: string;
+  action_type?: "none" | "link" | "whatsapp";
+  action_value?: string;
+  color_id?: string;
+  custom_hex?: string;
+  media_url?: string;
+  animation_type?: "none" | "image" | "video" | "gif" | "lottie";
+  animation_style?: string;
+};
+
+export function parseHeroStats(values: Record<string, string>): HeroStatItem[] {
+  if (values.hero_stats) {
+    try {
+      const parsed = JSON.parse(values.hero_stats);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch {
+      // fallback
+    }
+  }
+
+  const legacy: HeroStatItem[] = [];
+  for (let i = 1; i <= 6; i++) {
+    const k = values[`hero_stat_${i}_k`]?.trim();
+    const v = values[`hero_stat_${i}_v`]?.trim();
+    if (k || v) {
+      legacy.push({
+        id: `stat_${i}`,
+        k: k || "",
+        v: v || "",
+        action_type: "none",
+        action_value: "",
+        animation_type: "none",
+      });
+    }
+  }
+  return legacy.length > 0
+    ? legacy
+    : [
+        { id: "stat_1", k: "50×50", v: "cm mínimo", action_type: "none" },
+        { id: "stat_2", k: "1.8 m", v: "en una sola pieza", action_type: "none" },
+        { id: "stat_3", k: "24/7", v: "atención y cotización", action_type: "none" },
+      ];
+}
+
 type Row = { key: string; value: string };
 
 type FieldDef = {
   key: string;
   label: string;
-  type: "text" | "textarea" | "image" | "images" | "switch" | "select" | "order";
+  type: "text" | "textarea" | "image" | "images" | "switch" | "select" | "order" | "hero_stats";
   help?: string;
   section: string;
   group: string;
@@ -47,13 +129,15 @@ const FIELDS: FieldDef[] = [
   },
   { key: "hero_badge_title", label: "Etiqueta Flotante (Pieza destacada)", type: "text", help: "Ej: Escultura 1.8 m — PLA reforzado", section: "Inicio", group: "Hero Principal" },
 
-  // Estadísticas del Hero
-  { key: "hero_stat_1_k", label: "Estadística 1 · Valor", type: "text", help: "Ej: 50×50", section: "Inicio", group: "Estadísticas del Hero" },
-  { key: "hero_stat_1_v", label: "Estadística 1 · Descripción", type: "text", help: "Ej: cm mínimo", section: "Inicio", group: "Estadísticas del Hero" },
-  { key: "hero_stat_2_k", label: "Estadística 2 · Valor", type: "text", section: "Inicio", group: "Estadísticas del Hero" },
-  { key: "hero_stat_2_v", label: "Estadística 2 · Descripción", type: "text", section: "Inicio", group: "Estadísticas del Hero" },
-  { key: "hero_stat_3_k", label: "Estadística 3 · Valor", type: "text", section: "Inicio", group: "Estadísticas del Hero" },
-  { key: "hero_stat_3_v", label: "Estadística 3 · Descripción", type: "text", section: "Inicio", group: "Estadísticas del Hero" },
+  // Estadísticas del Hero (Convertidas en Botones de Acción con Drag & Drop)
+  {
+    key: "hero_stats",
+    label: "Botones de Acción y Estadísticas del Hero",
+    type: "hero_stats",
+    help: "Reordena por Drag & Drop, asigna colores de la paleta del tema, animaciones (Lottie/Video/GIF) y acciones clickeables.",
+    section: "Inicio",
+    group: "Estadísticas del Hero",
+  },
 
   // Orden de la Página de Inicio
   { key: "home_sections_order", label: "Orden de las Secciones del Inicio", type: "order", help: "Arrastra las secciones para decidir qué aparece primero al entrar a la página.", section: "Inicio", group: "Orden de Secciones" },
@@ -76,6 +160,392 @@ const FIELDS: FieldDef[] = [
   { key: "about_short", label: "Descripción Corta 'Nosotros'", type: "textarea", help: "Resumen que se muestra en la página principal.", section: "Inicio", group: "Sección Nosotros" },
 ];
 
+function LottiePreview({ url }: { url: string }) {
+  const [data, setData] = useState<any>(null);
+
+  useEffect(() => {
+    if (!url) return;
+    let isMounted = true;
+    fetch(url)
+      .then((res) => res.json())
+      .then((json) => {
+        if (isMounted) setData(json);
+      })
+      .catch(() => {
+        if (isMounted) setData(null);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [url]);
+
+  if (!data) return null;
+  return <Lottie src={data} autoplay loop className="h-5 w-5" />;
+}
+
+function SortableHeroStatCard({
+  item,
+  index,
+  palette,
+  onUpdate,
+  onRemove,
+}: {
+  item: HeroStatItem;
+  index: number;
+  palette: Array<{ id: string; name: string; hex: string }>;
+  onUpdate: (patch: Partial<HeroStatItem>) => void;
+  onRemove: () => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: item.id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  async function handleUploadMedia(file: File) {
+    setUploading(true);
+    try {
+      if (file.size > 50 * 1024 * 1024) throw new Error("Supera 50MB");
+      const path = `stats/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      const up = await supabase.storage.from("site-media").upload(path, file, { upsert: false });
+      if (up.error) throw up.error;
+      const signed = await supabase.storage.from("site-media").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+      if (signed.error) throw signed.error;
+
+      let detectedType: HeroStatItem["animation_type"] = "image";
+      if (file.type.includes("json")) detectedType = "lottie";
+      else if (file.type.includes("video")) detectedType = "video";
+      else if (file.type.includes("gif")) detectedType = "gif";
+
+      onUpdate({ media_url: signed.data.signedUrl, animation_type: detectedType });
+      toast.success("Animación subida para el botón");
+    } catch (e) {
+      toast.error("Error al subir", { description: (e as Error).message });
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  let resolvedBg = "";
+  if (item.color_id === "custom") {
+    resolvedBg = item.custom_hex || "";
+  } else if (item.color_id) {
+    const found = palette.find((p) => p.id === item.color_id);
+    if (found) resolvedBg = found.hex;
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="rounded-2xl border border-border bg-card p-4 shadow-xs space-y-3"
+    >
+      <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-2">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            className="cursor-grab touch-none text-muted-foreground hover:text-foreground p-1"
+            title="Arrastrar para reordenar"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+          <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">
+            Botón Estadístico {index + 1}
+          </span>
+        </div>
+
+        {/* Live Preview Card */}
+        <div className="flex items-center gap-3">
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            style={resolvedBg ? { borderColor: resolvedBg, backgroundColor: `${resolvedBg}10` } : undefined}
+            className={`rounded-xl border border-border bg-card px-3 py-2 text-center shadow-2xs min-w-[100px] ${
+              item.animation_style && item.animation_style !== "none" ? `theme-anim-${item.animation_style}` : ""
+            }`}
+          >
+            <div className="flex items-center justify-center gap-1.5 font-black text-sm" style={{ color: resolvedBg || "var(--brand-wine)" }}>
+              {item.media_url && item.animation_type !== "none" && (
+                <span>
+                  {item.animation_type === "lottie" ? (
+                    <LottiePreview url={item.media_url} />
+                  ) : item.animation_type === "video" ? (
+                    <video src={item.media_url} autoPlay loop muted playsInline className="h-4 w-4 rounded-full object-cover" />
+                  ) : (
+                    <img src={item.media_url} alt="" className="h-4 w-4 rounded-full object-cover" />
+                  )}
+                </span>
+              )}
+              {item.k || "50×50"}
+            </div>
+            <div className="text-[10px] text-muted-foreground truncate max-w-[120px]">{item.v || "cm mínimo"}</div>
+          </motion.div>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={onRemove}
+            className="text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
+            title="Eliminar botón estadístico"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <Label className="text-xs font-semibold">Valor / Título Destacado (k)</Label>
+          <Input
+            value={item.k}
+            onChange={(e) => onUpdate({ k: e.target.value })}
+            placeholder="Ej: 50×50"
+            className="mt-1"
+          />
+        </div>
+
+        <div>
+          <Label className="text-xs font-semibold">Descripción Corta (v)</Label>
+          <Input
+            value={item.v}
+            onChange={(e) => onUpdate({ v: e.target.value })}
+            placeholder="Ej: cm mínimo"
+            className="mt-1"
+          />
+        </div>
+
+        <div>
+          <Label className="text-xs font-semibold">Acción Clickeable</Label>
+          <Select
+            value={item.action_type || "none"}
+            onValueChange={(val: any) => onUpdate({ action_type: val })}
+          >
+            <SelectTrigger className="mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Sin Acción (Texto Estático)</SelectItem>
+              <SelectItem value="link">Abrir Enlace / URL</SelectItem>
+              <SelectItem value="whatsapp">Abrir Chat de WhatsApp</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {item.action_type && item.action_type !== "none" && (
+          <div>
+            <Label className="text-xs font-semibold">
+              {item.action_type === "link" ? "URL o Ruta de Destino" : "Número de WhatsApp (Opcional)"}
+            </Label>
+            <Input
+              value={item.action_value || ""}
+              onChange={(e) => onUpdate({ action_value: e.target.value })}
+              placeholder={item.action_type === "link" ? "/cotizador o https://..." : "573156724474"}
+              className="mt-1"
+            />
+          </div>
+        )}
+
+        <div>
+          <Label className="text-xs font-semibold">Color Acento (Paleta del Tema / HEX)</Label>
+          <Select
+            value={item.color_id || ""}
+            onValueChange={(val) => onUpdate({ color_id: val })}
+          >
+            <SelectTrigger className="mt-1">
+              <SelectValue placeholder="Color del Tema" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="default">Por Defecto (Burgundy)</SelectItem>
+              {palette.map((col) => (
+                <SelectItem key={col.id} value={col.id}>
+                  {col.name} ({col.hex})
+                </SelectItem>
+              ))}
+              <SelectItem value="custom">Color Personalizado (HEX Libre)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {item.color_id === "custom" && (
+          <div>
+            <Label className="text-xs font-semibold">HEX Libre</Label>
+            <div className="flex items-center gap-2 mt-1">
+              <input
+                type="color"
+                value={item.custom_hex?.startsWith("#") ? item.custom_hex : "#f97316"}
+                onChange={(e) => onUpdate({ custom_hex: e.target.value })}
+                className="h-9 w-10 cursor-pointer rounded-lg border border-input p-0"
+              />
+              <Input
+                type="text"
+                value={item.custom_hex || ""}
+                onChange={(e) => onUpdate({ custom_hex: e.target.value })}
+                placeholder="#FF0000"
+                className="h-9 text-xs font-mono"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-xl border border-border/80 bg-muted/20 p-3 space-y-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Animación Decorativa
+          </span>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <Label className="text-xs font-semibold">Tipo de Animación</Label>
+            <Select
+              value={item.animation_type || "none"}
+              onValueChange={(val: any) => onUpdate({ animation_type: val })}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sin Animación</SelectItem>
+                <SelectItem value="image">Imagen Fija</SelectItem>
+                <SelectItem value="gif">GIF Animado</SelectItem>
+                <SelectItem value="video">Video MP4 / WebM</SelectItem>
+                <SelectItem value="lottie">Lottie JSON</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label className="text-xs font-semibold">Efecto Resplandor</Label>
+            <Select
+              value={item.animation_style || "none"}
+              onValueChange={(val) => onUpdate({ animation_style: val })}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sin Resplandor</SelectItem>
+                <SelectItem value="neon_glow">Neón Cyberpunk ⚡</SelectItem>
+                <SelectItem value="cyber_pulse">Pulso Dinámico 💫</SelectItem>
+                <SelectItem value="shimmer">Brillo Shimmer ✨</SelectItem>
+                <SelectItem value="festive_sparkle">Destello Festivo 🌟</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {item.animation_type && item.animation_type !== "none" && (
+          <div>
+            <Label className="text-xs font-semibold">URL del Archivo Animado</Label>
+            <div className="flex gap-2 mt-1">
+              <Input
+                value={item.media_url || ""}
+                onChange={(e) => onUpdate({ media_url: e.target.value })}
+                placeholder="https://... .gif, .mp4, .json"
+                className="text-xs"
+              />
+              <label className="cursor-pointer shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-xs font-bold hover:bg-muted">
+                <Upload className="h-3.5 w-3.5" />
+                {uploading ? "Subiendo…" : "Subir"}
+                <input
+                  type="file"
+                  accept="image/*,video/*,.json,application/json"
+                  className="hidden"
+                  onChange={(e) => e.target.files?.[0] && handleUploadMedia(e.target.files[0])}
+                />
+              </label>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function HeroStatsEditor({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (newValue: string) => void;
+}) {
+  const { content } = useSiteContent();
+  const activeTheme = getActiveTheme(content);
+  const palette = activeTheme.colors.palette || [];
+  const items = parseHeroStats({ hero_stats: value });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  function handleUpdateItem(id: string, patch: Partial<HeroStatItem>) {
+    const updated = items.map((it) => (it.id === id ? { ...it, ...patch } : it));
+    onChange(JSON.stringify(updated));
+  }
+
+  function handleRemoveItem(id: string) {
+    const updated = items.filter((it) => it.id !== id);
+    onChange(JSON.stringify(updated));
+  }
+
+  function handleAddItem() {
+    const newItem: HeroStatItem = {
+      id: `stat_${Date.now()}`,
+      k: "Nuevo Valor",
+      v: "Descripción",
+      action_type: "none",
+    };
+    onChange(JSON.stringify([...items, newItem]));
+    toast.success("Nuevo botón estadístico añadido");
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = items.findIndex((it) => it.id === active.id);
+    const newIndex = items.findIndex((it) => it.id === over.id);
+    if (oldIndex !== -1 && newIndex !== -1) {
+      onChange(JSON.stringify(arrayMove(items, oldIndex, newIndex)));
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={items.map((it) => it.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-3">
+            {items.map((it, idx) => (
+              <SortableHeroStatCard
+                key={it.id}
+                item={it}
+                index={idx}
+                palette={palette}
+                onUpdate={(patch) => handleUpdateItem(it.id, patch)}
+                onRemove={() => handleRemoveItem(it.id)}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+
+      <Button type="button" variant="outline" size="sm" onClick={handleAddItem} className="mt-2 text-xs font-bold">
+        <Plus className="mr-1.5 h-3.5 w-3.5" /> + Añadir botón estadístico
+      </Button>
+    </div>
+  );
+}
+
 function ContenidoAdmin() {
   const queryClient = useQueryClient();
   const [values, setValues] = useState<Record<string, string>>({});
@@ -89,6 +559,13 @@ function ContenidoAdmin() {
     const map: Record<string, string> = {};
     (data as Row[] | null)?.forEach((r) => (map[r.key] = r.value));
     for (const f of FIELDS) if (!(f.key in map)) map[f.key] = "";
+
+    // Migración inicial de hero_stats si no existe en BD
+    if (!map.hero_stats) {
+      const parsedLegacy = parseHeroStats(map);
+      map.hero_stats = JSON.stringify(parsedLegacy);
+    }
+
     setValues(map);
     setLoading(false);
   }
@@ -228,6 +705,18 @@ function ContenidoAdmin() {
   }
 
   function renderField(f: FieldDef) {
+    if (f.type === "hero_stats") {
+      return (
+        <div key={f.key} className="space-y-2">
+          <Label className="text-sm font-bold">{f.label}</Label>
+          {f.help && <p className="text-xs text-muted-foreground">{f.help}</p>}
+          <HeroStatsEditor
+            value={values[f.key] ?? ""}
+            onChange={(next) => setValues((v) => ({ ...v, [f.key]: next }))}
+          />
+        </div>
+      );
+    }
     if (f.type === "order") {
       return (
         <div key={f.key} className="space-y-2">
