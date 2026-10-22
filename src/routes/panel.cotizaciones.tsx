@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { calcQuote, DEFAULT_RULES, type PricingRules } from "@/lib/pricing";
-import { Calculator, Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { Calculator, Loader2, Plus, Save, Trash2, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/panel/cotizaciones")({
   ssr: false,
@@ -25,6 +25,15 @@ const cop = (n: number) =>
 type Row = PricingRules & { id: string };
 
 function PricingPage() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      navigate({ to: "/panel/cotizador" });
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [navigate]);
+
   const [rules, setRules] = useState<Row | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -136,6 +145,24 @@ function PricingPage() {
 
   return (
     <>
+      <div className="mb-6 rounded-2xl border-2 border-primary/40 bg-primary/10 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Calculator className="h-6 w-6 text-primary" />
+            <div>
+              <p className="font-bold text-sm">Esta sección se ha movido al Cotizador Unificado en /panel/cotizador</p>
+              <p className="text-xs text-muted-foreground">Redirigiendo automáticamente...</p>
+            </div>
+          </div>
+          <Link
+            to="/panel/cotizador"
+            className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:opacity-90"
+          >
+            Ir a /panel/cotizador <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      </div>
+
       <div>
         <h1 className="text-3xl font-black">Reglas de precios</h1>
         <p className="mt-1 text-sm text-muted-foreground">
