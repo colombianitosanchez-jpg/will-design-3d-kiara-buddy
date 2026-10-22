@@ -287,7 +287,7 @@ function ContenidoAdmin() {
 
         {f.type === "select" && f.options && (
           <Select
-            value={(values[f.key] ?? "") || f.options[0].value}
+            value={values[f.key] ?? ""}
             onValueChange={(val) => setValues((v) => ({ ...v, [f.key]: val }))}
           >
             <SelectTrigger id={f.key} className="max-w-md">

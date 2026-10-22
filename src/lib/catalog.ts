@@ -252,28 +252,28 @@ export const siteContentQuery = () =>
   queryOptions({ queryKey: ["site_content"], queryFn: fetchSiteContent, staleTime: 30_000 });
 
 export const DEFAULT_CONTACT = {
-  whatsapp: "573156724474",
-  whatsapp_display: "+57 315 672 4474",
-  email: "contacto@willdesign3d.com",
-  instagram_url: "https://www.instagram.com/will_design2020/",
-  instagram_handle: "@will_design2020",
-  location_text: "Bogotá, Colombia · atención por cita previa",
-  location_short: "Bogotá, Colombia",
-  map_embed_url: "https://www.google.com/maps?q=Bogot%C3%A1%2C+Colombia&output=embed",
+  whatsapp: "",
+  whatsapp_display: "",
+  email: "",
+  instagram_url: "",
+  instagram_handle: "",
+  location_text: "",
+  location_short: "",
+  map_embed_url: "",
 };
 
 export function getContactInfo(content: Record<string, string> | undefined) {
-  const g = (k: string, d: string) => (content?.[k]?.trim() ? content![k].trim() : d);
+  const g = (k: string, d = "") => (content?.[k]?.trim() ? content![k].trim() : d);
   return {
-    whatsapp: g("contact_whatsapp", DEFAULT_CONTACT.whatsapp),
-    whatsapp_display: g("contact_whatsapp_display", DEFAULT_CONTACT.whatsapp_display),
-    email: g("contact_email", DEFAULT_CONTACT.email),
-    instagram_url: g("contact_instagram_url", DEFAULT_CONTACT.instagram_url),
-    instagram_handle: g("contact_instagram_handle", DEFAULT_CONTACT.instagram_handle),
-    location_text: g("contact_location_text", DEFAULT_CONTACT.location_text),
-    location_short: g("contact_location_short", DEFAULT_CONTACT.location_short),
-    map_embed_url: g("contact_map_embed_url", DEFAULT_CONTACT.map_embed_url),
-    whatsapp_quote_template: g("whatsapp_quote_template", "Hola Will Design 3D, quiero cotizar: *{{servicio}}*\n\n👤 {{cliente}}\n✉️ {{email}}\n📱 {{telefono}}\n\n{{resumen}}\n\n💰 Estimado en la web: {{total}}\n{{notas}}\n{{media_link}}"),
+    whatsapp: g("contact_whatsapp", ""),
+    whatsapp_display: g("contact_whatsapp_display", ""),
+    email: g("contact_email", ""),
+    instagram_url: g("contact_instagram_url", ""),
+    instagram_handle: g("contact_instagram_handle", ""),
+    location_text: g("contact_location_text", ""),
+    location_short: g("contact_location_short", ""),
+    map_embed_url: g("contact_map_embed_url", ""),
+    whatsapp_quote_template: g("whatsapp_quote_template", ""),
   };
 }
 
@@ -309,7 +309,8 @@ export function buildWhatsAppQuoteMessage(
 }
 
 export function waLink(whatsapp: string, text?: string) {
-  const num = whatsapp.replace(/\D/g, "") || DEFAULT_CONTACT.whatsapp;
+  const num = whatsapp.replace(/\D/g, "");
+  if (!num) return "";
   return text
     ? `https://wa.me/${num}?text=${encodeURIComponent(text)}`
     : `https://wa.me/${num}`;
