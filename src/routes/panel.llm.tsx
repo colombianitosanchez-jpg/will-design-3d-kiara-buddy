@@ -1,5 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { Bot, ArrowRight } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -57,6 +58,15 @@ const EMPTY: Draft = {
 };
 
 function LlmAdmin() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      navigate({ to: "/panel/kiara" });
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [navigate]);
+
   const list = useServerFn(listLlmProviders);
   const save = useServerFn(saveLlmProvider);
   const del = useServerFn(deleteLlmProvider);
@@ -194,6 +204,24 @@ function LlmAdmin() {
 
   return (
     <>
+      <div className="mb-6 rounded-2xl border-2 border-primary/40 bg-primary/10 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Bot className="h-6 w-6 text-primary" />
+            <div>
+              <p className="font-bold text-sm">Esta sección se ha movido al Panel Unificado de Kiara IA</p>
+              <p className="text-xs text-muted-foreground">Redirigiendo automáticamente a /panel/kiara...</p>
+            </div>
+          </div>
+          <Link
+            to="/panel/kiara"
+            className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:opacity-90"
+          >
+            Ir a /panel/kiara <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-black">Configuración de LLM</h1>

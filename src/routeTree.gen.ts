@@ -39,6 +39,7 @@ import { Route as PanelContenidoRouteImport } from './routes/panel.contenido'
 import { Route as PanelCotizacionesRouteImport } from './routes/panel.cotizaciones'
 import { Route as PanelCotizadorRouteImport } from './routes/panel.cotizador'
 import { Route as PanelEquipoRouteImport } from './routes/panel.equipo'
+import { Route as PanelKiaraRouteImport } from './routes/panel.kiara'
 import { Route as PanelLlmRouteImport } from './routes/panel.llm'
 import { Route as PanelMenuRouteImport } from './routes/panel.menu'
 import { Route as PanelNotificacionesRouteImport } from './routes/panel.notificaciones'
@@ -203,6 +204,11 @@ const PanelEquipoRoute = PanelEquipoRouteImport.update({
   path: '/equipo',
   getParentRoute: () => PanelRoute,
 } as any)
+const PanelKiaraRoute = PanelKiaraRouteImport.update({
+  id: '/kiara',
+  path: '/kiara',
+  getParentRoute: () => PanelRoute,
+} as any)
 const PanelLlmRoute = PanelLlmRouteImport.update({
   id: '/llm',
   path: '/llm',
@@ -300,6 +306,7 @@ export interface FileRoutesByFullPath {
   '/panel/cotizaciones': typeof PanelCotizacionesRoute
   '/panel/cotizador': typeof PanelCotizadorRoute
   '/panel/equipo': typeof PanelEquipoRoute
+  '/panel/kiara': typeof PanelKiaraRoute
   '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/notificaciones': typeof PanelNotificacionesRoute
@@ -342,6 +349,7 @@ export interface FileRoutesByTo {
   '/panel/cotizaciones': typeof PanelCotizacionesRoute
   '/panel/cotizador': typeof PanelCotizadorRoute
   '/panel/equipo': typeof PanelEquipoRoute
+  '/panel/kiara': typeof PanelKiaraRoute
   '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/notificaciones': typeof PanelNotificacionesRoute
@@ -388,6 +396,7 @@ export interface FileRoutesById {
   '/panel/cotizaciones': typeof PanelCotizacionesRoute
   '/panel/cotizador': typeof PanelCotizadorRoute
   '/panel/equipo': typeof PanelEquipoRoute
+  '/panel/kiara': typeof PanelKiaraRoute
   '/panel/llm': typeof PanelLlmRoute
   '/panel/menu': typeof PanelMenuRoute
   '/panel/notificaciones': typeof PanelNotificacionesRoute
@@ -435,6 +444,7 @@ export interface FileRouteTypes {
     | '/panel/cotizaciones'
     | '/panel/cotizador'
     | '/panel/equipo'
+    | '/panel/kiara'
     | '/panel/llm'
     | '/panel/menu'
     | '/panel/notificaciones'
@@ -477,6 +487,7 @@ export interface FileRouteTypes {
     | '/panel/cotizaciones'
     | '/panel/cotizador'
     | '/panel/equipo'
+    | '/panel/kiara'
     | '/panel/llm'
     | '/panel/menu'
     | '/panel/notificaciones'
@@ -522,6 +533,7 @@ export interface FileRouteTypes {
     | '/panel/cotizaciones'
     | '/panel/cotizador'
     | '/panel/equipo'
+    | '/panel/kiara'
     | '/panel/llm'
     | '/panel/menu'
     | '/panel/notificaciones'
@@ -774,6 +786,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelEquipoRouteImport
       parentRoute: typeof PanelRoute
     }
+    '/panel/kiara': {
+      id: '/panel/kiara'
+      path: '/kiara'
+      fullPath: '/panel/kiara'
+      preLoaderRoute: typeof PanelKiaraRouteImport
+      parentRoute: typeof PanelRoute
+    }
     '/panel/llm': {
       id: '/panel/llm'
       path: '/llm'
@@ -895,6 +914,7 @@ interface PanelRouteChildren {
   PanelCotizacionesRoute: typeof PanelCotizacionesRoute
   PanelCotizadorRoute: typeof PanelCotizadorRoute
   PanelEquipoRoute: typeof PanelEquipoRoute
+  PanelKiaraRoute: typeof PanelKiaraRoute
   PanelLlmRoute: typeof PanelLlmRoute
   PanelMenuRoute: typeof PanelMenuRoute
   PanelNotificacionesRoute: typeof PanelNotificacionesRoute
@@ -913,6 +933,7 @@ const PanelRouteChildren: PanelRouteChildren = {
   PanelCotizacionesRoute: PanelCotizacionesRoute,
   PanelCotizadorRoute: PanelCotizadorRoute,
   PanelEquipoRoute: PanelEquipoRoute,
+  PanelKiaraRoute: PanelKiaraRoute,
   PanelLlmRoute: PanelLlmRoute,
   PanelMenuRoute: PanelMenuRoute,
   PanelNotificacionesRoute: PanelNotificacionesRoute,
