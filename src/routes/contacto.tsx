@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { MessageCircle, Instagram, MapPin, Mail, Send } from "lucide-react";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
-
+import { getSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/contacto")({
   loader: async ({ context }) => {
@@ -13,30 +13,33 @@ export const Route = createFileRoute("/contacto")({
   },
   head: ({ loaderData }: any) => {
     const siteContent = loaderData?.siteContent;
-    const title = siteContent?.seo_contact_title || siteContent?.site_title || "Contacto — Will Design 3D";
-    const desc = siteContent?.seo_contact_description || siteContent?.site_description || "";
-    const image = siteContent?.seo_contact_image || siteContent?.site_meta_thumbnail_url || siteContent?.site_logo_url || "";
+    const seo = getSeo(
+      {
+        title: siteContent?.site_title ? `Contacto · ${siteContent.site_title}` : "Contacto — Will Design 3D",
+      },
+      siteContent
+    );
     const businessName = siteContent?.site_business_name || "Will Design 3D";
     const areaServed = siteContent?.site_area_served || "";
 
     const metaTags: Array<Record<string, string>> = [
-      { title },
-      { name: "description", content: desc },
-      { property: "og:title", content: title },
-      { property: "og:description", content: desc },
-      { property: "og:url", content: "https://will-design-3d.lovable.app/contacto" },
+      { title: seo.title },
+      { name: "description", content: seo.description },
+      { property: "og:title", content: seo.title },
+      { property: "og:description", content: seo.description },
+      { property: "og:url", content: "https://willdesign3d.com/contacto" },
     ];
 
-    if (image) {
+    if (seo.image) {
       metaTags.push(
-        { property: "og:image", content: image },
-        { name: "twitter:image", content: image }
+        { property: "og:image", content: seo.image },
+        { name: "twitter:image", content: seo.image }
       );
     }
 
     return {
       meta: metaTags,
-      links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/contacto" }],
+      links: [{ rel: "canonical", href: "https://willdesign3d.com/contacto" }],
       scripts: [
         {
           type: "application/ld+json",
@@ -44,8 +47,8 @@ export const Route = createFileRoute("/contacto")({
             "@context": "https://schema.org",
             "@type": "LocalBusiness",
             name: businessName,
-            url: "https://will-design-3d.lovable.app/",
-            description: desc,
+            url: "https://willdesign3d.com/",
+            description: seo.description,
             address: {
               "@type": "PostalAddress",
               addressLocality: "Bogotá",

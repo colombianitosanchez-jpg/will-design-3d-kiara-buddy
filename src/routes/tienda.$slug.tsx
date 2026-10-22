@@ -26,6 +26,7 @@ import { effectiveButtons, variantGallery } from "@/lib/product-variants";
 import { productPageUrl } from "@/lib/product-buttons";
 import { lazy, Suspense } from "react";
 import { file3dWaNote, type Dims3D } from "@/components/FileDropzone3D";
+import { getSeo } from "@/lib/seo";
 
 const FileDropzone3D = lazy(() =>
   import("@/components/FileDropzone3D").then((m) => ({ default: m.FileDropzone3D }))
@@ -68,9 +69,9 @@ export const Route = createFileRoute("/tienda/$slug")({
     const p = v
       ? { ...base0, name: `${base0.name} — ${v.name}`, image_url: v.image_url ?? base0.image_url, price_cop: v.price_cop ?? base0.price_cop, stock: v.stock ?? base0.stock }
       : base0;
-    const url = `https://will-design-3d.lovable.app/tienda/${params.slug}`;
+    const url = `https://willdesign3d.com/tienda/${params.slug}`;
     const base = (p.short || p.description || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-    const description = (
+    const rawDesc = (
       base.length >= 50
         ? base
         : `${p.name} disponible en Will Design 3D, Bogotá. ${base} Asesoría técnica y envíos a todo el país.`
@@ -78,19 +79,28 @@ export const Route = createFileRoute("/tienda/$slug")({
     // Primera FOTO de la variante (saltando videos); si no tiene, la del producto.
     const rawImage =
       [...(v?.images ?? []), base0.image_url, ...(base0.images ?? [])].find((u) => u && !isVideoUrl(u)) || null;
-    const image = rawImage && /^https:\/\//i.test(rawImage) ? rawImage : null;
+
+    const seo = getSeo(
+      {
+        title: `${p.name} — Will Design 3D`,
+        description: rawDesc,
+        image: rawImage && /^https:\/\//i.test(rawImage) ? rawImage : undefined,
+      },
+      null
+    );
+
     return {
       meta: [
-        { title: `${p.name} — Will Design 3D` },
-        { name: "description", content: description },
-        { property: "og:title", content: `${p.name} — Will Design 3D` },
-        { property: "og:description", content: description },
+        { title: seo.title },
+        { name: "description", content: seo.description },
+        { property: "og:title", content: seo.title },
+        { property: "og:description", content: seo.description },
         { property: "og:type", content: "product" },
         { property: "og:url", content: url },
-        ...(image
+        ...(seo.image
           ? [
-              { property: "og:image", content: image },
-              { name: "twitter:image", content: image },
+              { property: "og:image", content: seo.image },
+              { name: "twitter:image", content: seo.image },
             ]
           : []),
       ],
@@ -102,8 +112,8 @@ export const Route = createFileRoute("/tienda/$slug")({
             "@context": "https://schema.org",
             "@type": "Product",
             name: p.name,
-            description,
-            ...(image ? { image: [image] } : {}),
+            description: seo.description,
+            ...(seo.image ? { image: [seo.image] } : {}),
             ...(p.sku ? { sku: p.sku } : {}),
             ...(p.brand?.name ? { brand: { "@type": "Brand", name: p.brand.name } } : {}),
             offers: {

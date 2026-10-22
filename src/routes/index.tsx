@@ -19,6 +19,7 @@ import { siteServicesQuery } from "./servicios";
 import { menuItemsQuery } from "@/lib/menu";
 import { parseHeroStats, type HeroStatItem } from "@/routes/panel.contenido";
 import { getActiveTheme } from "@/lib/theme";
+import { getSeo } from "@/lib/seo";
 import { Lottie } from "lottie-react";
 import { motion } from "framer-motion";
 
@@ -60,23 +61,29 @@ export const Route = createFileRoute("/")({
   },
   head: ({ loaderData }: any) => {
     const siteContent = loaderData?.siteContent;
-    const title = siteContent?.seo_home_title || siteContent?.site_title || "Will Design 3D";
-    const desc = siteContent?.seo_home_description || siteContent?.site_description || "";
-    const image = siteContent?.seo_home_image || siteContent?.site_meta_thumbnail_url || siteContent?.site_logo_url || "";
+    const seo = getSeo(
+      {
+        hero_title: siteContent?.hero_title,
+        hero_subtitle: siteContent?.hero_subtitle,
+        hero_image_url: siteContent?.hero_image_url,
+      },
+      siteContent
+    );
+
     const canonicalUrl = typeof window !== 'undefined' ? window.location.origin : siteContent?.site_url || "https://willdesign3d.com";
 
     const metaTags: Array<Record<string, string>> = [
-      { title },
-      { name: "description", content: desc },
-      { property: "og:title", content: title },
-      { property: "og:description", content: desc },
+      { title: seo.title },
+      { name: "description", content: seo.description },
+      { property: "og:title", content: seo.title },
+      { property: "og:description", content: seo.description },
       { property: "og:url", content: canonicalUrl },
     ];
 
-    if (image) {
+    if (seo.image) {
       metaTags.push(
-        { property: "og:image", content: image },
-        { name: "twitter:image", content: image }
+        { property: "og:image", content: seo.image },
+        { name: "twitter:image", content: seo.image }
       );
     }
 
