@@ -34,13 +34,32 @@ const buttonVariants = cva(
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  customHex?: string;
+  mediaUrl?: string;
+  animationType?: string;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, customHex, mediaUrl, animationType, style, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
+    const customStyle: React.CSSProperties = {
+      ...style,
+      ...(customHex
+        ? {
+            backgroundColor: customHex,
+            borderColor: customHex,
+            color: "#ffffff",
+          }
+        : {}),
+    };
+
     return (
-      <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }))}
+        style={customStyle}
+        ref={ref}
+        {...props}
+      />
     );
   },
 );

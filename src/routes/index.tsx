@@ -1,25 +1,49 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import {
   Boxes,
-  Sparkles,
   ShoppingBag,
-  PenTool,
-  Wrench,
   ArrowRight,
-  Ruler,
 } from "lucide-react";
 import { Quoter } from "@/components/Quoter";
 import { InstagramFeed } from "@/components/InstagramFeed";
 import { ProductCard } from "@/components/ProductCard";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
-import { categoriesQuery, productsQuery, siteContentQuery } from "@/lib/catalog";
+import { categoriesQuery, productsQuery, siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { heroCarouselQuery } from "@/lib/hero-carousel";
 import { HeroMedia } from "@/components/HeroMedia";
 import { parseHomeOrder, type HomeSectionKey } from "@/lib/home-sections";
 import { siteServicesQuery } from "./servicios";
 import { menuItemsQuery } from "@/lib/menu";
+import { parseHeroStats, type HeroStatItem } from "@/routes/panel.contenido";
+import { getActiveTheme } from "@/lib/theme";
+import { Lottie } from "lottie-react";
+import { motion } from "framer-motion";
+
+function LottiePlayer({ url, className }: { url: string; className?: string }) {
+  const [data, setData] = useState<any>(null);
+
+  useEffect(() => {
+    if (!url) return;
+    let isMounted = true;
+    fetch(url)
+      .then((res) => res.json())
+      .then((json) => {
+        if (isMounted) setData(json);
+      })
+      .catch(() => {
+        if (isMounted) setData(null);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [url]);
+
+  if (!data) return null;
+  return <Lottie animationData={data} loop={true} className={className} {...({} as any)} />;
+}
 
 export const Route = createFileRoute("/")({
   loader: async ({ context }) => {
@@ -86,17 +110,47 @@ function Home() {
 }
 
 function Hero() {
-  const { getText } = useSiteContent();
+  const router = useRouter();
+  const { content, getText } = useSiteContent();
+  const activeTheme = getActiveTheme(content);
+  const palette = activeTheme.colors.palette || [];
+  const fallbackWhatsapp = getContactInfo(content).whatsapp;
+
   const title = getText("hero_title", "");
   const subtitle = getText("hero_subtitle", "");
   const image = getText("hero_image_url", "");
   const badge = getText("hero_badge_title", "");
-  const stats = [
-    { k: getText("hero_stat_1_k", ""), v: getText("hero_stat_1_v", "") },
-    { k: getText("hero_stat_2_k", ""), v: getText("hero_stat_2_v", "") },
-    { k: getText("hero_stat_3_k", ""), v: getText("hero_stat_3_v", "") },
-  ].filter((s) => s.k || s.v);
+  const stats = parseHeroStats(content).filter((s) => s.k || s.v);
 
+  function handleStatClick(stat: HeroStatItem) {
+    if (!stat.action_type || stat.action_type === "none") return;
+
+    if (stat.action_type === "link") {
+      const val = stat.action_value?.trim();
+      if (!val) return;
+      if (/^https?:\/\//i.test(val)) {
+        window.open(val, "_blank", "noopener,noreferrer");
+      } else {
+        router.navigate({ to: val.startsWith("/") ? val : `/${val}` });
+      }
+    } else if (stat.action_type === "whatsapp") {
+      const num = stat.action_value?.trim() || fallbackWhatsapp;
+      const text = `Hola Will Design 3D, me interesa la consulta sobre: ${stat.k} (${stat.v}).`;
+      window.open(waLink(num, text), "_blank", "noopener,noreferrer");
+    }
+  }
+
+  function resolveStatColor(stat: HeroStatItem): string | undefined {
+    if (stat.color_id === "custom") {
+      return stat.custom_hex || undefined;
+    }
+    if (stat.color_id) {
+      const found = palette.find((p) => p.id === stat.color_id);
+      if (found) return found.hex;
+      return `var(--theme-color-${stat.color_id})`;
+    }
+    return undefined;
+  }
 
   return (
     <section id="inicio" className="relative overflow-hidden">
@@ -131,15 +185,55 @@ function Hero() {
           </div>
 
           {stats.length > 0 && (
-            <dl className="mt-10 grid max-w-md grid-cols-3 gap-4">
-              {stats.map((s, i) => (
-                <div key={i} className="rounded-2xl border border-border bg-card p-3 text-center">
-                  <dt className="text-xl font-black" style={{ color: "var(--brand-wine)" }}>
-                    {s.k}
-                  </dt>
-                  <dd className="text-[11px] text-muted-foreground">{s.v}</dd>
-                </div>
-              ))}
+            <dl className="mt-10 grid max-w-lg grid-cols-2 sm:grid-cols-3 gap-4">
+              {stats.map((s) => {
+                const statColor = resolveStatColor(s);
+                const isClickable = s.action_type && s.action_type !== "none";
+                const animClass = s.animation_style && s.animation_style !== "none" ? `theme-anim-${s.animation_style}` : "";
+
+                return (
+                  <motion.div
+                    key={s.id}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleStatClick(s)}
+                    style={statColor ? { borderColor: `${statColor}40` } : undefined}
+                    className={`rounded-2xl border border-border bg-card p-3.5 text-center transition-all shadow-2xs ${
+                      isClickable ? "cursor-pointer hover:border-primary hover:shadow-md" : ""
+                    } ${animClass}`}
+                  >
+                    <dt
+                      className="text-xl font-black flex items-center justify-center gap-1.5"
+                      style={{ color: statColor || "var(--brand-wine)" }}
+                    >
+                      {s.media_url && s.animation_type !== "none" && (
+                        <span className="shrink-0 flex items-center justify-center">
+                          {s.animation_type === "lottie" ? (
+                            <LottiePlayer url={s.media_url} className="h-5 w-5" />
+                          ) : s.animation_type === "video" ? (
+                            <video
+                              src={s.media_url}
+                              autoPlay
+                              loop
+                              muted
+                              playsInline
+                              className="h-5 w-5 rounded-full object-cover"
+                            />
+                          ) : (
+                            <img
+                              src={s.media_url}
+                              alt=""
+                              className="h-5 w-5 rounded-full object-cover"
+                            />
+                          )}
+                        </span>
+                      )}
+                      {s.k}
+                    </dt>
+                    <dd className="text-[11px] text-muted-foreground mt-0.5">{s.v}</dd>
+                  </motion.div>
+                );
+              })}
             </dl>
           )}
         </div>

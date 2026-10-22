@@ -12,6 +12,9 @@ export type ButtonPosition = (typeof BUTTON_POSITIONS)[number];
 export const BUTTON_ACTIONS = ["link", "whatsapp", "add_to_cart", "checkout"] as const;
 export type ButtonActionType = (typeof BUTTON_ACTIONS)[number];
 
+export const ANIMATION_TYPES = ["none", "image", "video", "gif", "lottie"] as const;
+export type ButtonAnimationType = (typeof ANIMATION_TYPES)[number];
+
 export type ProductButton = {
   id: string;
   text: string;
@@ -24,13 +27,17 @@ export type ProductButton = {
   whatsapp_message: string;
   /** Añade al final del mensaje el enlace de la imagen principal. */
   include_image_link: boolean;
-  /** URL de GIF, Video o Imagen decorativa para el botón */
+  /** ID del color seleccionado de la paleta del tema activo */
+  color_id?: string;
+  /** Color personalizado libre HEX si no usa color de paleta */
+  custom_hex?: string;
+  /** URL de GIF, Video (MP4/WebM), Lottie JSON o Imagen decorativa para el botón */
   media_url?: string;
-  media_type?: "gif" | "video" | "image";
+  /** Tipo de animación/media */
+  animation_type?: ButtonAnimationType;
   /** Estilo de animación dinámica (Neón, Pulso Cyber, Shimmer) */
   animation_style?: string;
 };
-
 
 export const VARIANT_LABELS: Record<ButtonVariant, string> = {
   default: "Principal (naranja)",
@@ -58,6 +65,14 @@ export const ACTION_LABELS: Record<ButtonActionType, string> = {
   checkout: "Ir al pago",
 };
 
+export const ANIMATION_TYPE_LABELS: Record<ButtonAnimationType, string> = {
+  none: "Sin Animación",
+  image: "Imagen fija (PNG/JPG/SVG)",
+  gif: "GIF Animado",
+  video: "Video MP4 / WebM",
+  lottie: "Lottie JSON",
+};
+
 export function newProductButton(): ProductButton {
   return {
     id:
@@ -72,8 +87,10 @@ export function newProductButton(): ProductButton {
     action_value: "",
     whatsapp_message: "",
     include_image_link: false,
+    color_id: "",
+    custom_hex: "",
     media_url: "",
-    media_type: "image",
+    animation_type: "none",
     animation_style: "none",
   };
 }
@@ -107,8 +124,10 @@ export function parseProductButtons(raw: unknown): ProductButton[] {
       action_value: typeof b.action_value === "string" ? b.action_value.trim() : "",
       whatsapp_message: typeof b.whatsapp_message === "string" ? b.whatsapp_message : "",
       include_image_link: b.include_image_link === true,
+      color_id: typeof b.color_id === "string" ? b.color_id : "",
+      custom_hex: typeof b.custom_hex === "string" ? b.custom_hex : "",
       media_url: typeof b.media_url === "string" ? b.media_url.trim() : "",
-      media_type: typeof b.media_type === "string" ? (b.media_type as any) : "image",
+      animation_type: pick(b.animation_type || (b.media_type as string), ANIMATION_TYPES, "none"),
       animation_style: typeof b.animation_style === "string" ? b.animation_style : "none",
     }))
     .filter((b) => !!b.text);
@@ -176,8 +195,6 @@ export function buildButtonWhatsappText(
   }
   return text;
 }
-
-
 
 /** Valida antes de guardar en el panel: devuelve el primer error legible o null. */
 export function validateProductButtons(buttons: ProductButton[]): string | null {
