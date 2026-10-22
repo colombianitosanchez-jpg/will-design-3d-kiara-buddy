@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Target, Eye, Heart, MapPin, Wrench, ArrowRight } from "lucide-react";
 import kiaraAsset from "@/assets/kiara.asset.json";
 import { siteContentQuery } from "@/lib/catalog";
+import { getSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/nosotros")({
   loader: async ({ context }) => {
@@ -11,28 +12,32 @@ export const Route = createFileRoute("/nosotros")({
   },
   head: ({ loaderData }: any) => {
     const siteContent = loaderData?.siteContent;
-    const title = siteContent?.seo_about_title || siteContent?.site_title || "Nosotros — Will Design 3D";
-    const desc = siteContent?.seo_about_description || siteContent?.about_short || siteContent?.site_description || "";
-    const image = siteContent?.seo_about_image || siteContent?.site_meta_thumbnail_url || siteContent?.site_logo_url || "";
+    const seo = getSeo(
+      {
+        title: siteContent?.site_title ? `Nosotros · ${siteContent.site_title}` : "Nosotros — Will Design 3D",
+        about_short: siteContent?.about_short,
+      },
+      siteContent
+    );
 
     const metaTags: Array<Record<string, string>> = [
-      { title },
-      { name: "description", content: desc },
-      { property: "og:title", content: title },
-      { property: "og:description", content: desc },
-      { property: "og:url", content: "https://will-design-3d.lovable.app/nosotros" },
+      { title: seo.title },
+      { name: "description", content: seo.description },
+      { property: "og:title", content: seo.title },
+      { property: "og:description", content: seo.description },
+      { property: "og:url", content: "https://willdesign3d.com/nosotros" },
     ];
 
-    if (image) {
+    if (seo.image) {
       metaTags.push(
-        { property: "og:image", content: image },
-        { name: "twitter:image", content: image }
+        { property: "og:image", content: seo.image },
+        { name: "twitter:image", content: seo.image }
       );
     }
 
     return {
       meta: metaTags,
-      links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/nosotros" }],
+      links: [{ rel: "canonical", href: "https://willdesign3d.com/nosotros" }],
     };
   },
   component: NosotrosPage,

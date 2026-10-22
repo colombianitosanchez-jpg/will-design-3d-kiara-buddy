@@ -100,39 +100,30 @@ const MARCA_FIELDS: FieldDef[] = [
     tab: "identidad",
     group: "Logos y Nombre",
   },
+  // --------------------------------------------------------------------- SEO
   {
     key: "site_title",
     label: "Título SEO Global del Sitio",
     type: "text",
     help: "Título principal por defecto cuando una página no define uno propio.",
-    tab: "identidad",
-    group: "Títulos Principales",
+    tab: "seo",
+    group: "SEO Global Fallback",
   },
-
-  // --------------------------------------------------------------------- SEO
   {
     key: "site_description",
-    label: "Descripción SEO Global",
+    label: "Descripción SEO Global (Fallback)",
     type: "textarea",
-    help: "Descripción general del taller para buscadores (Google) y redes sociales.",
+    help: "Si no llenas esto, se usará automáticamente el título y texto que configures en Contenido / Productos / Servicios.",
     tab: "seo",
-    group: "SEO Global",
+    group: "SEO Global Fallback",
   },
   {
     key: "site_meta_thumbnail_url",
-    label: "Miniatura Social Global (OG Image)",
+    label: "Miniatura Social Global (OG Image Fallback)",
     type: "image",
     help: "Imagen recomendada 1200×630 px para compartir en WhatsApp, Facebook y Twitter.",
     tab: "seo",
-    group: "SEO Global",
-  },
-  {
-    key: "site_meta_thumbnail_alt",
-    label: "Texto Alternativo de la Miniatura",
-    type: "text",
-    help: "Descripción accesible para lectores de pantalla.",
-    tab: "seo",
-    group: "SEO Global",
+    group: "SEO Global Fallback",
   },
   {
     key: "site_indexable_global",
@@ -140,33 +131,8 @@ const MARCA_FIELDS: FieldDef[] = [
     type: "switch",
     help: "Activa o desactiva la indexación en motores de búsqueda.",
     tab: "seo",
-    group: "SEO Global",
+    group: "SEO Global Fallback",
   },
-
-  // SEO por Páginas
-  { key: "seo_home_title", label: "Título SEO — Inicio", type: "text", tab: "seo", group: "SEO por Páginas" },
-  { key: "seo_home_description", label: "Descripción SEO — Inicio", type: "textarea", tab: "seo", group: "SEO por Páginas" },
-  { key: "seo_home_image", label: "Imagen Social — Inicio", type: "image", tab: "seo", group: "SEO por Páginas" },
-
-  { key: "seo_store_title", label: "Título SEO — Tienda", type: "text", tab: "seo", group: "SEO por Páginas" },
-  { key: "seo_store_description", label: "Descripción SEO — Tienda", type: "textarea", tab: "seo", group: "SEO por Páginas" },
-  { key: "seo_store_image", label: "Imagen Social — Tienda", type: "image", tab: "seo", group: "SEO por Páginas" },
-
-  { key: "seo_services_title", label: "Título SEO — Servicios", type: "text", tab: "seo", group: "SEO por Páginas" },
-  { key: "seo_services_description", label: "Descripción SEO — Servicios", type: "textarea", tab: "seo", group: "SEO por Páginas" },
-  { key: "seo_services_image", label: "Imagen Social — Servicios", type: "image", tab: "seo", group: "SEO por Páginas" },
-
-  { key: "seo_gallery_title", label: "Título SEO — Galería", type: "text", tab: "seo", group: "SEO por Páginas" },
-  { key: "seo_gallery_description", label: "Descripción SEO — Galería", type: "textarea", tab: "seo", group: "SEO por Páginas" },
-  { key: "seo_gallery_image", label: "Imagen Social — Galería", type: "image", tab: "seo", group: "SEO por Páginas" },
-
-  { key: "seo_about_title", label: "Título SEO — Nosotros", type: "text", tab: "seo", group: "SEO por Páginas" },
-  { key: "seo_about_description", label: "Descripción SEO — Nosotros", type: "textarea", tab: "seo", group: "SEO por Páginas" },
-  { key: "seo_about_image", label: "Imagen Social — Nosotros", type: "image", tab: "seo", group: "SEO por Páginas" },
-
-  { key: "seo_contact_title", label: "Título SEO — Contacto", type: "text", tab: "seo", group: "SEO por Páginas" },
-  { key: "seo_contact_description", label: "Descripción SEO — Contacto", type: "textarea", tab: "seo", group: "SEO por Páginas" },
-  { key: "seo_contact_image", label: "Imagen Social — Contacto", type: "image", tab: "seo", group: "SEO por Páginas" },
 
   // ----------------------------------------------------------------- Empresa
   { key: "site_area_served", label: "Área o Ciudad de Servicio (JSON-LD)", type: "text", help: "Ej: Bogotá, Colombia", tab: "empresa", group: "Ubicación y Cobertura" },
@@ -188,42 +154,46 @@ const MARCA_FIELDS: FieldDef[] = [
 function SeoPreviewCard({ values }: { values: Record<string, string> }) {
   const [selectedPage, setSelectedPage] = useState<"home" | "store" | "services" | "gallery" | "about" | "contact">("home");
 
+  const globalTitle = values.site_title || "Will Design 3D";
+  const globalDesc = values.site_description || "";
+  const globalImg = values.site_meta_thumbnail_url || values.site_logo_url || "";
+
   const pageMap = {
     home: {
       url: "https://willdesign3d.com/",
-      title: values.seo_home_title || values.site_title || "",
-      desc: values.seo_home_description || values.site_description || "",
-      img: values.seo_home_image || values.site_meta_thumbnail_url || values.site_logo_url || "",
+      title: values.hero_title || globalTitle,
+      desc: values.hero_subtitle || globalDesc,
+      img: values.hero_image_url || globalImg,
     },
     store: {
       url: "https://willdesign3d.com/tienda",
-      title: values.seo_store_title || values.site_title || "",
-      desc: values.seo_store_description || values.site_description || "",
-      img: values.seo_store_image || values.site_meta_thumbnail_url || values.site_logo_url || "",
+      title: `Tienda · ${globalTitle}`,
+      desc: globalDesc,
+      img: globalImg,
     },
     services: {
       url: "https://willdesign3d.com/servicios",
-      title: values.seo_services_title || values.site_title || "",
-      desc: values.seo_services_description || values.site_description || "",
-      img: values.seo_services_image || values.site_meta_thumbnail_url || values.site_logo_url || "",
+      title: values.services_section_title ? `${values.services_section_title} · ${globalTitle}` : `Servicios 3D · ${globalTitle}`,
+      desc: values.services_section_subtitle || globalDesc,
+      img: globalImg,
     },
     gallery: {
       url: "https://willdesign3d.com/galeria",
-      title: values.seo_gallery_title || values.site_title || "",
-      desc: values.seo_gallery_description || values.site_description || "",
-      img: values.seo_gallery_image || values.site_meta_thumbnail_url || values.site_logo_url || "",
+      title: `Galería de Proyectos · ${globalTitle}`,
+      desc: globalDesc,
+      img: globalImg,
     },
     about: {
       url: "https://willdesign3d.com/nosotros",
-      title: values.seo_about_title || values.site_title || "",
-      desc: values.seo_about_description || values.site_description || "",
-      img: values.seo_about_image || values.site_meta_thumbnail_url || values.site_logo_url || "",
+      title: `Nosotros · ${globalTitle}`,
+      desc: values.about_short || globalDesc,
+      img: globalImg,
     },
     contact: {
       url: "https://willdesign3d.com/contacto",
-      title: values.seo_contact_title || values.site_title || "",
-      desc: values.seo_contact_description || values.site_description || "",
-      img: values.seo_contact_image || values.site_meta_thumbnail_url || values.site_logo_url || "",
+      title: `Contacto · ${globalTitle}`,
+      desc: globalDesc,
+      img: globalImg,
     },
   };
 
@@ -895,6 +865,21 @@ function MarcaAdmin() {
           return (
             <TabsContent key={tab} value={tab} className="mt-6 space-y-6">
               {tab === "seo" && <SeoPreviewCard values={values} />}
+              {tab === "empresa" && (
+                <Card className="border-2 border-primary/20 bg-card mb-4">
+                  <CardHeader className="py-4">
+                    <CardTitle className="text-sm font-bold flex items-center gap-2">
+                      <Globe className="h-4 w-4 text-primary" /> Fuente Única de Verdad — Datos de Contacto
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Los datos configurados aquí se usan globalmente en el sitio (Header, Footer, página de Contacto y JSON-LD). Para editar la narración o reseña "Nosotros", dirígete a{" "}
+                      <a href="/panel/contenido" className="font-semibold text-primary underline">
+                        /panel/contenido
+                      </a>.
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              )}
               {groups.map((group) => (
                 <Card key={group}>
                   <CardHeader>

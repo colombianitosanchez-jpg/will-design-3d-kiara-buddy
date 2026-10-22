@@ -21,6 +21,7 @@ import { quoterServicesQuery, formatCOP } from "@/lib/quoter";
 import { supabase } from "@/integrations/supabase/client";
 import { parseProductButtons } from "@/lib/product-buttons";
 import { ProductButtons } from "@/components/ProductButtons";
+import { getSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/servicios")({
   loader: async ({ context }) => {
@@ -32,28 +33,36 @@ export const Route = createFileRoute("/servicios")({
   },
   head: ({ loaderData }: any) => {
     const siteContent = loaderData?.siteContent;
-    const title = siteContent?.seo_services_title || siteContent?.site_title || "Servicios — Will Design 3D";
-    const desc = siteContent?.seo_services_description || siteContent?.site_description || "";
-    const image = siteContent?.seo_services_image || siteContent?.site_meta_thumbnail_url || siteContent?.site_logo_url || "";
+    const seo = getSeo(
+      {
+        title: siteContent?.services_section_title
+          ? `${siteContent.services_section_title} · ${siteContent?.site_title || "Will Design 3D"}`
+          : siteContent?.site_title
+            ? `Servicios 3D · ${siteContent.site_title}`
+            : "Servicios 3D — Will Design 3D",
+        description: siteContent?.services_section_subtitle || siteContent?.services_page_description,
+      },
+      siteContent
+    );
 
     const metaTags: Array<Record<string, string>> = [
-      { title },
-      { name: "description", content: desc },
-      { property: "og:title", content: title },
-      { property: "og:description", content: desc },
-      { property: "og:url", content: "https://will-design-3d.lovable.app/servicios" },
+      { title: seo.title },
+      { name: "description", content: seo.description },
+      { property: "og:title", content: seo.title },
+      { property: "og:description", content: seo.description },
+      { property: "og:url", content: "https://willdesign3d.com/servicios" },
     ];
 
-    if (image) {
+    if (seo.image) {
       metaTags.push(
-        { property: "og:image", content: image },
-        { name: "twitter:image", content: image }
+        { property: "og:image", content: seo.image },
+        { name: "twitter:image", content: seo.image }
       );
     }
 
     return {
       meta: metaTags,
-      links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/servicios" }],
+      links: [{ rel: "canonical", href: "https://willdesign3d.com/servicios" }],
     };
   },
   component: ServiciosPage,

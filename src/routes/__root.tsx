@@ -27,6 +27,7 @@ import { siteContentQuery, categoriesQuery } from "../lib/catalog";
 import { siteServicesQuery } from "./servicios";
 import { menuItemsQuery } from "../lib/menu";
 import { getActiveTheme, applyThemeToDocument } from "../lib/theme";
+import { getSeo } from "../lib/seo";
 
 function ThemeApplier() {
   const { data: content } = useQuery(siteContentQuery());
@@ -110,14 +111,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   },
   head: ({ loaderData }: any) => {
     const siteContent = loaderData?.siteContent;
-    const title = siteContent?.site_title || "Will Design 3D";
-    const desc = siteContent?.site_description || "";
-    // Ideal OG image dimensions: 1200x630. If logo is used as fallback, note it may not match 1200x630 OG ratio.
-    const image = siteContent?.site_meta_thumbnail_url || siteContent?.site_logo_url || "";
+    const seo = getSeo(null, siteContent);
     const favicon = siteContent?.site_favicon_url || "/favicon.ico";
     const businessName = siteContent?.site_business_name || "Will Design 3D";
     const areaServed = siteContent?.site_area_served || "";
     const instagramUrl = siteContent?.contact_instagram_url || "https://www.instagram.com/will_design2020";
+
+    const title = seo.title;
+    const desc = seo.description;
+    const image = seo.image;
 
     const metaTags: Array<Record<string, string>> = [
       { charSet: "utf-8" },
