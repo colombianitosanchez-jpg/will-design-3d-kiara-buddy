@@ -62,7 +62,7 @@ type FieldDef = {
   label: string;
   type: "text" | "textarea" | "image" | "switch" | "select";
   help?: string;
-  tab: "identidad" | "seo" | "empresa";
+  tab: "identidad" | "seo" | "empresa" | "temas";
   group: string;
 };
 
@@ -179,6 +179,10 @@ const MARCA_FIELDS: FieldDef[] = [
   { key: "contact_email", label: "Correo Electrónico de Contacto", type: "text", tab: "empresa", group: "Canales de Contacto" },
   { key: "contact_instagram_url", label: "URL Completa de Instagram", type: "text", help: "Ej: https://www.instagram.com/will_design2020/", tab: "empresa", group: "Canales de Contacto" },
   { key: "contact_instagram_handle", label: "Usuario de Instagram Visible", type: "text", help: "Ej: @will_design2020", tab: "empresa", group: "Canales de Contacto" },
+
+  // ------------------------------------------------------------------- Temas
+  { key: "custom_themes", label: "Temas Personalizados (JSON)", type: "textarea", tab: "temas", group: "Temas" },
+  { key: "active_theme_id", label: "ID Tema Activo", type: "text", tab: "temas", group: "Temas" },
 ];
 
 function SeoPreviewCard({ values }: { values: Record<string, string> }) {
