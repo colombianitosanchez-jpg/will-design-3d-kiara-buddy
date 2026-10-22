@@ -26,6 +26,7 @@ import {
   Lock,
   Unlock,
   GripVertical,
+  Palette,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,26 +70,36 @@ type PanelLink = {
   key: string;
   to: string;
   label: string;
+  group: "MARCA" | "KIARA IA" | "TIENDA" | "CONTENIDO" | "VENTAS";
   icon: typeof LayoutDashboard;
   exact?: boolean;
   superOnly: boolean;
 };
 
 const ALL_LINKS: PanelLink[] = [
-  { key: "inicio", to: "/panel", label: "Inicio", icon: LayoutDashboard, exact: true, superOnly: false },
-  { key: "productos", to: "/panel/productos", label: "Productos", icon: Package, superOnly: false },
-  { key: "pedidos", to: "/panel/pedidos", label: "Pedidos", icon: ShoppingCart, superOnly: false },
-  { key: "conocimiento", to: "/panel/conocimiento", label: "Base de Conocimiento", icon: BookOpen, superOnly: false },
-  { key: "taxonomia", to: "/panel/taxonomia", label: "Categorías y marcas", icon: Tags, superOnly: true },
-  { key: "pagos", to: "/panel/pagos", label: "Métodos de pago", icon: CreditCard, superOnly: true },
-  { key: "servicios", to: "/panel/servicios", label: "Servicios 3D", icon: Wrench, superOnly: true },
-  { key: "cotizador", to: "/panel/cotizador", label: "Cotizador", icon: Calculator, superOnly: true },
-  { key: "notificaciones", to: "/panel/notificaciones", label: "Notificaciones", icon: BellRing, superOnly: true },
-  { key: "menu", to: "/panel/menu", label: "Menú de navegación", icon: ListTree, superOnly: true },
-  { key: "contenido", to: "/panel/contenido", label: "Contenido", icon: FileText, superOnly: true },
-  { key: "carrusel", to: "/panel/carrusel", label: "Carrusel", icon: GalleryHorizontal, superOnly: true },
-  { key: "llm", to: "/panel/llm", label: "Configuración de LLM", icon: Bot, superOnly: true },
-  { key: "equipo", to: "/panel/equipo", label: "Equipo", icon: UsersRound, superOnly: true },
+  // ----------------------------------------------------------- GRUPO 1: MARCA
+  { key: "marca", to: "/panel/marca", label: "Marca, SEO y Temas", group: "MARCA", icon: Palette, superOnly: true },
+
+  // -------------------------------------------------------- GRUPO 2: KIARA IA
+  { key: "kiara", to: "/panel/kiara", label: "Kiara IA", group: "KIARA IA", icon: Bot, superOnly: false },
+
+  // --------------------------------------------------------- GRUPO 3: TIENDA
+  { key: "inicio", to: "/panel", label: "Dashboard", group: "TIENDA", icon: LayoutDashboard, exact: true, superOnly: false },
+  { key: "productos", to: "/panel/productos", label: "Productos", group: "TIENDA", icon: Package, superOnly: false },
+  { key: "taxonomia", to: "/panel/taxonomia", label: "Categorías y marcas", group: "TIENDA", icon: Tags, superOnly: true },
+
+  // ------------------------------------------------------ GRUPO 4: CONTENIDO
+  { key: "contenido", to: "/panel/contenido", label: "Contenido de Inicio", group: "CONTENIDO", icon: FileText, superOnly: true },
+  { key: "carrusel", to: "/panel/carrusel", label: "Carrusel Hero", group: "CONTENIDO", icon: GalleryHorizontal, superOnly: true },
+  { key: "servicios", to: "/panel/servicios", label: "Servicios 3D", group: "CONTENIDO", icon: Wrench, superOnly: true },
+  { key: "menu", to: "/panel/menu", label: "Menú de navegación", group: "CONTENIDO", icon: ListTree, superOnly: true },
+  { key: "equipo", to: "/panel/equipo", label: "Equipo y Permisos", group: "CONTENIDO", icon: UsersRound, superOnly: true },
+
+  // --------------------------------------------------------- GRUPO 5: VENTAS
+  { key: "cotizador", to: "/panel/cotizador", label: "Cotizador 3D", group: "VENTAS", icon: Calculator, superOnly: true },
+  { key: "pedidos", to: "/panel/pedidos", label: "Pedidos y Solicitudes", group: "VENTAS", icon: ShoppingCart, superOnly: false },
+  { key: "pagos", to: "/panel/pagos", label: "Métodos de pago", group: "VENTAS", icon: CreditCard, superOnly: true },
+  { key: "notificaciones", to: "/panel/notificaciones", label: "Notificaciones", group: "VENTAS", icon: BellRing, superOnly: true },
 ];
 
 function SortableItem({
