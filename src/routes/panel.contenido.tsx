@@ -282,22 +282,25 @@ const FIELDS: FieldDef[] = [
   // Sección Servicios: Movido a panel.servicios.tsx - fuente de verdad concentrada
 
   // Portafolio e Instagram
-  { key: "portfolio_chip", label: "Etiqueta / Chip Galería Manual", type: "text", section: "Inicio", group: "Portafolio y Redes" },
-  { key: "portfolio_title", label: "Título Sección Galería Manual", type: "text", section: "Inicio", group: "Portafolio y Redes" },
-  { key: "portfolio_subtitle", label: "Subtítulo Galería Manual", type: "textarea", section: "Inicio", group: "Portafolio y Redes" },
-  { key: "portfolio_live_chip", label: "Etiqueta / Chip Widget Instagram", type: "text", section: "Inicio", group: "Portafolio y Redes" },
-  { key: "portfolio_live_title", label: "Título Widget Instagram", type: "text", section: "Inicio", group: "Portafolio y Redes" },
-  { key: "portfolio_live_subtitle", label: "Subtítulo Widget Instagram", type: "textarea", help: "Soporta interpolación con @handle", section: "Inicio", group: "Portafolio y Redes" },
-  { key: "portfolio_empty_title", label: "Título Estado Vacío Portafolio", type: "text", section: "Inicio", group: "Portafolio y Redes" },
-  { key: "portfolio_empty_subtitle", label: "Subtítulo Estado Vacío Portafolio", type: "textarea", section: "Inicio", group: "Portafolio y Redes" },
   { key: "show_manual_gallery", label: "Mostrar Galería Manual de Portafolio", type: "switch", help: "Se muestra si está activo y hay al menos una foto/video subida.", section: "Inicio", group: "Portafolio y Redes" },
   { key: "show_instagram_widget", label: "Mostrar Widget de Instagram en Vivo", type: "switch", help: "Se muestra si está activo y el ID del widget Elfsight es válido.", section: "Inicio", group: "Portafolio y Redes" },
   { key: "portfolio_display_order", label: "Orden de Visualización del Portafolio", type: "select", help: "Decide cuál sección del portafolio aparece primero.", section: "Inicio", group: "Portafolio y Redes", options: [
     { value: "manual_first", label: "Fotos manuales primero, luego Instagram" },
     { value: "instagram_first", label: "Instagram primero, luego fotos manuales" },
   ] },
+
   { key: "portfolio_images", label: "Fotos y Videos del Portafolio Manual (Drag & Drop)", type: "images", help: "Arrastra para reordenar las imágenes del portafolio. Se muestran en el inicio y en /galeria.", section: "Inicio", group: "Portafolio y Redes" },
+  { key: "portfolio_chip", label: "Etiqueta / Chip Galería Manual", type: "text", section: "Inicio", group: "Portafolio y Redes" },
+  { key: "portfolio_title", label: "Título Sección Galería Manual", type: "text", section: "Inicio", group: "Portafolio y Redes" },
+  { key: "portfolio_subtitle", label: "Subtítulo Galería Manual", type: "textarea", section: "Inicio", group: "Portafolio y Redes" },
+
   { key: "elfsight_instagram_id", label: "ID del Widget de Instagram (Elfsight)", type: "text", help: "Ej: elfsight-app-abc123", section: "Inicio", group: "Portafolio y Redes" },
+  { key: "portfolio_live_chip", label: "Etiqueta / Chip Widget Instagram", type: "text", section: "Inicio", group: "Portafolio y Redes" },
+  { key: "portfolio_live_title", label: "Título Widget Instagram", type: "text", section: "Inicio", group: "Portafolio y Redes" },
+  { key: "portfolio_live_subtitle", label: "Subtítulo Widget Instagram", type: "textarea", help: "Soporta interpolación con @handle", section: "Inicio", group: "Portafolio y Redes" },
+
+  { key: "portfolio_empty_title", label: "Título Estado Vacío Portafolio", type: "text", section: "Inicio", group: "Portafolio y Redes" },
+  { key: "portfolio_empty_subtitle", label: "Subtítulo Estado Vacío Portafolio", type: "textarea", section: "Inicio", group: "Portafolio y Redes" },
 
   // Sección Productos Destacados
   { key: "featured_products_title", label: "Título Sección Productos Destacados", type: "text", section: "Inicio", group: "Productos Destacados" },
