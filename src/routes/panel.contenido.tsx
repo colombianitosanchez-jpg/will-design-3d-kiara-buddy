@@ -67,13 +67,39 @@ export type HeroStatItem = {
   media_url?: string;
   animation_type?: "none" | "image" | "video" | "gif" | "lottie";
   animation_style?: string;
+  // FASE 3: Fondo vivo y estilos avanzados
+  type?: "solid" | "gradient" | "imageFill" | "videoFill";
+  bgImageUrl?: string;
+  gradientFrom?: string;
+  gradientTo?: string;
+  gradientAngle?: number;
+  overlayOpacity?: number;
+  iconPosition?: "none" | "left" | "right";
+  rounded?: "rounded-xl" | "rounded-2xl" | "rounded-3xl" | "rounded-full";
 };
 
 export function parseHeroStats(values: Record<string, string>): HeroStatItem[] {
   if (values.hero_stats) {
     try {
       const parsed = JSON.parse(values.hero_stats);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((item: any) => {
+          const bgUrl = item.bgImageUrl || item.media_url || "";
+          const isVid = /\.(mp4|webm|quicktime)($|\?)/i.test(bgUrl);
+          return {
+            ...item,
+            type: item.type || (bgUrl ? (isVid ? "videoFill" : "imageFill") : "solid"),
+            bgImageUrl: bgUrl,
+            media_url: bgUrl,
+            gradientFrom: item.gradientFrom || "#f97316",
+            gradientTo: item.gradientTo || "#db2777",
+            gradientAngle: item.gradientAngle ?? 135,
+            overlayOpacity: item.overlayOpacity ?? 45,
+            iconPosition: item.iconPosition || "none",
+            rounded: item.rounded || "rounded-2xl",
+          };
+        });
+      }
     } catch {
       // fallback
     }
@@ -91,16 +117,127 @@ export function parseHeroStats(values: Record<string, string>): HeroStatItem[] {
         action_type: "none",
         action_value: "",
         animation_type: "none",
+        type: "solid",
+        iconPosition: "none",
+        rounded: "rounded-2xl",
       });
     }
   }
   return legacy.length > 0
     ? legacy
     : [
-        { id: "stat_1", k: "50×50", v: "cm mínimo", action_type: "none" },
-        { id: "stat_2", k: "1.8 m", v: "en una sola pieza", action_type: "none" },
-        { id: "stat_3", k: "24/7", v: "atención y cotización", action_type: "none" },
+        { id: "stat_1", k: "50×50", v: "cm mínimo", action_type: "none", type: "solid", iconPosition: "none", rounded: "rounded-2xl" },
+        { id: "stat_2", k: "1.8 m", v: "en una sola pieza", action_type: "none", type: "solid", iconPosition: "none", rounded: "rounded-2xl" },
+        { id: "stat_3", k: "24/7", v: "atención y cotización", action_type: "none", type: "solid", iconPosition: "none", rounded: "rounded-2xl" },
       ];
+}
+
+export function MediaDropZone({
+  value,
+  onChange,
+}: {
+  value?: string;
+  onChange: (url: string, detectedType?: "imageFill" | "videoFill") => void;
+}) {
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  async function handleFile(file: File) {
+    if (!file) return;
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error("El archivo supera el límite máximo de 50MB");
+      return;
+    }
+    setUploading(true);
+    try {
+      const path = `stats/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      const up = await supabase.storage.from("site-media").upload(path, file, { upsert: false });
+      if (up.error) throw up.error;
+      const signed = await supabase.storage.from("site-media").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+      if (signed.error) throw signed.error;
+
+      const url = signed.data.signedUrl;
+      const isVid = file.type.includes("video") || /\.(mp4|webm|quicktime)$/i.test(file.name);
+      onChange(url, isVid ? "videoFill" : "imageFill");
+      toast.success("Archivo subido con éxito");
+    } catch (e) {
+      toast.error("Error al subir archivo", { description: (e as Error).message });
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  }
+
+  const isVideo = value && /\.(mp4|webm|quicktime)($|\?)/i.test(value);
+
+  return (
+    <div className="space-y-2">
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsDragging(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsDragging(false);
+        }}
+        onDrop={handleDrop}
+        className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-4 text-center transition ${
+          isDragging ? "border-primary bg-primary/10" : "border-border bg-muted/30 hover:bg-muted/50"
+        }`}
+      >
+        {value ? (
+          <div className="relative w-full aspect-video max-h-36 overflow-hidden rounded-xl border border-border bg-black/50">
+            {isVideo ? (
+              <video src={value} autoPlay loop muted playsInline className="h-full w-full object-cover" />
+            ) : (
+              <img src={value} alt="Preview" className="h-full w-full object-cover" />
+            )}
+            <Button
+              type="button"
+              variant="destructive"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange("");
+              }}
+              className="absolute top-2 right-2 h-7 w-7 rounded-full shadow-md"
+              title="Eliminar multimedia"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        ) : (
+          <label className="flex flex-col items-center justify-center cursor-pointer w-full py-3">
+            <Upload className={`h-8 w-8 mb-2 ${uploading ? "animate-bounce text-primary" : "text-muted-foreground"}`} />
+            <span className="text-xs font-bold text-foreground">
+              {uploading ? "Subiendo archivo..." : "Arrastra un archivo aquí o haz clic para buscar"}
+            </span>
+            <span className="text-[10px] text-muted-foreground mt-1">
+              Soporta: PNG, JPG, WEBP, GIF, MP4, WebM (Máx 50MB)
+            </span>
+            <input
+              type="file"
+              accept="image/*,video/*,.gif,.webp"
+              className="hidden"
+              disabled={uploading}
+              onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+            />
+          </label>
+        )}
+      </div>
+    </div>
+  );
 }
 
 type Row = { key: string; value: string };
@@ -196,7 +333,6 @@ function SortableHeroStatCard({
   onUpdate: (patch: Partial<HeroStatItem>) => void;
   onRemove: () => void;
 }) {
-  const [uploading, setUploading] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
   });
@@ -207,30 +343,6 @@ function SortableHeroStatCard({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  async function handleUploadMedia(file: File) {
-    setUploading(true);
-    try {
-      if (file.size > 50 * 1024 * 1024) throw new Error("Supera 50MB");
-      const path = `stats/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-      const up = await supabase.storage.from("site-media").upload(path, file, { upsert: false });
-      if (up.error) throw up.error;
-      const signed = await supabase.storage.from("site-media").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-      if (signed.error) throw signed.error;
-
-      let detectedType: HeroStatItem["animation_type"] = "image";
-      if (file.type.includes("json")) detectedType = "lottie";
-      else if (file.type.includes("video")) detectedType = "video";
-      else if (file.type.includes("gif")) detectedType = "gif";
-
-      onUpdate({ media_url: signed.data.signedUrl, animation_type: detectedType });
-      toast.success("Animación subida para el botón");
-    } catch (e) {
-      toast.error("Error al subir", { description: (e as Error).message });
-    } finally {
-      setUploading(false);
-    }
-  }
-
   let resolvedBg = "";
   if (item.color_id === "custom") {
     resolvedBg = item.custom_hex || "";
@@ -239,13 +351,41 @@ function SortableHeroStatCard({
     if (found) resolvedBg = found.hex;
   }
 
+  const type = item.type || (item.bgImageUrl || item.media_url ? (/\.(mp4|webm|quicktime)($|\?)/i.test(item.bgImageUrl || item.media_url || "") ? "videoFill" : "imageFill") : "solid");
+  const bgUrl = item.bgImageUrl || item.media_url || "";
+  const roundedClass = item.rounded || "rounded-2xl";
+  const overlayOp = (item.overlayOpacity ?? 45) / 100;
+  const iconPos = item.iconPosition || "none";
+
+  let previewStyle: React.CSSProperties = {};
+  if (type === "gradient") {
+    previewStyle.background = `linear-gradient(${item.gradientAngle ?? 135}deg, ${item.gradientFrom || "#f97316"}, ${item.gradientTo || "#db2777"})`;
+  } else if (type === "solid") {
+    if (resolvedBg) {
+      previewStyle.borderColor = `${resolvedBg}40`;
+      previewStyle.backgroundColor = `${resolvedBg}15`;
+    }
+  }
+
+  const iconMedia = bgUrl && iconPos !== "none" && (
+    <span className="shrink-0 inline-flex items-center justify-center">
+      {item.animation_type === "lottie" ? (
+        <LottiePreview url={bgUrl} />
+      ) : item.animation_type === "video" || /\.(mp4|webm|quicktime)($|\?)/i.test(bgUrl) ? (
+        <video src={bgUrl} autoPlay loop muted playsInline className="h-4 w-4 rounded-full object-cover" />
+      ) : (
+        <img src={bgUrl} alt="" className="h-4 w-4 rounded-full object-cover" />
+      )}
+    </span>
+  );
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="rounded-2xl border border-border bg-card p-4 shadow-xs space-y-3"
+      className="rounded-2xl border border-border bg-card p-4 shadow-xs space-y-4"
     >
-      <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2">
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -266,26 +406,29 @@ function SortableHeroStatCard({
           <motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            style={resolvedBg ? { borderColor: resolvedBg, backgroundColor: `${resolvedBg}10` } : undefined}
-            className={`rounded-xl border border-border bg-card px-3 py-2 text-center shadow-2xs min-w-[100px] ${
+            style={previewStyle}
+            className={`relative overflow-hidden isolate border border-border px-4 py-2 text-center shadow-2xs min-w-[120px] min-h-[50px] flex flex-col items-center justify-center ${roundedClass} ${
               item.animation_style && item.animation_style !== "none" ? `theme-anim-${item.animation_style}` : ""
             }`}
           >
-            <div className="flex items-center justify-center gap-1.5 font-black text-sm" style={{ color: resolvedBg || "var(--brand-wine)" }}>
-              {item.media_url && item.animation_type !== "none" && (
-                <span>
-                  {item.animation_type === "lottie" ? (
-                    <LottiePreview url={item.media_url} />
-                  ) : item.animation_type === "video" ? (
-                    <video src={item.media_url} autoPlay loop muted playsInline className="h-4 w-4 rounded-full object-cover" />
-                  ) : (
-                    <img src={item.media_url} alt="" className="h-4 w-4 rounded-full object-cover" />
-                  )}
-                </span>
-              )}
+            {type === "videoFill" && bgUrl && (
+              <video src={bgUrl} autoPlay loop muted playsInline className="absolute inset-0 h-full w-full object-cover -z-20" />
+            )}
+            {type === "imageFill" && bgUrl && (
+              <img src={bgUrl} alt="" className="absolute inset-0 h-full w-full object-cover -z-20" />
+            )}
+            {(type === "videoFill" || type === "imageFill" || type === "gradient") && (
+              <div className="absolute inset-0 bg-black -z-10" style={{ opacity: overlayOp }} />
+            )}
+
+            <div className={`relative z-10 flex items-center justify-center gap-1.5 font-black text-sm ${type !== "solid" ? "text-white drop-shadow-md" : ""}`} style={type === "solid" ? { color: resolvedBg || "var(--brand-wine)" } : undefined}>
+              {iconPos === "left" && iconMedia}
               {item.k || "50×50"}
+              {iconPos === "right" && iconMedia}
             </div>
-            <div className="text-[10px] text-muted-foreground truncate max-w-[120px]">{item.v || "cm mínimo"}</div>
+            <div className={`relative z-10 text-[10px] truncate max-w-[120px] ${type !== "solid" ? "text-white/90 drop-shadow-xs" : "text-muted-foreground"}`}>
+              {item.v || "cm mínimo"}
+            </div>
           </motion.div>
 
           <Button
@@ -308,7 +451,7 @@ function SortableHeroStatCard({
             value={item.k}
             onChange={(e) => onUpdate({ k: e.target.value })}
             placeholder="Ej: 50×50"
-            className="mt-1"
+            className="mt-1 text-xs"
           />
         </div>
 
@@ -318,7 +461,7 @@ function SortableHeroStatCard({
             value={item.v}
             onChange={(e) => onUpdate({ v: e.target.value })}
             placeholder="Ej: cm mínimo"
-            className="mt-1"
+            className="mt-1 text-xs"
           />
         </div>
 
@@ -328,7 +471,7 @@ function SortableHeroStatCard({
             value={item.action_type || "none"}
             onValueChange={(val: any) => onUpdate({ action_type: val })}
           >
-            <SelectTrigger className="mt-1">
+            <SelectTrigger className="mt-1 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -348,33 +491,71 @@ function SortableHeroStatCard({
               value={item.action_value || ""}
               onChange={(e) => onUpdate({ action_value: e.target.value })}
               placeholder={item.action_type === "link" ? "/cotizador o https://..." : "573156724474"}
-              className="mt-1"
+              className="mt-1 text-xs"
             />
           </div>
         )}
 
         <div>
-          <Label className="text-xs font-semibold">Color Acento (Paleta del Tema / HEX)</Label>
+          <Label className="text-xs font-semibold">Tipo de Fondo / Estilo Visual</Label>
           <Select
-            value={item.color_id || ""}
-            onValueChange={(val) => onUpdate({ color_id: val })}
+            value={type}
+            onValueChange={(val: any) => onUpdate({ type: val })}
           >
-            <SelectTrigger className="mt-1">
-              <SelectValue placeholder="Color del Tema" />
+            <SelectTrigger className="mt-1 text-xs">
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="default">Por Defecto (Burgundy)</SelectItem>
-              {palette.map((col) => (
-                <SelectItem key={col.id} value={col.id}>
-                  {col.name} ({col.hex})
-                </SelectItem>
-              ))}
-              <SelectItem value="custom">Color Personalizado (HEX Libre)</SelectItem>
+              <SelectItem value="solid">Fondo Sólido / Paleta del Tema</SelectItem>
+              <SelectItem value="gradient">Degradé / Gradiente Personalizado</SelectItem>
+              <SelectItem value="imageFill">Imagen Completa (Fondo Vivo)</SelectItem>
+              <SelectItem value="videoFill">Video Loop Completo (Fondo Vivo)</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        {item.color_id === "custom" && (
+        <div>
+          <Label className="text-xs font-semibold">Bordes Redondeados</Label>
+          <Select
+            value={roundedClass}
+            onValueChange={(val: any) => onUpdate({ rounded: val })}
+          >
+            <SelectTrigger className="mt-1 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="rounded-xl">Redondeado XL (rounded-xl)</SelectItem>
+              <SelectItem value="rounded-2xl">Redondeado 2XL (rounded-2xl)</SelectItem>
+              <SelectItem value="rounded-3xl">Redondeado 3XL (rounded-3xl)</SelectItem>
+              <SelectItem value="rounded-full">Píldora Completa (rounded-full)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {type === "solid" && (
+          <div>
+            <Label className="text-xs font-semibold">Color Acento (Paleta del Tema / HEX)</Label>
+            <Select
+              value={item.color_id || ""}
+              onValueChange={(val) => onUpdate({ color_id: val })}
+            >
+              <SelectTrigger className="mt-1 text-xs">
+                <SelectValue placeholder="Color del Tema" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">Por Defecto (Burgundy)</SelectItem>
+                {palette.map((col) => (
+                  <SelectItem key={col.id} value={col.id}>
+                    {col.name} ({col.hex})
+                  </SelectItem>
+                ))}
+                <SelectItem value="custom">Color Personalizado (HEX Libre)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {type === "solid" && item.color_id === "custom" && (
           <div>
             <Label className="text-xs font-semibold">HEX Libre</Label>
             <div className="flex items-center gap-2 mt-1">
@@ -394,43 +575,116 @@ function SortableHeroStatCard({
             </div>
           </div>
         )}
+
+        {type === "gradient" && (
+          <>
+            <div>
+              <Label className="text-xs font-semibold">Color Inicial (Gradient From)</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="color"
+                  value={item.gradientFrom?.startsWith("#") ? item.gradientFrom : "#f97316"}
+                  onChange={(e) => onUpdate({ gradientFrom: e.target.value })}
+                  className="h-9 w-10 cursor-pointer rounded-lg border border-input p-0"
+                />
+                <Input
+                  type="text"
+                  value={item.gradientFrom || "#f97316"}
+                  onChange={(e) => onUpdate({ gradientFrom: e.target.value })}
+                  placeholder="#f97316"
+                  className="h-9 text-xs font-mono"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs font-semibold">Color Final (Gradient To)</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="color"
+                  value={item.gradientTo?.startsWith("#") ? item.gradientTo : "#db2777"}
+                  onChange={(e) => onUpdate({ gradientTo: e.target.value })}
+                  className="h-9 w-10 cursor-pointer rounded-lg border border-input p-0"
+                />
+                <Input
+                  type="text"
+                  value={item.gradientTo || "#db2777"}
+                  onChange={(e) => onUpdate({ gradientTo: e.target.value })}
+                  placeholder="#db2777"
+                  className="h-9 text-xs font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="sm:col-span-2">
+              <Label className="text-xs font-semibold">Ángulo del Gradiente: {item.gradientAngle ?? 135}°</Label>
+              <input
+                type="range"
+                min={0}
+                max={360}
+                value={item.gradientAngle ?? 135}
+                onChange={(e) => onUpdate({ gradientAngle: Number(e.target.value) })}
+                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary mt-2"
+              />
+            </div>
+          </>
+        )}
       </div>
 
+      {/* Media Drag & Drop Zone for ImageFill / VideoFill / Icon Media */}
+      {(type === "imageFill" || type === "videoFill" || item.iconPosition !== "none") && (
+        <div className="space-y-2 rounded-xl border border-border/80 bg-muted/20 p-3">
+          <Label className="text-xs font-bold flex items-center gap-1.5">
+            <Upload className="h-3.5 w-3.5 text-primary" />
+            Multimedia / Fondo Vivo ({type === "videoFill" ? "Video MP4/WebM" : "Imagen/GIF"})
+          </Label>
+          <MediaDropZone
+            value={bgUrl}
+            onChange={(url, detectedType) =>
+              onUpdate({
+                bgImageUrl: url,
+                media_url: url,
+                type: detectedType || type,
+              })
+            }
+          />
+        </div>
+      )}
+
+      {/* Overlay & Icon Position Settings */}
       <div className="rounded-xl border border-border/80 bg-muted/20 p-3 space-y-3">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Animación Decorativa
+            Accesibilidad & Posición de Ícono
           </span>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <Label className="text-xs font-semibold">Tipo de Animación</Label>
+            <Label className="text-xs font-semibold">Posición del Ícono / Miniatura</Label>
             <Select
-              value={item.animation_type || "none"}
-              onValueChange={(val: any) => onUpdate({ animation_type: val })}
+              value={iconPos}
+              onValueChange={(val: any) => onUpdate({ iconPosition: val })}
             >
-              <SelectTrigger className="mt-1">
+              <SelectTrigger className="mt-1 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Sin Animación</SelectItem>
-                <SelectItem value="image">Imagen Fija</SelectItem>
-                <SelectItem value="gif">GIF Animado</SelectItem>
-                <SelectItem value="video">Video MP4 / WebM</SelectItem>
-                <SelectItem value="lottie">Lottie JSON</SelectItem>
+                <SelectItem value="none">Sin Ícono (Solo Fondo 100% Vivo)</SelectItem>
+                <SelectItem value="left">A la Izquierda del Texto</SelectItem>
+                <SelectItem value="right">A la Derecha del Texto</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div>
-            <Label className="text-xs font-semibold">Efecto Resplandor</Label>
+            <Label className="text-xs font-semibold">Efecto Resplandor / Glow</Label>
             <Select
               value={item.animation_style || "none"}
               onValueChange={(val) => onUpdate({ animation_style: val })}
             >
-              <SelectTrigger className="mt-1">
+              <SelectTrigger className="mt-1 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -444,27 +698,20 @@ function SortableHeroStatCard({
           </div>
         </div>
 
-        {item.animation_type && item.animation_type !== "none" && (
-          <div>
-            <Label className="text-xs font-semibold">URL del Archivo Animado</Label>
-            <div className="flex gap-2 mt-1">
-              <Input
-                value={item.media_url || ""}
-                onChange={(e) => onUpdate({ media_url: e.target.value })}
-                placeholder="https://... .gif, .mp4, .json"
-                className="text-xs"
-              />
-              <label className="cursor-pointer shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-xs font-bold hover:bg-muted">
-                <Upload className="h-3.5 w-3.5" />
-                {uploading ? "Subiendo…" : "Subir"}
-                <input
-                  type="file"
-                  accept="image/*,video/*,.json,application/json"
-                  className="hidden"
-                  onChange={(e) => e.target.files?.[0] && handleUploadMedia(e.target.files[0])}
-                />
-              </label>
+        {(type === "imageFill" || type === "videoFill" || type === "gradient") && (
+          <div className="space-y-1 pt-1">
+            <div className="flex items-center justify-between text-xs font-semibold">
+              <Label className="text-xs font-semibold">Oscurecimiento Overlay (Legibilidad WCAG):</Label>
+              <span className="font-mono text-primary font-bold">{item.overlayOpacity ?? 45}%</span>
             </div>
+            <input
+              type="range"
+              min={30}
+              max={75}
+              value={item.overlayOpacity ?? 45}
+              onChange={(e) => onUpdate({ overlayOpacity: Number(e.target.value) })}
+              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+            />
           </div>
         )}
       </div>
