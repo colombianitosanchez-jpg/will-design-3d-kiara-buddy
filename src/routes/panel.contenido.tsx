@@ -116,6 +116,9 @@ type FieldDef = {
 };
 
 const FIELDS: FieldDef[] = [
+  // Orden de la Página de Inicio (Home Builder)
+  { key: "home_sections_order", label: "Orden de las Secciones del Inicio", type: "order", help: "Arrastra las secciones para decidir qué aparece primero al entrar a la página.", section: "Inicio", group: "Orden de Secciones" },
+
   // ---------------------------------------------------------------- Home Builder & Hero
   { key: "hero_title", label: "Título del Hero", type: "textarea", section: "Inicio", group: "Hero Principal" },
   { key: "hero_subtitle", label: "Subtítulo del Hero", type: "textarea", section: "Inicio", group: "Hero Principal" },
@@ -138,9 +141,6 @@ const FIELDS: FieldDef[] = [
     section: "Inicio",
     group: "Estadísticas del Hero",
   },
-
-  // Orden de la Página de Inicio
-  { key: "home_sections_order", label: "Orden de las Secciones del Inicio", type: "order", help: "Arrastra las secciones para decidir qué aparece primero al entrar a la página.", section: "Inicio", group: "Orden de Secciones" },
 
   // Sección Servicios
   { key: "services_section_title", label: "Título Sección Servicios", type: "text", section: "Inicio", group: "Sección Servicios" },
