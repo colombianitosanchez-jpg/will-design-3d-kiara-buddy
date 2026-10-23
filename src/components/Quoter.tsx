@@ -361,7 +361,12 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
       );
 
       setSent(true);
-      window.open(waLink(contact.whatsapp, msgText), "_blank");
+      const url = waLink(contact.whatsapp, msgText);
+      if (!url) {
+        toast.error("Configura WhatsApp en /panel/marca");
+        return;
+      }
+      window.open(url, "_blank");
     } catch (err) {
       setSendError((err as Error).message || "No pudimos enviar la cotización.");
     } finally {

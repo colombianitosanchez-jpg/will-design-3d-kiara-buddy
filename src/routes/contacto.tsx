@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { MessageCircle, Instagram, MapPin, Mail, Send } from "lucide-react";
+import { toast } from "sonner";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 import { getSeo } from "@/lib/seo";
 
@@ -96,7 +97,12 @@ function ContactoPage() {
     }
     setErrors({});
     const msg = `Hola Will Design 3D, soy ${parsed.data.name}.\nAsunto: ${parsed.data.subject}\nContacto: ${parsed.data.contact}\n\n${parsed.data.message}`;
-    window.open(waLink(contact.whatsapp, msg), "_blank");
+    const url = waLink(contact.whatsapp, msg);
+    if (!url) {
+      toast.error("Configura WhatsApp en /panel/marca");
+      return;
+    }
+    window.open(url, "_blank");
   };
 
 
@@ -122,9 +128,15 @@ function ContactoPage() {
           <ul className="mt-4 space-y-3 text-sm">
             <li>
               <a
-                href={waLink(contact.whatsapp)}
+                href={waLink(contact.whatsapp) || "#"}
                 target="_blank"
                 rel="noreferrer"
+                onClick={(e) => {
+                  if (!waLink(contact.whatsapp)) {
+                    e.preventDefault();
+                    toast.error("Configura WhatsApp en /panel/marca");
+                  }
+                }}
                 className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition hover:-translate-y-0.5 hover:shadow-md"
               >
                 <span
