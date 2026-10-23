@@ -175,22 +175,25 @@ export function InstagramFeed() {
   const instagramFirst =
     (content?.portfolio_display_order ?? "").trim() === "instagram_first";
 
+  const liveChip = content?.portfolio_live_chip || "Portafolio en vivo";
+  const liveTitle = content?.portfolio_live_title || "Directo desde nuestro Instagram";
+  const rawLiveSub = content?.portfolio_live_subtitle || "Las últimas publicaciones de @{handle} — se actualizan automáticamente.";
+  const liveSubtitle = rawLiveSub.replace("@{handle}", `@${handle}`).replace("@handle", `@${handle}`);
+
   const manualBlock = showManual ? (
-    <ManualGallery key="manual" photos={photos} handle={handle} />
+    <ManualGallery key="manual" photos={photos} handle={handle} content={content} />
   ) : null;
 
   const widgetBlock = showWidget ? (
     <div key="instagram">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-xl">
-          <span className="chip-teal">Portafolio en vivo</span>
+          <span className="chip-teal">{liveChip}</span>
           <h2 className="mt-3 text-3xl font-black sm:text-4xl md:text-5xl">
-            Directo desde nuestro Instagram
+            {liveTitle}
           </h2>
           <p className="mt-3 text-muted-foreground">
-            Las últimas publicaciones de{" "}
-            <strong className="text-foreground">@{handle}</strong> — se actualizan
-            automáticamente.
+            {liveSubtitle}
           </p>
         </div>
         <a href={instagramUrl} target="_blank" rel="noreferrer" className="btn-outline">
@@ -217,7 +220,7 @@ export function InstagramFeed() {
         {blocks}
 
         {!showManual && !showWidget && (
-          <PortfolioTeaser instagramUrl={instagramUrl} handle={handle} />
+          <PortfolioTeaser instagramUrl={instagramUrl} handle={handle} content={content} />
         )}
 
         {/* Solo visible en desarrollo: nunca se muestra al público. */}
@@ -233,16 +236,20 @@ export function InstagramFeed() {
   );
 }
 
-function ManualGallery({ photos, handle }: { photos: PortfolioPhoto[]; handle: string }) {
+function ManualGallery({ photos, handle, content }: { photos: PortfolioPhoto[]; handle: string; content: any }) {
+  const chip = content?.portfolio_chip || "Portafolio";
+  const title = content?.portfolio_title || "Piezas que hemos impreso";
+  const subtitle = content?.portfolio_subtitle || "Una selección de proyectos de impresión 3D de gran formato hechos en nuestro taller.";
+
   return (
     <div>
       <div className="max-w-xl">
-        <span className="chip-teal">Portafolio</span>
+        <span className="chip-teal">{chip}</span>
         <h2 className="mt-3 text-3xl font-black sm:text-4xl md:text-5xl">
-          Piezas que hemos impreso
+          {title}
         </h2>
         <p className="mt-3 text-muted-foreground">
-          Una selección de proyectos de impresión 3D de gran formato hechos en nuestro taller.
+          {subtitle}
         </p>
       </div>
       <div className="mt-10">
@@ -403,7 +410,10 @@ function PhotoGallery({ photos, handle }: { photos: PortfolioPhoto[]; handle: st
   );
 }
 
-function PortfolioTeaser({ instagramUrl, handle }: { instagramUrl: string; handle: string }) {
+function PortfolioTeaser({ instagramUrl, handle, content }: { instagramUrl: string; handle: string; content?: any }) {
+  const title = content?.portfolio_empty_title || "Estamos preparando la galería";
+  const subtitle = content?.portfolio_empty_subtitle || "Mientras tanto, mira nuestros proyectos más recientes de impresión 3D de gran formato directamente en Instagram.";
+
   return (
     <div className="rounded-3xl border border-border bg-card p-8 text-center shadow-sm">
       <div
@@ -415,10 +425,9 @@ function PortfolioTeaser({ instagramUrl, handle }: { instagramUrl: string; handl
       >
         <ImageIcon className="h-7 w-7" />
       </div>
-      <h3 className="mt-4 text-xl font-bold">Estamos preparando la galería</h3>
+      <h3 className="mt-4 text-xl font-bold">{title}</h3>
       <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-        Mientras tanto, mira nuestros proyectos más recientes de impresión 3D de gran
-        formato directamente en Instagram.
+        {subtitle}
       </p>
       <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
         <a href={instagramUrl} target="_blank" rel="noreferrer" className="btn-primary text-sm">

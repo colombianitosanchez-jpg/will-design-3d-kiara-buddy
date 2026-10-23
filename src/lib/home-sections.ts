@@ -5,6 +5,7 @@ export const HOME_SECTIONS = [
   { key: "products", label: "Productos destacados" },
   { key: "portfolio", label: "Portafolio e Instagram" },
   { key: "quoter", label: "Cotizador" },
+  { key: "about", label: "Nosotros" },
 ] as const;
 
 export type HomeSectionKey = (typeof HOME_SECTIONS)[number]["key"];

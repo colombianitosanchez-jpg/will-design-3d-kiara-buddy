@@ -45,8 +45,11 @@ export const Route = createFileRoute("/nosotros")({
 
 function NosotrosPage() {
   const { data: content } = useQuery(siteContentQuery());
-  const about = content?.about_short?.trim() || "";
-  const logoUrl = content?.site_logo_url?.trim();
+  const chip = content?.about_chip?.trim() || "Nuestra historia";
+  const title = content?.about_title?.trim() || "Un taller 3D con alma";
+  const subtitle = content?.about_subtitle?.trim() || "";
+  const about = content?.about_long?.trim() || content?.about_short?.trim() || "";
+  const imageUrl = content?.about_image_url?.trim() || content?.site_logo_url?.trim();
   const businessName = content?.site_business_name?.trim() || "Will Design 3D";
 
   return (
@@ -54,24 +57,28 @@ function NosotrosPage() {
       <section className="border-b border-border bg-muted/30">
         <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 py-14 sm:px-6 md:grid-cols-[minmax(0,1fr)_auto] md:py-20">
           <div>
-            <span className="chip-teal">Nuestra historia</span>
+            <span className="chip-teal">{chip}</span>
             <h1 className="mt-3 text-4xl font-black sm:text-5xl md:text-6xl">
-              Un taller 3D con{" "}
-              <span style={{ color: "var(--brand-orange)" }}>alma</span>
+              {title}
             </h1>
+            {subtitle && (
+              <p className="mt-2 text-xl font-medium text-foreground">
+                {subtitle}
+              </p>
+            )}
             {about && (
-              <p className="mt-4 max-w-2xl text-lg text-muted-foreground whitespace-pre-line">
+              <p className="mt-4 max-w-2xl text-base text-muted-foreground whitespace-pre-line leading-relaxed">
                 {about}
               </p>
             )}
           </div>
-          {logoUrl && (
+          {imageUrl && (
             <img
-              src={logoUrl}
+              src={imageUrl}
               alt={businessName}
-              width={160}
-              height={160}
-              className="hidden h-40 w-40 rounded-3xl object-cover shadow-lg md:block"
+              width={200}
+              height={200}
+              className="hidden h-48 w-48 rounded-3xl object-cover shadow-lg md:block"
             />
           )}
         </div>
