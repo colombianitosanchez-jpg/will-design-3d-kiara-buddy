@@ -1,42 +1,9 @@
-import { useEffect, useState } from "react";
-import { cartLineKey } from "@/lib/payment-rules";
-import { useRouter } from "@tanstack/react-router";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { useCart } from "@/lib/cart";
-import { useSiteContent } from "@/hooks/use-site-content";
-import { getContactInfo, waLink, formatCOP, type Product } from "@/lib/catalog";
-import { getActiveTheme } from "@/lib/theme";
-import { Lottie } from "lottie-react";
-import { motion } from "framer-motion";
+import { UnifiedButton } from "@/components/UnifiedButton";
 import {
-  buildButtonWhatsappText,
   type ProductButton,
   type ButtonPosition,
 } from "@/lib/product-buttons";
-
-function LottiePlayer({ url, className }: { url: string; className?: string }) {
-  const [data, setData] = useState<any>(null);
-
-  useEffect(() => {
-    if (!url) return;
-    let isMounted = true;
-    fetch(url)
-      .then((res) => res.json())
-      .then((json) => {
-        if (isMounted) setData(json);
-      })
-      .catch(() => {
-        if (isMounted) setData(null);
-      });
-    return () => {
-      isMounted = false;
-    };
-  }, [url]);
-
-  if (!data) return null;
-  return <Lottie animationData={data} loop={true} className={className} {...({} as any)} />;
-}
+import type { Product } from "@/lib/catalog";
 
 const ROW_ALIGN: Record<ButtonPosition, string> = {
   left: "justify-start",
@@ -66,155 +33,31 @@ export function ProductButtons({
   /** Variante elegida: el enlace con foto apunta a su ficha (vista previa con su foto). */
   variantId?: string | null;
 }) {
-  const router = useRouter();
-  const { addItem } = useCart();
-  const { content } = useSiteContent();
-  const fallbackWhatsapp = getContactInfo(content).whatsapp;
-  const activeTheme = getActiveTheme(content);
-  const palette = activeTheme.colors.palette || [];
-
-  if (!buttons.length) return null;
-
-  const isCartAction = (b: ProductButton) =>
-    b.action_type === "add_to_cart" || b.action_type === "checkout";
-
-  function cartPayload() {
-    if (!product) return { product_id: "", slug: "", name: "", price_cop: 0, image_url: null };
-    return {
-      product_id: cartLineKey(product.id, variantId),
-      slug: product.slug,
-      name: product.name,
-      price_cop: product.price_cop,
-      image_url: product.image_url,
-    };
-  }
-
-  function handleButtonAction(button: ProductButton) {
-    switch (button.action_type) {
-      case "link": {
-        const value = button.action_value.trim();
-        if (!value) return;
-        if (/^https?:\/\//i.test(value)) {
-          window.open(value, "_blank", "noopener,noreferrer");
-        } else {
-          router.navigate({ to: value.startsWith("/") ? value : `/${value}` });
-        }
-        return;
-      }
-      case "whatsapp": {
-        const number = button.action_value.trim() || fallbackWhatsapp;
-        const msg = (button.whatsapp_message ?? "").replaceAll("{{variante}}", variantName ?? "");
-        const text = buildButtonWhatsappText(
-          { ...button, whatsapp_message: msg },
-          {
-            name: product?.name ?? "",
-            slug: product?.slug ?? "",
-            image_url: product?.image_url ?? null,
-            images: product?.images ?? [],
-            price: product ? formatCOP(product.price_cop) : "",
-            variant_id: variantId ?? null,
-          },
-          extraWhatsappNote ?? "",
-        );
-
-        window.open(waLink(number, text), "_blank", "noopener,noreferrer");
-        return;
-      }
-
-      case "add_to_cart": {
-        if (!product) return;
-        addItem(cartPayload());
-        toast.success(`${product.name} se añadió al carrito`);
-        return;
-      }
-      case "checkout": {
-        if (!product) return;
-        addItem(cartPayload());
-        router.navigate({ to: "/carrito" });
-        return;
-      }
-    }
-  }
+  if (!buttons || !buttons.length) return null;
 
   const groups = ORDER.map((position) => ({
     position,
     list: buttons.filter((b) => b.position === position),
   })).filter((g) => g.list.length > 0);
 
-  function resolveButtonBg(b: ProductButton): string | undefined {
-    if (b.color_id === "custom") {
-      return b.custom_hex || undefined;
-    }
-    if (b.color_id) {
-      const found = palette.find((p) => p.id === b.color_id);
-      if (found) return found.hex;
-      return `var(--theme-color-${b.color_id})`;
-    }
-    return undefined;
-  }
-
   return (
-    <div className={`flex flex-col gap-2 ${className}`}>
+    <div className={`flex flex-col gap-2.5 ${className}`}>
       {groups.map(({ position, list }) => (
-        <div key={position} className={`flex flex-wrap items-center gap-2 ${ROW_ALIGN[position]}`}>
-          {list.map((b) => {
-            const animClass =
-              b.animation_style && b.animation_style !== "none"
-                ? `theme-anim-${b.animation_style}`
-                : "";
-            const customHex = resolveButtonBg(b);
-
-            return (
-              <motion.div
-                key={b.id}
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-                className={b.width === "full" ? "w-full" : "w-auto"}
-              >
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={b.variant}
-                  customHex={customHex}
-                  className={`${b.width === "full" ? "w-full" : "w-auto"} ${animClass}`}
-                  disabled={quoteOnly && isCartAction(b)}
-                  title={
-                    quoteOnly && isCartAction(b) ? "Producto sujeto a cotización" : undefined
-                  }
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (quoteOnly && isCartAction(b)) return;
-                    handleButtonAction(b);
-                  }}
-                >
-                  {b.media_url && b.animation_type !== "none" && (
-                    <span className="shrink-0 mr-1.5 flex items-center justify-center">
-                      {b.animation_type === "lottie" ? (
-                        <LottiePlayer url={b.media_url} className="h-5 w-5" />
-                      ) : b.animation_type === "video" ? (
-                        <video
-                          src={b.media_url}
-                          autoPlay
-                          loop
-                          muted
-                          playsInline
-                          className="h-5 w-5 object-cover rounded-full"
-                        />
-                      ) : (
-                        <img
-                          src={b.media_url}
-                          alt=""
-                          className="h-5 w-5 object-cover rounded-full"
-                        />
-                      )}
-                    </span>
-                  )}
-                  {b.text}
-                </Button>
-              </motion.div>
-            );
-          })}
+        <div
+          key={position}
+          className={`flex flex-wrap items-center gap-2.5 ${ROW_ALIGN[position]}`}
+        >
+          {list.map((b) => (
+            <UnifiedButton
+              key={b.id}
+              button={b}
+              product={product}
+              extraWhatsappNote={extraWhatsappNote}
+              quoteOnly={quoteOnly}
+              variantName={variantName}
+              variantId={variantId}
+            />
+          ))}
         </div>
       ))}
     </div>

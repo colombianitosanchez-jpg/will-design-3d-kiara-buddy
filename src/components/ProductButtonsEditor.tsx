@@ -1,14 +1,12 @@
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { GripVertical, Trash2, Upload, Sparkles, Loader2 } from "lucide-react";
+import { GripVertical, Trash2, Upload, Sparkles, Sun, Moon, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { getActiveTheme } from "@/lib/theme";
-import { Lottie } from "lottie-react";
-import { motion } from "framer-motion";
-import { useEffect } from "react";
+import { UnifiedButton } from "@/components/UnifiedButton";
 import {
   ACTION_LABELS,
   ANIMATION_TYPES,
@@ -44,38 +42,6 @@ import { CSS } from "@dnd-kit/utilities";
 
 const inputCls =
   "mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring";
-
-function LottiePreview({ url }: { url: string }) {
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!url) return;
-    let isMounted = true;
-    setLoading(true);
-    fetch(url)
-      .then((res) => res.json())
-      .then((json) => {
-        if (isMounted) {
-          setData(json);
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setData(null);
-          setLoading(false);
-        }
-      });
-    return () => {
-      isMounted = false;
-    };
-  }, [url]);
-
-  if (loading) return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />;
-  if (!data) return <span className="text-[10px] text-red-500">JSON no válido</span>;
-  return <Lottie animationData={data} loop={true} className="h-6 w-6" {...({} as any)} />;
-}
 
 export function ProductButtonsEditor({
   buttons,
@@ -167,6 +133,9 @@ function SortableButtonCard({
   onRemove: () => void;
 }) {
   const [uploading, setUploading] = useState(false);
+  const [overlayOpacity, setOverlayOpacity] = useState<number>(50);
+  const [simulatedEnvironment, setSimulatedEnvironment] = useState<"sun" | "night">("sun");
+
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: b.id,
   });
@@ -193,7 +162,7 @@ function SortableButtonCard({
       else if (file.type.includes("gif")) detectedType = "gif";
 
       onUpdate({ media_url: signed.data.signedUrl, animation_type: detectedType });
-      toast.success("Archivo subido para el botón");
+      toast.success("Archivo subido para el botón vivo");
     } catch (e) {
       toast.error("Error al subir", { description: (e as Error).message });
     } finally {
@@ -201,14 +170,7 @@ function SortableButtonCard({
     }
   }
 
-  // Resolver color de fondo para la vista previa
-  let resolvedBg = "";
-  if (b.color_id === "custom") {
-    resolvedBg = b.custom_hex || "";
-  } else if (b.color_id) {
-    const found = palette.find((p) => p.id === b.color_id);
-    if (found) resolvedBg = found.hex;
-  }
+  const isLiveButton = Boolean(b.media_url && b.animation_type && b.animation_type !== "none");
 
   return (
     <div
@@ -216,7 +178,7 @@ function SortableButtonCard({
       style={style}
       className="rounded-2xl border border-border bg-card p-4 shadow-xs space-y-3"
     >
-      <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2">
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -232,30 +194,42 @@ function SortableButtonCard({
           </span>
         </div>
 
-        {/* Live Framer Motion Preview Button */}
+        {/* Live Preview con Simulación de Sol / Noche */}
         <div className="flex items-center gap-3">
-          <motion.button
-            type="button"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            style={resolvedBg ? { backgroundColor: resolvedBg, color: "#ffffff" } : undefined}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-xs ${
-              !resolvedBg ? "bg-primary text-primary-foreground" : ""
-            } ${b.animation_style && b.animation_style !== "none" ? `theme-anim-${b.animation_style}` : ""}`}
+          <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/50 p-1">
+            <button
+              type="button"
+              onClick={() => setSimulatedEnvironment("sun")}
+              className={`p-1 rounded-md transition ${
+                simulatedEnvironment === "sun" ? "bg-amber-100 text-amber-800 shadow-xs" : "text-muted-foreground"
+              }`}
+              title="Simular Sol Intenso (Entorno Claro)"
+            >
+              <Sun className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setSimulatedEnvironment("night")}
+              className={`p-1 rounded-md transition ${
+                simulatedEnvironment === "night" ? "bg-slate-800 text-slate-100 shadow-xs" : "text-muted-foreground"
+              }`}
+              title="Simular Noche (Entorno Oscuro)"
+            >
+              <Moon className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          <div
+            className={`p-2 rounded-xl transition-colors ${
+              simulatedEnvironment === "sun" ? "bg-amber-50 border border-amber-200" : "bg-slate-900 border border-slate-800"
+            }`}
           >
-            {b.media_url && b.animation_type !== "none" && (
-              <span className="shrink-0 flex items-center justify-center">
-                {b.animation_type === "lottie" ? (
-                  <LottiePreview url={b.media_url} />
-                ) : b.animation_type === "video" ? (
-                  <video src={b.media_url} autoPlay loop muted playsInline className="h-4 w-4 rounded-full object-cover" />
-                ) : (
-                  <img src={b.media_url} alt="" className="h-4 w-4 rounded-full object-cover" />
-                )}
-              </span>
-            )}
-            {b.text || "Vista previa"}
-          </motion.button>
+            <UnifiedButton
+              button={b}
+              styleOverride={{ overlayOpacity }}
+              onClick={() => {}}
+            />
+          </div>
 
           <button
             type="button"
@@ -396,18 +370,18 @@ function SortableButtonCard({
         )}
       </div>
 
-      {/* Animation & Media Picker */}
+      {/* Control de Accesibilidad y Botón Vivo */}
       <div className="rounded-xl border border-border/80 bg-muted/20 p-3 space-y-3">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Animación y Media Decorativa del Botón
+            Botón Vivo, Fondo Completo y Accesibilidad WCAG
           </span>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="text-xs font-semibold text-muted-foreground">
-            Tipo de Media / Animación
+            Tipo de Media / Fondo Vivo
             <select
               value={b.animation_type || "none"}
               onChange={(e) => onUpdate({ animation_type: e.target.value as ButtonAnimationType })}
@@ -438,9 +412,9 @@ function SortableButtonCard({
         </div>
 
         {b.animation_type && b.animation_type !== "none" && (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <label className="text-xs font-semibold text-muted-foreground block">
-              URL del Archivo ({b.animation_type.toUpperCase()} / MP4 / WebM / Lottie JSON)
+              URL del Archivo Fondo Vivo ({b.animation_type.toUpperCase()} / MP4 / WebM / Lottie JSON)
               <div className="flex gap-2 mt-1">
                 <input
                   value={b.media_url || ""}
@@ -460,6 +434,34 @@ function SortableButtonCard({
                 </label>
               </div>
             </label>
+
+            {/* Slider de Oscurecimiento Overlay (WCAG AA) */}
+            {isLiveButton && (
+              <div className="rounded-xl border border-border bg-card p-3 space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span>Overlay Oscuro Automático (WCAG AA): {overlayOpacity}%</span>
+                  <span className={overlayOpacity < 45 ? "text-amber-600" : "text-emerald-600"}>
+                    {overlayOpacity < 45 ? "Advertencia: Legibilidad baja" : "Accesible ✓"}
+                  </span>
+                </div>
+
+                <input
+                  type="range"
+                  min={30}
+                  max={75}
+                  value={overlayOpacity}
+                  onChange={(e) => setOverlayOpacity(Number(e.target.value))}
+                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                />
+
+                {overlayOpacity < 45 && (
+                  <p className="flex items-center gap-1.5 text-[11px] text-amber-700 bg-amber-50 dark:bg-amber-950/40 p-2 rounded-lg border border-amber-200">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" />
+                    Menos de 45% de overlay reduce la legibilidad del texto bajo luz solar directa. Se aplicará un piso automático de 45% en producción para mantener conversión.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
