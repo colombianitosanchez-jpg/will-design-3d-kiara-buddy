@@ -15,6 +15,7 @@ import { categoriesQuery, productsQuery, siteContentQuery, getContactInfo, waLin
 import { useSiteContent } from "@/hooks/use-site-content";
 import { heroCarouselQuery } from "@/lib/hero-carousel";
 import { HeroMedia } from "@/components/HeroMedia";
+import { ProductMedia } from "@/components/ProductMedia";
 import { parseHomeOrder, type HomeSectionKey } from "@/lib/home-sections";
 import { siteServicesQuery } from "./servicios";
 import { menuItemsQuery } from "@/lib/menu";
@@ -444,8 +445,35 @@ function AboutPreview() {
 
   return (
     <section ref={ref} id="nosotros" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
-      <div className="grid items-center gap-10 md:grid-cols-2">
-        <div>
+      <div className="mx-auto max-w-4xl space-y-10">
+        {/* Imagen en contenedor aspect-[4/3] con rounded-[32px] y stats flotantes */}
+        <div className="relative overflow-hidden rounded-[32px] border border-border bg-muted shadow-2xl aspect-[4/3]">
+          {image ? (
+            <ProductMedia src={image} alt={title} className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center p-8 text-center text-sm font-medium text-muted-foreground">
+              Imagen Nosotros no configurada
+            </div>
+          )}
+
+          {/* Stats flotantes sobre la imagen con backdrop-blur */}
+          {stats.length > 0 && (
+            <div className="absolute inset-x-4 bottom-4 z-10 grid grid-cols-2 gap-3 sm:inset-x-6 sm:bottom-6 sm:grid-cols-3">
+              {stats.map((s) => (
+                <div
+                  key={s.id}
+                  className="rounded-2xl border border-white/20 bg-background/80 p-3.5 text-center shadow-lg backdrop-blur-md dark:border-white/10 dark:bg-card/80"
+                >
+                  <dt className="text-lg font-black text-primary sm:text-xl">{s.k}</dt>
+                  <dd className="mt-0.5 text-xs font-medium text-foreground/80 sm:text-sm">{s.v}</dd>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Texto debajo */}
+        <div className="text-center md:text-left">
           <span className="chip-teal">{chip}</span>
           <h2 className="mt-3 text-3xl font-black sm:text-4xl md:text-5xl">
             {title}
@@ -456,12 +484,12 @@ function AboutPreview() {
             </p>
           )}
           {shortDesc && (
-            <p className="mt-4 text-muted-foreground leading-relaxed">
+            <p className="mt-4 max-w-3xl text-muted-foreground leading-relaxed">
               {shortDesc}
             </p>
           )}
 
-          <div className="mt-6 flex flex-wrap items-center gap-3">
+          <div className="mt-6 flex flex-wrap items-center justify-center md:justify-start gap-3">
             {isExternalCta ? (
               <a href={ctaUrl} target="_blank" rel="noopener noreferrer" className="btn-primary text-sm">
                 {ctaText}
@@ -474,29 +502,6 @@ function AboutPreview() {
               </Link>
             )}
           </div>
-
-          {stats.length > 0 && (
-            <dl className="mt-8 grid grid-cols-2 gap-4">
-              {stats.map((s) => (
-                <div key={s.id} className="rounded-2xl border border-border bg-card p-3.5 text-center shadow-xs">
-                  <dt className="text-xl font-black text-primary">{s.k}</dt>
-                  <dd className="text-xs text-muted-foreground mt-0.5">{s.v}</dd>
-                </div>
-              ))}
-            </dl>
-          )}
-        </div>
-
-        <div className="relative">
-          {image ? (
-            <div className="overflow-hidden rounded-3xl border border-border shadow-xl aspect-4/3">
-              <ProductMedia src={image} alt={title} className="h-full w-full object-cover" />
-            </div>
-          ) : (
-            <div className="flex aspect-4/3 items-center justify-center rounded-3xl border border-dashed border-border bg-muted p-8 text-center text-sm text-muted-foreground">
-              Will Design 3D — Impresión 3D de gran formato
-            </div>
-          )}
         </div>
       </div>
     </section>
