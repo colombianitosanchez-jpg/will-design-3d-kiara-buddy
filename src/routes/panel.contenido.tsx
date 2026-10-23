@@ -177,6 +177,7 @@ export function MediaDropZone({
   }
 
   const isVideo = value && /\.(mp4|webm|quicktime)($|\?)/i.test(value);
+  const isLottie = value && /\.json($|\?)/i.test(value);
 
   return (
     <div className="space-y-2">
@@ -197,9 +198,11 @@ export function MediaDropZone({
         }`}
       >
         {value ? (
-          <div className="relative w-full aspect-video max-h-36 overflow-hidden rounded-xl border border-border bg-black/50">
+          <div className="relative w-full aspect-video max-h-36 overflow-hidden rounded-xl border border-border bg-black/50 flex items-center justify-center">
             {isVideo ? (
               <video src={value} autoPlay loop muted playsInline className="h-full w-full object-cover" />
+            ) : isLottie ? (
+              <LottiePreview url={value} />
             ) : (
               <img src={value} alt="Preview" className="h-full w-full object-cover" />
             )}
@@ -211,7 +214,7 @@ export function MediaDropZone({
                 e.stopPropagation();
                 onChange("");
               }}
-              className="absolute top-2 right-2 h-7 w-7 rounded-full shadow-md"
+              className="absolute top-2 right-2 h-7 w-7 rounded-full shadow-md z-10"
               title="Eliminar multimedia"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -224,11 +227,11 @@ export function MediaDropZone({
               {uploading ? "Subiendo archivo..." : "Arrastra un archivo aquí o haz clic para buscar"}
             </span>
             <span className="text-[10px] text-muted-foreground mt-1">
-              Soporta: PNG, JPG, WEBP, GIF, MP4, WebM (Máx 50MB)
+              Soporta: PNG, JPG, WEBP, GIF, MP4, WebM, Lottie JSON (Máx 50MB)
             </span>
             <input
               type="file"
-              accept="image/*,video/*,.gif,.webp"
+              accept="image/*,video/*,.gif,.webp,.json"
               className="hidden"
               disabled={uploading}
               onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
@@ -245,7 +248,7 @@ type Row = { key: string; value: string };
 type FieldDef = {
   key: string;
   label: string;
-  type: "text" | "textarea" | "image" | "images" | "switch" | "select" | "order" | "hero_stats";
+  type: "text" | "textarea" | "image" | "images" | "switch" | "select" | "order" | "hero_stats" | "media" | "json_values" | "json_workshop";
   help?: string;
   section: string;
   group: string;
@@ -312,10 +315,42 @@ const FIELDS: FieldDef[] = [
   { key: "about_subtitle", label: "Subtítulo / Bajada 'Nosotros'", type: "textarea", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_short", label: "Descripción Corta 'Nosotros'", type: "textarea", help: "Resumen que se muestra en la página principal.", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_long", label: "Descripción Detallada 'Nosotros'", type: "textarea", help: "Texto extendido que se muestra en la página /nosotros.", section: "Inicio", group: "Sección Nosotros" },
-  { key: "about_image_url", label: "Imagen Principal 'Nosotros'", type: "image", help: "Imagen destacada del taller o equipo.", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_image_url", label: "Imagen Principal 'Nosotros'", type: "media", help: "Imagen/Video/GIF del taller o equipo.", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_stats", label: "Métricas y Logros Destacados 'Nosotros'", type: "hero_stats", help: "Añade logros y estadísticas para mostrar en la sección Nosotros.", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_cta_text", label: "Texto del Botón 'Nosotros'", type: "text", help: "Ej: Conoce más sobre nosotros", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_cta_url", label: "Enlace del Botón 'Nosotros'", type: "text", help: "Ej: /nosotros o https://...", section: "Inicio", group: "Sección Nosotros" },
+
+  // Misión
+  { key: "about_mission_title", label: "Título Misión", type: "text", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_mission_text", label: "Texto Misión", type: "textarea", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_mission_image_url", label: "Multimedia Misión (Imagen/GIF/Video/Lottie)", type: "media", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_mission_cta_text", label: "Misión - Texto del Botón", type: "text", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_mission_cta_url", label: "Misión - Enlace del Botón", type: "text", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_mission_cta_media_url", label: "Misión - Ícono/Media del Botón", type: "media", section: "Inicio", group: "Sección Nosotros" },
+
+  // Visión
+  { key: "about_vision_title", label: "Título Visión", type: "text", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_vision_text", label: "Texto Visión", type: "textarea", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_vision_image_url", label: "Multimedia Visión (Imagen/GIF/Video/Lottie)", type: "media", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_vision_cta_text", label: "Visión - Texto del Botón", type: "text", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_vision_cta_url", label: "Visión - Enlace del Botón", type: "text", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_vision_cta_media_url", label: "Visión - Ícono/Media del Botón", type: "media", section: "Inicio", group: "Sección Nosotros" },
+
+  // Valores
+  { key: "about_values_title", label: "Título Valores", type: "text", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_values_items", label: "Lista de Valores Destacados", type: "json_values", help: "Edita el título, descripción e icono/media para cada valor.", section: "Inicio", group: "Sección Nosotros" },
+
+  // Kiara
+  { key: "about_kiara_title", label: "Kiara - Etiqueta / Chip", type: "text", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_kiara_subtitle", label: "Kiara - Título Principal", type: "text", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_kiara_text", label: "Kiara - Descripción / Historia", type: "textarea", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_kiara_image_url", label: "Kiara - Multimedia (Imagen/GIF/Video)", type: "media", help: "Reemplaza la imagen por defecto de Kiara.", section: "Inicio", group: "Sección Nosotros" },
+
+  // Taller
+  { key: "about_workshop_title", label: "Taller - Título", type: "text", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_workshop_items", label: "Taller - Equipos y Puntos Clave", type: "json_workshop", help: "Edita los puntos clave del taller.", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_workshop_image_url", label: "Taller - Multimedia Principal", type: "media", help: "Reemplaza el degradado por imagen/video/gif del taller.", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_workshop_address", label: "Taller - Dirección / Ubicación", type: "text", section: "Inicio", group: "Sección Nosotros" },
 ];
 
 function LottiePreview({ url }: { url: string }) {
@@ -921,6 +956,259 @@ function PortfolioGalleryEditor({
   );
 }
 
+export type ValueItem = {
+  id: string;
+  title: string;
+  text: string;
+  icon_url?: string;
+};
+
+export function parseValuesItems(raw: string | undefined): ValueItem[] {
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((item: any, idx: number) => ({
+          id: item.id || `val_${idx}_${Date.now()}`,
+          title: item.title || "",
+          text: item.text || "",
+          icon_url: item.icon_url || item.media_url || "",
+        }));
+      }
+    } catch {
+      // fallback
+    }
+  }
+  return [
+    {
+      id: "val_1",
+      title: "Cercanía",
+      text: "Atención personalizada y acompañamiento en cada proyecto.",
+      icon_url: "",
+    },
+    {
+      id: "val_2",
+      title: "Honestidad técnica",
+      text: "Asesoría transparente sobre materiales, resistencia y factibilidad.",
+      icon_url: "",
+    },
+    {
+      id: "val_3",
+      title: "Cariño de taller",
+      text: "Ese toque único que solo un taller familiar puede brindar.",
+      icon_url: "",
+    },
+  ];
+}
+
+function ValuesEditor({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (newValue: string) => void;
+}) {
+  const items = parseValuesItems(value);
+
+  function handleUpdate(id: string, patch: Partial<ValueItem>) {
+    const next = items.map((it) => (it.id === id ? { ...it, ...patch } : it));
+    onChange(JSON.stringify(next));
+  }
+
+  function handleRemove(id: string) {
+    const next = items.filter((it) => it.id !== id);
+    onChange(JSON.stringify(next));
+  }
+
+  function handleAdd() {
+    const newItem: ValueItem = {
+      id: `val_${Date.now()}`,
+      title: "Nuevo Valor",
+      text: "Descripción del valor.",
+      icon_url: "",
+    };
+    onChange(JSON.stringify([...items, newItem]));
+  }
+
+  return (
+    <div className="space-y-4">
+      {items.map((item, idx) => (
+        <div key={item.id} className="rounded-2xl border border-border bg-card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black uppercase text-muted-foreground">
+              Valor {idx + 1}
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => handleRemove(item.id)}
+              className="text-red-500 hover:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <Label className="text-xs font-semibold">Título del Valor</Label>
+              <Input
+                value={item.title}
+                onChange={(e) => handleUpdate(item.id, { title: e.target.value })}
+                placeholder="Ej: Honestidad técnica"
+                className="mt-1 text-xs"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <Label className="text-xs font-semibold">Descripción del Valor</Label>
+              <Textarea
+                value={item.text}
+                onChange={(e) => handleUpdate(item.id, { text: e.target.value })}
+                placeholder="Ej: Asesoría transparente..."
+                rows={2}
+                className="mt-1 text-xs"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <Label className="text-xs font-semibold mb-1 block">
+                Ícono / Imagen / GIF para este Valor
+              </Label>
+              <MediaDropZone
+                value={item.icon_url || ""}
+                onChange={(url) => handleUpdate(item.id, { icon_url: url })}
+              />
+            </div>
+          </div>
+        </div>
+      ))}
+      <Button type="button" variant="outline" size="sm" onClick={handleAdd} className="text-xs font-bold">
+        <Plus className="mr-1.5 h-3.5 w-3.5" /> + Añadir Valor
+      </Button>
+    </div>
+  );
+}
+
+export type WorkshopItem = {
+  id: string;
+  icon?: string;
+  title: string;
+  text: string;
+};
+
+export function parseWorkshopItems(raw: string | undefined): WorkshopItem[] {
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((item: any, idx: number) => ({
+          id: item.id || `ws_${idx}_${Date.now()}`,
+          icon: item.icon || "Wrench",
+          title: item.title || "",
+          text: item.text || "",
+        }));
+      }
+    } catch {
+      // fallback
+    }
+  }
+  return [
+    {
+      id: "ws_1",
+      icon: "Wrench",
+      title: "Gran Formato FDM",
+      text: "Impresoras FDM de gran formato hasta 500×500×500 mm.",
+    },
+    {
+      id: "ws_2",
+      icon: "Wrench",
+      title: "Resina 12K",
+      text: "Impresoras de resina 12K para alto detalle.",
+    },
+    {
+      id: "ws_3",
+      icon: "Wrench",
+      title: "Acabados Profesionales",
+      text: "Área de acabados con cabina de pintura profesional.",
+    },
+  ];
+}
+
+function WorkshopEditor({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (newValue: string) => void;
+}) {
+  const items = parseWorkshopItems(value);
+
+  function handleUpdate(id: string, patch: Partial<WorkshopItem>) {
+    const next = items.map((it) => (it.id === id ? { ...it, ...patch } : it));
+    onChange(JSON.stringify(next));
+  }
+
+  function handleRemove(id: string) {
+    const next = items.filter((it) => it.id !== id);
+    onChange(JSON.stringify(next));
+  }
+
+  function handleAdd() {
+    const newItem: WorkshopItem = {
+      id: `ws_${Date.now()}`,
+      icon: "Wrench",
+      title: "Nuevo Equipamiento",
+      text: "Descripción del equipamiento.",
+    };
+    onChange(JSON.stringify([...items, newItem]));
+  }
+
+  return (
+    <div className="space-y-4">
+      {items.map((item, idx) => (
+        <div key={item.id} className="rounded-2xl border border-border bg-card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black uppercase text-muted-foreground">
+              Ítem Taller {idx + 1}
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => handleRemove(item.id)}
+              className="text-red-500 hover:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <Label className="text-xs font-semibold">Título</Label>
+              <Input
+                value={item.title}
+                onChange={(e) => handleUpdate(item.id, { title: e.target.value })}
+                placeholder="Ej: Impresoras FDM de gran formato"
+                className="mt-1 text-xs"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <Label className="text-xs font-semibold">Descripción</Label>
+              <Textarea
+                value={item.text}
+                onChange={(e) => handleUpdate(item.id, { text: e.target.value })}
+                placeholder="Ej: Impresoras FDM hasta 500×500×500 mm."
+                rows={2}
+                className="mt-1 text-xs"
+              />
+            </div>
+          </div>
+        </div>
+      ))}
+      <Button type="button" variant="outline" size="sm" onClick={handleAdd} className="text-xs font-bold">
+        <Plus className="mr-1.5 h-3.5 w-3.5" /> + Añadir Ítem Taller
+      </Button>
+    </div>
+  );
+}
+
 function HeroStatsEditor({
   value,
   onChange,
@@ -1160,6 +1448,42 @@ function ContenidoAdmin() {
           <Label className="text-sm font-bold">{f.label}</Label>
           {f.help && <p className="text-xs text-muted-foreground">{f.help}</p>}
           <HeroStatsEditor
+            value={values[f.key] ?? ""}
+            onChange={(next) => setValues((v) => ({ ...v, [f.key]: next }))}
+          />
+        </div>
+      );
+    }
+    if (f.type === "media") {
+      return (
+        <div key={f.key} className="space-y-2">
+          <Label className="text-sm font-bold">{f.label}</Label>
+          {f.help && <p className="text-xs text-muted-foreground">{f.help}</p>}
+          <MediaDropZone
+            value={values[f.key] ?? ""}
+            onChange={(url) => setValues((v) => ({ ...v, [f.key]: url }))}
+          />
+        </div>
+      );
+    }
+    if (f.type === "json_values") {
+      return (
+        <div key={f.key} className="space-y-2">
+          <Label className="text-sm font-bold">{f.label}</Label>
+          {f.help && <p className="text-xs text-muted-foreground">{f.help}</p>}
+          <ValuesEditor
+            value={values[f.key] ?? ""}
+            onChange={(next) => setValues((v) => ({ ...v, [f.key]: next }))}
+          />
+        </div>
+      );
+    }
+    if (f.type === "json_workshop") {
+      return (
+        <div key={f.key} className="space-y-2">
+          <Label className="text-sm font-bold">{f.label}</Label>
+          {f.help && <p className="text-xs text-muted-foreground">{f.help}</p>}
+          <WorkshopEditor
             value={values[f.key] ?? ""}
             onChange={(next) => setValues((v) => ({ ...v, [f.key]: next }))}
           />
