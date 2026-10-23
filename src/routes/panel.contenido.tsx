@@ -31,6 +31,7 @@ import { parseHomeOrder } from "@/lib/home-sections";
 import { ProductMedia, isVideoUrl } from "@/components/ProductMedia";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { getActiveTheme } from "@/lib/theme";
+import { getWhatsAppPayloadForButton } from "@/lib/whatsapp-buttons";
 import { Lottie } from "lottie-react";
 import { motion } from "framer-motion";
 import {
@@ -62,6 +63,8 @@ export type HeroStatItem = {
   v: string;
   action_type?: "none" | "link" | "whatsapp";
   action_value?: string;
+  whatsapp_message?: string;
+  whatsapp_image_logic?: "auto" | "logo" | "product_image";
   color_id?: string;
   custom_hex?: string;
   media_url?: string;
@@ -269,6 +272,80 @@ const FIELDS: FieldDef[] = [
   },
   { key: "hero_badge_title", label: "Etiqueta Flotante (Pieza destacada)", type: "text", help: "Ej: Escultura 1.8 m — PLA reforzado", section: "Inicio", group: "Hero Principal" },
 
+  // Botón Principal Hero
+  { key: "hero_cta_text", label: "Texto Botón Principal Hero", type: "text", help: "Ej: Cotizar Proyecto", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_cta_url", label: "Enlace/Ruta Botón Principal Hero", type: "text", help: "Ej: /cotizador o https://...", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_cta_media_url", label: "Multimedia/Imagen Botón Principal Hero", type: "image", section: "Inicio", group: "Hero Principal" },
+  {
+    key: "hero_cta_action_type",
+    label: "Acción Botón Principal Hero",
+    type: "select",
+    section: "Inicio",
+    group: "Hero Principal",
+    options: [
+      { value: "link", label: "Abrir Enlace / Ruta Interna" },
+      { value: "whatsapp", label: "Abrir Chat de WhatsApp" },
+      { value: "cotizador", label: "Abrir Cotizador Interactivo" },
+    ],
+  },
+  {
+    key: "hero_cta_whatsapp_message",
+    label: "Mensaje WhatsApp Botón Principal",
+    type: "textarea",
+    help: "Si dejas vacío, se usa mensaje por defecto de /panel/contenido -> Mensajes WhatsApp. Puedes usar {media} para incluir el enlace al logo/imagen.",
+    section: "Inicio",
+    group: "Hero Principal",
+  },
+  {
+    key: "hero_cta_whatsapp_image_logic",
+    label: "Lógica Imagen/Logo WhatsApp Botón Principal",
+    type: "select",
+    section: "Inicio",
+    group: "Hero Principal",
+    options: [
+      { value: "auto", label: "Automático (Reglas CEO: Logo si es video, Imagen si existe)" },
+      { value: "logo", label: "Forzar Enviar Logo de la Empresa" },
+      { value: "product_image", label: "Enviar Imagen de la Sección / Producto" },
+    ],
+  },
+
+  // Botón Secundario Hero
+  { key: "hero_secondary_cta_text", label: "Texto Botón Secundario Hero", type: "text", help: "Ej: Ver tienda", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_secondary_cta_url", label: "Enlace/Ruta Botón Secundario Hero", type: "text", help: "Ej: /tienda o https://...", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_secondary_cta_media_url", label: "Multimedia Botón Secundario Hero", type: "image", section: "Inicio", group: "Hero Principal" },
+  {
+    key: "hero_secondary_cta_action_type",
+    label: "Acción Botón Secundario Hero",
+    type: "select",
+    section: "Inicio",
+    group: "Hero Principal",
+    options: [
+      { value: "link", label: "Abrir Enlace / Ruta Interna" },
+      { value: "whatsapp", label: "Abrir Chat de WhatsApp" },
+      { value: "cotizador", label: "Abrir Cotizador Interactivo" },
+    ],
+  },
+  {
+    key: "hero_secondary_cta_whatsapp_message",
+    label: "Mensaje WhatsApp Botón Secundario",
+    type: "textarea",
+    help: "Si dejas vacío, se usa mensaje por defecto de /panel/contenido -> Mensajes WhatsApp. Puedes usar {media} para incluir el enlace al logo/imagen.",
+    section: "Inicio",
+    group: "Hero Principal",
+  },
+  {
+    key: "hero_secondary_cta_whatsapp_image_logic",
+    label: "Lógica Imagen/Logo WhatsApp Botón Secundario",
+    type: "select",
+    section: "Inicio",
+    group: "Hero Principal",
+    options: [
+      { value: "auto", label: "Automático (Reglas CEO: Logo si es video, Imagen si existe)" },
+      { value: "logo", label: "Forzar Enviar Logo de la Empresa" },
+      { value: "product_image", label: "Enviar Imagen de la Sección / Producto" },
+    ],
+  },
+
   // Estadísticas del Hero (Convertidas en Botones de Acción con Drag & Drop)
   {
     key: "hero_stats",
@@ -316,6 +393,39 @@ const FIELDS: FieldDef[] = [
   { key: "about_stats", label: "Métricas y Logros Destacados 'Nosotros'", type: "hero_stats", help: "Añade logros y estadísticas para mostrar en la sección Nosotros.", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_cta_text", label: "Texto del Botón 'Nosotros'", type: "text", help: "Ej: Conoce más sobre nosotros", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_cta_url", label: "Enlace del Botón 'Nosotros'", type: "text", help: "Ej: /nosotros o https://...", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_cta_media_url", label: "Multimedia Botón 'Nosotros'", type: "image", section: "Inicio", group: "Sección Nosotros" },
+  {
+    key: "about_cta_action_type",
+    label: "Acción Botón 'Nosotros'",
+    type: "select",
+    section: "Inicio",
+    group: "Sección Nosotros",
+    options: [
+      { value: "link", label: "Abrir Enlace / Ruta Interna" },
+      { value: "whatsapp", label: "Abrir Chat de WhatsApp" },
+      { value: "cotizador", label: "Abrir Cotizador Interactivo" },
+    ],
+  },
+  {
+    key: "about_cta_whatsapp_message",
+    label: "Mensaje WhatsApp Botón 'Nosotros'",
+    type: "textarea",
+    help: "Si dejas vacío, se usa mensaje por defecto de /panel/contenido -> Mensajes WhatsApp. Puedes usar {media} para incluir el enlace al logo/imagen.",
+    section: "Inicio",
+    group: "Sección Nosotros",
+  },
+  {
+    key: "about_cta_whatsapp_image_logic",
+    label: "Lógica Imagen/Logo WhatsApp Botón 'Nosotros'",
+    type: "select",
+    section: "Inicio",
+    group: "Sección Nosotros",
+    options: [
+      { value: "auto", label: "Automático (Reglas CEO: Logo si es video, Imagen si existe)" },
+      { value: "logo", label: "Forzar Enviar Logo de la Empresa" },
+      { value: "product_image", label: "Enviar Imagen de la Sección / Producto" },
+    ],
+  },
 ];
 
 function LottiePreview({ url }: { url: string }) {
@@ -515,6 +625,64 @@ function SortableHeroStatCard({
               className="mt-1 text-xs"
             />
           </div>
+        )}
+
+        {item.action_type === "whatsapp" && (
+          <>
+            <div className="sm:col-span-2 space-y-1">
+              <Label className="text-xs font-semibold">Mensaje WhatsApp Personalizado</Label>
+              <Textarea
+                rows={2}
+                value={item.whatsapp_message || ""}
+                onChange={(e) => onUpdate({ whatsapp_message: e.target.value })}
+                placeholder={`Hola Will Design 3D, me interesa la consulta sobre: ${item.k || ""} (${item.v || ""}).`}
+                className="text-xs resize-y"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                💡 Si dejas vacío, se usa mensaje por defecto de /panel/contenido -&gt; Mensajes WhatsApp.
+              </p>
+            </div>
+
+            <div>
+              <Label className="text-xs font-semibold">Lógica de Logo / Imagen / Video</Label>
+              <Select
+                value={item.whatsapp_image_logic || "auto"}
+                onValueChange={(val: any) => onUpdate({ whatsapp_image_logic: val })}
+              >
+                <SelectTrigger className="mt-1 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Automático (Reglas CEO: Logo si es video, Imagen si existe)</SelectItem>
+                  <SelectItem value="logo">Forzar Enviar Logo de la Empresa</SelectItem>
+                  <SelectItem value="product_image">Enviar Imagen de la Sección / Producto</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Live WhatsApp Message Preview Box */}
+            <div className="sm:col-span-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-1 text-xs">
+              <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                💬 Así se verá en WhatsApp:
+              </span>
+              <p className="text-muted-foreground whitespace-pre-wrap font-mono text-[11px]">
+                {getWhatsAppPayloadForButton(
+                  { whatsapp_message: item.whatsapp_message, whatsapp_image_logic: item.whatsapp_image_logic },
+                  bgUrl,
+                  null,
+                  `Hola Will Design 3D, me interesa la consulta sobre: ${item.k || ""} (${item.v || ""}).`
+                ).formattedText || `Hola Will Design 3D, me interesa la consulta sobre: ${item.k || ""} (${item.v || ""}).`}
+              </p>
+              <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 font-semibold mt-1">
+                📎 Adjunto a enviar: {
+                  getWhatsAppPayloadForButton(
+                    { whatsapp_message: item.whatsapp_message, whatsapp_image_logic: item.whatsapp_image_logic },
+                    bgUrl
+                  ).mediaToSend
+                }
+              </p>
+            </div>
+          </>
         )}
 
         <div>
@@ -1221,18 +1389,50 @@ function ContenidoAdmin() {
         {f.help && <p className="text-xs text-muted-foreground">{f.help}</p>}
 
         {(f.type === "text" || f.type === "textarea") && (
-          <Textarea
-            id={f.key}
-            rows={f.type === "text" ? 1 : 3}
-            value={values[f.key] ?? ""}
-            onChange={(e) => {
-              const raw = e.target.value;
-              const next =
-                f.key === "elfsight_instagram_id" ? sanitizeWidgetId(raw) : raw;
-              setValues((v) => ({ ...v, [f.key]: next }));
-            }}
-            className="resize-y"
-          />
+          <>
+            <Textarea
+              id={f.key}
+              rows={f.type === "text" ? 1 : 3}
+              value={values[f.key] ?? ""}
+              onChange={(e) => {
+                const raw = e.target.value;
+                const next =
+                  f.key === "elfsight_instagram_id" ? sanitizeWidgetId(raw) : raw;
+                setValues((v) => ({ ...v, [f.key]: next }));
+              }}
+              className="resize-y"
+            />
+            {f.key.endsWith("_whatsapp_message") && (
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-1 text-xs">
+                <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                  💬 Así se verá en WhatsApp:
+                </span>
+                <p className="text-muted-foreground whitespace-pre-wrap font-mono text-[11px]">
+                  {getWhatsAppPayloadForButton(
+                    {
+                      whatsapp_message: values[f.key],
+                      whatsapp_image_logic: values[f.key.replace("_whatsapp_message", "_whatsapp_image_logic")],
+                    },
+                    values[f.key.startsWith("hero_secondary") ? "hero_secondary_cta_media_url" : f.key.startsWith("hero_cta") ? "hero_cta_media_url" : "about_cta_media_url"] || values["hero_image_url"],
+                    values["site_logo_url"],
+                    "Hola Will, me interesa cotizar..."
+                  ).formattedText || "Hola Will, me interesa cotizar..."}
+                </p>
+                <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 font-semibold mt-1">
+                  📎 Adjunto a enviar: {
+                    getWhatsAppPayloadForButton(
+                      {
+                        whatsapp_message: values[f.key],
+                        whatsapp_image_logic: values[f.key.replace("_whatsapp_message", "_whatsapp_image_logic")],
+                      },
+                      values[f.key.startsWith("hero_secondary") ? "hero_secondary_cta_media_url" : f.key.startsWith("hero_cta") ? "hero_cta_media_url" : "about_cta_media_url"] || values["hero_image_url"],
+                      values["site_logo_url"]
+                    ).mediaToSend
+                  }
+                </p>
+              </div>
+            )}
+          </>
         )}
 
         {f.type === "select" && f.options && (

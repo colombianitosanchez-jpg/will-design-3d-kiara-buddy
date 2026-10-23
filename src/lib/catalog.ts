@@ -308,11 +308,28 @@ export function buildWhatsAppQuoteMessage(
   return text.trim();
 }
 
-export function waLink(whatsapp: string, text?: string): string | null {
+export function waLink(
+  whatsapp: string | null | undefined,
+  text?: string | null,
+  options?: { defaultMessage?: string; mediaToSend?: string }
+): string | undefined {
+  if (!whatsapp) return undefined;
   const num = whatsapp.replace(/\D/g, "");
-  if (!num) return null;
-  return text
-    ? `https://wa.me/${num}?text=${encodeURIComponent(text)}`
+  if (!num) return undefined;
+
+  let msg = (text || "").trim() || (options?.defaultMessage || "").trim();
+
+  if (options?.mediaToSend) {
+    if (msg.includes("{media}")) {
+      msg = msg.replaceAll("{media}", options.mediaToSend);
+    }
+    if (msg.includes("{media_link}")) {
+      msg = msg.replaceAll("{media_link}", options.mediaToSend);
+    }
+  }
+
+  return msg
+    ? `https://wa.me/${num}?text=${encodeURIComponent(msg)}`
     : `https://wa.me/${num}`;
 }
 

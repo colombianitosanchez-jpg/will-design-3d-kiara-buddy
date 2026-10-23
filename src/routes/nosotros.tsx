@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Target, Eye, Heart, MapPin, Wrench, ArrowRight } from "lucide-react";
+import { Target, Eye, Heart, MapPin, Wrench, ArrowRight, MessageCircle } from "lucide-react";
 import kiaraAsset from "@/assets/kiara.asset.json";
-import { siteContentQuery } from "@/lib/catalog";
+import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
+import { getWhatsAppPayloadForButton } from "@/lib/whatsapp-buttons";
 import { getSeo } from "@/lib/seo";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/nosotros")({
   loader: async ({ context }) => {
@@ -51,6 +53,25 @@ function NosotrosPage() {
   const about = content?.about_long?.trim() || content?.about_short?.trim() || "";
   const imageUrl = content?.about_image_url?.trim() || content?.site_logo_url?.trim();
   const businessName = content?.site_business_name?.trim() || "Will Design 3D";
+  const fallbackWhatsapp = getContactInfo(content).whatsapp;
+
+  function handleCardWaClick(itemTitle: string, itemBody: string) {
+    const payload = getWhatsAppPayloadForButton(
+      {
+        whatsapp_message: content?.about_cta_whatsapp_message,
+        whatsapp_image_logic: content?.about_cta_whatsapp_image_logic,
+      },
+      imageUrl,
+      content?.site_logo_url,
+      `Hola Will Design 3D, me interesa saber más sobre la ${itemTitle} de la empresa: ${itemBody}`
+    );
+    const url = waLink(fallbackWhatsapp, payload.formattedText);
+    if (!url) {
+      toast.error("Configura WhatsApp en /panel/marca");
+      return;
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
 
   return (
     <>
@@ -127,6 +148,15 @@ function NosotrosPage() {
               </div>
               <h2 className="mt-4 text-xl font-black">{c.title}</h2>
               <p className="mt-2 text-sm text-muted-foreground">{c.body}</p>
+              <button
+                type="button"
+                onClick={() => handleCardWaClick(c.title, c.body)}
+                className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold transition hover:opacity-80"
+                style={{ color: col }}
+              >
+                <MessageCircle className="h-3.5 w-3.5" />
+                Consultar por WhatsApp
+              </button>
             </article>
           );
         })}
