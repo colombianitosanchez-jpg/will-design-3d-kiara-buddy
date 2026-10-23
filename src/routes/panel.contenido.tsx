@@ -314,6 +314,8 @@ const FIELDS: FieldDef[] = [
   { key: "about_long", label: "Descripción Detallada 'Nosotros'", type: "textarea", help: "Texto extendido que se muestra en la página /nosotros.", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_image_url", label: "Imagen Principal 'Nosotros'", type: "image", help: "Imagen destacada del taller o equipo.", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_stats", label: "Métricas y Logros Destacados 'Nosotros'", type: "hero_stats", help: "Añade logros y estadísticas para mostrar en la sección Nosotros.", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_cta_text", label: "Texto del Botón 'Nosotros'", type: "text", help: "Ej: Conoce más sobre nosotros", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_cta_url", label: "Enlace del Botón 'Nosotros'", type: "text", help: "Ej: /nosotros o https://...", section: "Inicio", group: "Sección Nosotros" },
 ];
 
 function LottiePreview({ url }: { url: string }) {

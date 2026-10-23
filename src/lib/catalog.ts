@@ -308,9 +308,9 @@ export function buildWhatsAppQuoteMessage(
   return text.trim();
 }
 
-export function waLink(whatsapp: string, text?: string) {
+export function waLink(whatsapp: string, text?: string): string | null {
   const num = whatsapp.replace(/\D/g, "");
-  if (!num) return "";
+  if (!num) return null;
   return text
     ? `https://wa.me/${num}?text=${encodeURIComponent(text)}`
     : `https://wa.me/${num}`;

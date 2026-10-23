@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import {
   Boxes,
   ShoppingBag,
@@ -144,7 +145,12 @@ function Hero() {
     } else if (stat.action_type === "whatsapp") {
       const num = stat.action_value?.trim() || fallbackWhatsapp;
       const text = `Hola Will Design 3D, me interesa la consulta sobre: ${stat.k} (${stat.v}).`;
-      window.open(waLink(num, text), "_blank", "noopener,noreferrer");
+      const url = waLink(num, text);
+      if (!url) {
+        toast.error("Configura WhatsApp en /panel/marca");
+        return;
+      }
+      window.open(url, "_blank", "noopener,noreferrer");
     }
   }
 
@@ -432,6 +438,10 @@ function AboutPreview() {
   const image = getText("about_image_url", "");
   const stats = parseHeroStats({ hero_stats: content?.about_stats || "" }).filter((s) => s.k || s.v);
 
+  const ctaText = getText("about_cta_text", "Conoce más sobre nosotros");
+  const ctaUrl = getText("about_cta_url", "/nosotros");
+  const isExternalCta = /^https?:\/\//i.test(ctaUrl);
+
   return (
     <section ref={ref} id="nosotros" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
       <div className="grid items-center gap-10 md:grid-cols-2">
@@ -452,10 +462,17 @@ function AboutPreview() {
           )}
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
-            <Link to="/nosotros" className="btn-primary text-sm">
-              Conoce más sobre nosotros
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+            {isExternalCta ? (
+              <a href={ctaUrl} target="_blank" rel="noopener noreferrer" className="btn-primary text-sm">
+                {ctaText}
+                <ArrowRight className="h-4 w-4" />
+              </a>
+            ) : (
+              <Link to={ctaUrl.startsWith("/") ? (ctaUrl as any) : (`/${ctaUrl}` as any)} className="btn-primary text-sm">
+                {ctaText}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            )}
           </div>
 
           {stats.length > 0 && (

@@ -138,7 +138,12 @@ export function UnifiedButton({
           extraWhatsappNote ?? "",
         );
 
-        window.open(waLink(number, text), "_blank", "noopener,noreferrer");
+        const url = waLink(number, text);
+        if (!url) {
+          toast.error("Configura WhatsApp en /panel/marca");
+          return;
+        }
+        window.open(url, "_blank", "noopener,noreferrer");
         return;
       }
       case "add_to_cart": {

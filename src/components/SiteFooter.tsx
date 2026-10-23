@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useMatches } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Instagram, MessageCircle, MapPin } from "lucide-react";
+import { toast } from "sonner";
 import { ShareButton } from "@/components/ShareButton";
 import { siteContentQuery, categoriesQuery, getContactInfo, waLink } from "@/lib/catalog";
 import { siteServicesQuery } from "@/routes/servicios";
@@ -115,9 +116,15 @@ export function SiteFooter() {
           <ul className="mt-3 space-y-3 text-sm">
             <li>
               <a
-                href={waLink(contact.whatsapp)}
+                href={waLink(contact.whatsapp) || "#"}
                 target="_blank"
                 rel="noreferrer"
+                onClick={(e) => {
+                  if (!waLink(contact.whatsapp)) {
+                    e.preventDefault();
+                    toast.error("Configura WhatsApp en /panel/marca");
+                  }
+                }}
                 className="inline-flex items-center gap-2 font-semibold hover:underline"
               >
                 <MessageCircle className="h-4 w-4 text-[var(--brand-orange)]" />

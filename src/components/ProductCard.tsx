@@ -2,6 +2,7 @@ import { ProductMedia } from "@/components/ProductMedia";
 import { StockIndicator } from "@/components/StockIndicator";
 import { memo, useCallback, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { ArrowRight, Eye, MessageCircle } from "lucide-react";
 import {
   formatCOP,
@@ -127,7 +128,13 @@ export const ProductCard = memo(function ProductCard({ product, variant }: { pro
             </Link>
             {product.show_whatsapp && (
               <a
-                href={whatsappUrl}
+                href={whatsappUrl || "#"}
+                onClick={(e) => {
+                  if (!whatsappUrl) {
+                    e.preventDefault();
+                    toast.error("Configura WhatsApp en /panel/marca");
+                  }
+                }}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`Consultar ${product.name} por WhatsApp`}
