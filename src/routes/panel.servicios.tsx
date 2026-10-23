@@ -222,10 +222,45 @@ function ServiciosPanel() {
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState<SiteServiceItem | null>(null);
 
+  const [sectionTitle, setSectionTitle] = useState("Nuestros servicios");
+  const [sectionSubtitle, setSectionSubtitle] = useState("");
+  const [savingHeader, setSavingHeader] = useState(false);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+
+  async function loadHeaderSettings() {
+    const { data } = await supabase
+      .from("site_content")
+      .select("key, value")
+      .in("key", ["services_section_title", "services_section_subtitle"]);
+
+    if (data) {
+      const map = Object.fromEntries(data.map((r) => [r.key, r.value]));
+      if (map.services_section_title !== undefined) setSectionTitle(map.services_section_title);
+      if (map.services_section_subtitle !== undefined) setSectionSubtitle(map.services_section_subtitle);
+    }
+  }
+
+  async function handleSaveHeader() {
+    setSavingHeader(true);
+    try {
+      const rows = [
+        { key: "services_section_title", value: sectionTitle, section: "Servicios" },
+        { key: "services_section_subtitle", value: sectionSubtitle, section: "Servicios" },
+      ];
+      const { error } = await supabase.from("site_content").upsert(rows, { onConflict: "key" });
+      if (error) throw error;
+      toast.success("Título y subtítulo de la sección servicios guardados");
+      qc.invalidateQueries({ queryKey: ["site_content"] });
+    } catch (e: any) {
+      toast.error("Error al guardar encabezado: " + (e.message || ""));
+    } finally {
+      setSavingHeader(false);
+    }
+  }
 
   async function loadServices() {
     setLoading(true);
@@ -312,6 +347,7 @@ function ServiciosPanel() {
 
   useEffect(() => {
     loadServices();
+    loadHeaderSettings();
   }, []);
 
   async function handleToggleActive(svc: SiteServiceItem) {
@@ -454,6 +490,57 @@ function ServiciosPanel() {
         >
           <Plus className="h-4 w-4" /> Crear nuevo servicio
         </button>
+      </div>
+
+      {/* Encabezado Principal de la Sección Servicios (Fuente de Verdad Concentrada) */}
+      <div className="rounded-2xl border border-border bg-card p-5 shadow-xs space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-2">
+          <div>
+            <h2 className="text-base font-bold flex items-center gap-2">
+              <Wrench className="h-4 w-4 text-primary" /> Encabezado de la Sección Servicios
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Define el título y subtítulo que se muestran en la sección de servicios del inicio y en /servicios.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleSaveHeader}
+            disabled={savingHeader}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--brand-orange)] px-4 py-2 text-xs font-bold text-white hover:opacity-90 disabled:opacity-50 shadow-xs"
+          >
+            {savingHeader ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            Guardar Encabezado
+          </button>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="text-xs font-semibold block text-muted-foreground">
+              Título Sección Servicios
+            </label>
+            <input
+              type="text"
+              value={sectionTitle}
+              onChange={(e) => setSectionTitle(e.target.value)}
+              placeholder="Ej: Nuestros servicios"
+              className={inputCls}
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold block text-muted-foreground">
+              Subtítulo Sección Servicios
+            </label>
+            <input
+              type="text"
+              value={sectionSubtitle}
+              onChange={(e) => setSectionSubtitle(e.target.value)}
+              placeholder="Ej: Soluciones de impresión 3D, diseño y mantenimiento..."
+              className={inputCls}
+            />
+          </div>
+        </div>
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
