@@ -101,6 +101,7 @@ const SECTION_COMPONENTS: Record<HomeSectionKey, () => React.ReactNode> = {
   products: FeaturedProducts,
   portfolio: InstagramFeed,
   quoter: Quoter,
+  about: AboutPreview,
 };
 
 function Home() {
@@ -420,6 +421,71 @@ function Services() {
   );
 }
 
+function AboutPreview() {
+  const ref = useScrollReveal<HTMLElement>();
+  const { content, getText } = useSiteContent();
+
+  const chip = getText("about_chip", "Nosotros");
+  const title = getText("about_title", "Pasión por la Impresión 3D de Gran Formato");
+  const subtitle = getText("about_subtitle", "Diseño, ingeniería y fabricación aditiva desde Bogotá, Colombia.");
+  const shortDesc = getText("about_short", "");
+  const image = getText("about_image_url", "");
+  const stats = parseHeroStats({ hero_stats: content?.about_stats || "" }).filter((s) => s.k || s.v);
+
+  return (
+    <section ref={ref} id="nosotros" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
+      <div className="grid items-center gap-10 md:grid-cols-2">
+        <div>
+          <span className="chip-teal">{chip}</span>
+          <h2 className="mt-3 text-3xl font-black sm:text-4xl md:text-5xl">
+            {title}
+          </h2>
+          {subtitle && (
+            <p className="mt-3 text-lg font-medium text-foreground">
+              {subtitle}
+            </p>
+          )}
+          {shortDesc && (
+            <p className="mt-4 text-muted-foreground leading-relaxed">
+              {shortDesc}
+            </p>
+          )}
+
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <Link to="/nosotros" className="btn-primary text-sm">
+              Conoce más sobre nosotros
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+
+          {stats.length > 0 && (
+            <dl className="mt-8 grid grid-cols-2 gap-4">
+              {stats.map((s) => (
+                <div key={s.id} className="rounded-2xl border border-border bg-card p-3.5 text-center shadow-xs">
+                  <dt className="text-xl font-black text-primary">{s.k}</dt>
+                  <dd className="text-xs text-muted-foreground mt-0.5">{s.v}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </div>
+
+        <div className="relative">
+          {image ? (
+            <div className="overflow-hidden rounded-3xl border border-border shadow-xl aspect-4/3">
+              <ProductMedia src={image} alt={title} className="h-full w-full object-cover" />
+            </div>
+          ) : (
+            <div className="flex aspect-4/3 items-center justify-center rounded-3xl border border-dashed border-border bg-muted p-8 text-center text-sm text-muted-foreground">
+              Will Design 3D — Impresión 3D de gran formato
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function FeaturedProducts() {
   const loaderData = Route.useLoaderData();
   // Reutiliza exactamente la misma consulta que /tienda (única fuente de verdad).
@@ -427,6 +493,10 @@ function FeaturedProducts() {
     ...productsQuery(),
     initialData: loaderData?.products,
   });
+  const { getText } = useSiteContent();
+
+  const title = getText("featured_products_title", "Productos destacados");
+  const subtitle = getText("featured_products_subtitle", "Impresoras, filamentos y accesorios con asesoría técnica incluida.");
 
   const list = products ?? [];
   const marked = list.filter((p) => p.featured);
@@ -441,10 +511,10 @@ function FeaturedProducts() {
           <div className="max-w-xl">
             <span className="chip-teal">Tienda</span>
             <h2 className="mt-3 text-3xl font-black sm:text-4xl md:text-5xl">
-              Productos destacados
+              {title}
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Impresoras, filamentos y accesorios con asesoría técnica incluida.
+              {subtitle}
             </p>
           </div>
           <Link to="/tienda" className="btn-outline">

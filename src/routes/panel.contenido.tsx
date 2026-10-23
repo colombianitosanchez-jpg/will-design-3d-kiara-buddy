@@ -282,17 +282,35 @@ const FIELDS: FieldDef[] = [
   // Sección Servicios: Movido a panel.servicios.tsx - fuente de verdad concentrada
 
   // Portafolio e Instagram
+  { key: "portfolio_chip", label: "Etiqueta / Chip Galería Manual", type: "text", section: "Inicio", group: "Portafolio y Redes" },
+  { key: "portfolio_title", label: "Título Sección Galería Manual", type: "text", section: "Inicio", group: "Portafolio y Redes" },
+  { key: "portfolio_subtitle", label: "Subtítulo Galería Manual", type: "textarea", section: "Inicio", group: "Portafolio y Redes" },
+  { key: "portfolio_live_chip", label: "Etiqueta / Chip Widget Instagram", type: "text", section: "Inicio", group: "Portafolio y Redes" },
+  { key: "portfolio_live_title", label: "Título Widget Instagram", type: "text", section: "Inicio", group: "Portafolio y Redes" },
+  { key: "portfolio_live_subtitle", label: "Subtítulo Widget Instagram", type: "textarea", help: "Soporta interpolación con @handle", section: "Inicio", group: "Portafolio y Redes" },
+  { key: "portfolio_empty_title", label: "Título Estado Vacío Portafolio", type: "text", section: "Inicio", group: "Portafolio y Redes" },
+  { key: "portfolio_empty_subtitle", label: "Subtítulo Estado Vacío Portafolio", type: "textarea", section: "Inicio", group: "Portafolio y Redes" },
   { key: "show_manual_gallery", label: "Mostrar Galería Manual de Portafolio", type: "switch", help: "Se muestra si está activo y hay al menos una foto/video subida.", section: "Inicio", group: "Portafolio y Redes" },
   { key: "show_instagram_widget", label: "Mostrar Widget de Instagram en Vivo", type: "switch", help: "Se muestra si está activo y el ID del widget Elfsight es válido.", section: "Inicio", group: "Portafolio y Redes" },
   { key: "portfolio_display_order", label: "Orden de Visualización del Portafolio", type: "select", help: "Decide cuál sección del portafolio aparece primero.", section: "Inicio", group: "Portafolio y Redes", options: [
     { value: "manual_first", label: "Fotos manuales primero, luego Instagram" },
     { value: "instagram_first", label: "Instagram primero, luego fotos manuales" },
   ] },
-  { key: "portfolio_images", label: "Fotos y Videos del Portafolio Manual", type: "images", help: "Se muestran en el inicio y en /galeria. Admite fotos y videos cortos (hasta 50MB).", section: "Inicio", group: "Portafolio y Redes" },
+  { key: "portfolio_images", label: "Fotos y Videos del Portafolio Manual (Drag & Drop)", type: "images", help: "Arrastra para reordenar las imágenes del portafolio. Se muestran en el inicio y en /galeria.", section: "Inicio", group: "Portafolio y Redes" },
   { key: "elfsight_instagram_id", label: "ID del Widget de Instagram (Elfsight)", type: "text", help: "Ej: elfsight-app-abc123", section: "Inicio", group: "Portafolio y Redes" },
 
-  // Nosotros
+  // Sección Productos Destacados
+  { key: "featured_products_title", label: "Título Sección Productos Destacados", type: "text", section: "Inicio", group: "Productos Destacados" },
+  { key: "featured_products_subtitle", label: "Subtítulo Sección Productos Destacados", type: "textarea", section: "Inicio", group: "Productos Destacados" },
+
+  // Sección Nosotros
+  { key: "about_chip", label: "Etiqueta / Chip 'Nosotros'", type: "text", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_title", label: "Título Principal 'Nosotros'", type: "text", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_subtitle", label: "Subtítulo / Bajada 'Nosotros'", type: "textarea", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_short", label: "Descripción Corta 'Nosotros'", type: "textarea", help: "Resumen que se muestra en la página principal.", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_long", label: "Descripción Detallada 'Nosotros'", type: "textarea", help: "Texto extendido que se muestra en la página /nosotros.", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_image_url", label: "Imagen Principal 'Nosotros'", type: "image", help: "Imagen destacada del taller o equipo.", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_stats", label: "Métricas y Logros Destacados 'Nosotros'", type: "hero_stats", help: "Añade logros y estadísticas para mostrar en la sección Nosotros.", section: "Inicio", group: "Sección Nosotros" },
 ];
 
 function LottiePreview({ url }: { url: string }) {
@@ -717,6 +735,187 @@ function SortableHeroStatCard({
   );
 }
 
+function SortablePortfolioCard({
+  photo,
+  index,
+  total,
+  onUpdateLink,
+  onToggleVisible,
+  onRemove,
+}: {
+  photo: PortfolioPhoto;
+  index: number;
+  total: number;
+  onUpdateLink: (url: string) => void;
+  onToggleVisible: () => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: photo.id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex flex-col sm:flex-row items-center gap-3 rounded-2xl border border-border bg-card p-3 shadow-xs ${
+        isDragging ? "z-10 shadow-xl" : ""
+      }`}
+    >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="cursor-grab touch-none p-1 text-muted-foreground hover:text-foreground shrink-0"
+        title="Arrastrar para reordenar"
+      >
+        <GripVertical className="h-5 w-5" />
+      </button>
+
+      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-border bg-muted">
+        <ProductMedia
+          src={photo.url}
+          thumb={true}
+          className={`h-full w-full object-cover ${photo.is_visible !== false ? "" : "opacity-40"}`}
+        />
+        {isVideoUrl(photo.url) && (
+          <span className="absolute bottom-1 right-1 flex items-center gap-0.5 rounded-md bg-black/70 px-1 py-0.5 text-[10px] font-bold text-white">
+            <Film className="h-3 w-3" />
+          </span>
+        )}
+        {photo.is_visible === false && (
+          <span className="absolute top-1 left-1 rounded-md bg-foreground/80 px-1 py-0.5 text-[9px] font-bold text-background">
+            Oculto
+          </span>
+        )}
+      </div>
+
+      <div className="w-full flex-1 space-y-1">
+        <Label className="text-xs text-muted-foreground">
+          Enlace de acción o destino (opcional)
+        </Label>
+        <Input
+          type="text"
+          placeholder="Ej: /tienda/lampara-luna o https://..."
+          className="h-9 text-xs"
+          value={photo.link_url ?? ""}
+          onChange={(e) => onUpdateLink(e.target.value)}
+        />
+      </div>
+
+      <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={onToggleVisible}
+          title={photo.is_visible !== false ? "Ocultar elemento" : "Mostrar elemento"}
+        >
+          {photo.is_visible !== false ? (
+            <Eye className="h-4 w-4" />
+          ) : (
+            <EyeOff className="h-4 w-4 text-muted-foreground" />
+          )}
+        </Button>
+
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={onRemove}
+          title="Eliminar elemento"
+        >
+          <Trash2 className="h-4 w-4 text-red-500" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function PortfolioGalleryEditor({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  const photos = parsePhotos(value);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIdx = photos.findIndex((p) => p.id === active.id);
+    const newIdx = photos.findIndex((p) => p.id === over.id);
+    if (oldIdx !== -1 && newIdx !== -1) {
+      onChange(JSON.stringify(arrayMove(photos, oldIdx, newIdx)));
+    }
+  }
+
+  function handleUpdateLink(index: number, link: string) {
+    const next = photos.map((p, i) => (i === index ? { ...p, link_url: link ? link : undefined } : p));
+    onChange(JSON.stringify(next));
+  }
+
+  function handleToggleVisible(index: number) {
+    const next = photos.map((p, i) => (i === index ? { ...p, is_visible: !p.is_visible } : p));
+    onChange(JSON.stringify(next));
+  }
+
+  function handleRemove(index: number) {
+    const next = photos.filter((_, i) => i !== index);
+    onChange(JSON.stringify(next));
+  }
+
+  return (
+    <div className="space-y-3">
+      <MediaDropZone
+        value=""
+        onChange={(url) => {
+          if (url) {
+            const newItem: PortfolioPhoto = { id: crypto.randomUUID(), url, is_visible: true };
+            onChange(JSON.stringify([...photos, newItem]));
+          }
+        }}
+      />
+
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={photos.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-3">
+            {photos.map((photo, idx) => (
+              <SortablePortfolioCard
+                key={photo.id}
+                photo={photo}
+                index={idx}
+                total={photos.length}
+                onUpdateLink={(link) => handleUpdateLink(idx, link)}
+                onToggleVisible={() => handleToggleVisible(idx)}
+                onRemove={() => handleRemove(idx)}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+
+      {photos.length === 0 && (
+        <div className="rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+          No hay elementos subidos en el portafolio manual. Arrastra archivos arriba o haz clic para subir.
+        </div>
+      )}
+    </div>
+  );
+}
+
 function HeroStatsEditor({
   value,
   onChange,
@@ -956,6 +1155,18 @@ function ContenidoAdmin() {
           <Label className="text-sm font-bold">{f.label}</Label>
           {f.help && <p className="text-xs text-muted-foreground">{f.help}</p>}
           <HeroStatsEditor
+            value={values[f.key] ?? ""}
+            onChange={(next) => setValues((v) => ({ ...v, [f.key]: next }))}
+          />
+        </div>
+      );
+    }
+    if (f.type === "images") {
+      return (
+        <div key={f.key} className="space-y-2">
+          <Label className="text-sm font-bold">{f.label}</Label>
+          {f.help && <p className="text-xs text-muted-foreground">{f.help}</p>}
+          <PortfolioGalleryEditor
             value={values[f.key] ?? ""}
             onChange={(next) => setValues((v) => ({ ...v, [f.key]: next }))}
           />

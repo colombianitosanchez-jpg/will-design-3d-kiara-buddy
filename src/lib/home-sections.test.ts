@@ -6,9 +6,9 @@ describe("parseHomeOrder", () => {
     expect(parseHomeOrder('["portfolio","hero"]').slice(0, 2)).toEqual(["portfolio", "hero"]);
   });
   it("sin configuración usa el orden por defecto", () => {
-    expect(parseHomeOrder("")).toEqual(["hero", "services", "products", "portfolio", "quoter"]);
+    expect(parseHomeOrder("")).toEqual(["hero", "services", "products", "portfolio", "quoter", "about"]);
   });
   it("ignora claves desconocidas y agrega las faltantes", () => {
-    expect(parseHomeOrder('["x","quoter"]')).toEqual(["quoter", "hero", "services", "products", "portfolio"]);
+    expect(parseHomeOrder('["x","quoter"]')).toEqual(["quoter", "hero", "services", "products", "portfolio", "about"]);
   });
 });
