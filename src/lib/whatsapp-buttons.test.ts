@@ -1,0 +1,64 @@
+import { describe, expect, test } from "bun:test";
+import { getWhatsAppPayloadForButton } from "./whatsapp-buttons";
+import { waLink } from "./catalog";
+
+describe("getWhatsAppPayloadForButton & waLink CEO Rules", () => {
+  test("Rule 1: Video only -> mediaToSend is logo.png", () => {
+    const payload = getWhatsAppPayloadForButton(
+      { whatsapp_message: "Hola Will, cotizar {media}" },
+      "https://example.com/demo.mp4",
+      "/custom-logo.png"
+    );
+
+    expect(payload.mediaToSend).toBe("/custom-logo.png");
+    expect(payload.formattedText).toBe("Hola Will, cotizar /custom-logo.png");
+  });
+
+  test("Rule 2: Video and Image -> mediaToSend is image", () => {
+    const payload = getWhatsAppPayloadForButton(
+      { whatsapp_message: "Hola, me interesa {media}", whatsapp_image_logic: "auto" },
+      "https://example.com/photo.jpg",
+      "/custom-logo.png"
+    );
+
+    expect(payload.mediaToSend).toBe("https://example.com/photo.jpg");
+    expect(payload.formattedText).toBe("Hola, me interesa https://example.com/photo.jpg");
+  });
+
+  test("Rule 3: No video and no image -> mediaToSend is logo.png", () => {
+    const payload = getWhatsAppPayloadForButton(
+      { whatsapp_message: "Mensaje sin media" },
+      "",
+      "/site-logo.png"
+    );
+
+    expect(payload.mediaToSend).toBe("/site-logo.png");
+    expect(payload.text).toBe("Mensaje sin media");
+  });
+
+  test("Logic Override: 'logo' forces logo even if image exists", () => {
+    const payload = getWhatsAppPayloadForButton(
+      { whatsapp_message: "Forzando logo", whatsapp_image_logic: "logo" },
+      "https://example.com/photo.png",
+      "/logo-brand.png"
+    );
+
+    expect(payload.mediaToSend).toBe("/logo-brand.png");
+  });
+
+  test("waLink fallback message and placeholder replacement", () => {
+    const link = waLink("573156724474", "Cotizar pieza {media}", {
+      mediaToSend: "https://example.com/item.png",
+    });
+
+    expect(link).toBe("https://wa.me/573156724474?text=Cotizar%20pieza%20https%3A%2F%2Fexample.com%2Fitem.png");
+  });
+
+  test("waLink uses defaultMessage when message is empty", () => {
+    const link = waLink("573156724474", "", {
+      defaultMessage: "Hola Will Design 3D",
+    });
+
+    expect(link).toBe("https://wa.me/573156724474?text=Hola%20Will%20Design%203D");
+  });
+});

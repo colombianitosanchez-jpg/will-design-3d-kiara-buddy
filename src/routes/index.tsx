@@ -21,6 +21,7 @@ import { siteServicesQuery } from "./servicios";
 import { menuItemsQuery } from "@/lib/menu";
 import { parseHeroStats, type HeroStatItem } from "@/routes/panel.contenido";
 import { getActiveTheme } from "@/lib/theme";
+import { getWhatsAppPayloadForButton } from "@/lib/whatsapp-buttons";
 import { getSeo } from "@/lib/seo";
 import { Lottie } from "lottie-react";
 import { motion } from "framer-motion";
@@ -132,6 +133,55 @@ function Hero() {
   const badge = getText("hero_badge_title", "");
   const stats = parseHeroStats(content).filter((s) => s.k || s.v);
 
+  // Hero CTAs Config
+  const heroCtaText = getText("hero_cta_text", "Cotizar Proyecto");
+  const heroCtaUrl = getText("hero_cta_url", "/cotizador");
+  const heroCtaActionType = getText("hero_cta_action_type", "cotizador");
+  const heroCtaWhatsappMsg = getText("hero_cta_whatsapp_message", "");
+  const heroCtaWhatsappLogic = getText("hero_cta_whatsapp_image_logic", "auto");
+  const heroCtaMedia = getText("hero_cta_media_url", "") || image;
+
+  const heroSecCtaText = getText("hero_secondary_cta_text", "Ver tienda");
+  const heroSecCtaUrl = getText("hero_secondary_cta_url", "/tienda");
+  const heroSecCtaActionType = getText("hero_secondary_cta_action_type", "link");
+  const heroSecCtaWhatsappMsg = getText("hero_secondary_cta_whatsapp_message", "");
+  const heroSecCtaWhatsappLogic = getText("hero_secondary_cta_whatsapp_image_logic", "auto");
+  const heroSecCtaMedia = getText("hero_secondary_cta_media_url", "") || image;
+
+  function handleButtonClick(
+    actionType: string,
+    url: string,
+    whatsappMsg: string,
+    whatsappLogic: string,
+    mediaUrl: string,
+    defaultFallbackText: string
+  ) {
+    if (actionType === "whatsapp") {
+      const payload = getWhatsAppPayloadForButton(
+        { whatsapp_message: whatsappMsg, whatsapp_image_logic: whatsappLogic },
+        mediaUrl,
+        content?.site_logo_url,
+        defaultFallbackText
+      );
+      const waUrl = waLink(fallbackWhatsapp, payload.formattedText);
+      if (!waUrl) {
+        toast.error("Configura WhatsApp en /panel/marca");
+        return;
+      }
+      window.open(waUrl, "_blank", "noopener,noreferrer");
+    } else if (actionType === "cotizador") {
+      router.navigate({ to: "/cotizador" });
+    } else {
+      const val = url.trim();
+      if (!val) return;
+      if (/^https?:\/\//i.test(val)) {
+        window.open(val, "_blank", "noopener,noreferrer");
+      } else {
+        router.navigate({ to: val.startsWith("/") ? (val as any) : (`/${val}` as any) });
+      }
+    }
+  }
+
   function handleStatClick(stat: HeroStatItem) {
     if (!stat.action_type || stat.action_type === "none") return;
 
@@ -145,8 +195,17 @@ function Hero() {
       }
     } else if (stat.action_type === "whatsapp") {
       const num = stat.action_value?.trim() || fallbackWhatsapp;
-      const text = `Hola Will Design 3D, me interesa la consulta sobre: ${stat.k} (${stat.v}).`;
-      const url = waLink(num, text);
+      const defaultMsg = `Hola Will Design 3D, me interesa la consulta sobre: ${stat.k} (${stat.v}).`;
+      const payload = getWhatsAppPayloadForButton(
+        {
+          whatsapp_message: stat.whatsapp_message,
+          whatsapp_image_logic: stat.whatsapp_image_logic,
+        },
+        stat.bgImageUrl || stat.media_url || image,
+        content?.site_logo_url,
+        defaultMsg
+      );
+      const url = waLink(num, payload.formattedText);
       if (!url) {
         toast.error("Configura WhatsApp en /panel/marca");
         return;
@@ -190,13 +249,39 @@ function Hero() {
             {subtitle}
           </p>
           <div className="mt-7 flex flex-wrap items-center gap-3">
-            <Link to="/cotizador" className="btn-primary">
-              Cotizar Proyecto
+            <button
+              type="button"
+              onClick={() =>
+                handleButtonClick(
+                  heroCtaActionType,
+                  heroCtaUrl,
+                  heroCtaWhatsappMsg,
+                  heroCtaWhatsappLogic,
+                  heroCtaMedia,
+                  "Hola Will, me interesa cotizar del Hero"
+                )
+              }
+              className="btn-primary"
+            >
+              {heroCtaText}
               <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link to="/tienda" className="btn-outline">
-              Ver tienda
-            </Link>
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                handleButtonClick(
+                  heroSecCtaActionType,
+                  heroSecCtaUrl,
+                  heroSecCtaWhatsappMsg,
+                  heroSecCtaWhatsappLogic,
+                  heroSecCtaMedia,
+                  "Hola Will, quisiera ver la tienda"
+                )
+              }
+              className="btn-outline"
+            >
+              {heroSecCtaText}
+            </button>
           </div>
 
           {stats.length > 0 && (
@@ -430,6 +515,7 @@ function Services() {
 
 function AboutPreview() {
   const ref = useScrollReveal<HTMLElement>();
+  const router = useRouter();
   const { content, getText } = useSiteContent();
 
   const chip = getText("about_chip", "Nosotros");
@@ -441,7 +527,38 @@ function AboutPreview() {
 
   const ctaText = getText("about_cta_text", "Conoce más sobre nosotros");
   const ctaUrl = getText("about_cta_url", "/nosotros");
-  const isExternalCta = /^https?:\/\//i.test(ctaUrl);
+  const ctaActionType = getText("about_cta_action_type", "link");
+  const ctaWhatsappMsg = getText("about_cta_whatsapp_message", "");
+  const ctaWhatsappLogic = getText("about_cta_whatsapp_image_logic", "auto");
+  const ctaMediaUrl = getText("about_cta_media_url", "") || image;
+  const fallbackWhatsapp = getContactInfo(content).whatsapp;
+
+  function handleAboutCtaClick() {
+    if (ctaActionType === "whatsapp") {
+      const payload = getWhatsAppPayloadForButton(
+        { whatsapp_message: ctaWhatsappMsg, whatsapp_image_logic: ctaWhatsappLogic },
+        ctaMediaUrl,
+        content?.site_logo_url,
+        "Hola Will Design 3D, me interesa conocer más sobre ustedes."
+      );
+      const url = waLink(fallbackWhatsapp, payload.formattedText);
+      if (!url) {
+        toast.error("Configura WhatsApp en /panel/marca");
+        return;
+      }
+      window.open(url, "_blank", "noopener,noreferrer");
+    } else if (ctaActionType === "cotizador") {
+      router.navigate({ to: "/cotizador" });
+    } else {
+      const val = ctaUrl.trim();
+      if (!val) return;
+      if (/^https?:\/\//i.test(val)) {
+        window.open(val, "_blank", "noopener,noreferrer");
+      } else {
+        router.navigate({ to: val.startsWith("/") ? (val as any) : (`/${val}` as any) });
+      }
+    }
+  }
 
   return (
     <section ref={ref} id="nosotros" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
@@ -490,17 +607,14 @@ function AboutPreview() {
           )}
 
           <div className="mt-6 flex flex-wrap items-center justify-center md:justify-start gap-3">
-            {isExternalCta ? (
-              <a href={ctaUrl} target="_blank" rel="noopener noreferrer" className="btn-primary text-sm">
-                {ctaText}
-                <ArrowRight className="h-4 w-4" />
-              </a>
-            ) : (
-              <Link to={ctaUrl.startsWith("/") ? (ctaUrl as any) : (`/${ctaUrl}` as any)} className="btn-primary text-sm">
-                {ctaText}
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            )}
+            <button
+              type="button"
+              onClick={handleAboutCtaClick}
+              className="btn-primary text-sm"
+            >
+              {ctaText}
+              <ArrowRight className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </div>
