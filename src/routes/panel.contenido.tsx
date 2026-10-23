@@ -279,9 +279,7 @@ const FIELDS: FieldDef[] = [
     group: "Estadísticas del Hero",
   },
 
-  // Sección Servicios
-  { key: "services_section_title", label: "Título Sección Servicios", type: "text", section: "Inicio", group: "Sección Servicios" },
-  { key: "services_section_subtitle", label: "Subtítulo Sección Servicios", type: "text", section: "Inicio", group: "Sección Servicios" },
+  // Sección Servicios: Movido a panel.servicios.tsx - fuente de verdad concentrada
 
   // Portafolio e Instagram
   { key: "show_manual_gallery", label: "Mostrar Galería Manual de Portafolio", type: "switch", help: "Se muestra si está activo y hay al menos una foto/video subida.", section: "Inicio", group: "Portafolio y Redes" },
