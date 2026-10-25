@@ -248,7 +248,7 @@ type Row = { key: string; value: string };
 type FieldDef = {
   key: string;
   label: string;
-  type: "text" | "textarea" | "image" | "images" | "switch" | "select" | "order" | "hero_stats";
+  type: "text" | "textarea" | "image" | "images" | "switch" | "select" | "order" | "hero_stats" | "media";
   help?: string;
   section: string;
   group: string;
@@ -426,6 +426,65 @@ const FIELDS: FieldDef[] = [
       { value: "product_image", label: "Enviar Imagen de la Sección / Producto" },
     ],
   },
+
+  // Sección Nosotros Página - Misión, Visión, Valores, Kiara y Taller
+  { key: "about_mission_title", label: "Título Misión", type: "text", help: "Default: Misión", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_mission_text", label: "Texto Misión", type: "textarea", help: "Default: Democratizar la impresión 3D en Colombia con calidad profesional, precios justos y asesoría real.", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_mission_image_url", label: "Multimedia / GIF / Video Misión", type: "media", help: "Soporta imágenes, GIF, video MP4/WebM o Lottie JSON", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_mission_cta_text", label: "Texto Botón Misión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_mission_cta_url", label: "Enlace Botón Misión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_mission_cta_media_url", label: "Multimedia Botón Misión", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  {
+    key: "about_mission_cta_action_type",
+    label: "Acción Botón Misión",
+    type: "select",
+    section: "Inicio",
+    group: "Nosotros Página Misión Visión",
+    options: [
+      { value: "link", label: "Abrir Enlace / Ruta Interna" },
+      { value: "whatsapp", label: "Abrir Chat de WhatsApp" },
+      { value: "cotizador", label: "Abrir Cotizador Interactivo" },
+    ],
+  },
+  { key: "about_mission_cta_whatsapp_message", label: "Mensaje WhatsApp Botón Misión", type: "textarea", help: "Usa {media} para incluir enlace al logo o imagen.", section: "Inicio", group: "Nosotros Página Misión Visión" },
+
+  { key: "about_vision_title", label: "Título Visión", type: "text", help: "Default: Visión", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_vision_text", label: "Texto Visión", type: "textarea", help: "Default: Ser el referente colombiano en impresión 3D de gran formato...", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_vision_image_url", label: "Multimedia / GIF / Video Visión", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_vision_cta_text", label: "Texto Botón Visión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_vision_cta_url", label: "Enlace Botón Visión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_vision_cta_media_url", label: "Multimedia Botón Visión", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  {
+    key: "about_vision_cta_action_type",
+    label: "Acción Botón Visión",
+    type: "select",
+    section: "Inicio",
+    group: "Nosotros Página Misión Visión",
+    options: [
+      { value: "link", label: "Abrir Enlace / Ruta Interna" },
+      { value: "whatsapp", label: "Abrir Chat de WhatsApp" },
+      { value: "cotizador", label: "Abrir Cotizador Interactivo" },
+    ],
+  },
+  { key: "about_vision_cta_whatsapp_message", label: "Mensaje WhatsApp Botón Visión", type: "textarea", section: "Inicio", group: "Nosotros Página Misión Visión" },
+
+  { key: "about_values_title", label: "Título Sección Valores", type: "text", help: "Default: Valores", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_values_text", label: "Texto / Descripción Valores", type: "textarea", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_values_items", label: "Lista de Valores (Drag & Drop)", type: "hero_stats", help: "Define cada valor con título, descripción e icono/multimedia.", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_values_image_url", label: "Multimedia Fondo / Ilustración Valores", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
+
+  { key: "about_kiara_title", label: "Título Sección Kiara", type: "text", help: "Default: Kiara, nuestra directora de operaciones 🐾", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_kiara_subtitle", label: "Etiqueta / Bajada Kiara", type: "text", help: "Default: La verdadera jefa", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_kiara_text", label: "Historia / Descripción de Kiara", type: "textarea", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_kiara_image_url", label: "Foto / GIF / Video de Kiara", type: "media", help: "Reemplaza la foto estática kiara.jpg", section: "Inicio", group: "Nosotros Página Misión Visión" },
+
+  { key: "about_workshop_title", label: "Título Sección Taller", type: "text", help: "Default: Equipo profesional en Bogotá", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_workshop_text", label: "Texto Sección Taller", type: "textarea", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_workshop_items", label: "Equipamiento del Taller (Drag & Drop)", type: "hero_stats", help: "Lista de máquinas y capacidades del taller.", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_workshop_image_url", label: "Foto / GIF / Video del Taller", type: "media", help: "Reemplaza el degradado por multimedia del taller o logo", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_workshop_address", label: "Ubicación / Dirección del Taller", type: "text", help: "Default: Bogotá, Colombia · Atención por cita previa.", section: "Inicio", group: "Nosotros Página Misión Visión" },
+
+  { key: "whatsapp_default_message", label: "Mensaje WhatsApp Global Por Defecto", type: "textarea", help: "Mensaje enviado si un botón de WhatsApp no especifica mensaje personalizado.", section: "Inicio", group: "Configuración Mensajes WhatsApp" },
 ];
 
 function LottiePreview({ url }: { url: string }) {
@@ -1322,6 +1381,18 @@ function ContenidoAdmin() {
   }
 
   function renderField(f: FieldDef) {
+    if (f.type === "media") {
+      return (
+        <div key={f.key} className="space-y-2">
+          <Label className="text-sm font-bold">{f.label}</Label>
+          {f.help && <p className="text-xs text-muted-foreground">{f.help}</p>}
+          <MediaDropZone
+            value={values[f.key] ?? ""}
+            onChange={(url) => setValues((v) => ({ ...v, [f.key]: url }))}
+          />
+        </div>
+      );
+    }
     if (f.type === "hero_stats") {
       return (
         <div key={f.key} className="space-y-2">
