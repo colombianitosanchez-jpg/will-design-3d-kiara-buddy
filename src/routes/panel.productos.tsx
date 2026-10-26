@@ -43,6 +43,8 @@ export const Route = createFileRoute("/panel/productos")({
   component: ProductosAdmin,
 });
 
+const STORAGE_KEY = "will_product_draft_v1";
+
 type ProductAttrRow = { product_id: string; attribute_id: string; attribute_value_id: string | null };
 
 type Product = {
@@ -223,6 +225,17 @@ function ProductosAdmin() {
 
   useEffect(() => {
     load();
+    try {
+      const savedDraft = sessionStorage.getItem(STORAGE_KEY);
+      if (savedDraft && !editing) {
+        const parsed = JSON.parse(savedDraft);
+        if (parsed && typeof parsed === "object") {
+          setEditing(parsed);
+        }
+      }
+    } catch (e) {
+      console.error("Error al restaurar borrador", e);
+    }
   }, []);
 
   async function remove(id: string) {
@@ -458,6 +471,57 @@ function ProductModal({
   const [uploading, setUploading] = useState(false);
   const [attrSel, setAttrSel] = useState<Record<string, string>>(initialAttrs);
   const [buttons, setButtons] = useState<ProductButton[]>(product.custom_buttons ?? []);
+  const [hasDraft, setHasDraft] = useState<boolean>(() => {
+    try {
+      return !!sessionStorage.getItem(STORAGE_KEY);
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      if (saved && (!product || (!product.id && !product.name))) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === "object") {
+          setForm((prev) => ({ ...prev, ...parsed }));
+          if (Array.isArray(parsed.custom_buttons)) {
+            setButtons(parsed.custom_buttons);
+          }
+          setHasDraft(true);
+        }
+      }
+    } catch (e) {
+      console.error("Error al cargar borrador en ProductModal", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (
+        (form.name && form.name.trim().length > 0) ||
+        (form.description && form.description.trim().length > 0)
+      ) {
+        const draftData = { ...form, custom_buttons: buttons };
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(draftData));
+        setHasDraft(true);
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [form, buttons]);
+
+  function handleDiscardDraft() {
+    try {
+      sessionStorage.removeItem(STORAGE_KEY);
+    } catch (e) {
+      console.error("Error removiendo borrador", e);
+    }
+    setHasDraft(false);
+    setForm(product);
+    setButtons(product.custom_buttons ?? []);
+    toast.info("Borrador descartado");
+  }
 
   function updateButton(index: number, patch: Partial<ProductButton>) {
     setButtons((list) => list.map((b, i) => (i === index ? { ...b, ...patch } : b)));
@@ -638,6 +702,8 @@ function ProductModal({
         const { error } = await supabase.from("product_attribute_values").insert(rows);
         if (error) throw error;
       }
+      sessionStorage.removeItem(STORAGE_KEY);
+      setHasDraft(false);
       lastSaved.current = snapshot;
       dirty.current = true;
     } catch (e) {
@@ -678,6 +744,19 @@ function ProductModal({
             <X className="h-4 w-4" />
           </button>
         </div>
+
+        {hasDraft && (
+          <div className="mt-2 flex items-center justify-between rounded-xl bg-amber-50 px-3.5 py-2 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+            <span>Borrador guardado automático - vuelve y sigue donde estabas</span>
+            <button
+              type="button"
+              onClick={handleDiscardDraft}
+              className="ml-2 font-bold underline hover:no-underline text-amber-900 dark:text-amber-200 shrink-0"
+            >
+              Descartar borrador
+            </button>
+          </div>
+        )}
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <Field label="Nombre" required>

@@ -136,7 +136,7 @@ function SortableItem({
 function PanelLayout() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { user, role, isActive, isSuperAdmin, hasPanelAccess, loading, signOut } = useAuth();
+  const { user, role, isActive, isSuperAdmin, hasPanelAccess, initialLoading, loading, signOut } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: settings } = useQuery({ ...sidebarOrderQuery(), enabled: hasPanelAccess });
@@ -152,8 +152,8 @@ function PanelLayout() {
   }, [isSuperAdmin]);
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/login", replace: true });
-  }, [loading, user, navigate]);
+    if (!initialLoading && !loading && !user) navigate({ to: "/login", replace: true });
+  }, [initialLoading, loading, user, navigate]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -193,7 +193,7 @@ function PanelLayout() {
     }
   }
 
-  if (loading || !user) {
+  if (initialLoading || (loading && !user)) {
     return (
       <div className="mx-auto max-w-xl px-4 py-16 text-sm text-muted-foreground">Cargando panel…</div>
     );
@@ -212,7 +212,7 @@ function PanelLayout() {
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-xs text-muted-foreground">
-              {user.email} · estado: {role === "pending" ? "pendiente" : !isActive ? "inactiva" : role}
+              {user?.email} · estado: {role === "pending" ? "pendiente" : !isActive ? "inactiva" : role}
             </p>
             <Button variant="outline" className="w-full" onClick={handleSignOut}>
               Cerrar sesión
@@ -226,7 +226,11 @@ function PanelLayout() {
   const dragEnabled = editMode && isSuperAdmin;
 
   return (
-    <div className="mx-auto flex max-w-7xl gap-6 px-4 pb-28 pt-8 sm:px-6 sm:pb-32">
+    <>
+      {loading && user && (
+        <div className="pointer-events-none fixed top-0 left-0 right-0 z-50 h-1 bg-orange-500 animate-pulse" />
+      )}
+      <div className="mx-auto flex max-w-7xl gap-6 px-4 pb-28 pt-8 sm:px-6 sm:pb-32">
       <aside className="hidden w-56 shrink-0 md:block">
         <div className="sticky top-24 space-y-1 rounded-3xl border border-border bg-card p-3">
           {dragEnabled ? (
@@ -281,7 +285,7 @@ function PanelLayout() {
             </p>
           )}
           <div className="mt-3 border-t border-border pt-3">
-            <p className="text-[11px] text-muted-foreground">{user.email}</p>
+            <p className="text-[11px] text-muted-foreground">{user?.email}</p>
             <p
               className="mt-1 text-[10px] font-bold uppercase tracking-wider"
               style={{ color: isSuperAdmin ? "var(--brand-orange)" : "var(--brand-teal-deep)" }}
@@ -339,5 +343,6 @@ function PanelLayout() {
         <Outlet />
       </div>
     </div>
+  </>
   );
 }
