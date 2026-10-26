@@ -564,12 +564,13 @@ function AboutPreview() {
     <section ref={ref} id="nosotros" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
       <div className="mx-auto max-w-4xl space-y-10">
         {/* Imagen en contenedor aspect-[4/3] con rounded-[32px] y stats flotantes */}
-        <div className="relative overflow-hidden rounded-[32px] border border-border bg-muted shadow-2xl aspect-[4/3]">
+        <div className="relative overflow-hidden rounded-[32px] border border-border bg-muted shadow-2xl aspect-[4/3] flex items-center justify-center">
           {image ? (
             <ProductMedia src={image} alt={title} className="h-full w-full object-cover" />
           ) : (
-            <div className="flex h-full w-full items-center justify-center p-8 text-center text-sm font-medium text-muted-foreground">
-              Imagen Nosotros no configurada
+            <div className="flex flex-col items-center justify-center p-8 text-center space-y-3">
+              <img src="/logo.png" alt="Will Design 3D" className="h-32 sm:h-40 w-auto opacity-70 object-contain" />
+              <span className="text-xs font-semibold text-muted-foreground">{title}</span>
             </div>
           )}
 
@@ -579,8 +580,13 @@ function AboutPreview() {
               {stats.map((s) => (
                 <div
                   key={s.id}
-                  className="rounded-2xl border border-white/20 bg-background/80 p-3.5 text-center shadow-lg backdrop-blur-md dark:border-white/10 dark:bg-card/80"
+                  className="rounded-2xl border border-white/20 bg-background/80 p-3.5 text-center shadow-lg backdrop-blur-md dark:border-white/10 dark:bg-card/80 flex flex-col items-center justify-center"
                 >
+                  {s.media_url && (
+                    <div className="mb-1 h-7 w-7 overflow-hidden rounded-full shrink-0">
+                      <ProductMedia src={s.media_url} alt={s.k} className="h-full w-full object-cover" />
+                    </div>
+                  )}
                   <dt className="text-lg font-black text-primary sm:text-xl">{s.k}</dt>
                   <dd className="mt-0.5 text-xs font-medium text-foreground/80 sm:text-sm">{s.v}</dd>
                 </div>

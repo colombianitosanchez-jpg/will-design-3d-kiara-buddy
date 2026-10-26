@@ -1,9 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
 import { Target, Eye, Heart, MapPin, Wrench, ArrowRight, MessageCircle } from "lucide-react";
 import kiaraAsset from "@/assets/kiara.asset.json";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 import { getWhatsAppPayloadForButton } from "@/lib/whatsapp-buttons";
+import { useSiteContent } from "@/hooks/use-site-content";
+import { parseHeroStats } from "@/routes/panel.contenido";
+import { ProductMedia } from "@/components/ProductMedia";
+import { UnifiedButton } from "@/components/UnifiedButton";
 import { getSeo } from "@/lib/seo";
 import { toast } from "sonner";
 
@@ -45,25 +48,102 @@ export const Route = createFileRoute("/nosotros")({
   component: NosotrosPage,
 });
 
+function AboutMedia({
+  src,
+  alt = "",
+  fallbackIcon: FallbackIcon,
+  color = "var(--brand-orange)",
+}: {
+  src?: string;
+  alt?: string;
+  fallbackIcon?: any;
+  color?: string;
+}) {
+  if (src && src.trim()) {
+    return (
+      <div className="relative overflow-hidden rounded-2xl h-12 w-12 shrink-0 border border-border shadow-xs">
+        <ProductMedia src={src.trim()} alt={alt} className="h-full w-full object-cover" />
+      </div>
+    );
+  }
+  if (FallbackIcon) {
+    return (
+      <div
+        className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl"
+        style={{
+          background: `color-mix(in oklab, ${color} 15%, white)`,
+          color,
+        }}
+      >
+        <FallbackIcon className="h-6 w-6" />
+      </div>
+    );
+  }
+  return null;
+}
+
 function NosotrosPage() {
-  const { data: content } = useQuery(siteContentQuery());
-  const chip = content?.about_chip?.trim() || "Nuestra historia";
-  const title = content?.about_title?.trim() || "Un taller 3D con alma";
-  const subtitle = content?.about_subtitle?.trim() || "";
-  const about = content?.about_long?.trim() || content?.about_short?.trim() || "";
-  const imageUrl = content?.about_image_url?.trim() || content?.site_logo_url?.trim();
+  const { content, getText } = useSiteContent();
+
+  const chip = getText("about_chip", "Nuestra historia");
+  const title = getText("about_title", "Un taller 3D con alma");
+  const subtitle = getText("about_subtitle", "");
+  const about = getText("about_long", "") || getText("about_short", "");
+  const imageUrl = getText("about_image_url", "") || content?.site_logo_url?.trim();
   const businessName = content?.site_business_name?.trim() || "Will Design 3D";
   const fallbackWhatsapp = getContactInfo(content).whatsapp;
 
-  function handleCardWaClick(itemTitle: string, itemBody: string) {
+  // Misión
+  const missionTitle = getText("about_mission_title", "Misión");
+  const missionText = getText("about_mission_text", "Democratizar la impresión 3D en Colombia con calidad profesional, precios justos y asesoría real.");
+  const missionMedia = getText("about_mission_image_url", "");
+  const missionCtaText = getText("about_mission_cta_text", "");
+  const missionCtaUrl = getText("about_mission_cta_url", "");
+  const missionCtaMedia = getText("about_mission_cta_media_url", "") || missionMedia || imageUrl;
+  const missionActionType = getText("about_mission_cta_action_type", "whatsapp");
+  const missionWaMsg = getText("about_mission_cta_whatsapp_message", "");
+
+  // Visión
+  const visionTitle = getText("about_vision_title", "Visión");
+  const visionText = getText("about_vision_text", "Ser el referente colombiano en impresión 3D de gran formato para arte, industria y educación.");
+  const visionMedia = getText("about_vision_image_url", "");
+  const visionCtaText = getText("about_vision_cta_text", "");
+  const visionCtaUrl = getText("about_vision_cta_url", "");
+  const visionCtaMedia = getText("about_vision_cta_media_url", "") || visionMedia || imageUrl;
+  const visionActionType = getText("about_vision_cta_action_type", "whatsapp");
+  const visionWaMsg = getText("about_vision_cta_whatsapp_message", "");
+
+  // Valores
+  const valuesTitle = getText("about_values_title", "Valores");
+  const valuesText = getText("about_values_text", "Cercanía, honestidad técnica, y ese cariño que solo un taller familiar (con perro incluido) puede ofrecer.");
+  const valuesMedia = getText("about_values_image_url", "");
+  const valuesItemsRaw = content?.about_values_items || "";
+  const valuesItemsParsed = parseHeroStats({ hero_stats: valuesItemsRaw }).filter((s) => s.k || s.v);
+
+  // Kiara
+  const kiaraTitle = getText("about_kiara_title", "Kiara, nuestra directora de operaciones 🐾");
+  const kiaraSubtitle = getText("about_kiara_subtitle", "La verdadera jefa");
+  const kiaraText = getText("about_kiara_text", "Pastora alemana de pura raza, aficionada a robar filamento y certificada en levantar el ánimo del equipo. Supervisa cada impresión, aunque su método favorito de control de calidad sea olfatear las piezas al terminar.");
+  const kiaraMedia = getText("about_kiara_image_url", "") || kiaraAsset.url;
+
+  // Taller
+  const workshopTitle = getText("about_workshop_title", "Equipo profesional en Bogotá");
+  const workshopSubtitle = getText("about_workshop_subtitle", "Nuestro taller");
+  const workshopText = getText("about_workshop_text", "");
+  const workshopMedia = getText("about_workshop_image_url", "");
+  const workshopAddress = getText("about_workshop_address", "Bogotá, Colombia · Atención por cita previa.");
+  const workshopItemsRaw = content?.about_workshop_items || "";
+  const workshopItemsParsed = parseHeroStats({ hero_stats: workshopItemsRaw }).filter((s) => s.k || s.v);
+
+  function handleSectionWaClick(itemTitle: string, itemBody: string, customMsg?: string, customMedia?: string) {
     const payload = getWhatsAppPayloadForButton(
       {
-        whatsapp_message: content?.about_cta_whatsapp_message,
+        whatsapp_message: customMsg,
         whatsapp_image_logic: content?.about_cta_whatsapp_image_logic,
       },
-      imageUrl,
+      customMedia || imageUrl,
       content?.site_logo_url,
-      `Hola Will Design 3D, me interesa saber más sobre la ${itemTitle} de la empresa: ${itemBody}`
+      `Hola Will Design 3D, me interesa saber más sobre ${itemTitle}: ${itemBody}`
     );
     const url = waLink(fallbackWhatsapp, payload.formattedText);
     if (!url) {
@@ -94,138 +174,220 @@ function NosotrosPage() {
             )}
           </div>
           {imageUrl && (
-            <img
-              src={imageUrl}
-              alt={businessName}
-              width={200}
-              height={200}
-              className="hidden h-48 w-48 rounded-3xl object-cover shadow-lg md:block"
-            />
+            <div className="hidden h-48 w-48 overflow-hidden rounded-3xl border border-border shadow-lg md:block">
+              <ProductMedia src={imageUrl} alt={businessName} className="h-full w-full object-cover" />
+            </div>
           )}
         </div>
       </section>
 
+      {/* Misión, Visión, Valores */}
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-14 sm:px-6 md:grid-cols-3 md:py-20">
-        {[
-          {
-            icon: Target,
-            title: "Misión",
-            body: "Democratizar la impresión 3D en Colombia con calidad profesional, precios justos y asesoría real.",
-            color: "orange",
-          },
-          {
-            icon: Eye,
-            title: "Visión",
-            body: "Ser el referente colombiano en impresión 3D de gran formato para arte, industria y educación.",
-            color: "teal",
-          },
-          {
-            icon: Heart,
-            title: "Valores",
-            body: "Cercanía, honestidad técnica, y ese cariño que solo un taller familiar (con perro incluido) puede ofrecer.",
-            color: "wine",
-          },
-        ].map((c) => {
-          const col =
-            c.color === "orange"
-              ? "var(--brand-orange)"
-              : c.color === "teal"
-                ? "var(--brand-teal)"
-                : "var(--brand-wine)";
-          return (
-            <article
-              key={c.title}
-              className="rounded-3xl border border-border bg-card p-6"
-            >
-              <div
-                className="grid h-12 w-12 place-items-center rounded-2xl"
-                style={{
-                  background: `color-mix(in oklab, ${col} 15%, white)`,
-                  color: col,
+        {/* Card Misión */}
+        <article className="flex flex-col justify-between rounded-3xl border border-border bg-card p-6 shadow-xs">
+          <div>
+            <AboutMedia src={missionMedia} alt={missionTitle} fallbackIcon={Target} color="var(--brand-orange)" />
+            <h2 className="mt-4 text-xl font-black">{missionTitle}</h2>
+            <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{missionText}</p>
+          </div>
+          <div className="mt-6 pt-2">
+            {missionCtaText ? (
+              <UnifiedButton
+                button={{
+                  id: "mission_btn",
+                  text: missionCtaText,
+                  action_type: missionActionType as any,
+                  action_value: missionCtaUrl,
+                  whatsapp_message: missionWaMsg,
+                  custom_hex: "var(--brand-orange)",
                 }}
-              >
-                <c.icon className="h-6 w-6" />
-              </div>
-              <h2 className="mt-4 text-xl font-black">{c.title}</h2>
-              <p className="mt-2 text-sm text-muted-foreground">{c.body}</p>
+              />
+            ) : (
               <button
                 type="button"
-                onClick={() => handleCardWaClick(c.title, c.body)}
-                className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold transition hover:opacity-80"
-                style={{ color: col }}
+                onClick={() => handleSectionWaClick(missionTitle, missionText, missionWaMsg, missionCtaMedia)}
+                className="inline-flex items-center gap-1.5 text-xs font-bold transition hover:opacity-80"
+                style={{ color: "var(--brand-orange)" }}
               >
                 <MessageCircle className="h-3.5 w-3.5" />
                 Consultar por WhatsApp
               </button>
-            </article>
-          );
-        })}
+            )}
+          </div>
+        </article>
+
+        {/* Card Visión */}
+        <article className="flex flex-col justify-between rounded-3xl border border-border bg-card p-6 shadow-xs">
+          <div>
+            <AboutMedia src={visionMedia} alt={visionTitle} fallbackIcon={Eye} color="var(--brand-teal)" />
+            <h2 className="mt-4 text-xl font-black">{visionTitle}</h2>
+            <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{visionText}</p>
+          </div>
+          <div className="mt-6 pt-2">
+            {visionCtaText ? (
+              <UnifiedButton
+                button={{
+                  id: "vision_btn",
+                  text: visionCtaText,
+                  action_type: visionActionType as any,
+                  action_value: visionCtaUrl,
+                  whatsapp_message: visionWaMsg,
+                  custom_hex: "var(--brand-teal)",
+                }}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleSectionWaClick(visionTitle, visionText, visionWaMsg, visionCtaMedia)}
+                className="inline-flex items-center gap-1.5 text-xs font-bold transition hover:opacity-80"
+                style={{ color: "var(--brand-teal)" }}
+              >
+                <MessageCircle className="h-3.5 w-3.5" />
+                Consultar por WhatsApp
+              </button>
+            )}
+          </div>
+        </article>
+
+        {/* Card Valores */}
+        <article className="flex flex-col justify-between rounded-3xl border border-border bg-card p-6 shadow-xs">
+          <div>
+            <AboutMedia src={valuesMedia} alt={valuesTitle} fallbackIcon={Heart} color="var(--brand-wine)" />
+            <h2 className="mt-4 text-xl font-black">{valuesTitle}</h2>
+            <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{valuesText}</p>
+
+            {valuesItemsParsed.length > 0 && (
+              <div className="mt-4 space-y-2">
+                {valuesItemsParsed.map((item) => (
+                  <div key={item.id} className="flex items-center gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-xs font-medium">
+                    {item.media_url ? (
+                      <div className="h-6 w-6 shrink-0 overflow-hidden rounded-md">
+                        <ProductMedia src={item.media_url} alt={item.k} className="h-full w-full object-cover" />
+                      </div>
+                    ) : (
+                      <Heart className="h-3.5 w-3.5 text-[var(--brand-wine)] shrink-0" />
+                    )}
+                    <span className="font-bold">{item.k}:</span>
+                    <span className="text-muted-foreground truncate">{item.v}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="mt-6 pt-2">
+            <button
+              type="button"
+              onClick={() => handleSectionWaClick(valuesTitle, valuesText, "", valuesMedia)}
+              className="inline-flex items-center gap-1.5 text-xs font-bold transition hover:opacity-80"
+              style={{ color: "var(--brand-wine)" }}
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              Consultar por WhatsApp
+            </button>
+          </div>
+        </article>
       </section>
 
       {/* Kiara story */}
       <section className="border-y border-border bg-muted/30">
         <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 py-14 sm:px-6 md:grid-cols-[auto_minmax(0,1fr)] md:py-20">
-          <img
-            src={kiaraAsset.url}
-            alt="Kiara, la jefa"
-            width={240}
-            height={240}
-            className="h-48 w-48 rounded-full object-cover shadow-xl ring-4 ring-[var(--brand-orange)] md:h-60 md:w-60"
-          />
+          <div className="relative h-48 w-48 overflow-hidden rounded-full shadow-xl ring-4 ring-[var(--brand-orange)] md:h-60 md:w-60 shrink-0">
+            <ProductMedia
+              src={kiaraMedia}
+              alt={kiaraTitle}
+              className="h-full w-full object-cover"
+            />
+          </div>
           <div>
-            <span className="chip-teal">La verdadera jefa</span>
+            <span className="chip-teal">{kiaraSubtitle}</span>
             <h2 className="mt-3 text-3xl font-black sm:text-4xl">
-              Kiara, nuestra directora de operaciones 🐾
+              {kiaraTitle}
             </h2>
-            <p className="mt-3 text-muted-foreground">
-              Pastora alemana de pura raza, aficionada a robar filamento y
-              certificada en levantar el ánimo del equipo. Supervisa cada
-              impresión, aunque su método favorito de control de calidad sea
-              olfatear las piezas al terminar.
+            <p className="mt-3 text-muted-foreground leading-relaxed whitespace-pre-line">
+              {kiaraText}
             </p>
           </div>
         </div>
       </section>
 
+      {/* Taller Section */}
       <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20">
-        <div className="grid gap-8 md:grid-cols-2">
+        <div className="grid gap-8 md:grid-cols-2 items-center">
           <div>
-            <span className="chip-teal">Nuestro taller</span>
+            <span className="chip-teal">{workshopSubtitle}</span>
             <h2 className="mt-3 text-3xl font-black">
-              Equipo profesional en Bogotá
+              {workshopTitle}
             </h2>
+            {workshopText && (
+              <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+                {workshopText}
+              </p>
+            )}
+
             <ul className="mt-6 space-y-3 text-sm">
+              {workshopItemsParsed.length > 0 ? (
+                workshopItemsParsed.map((item) => (
+                  <li key={item.id} className="flex items-start gap-3">
+                    {item.media_url ? (
+                      <div className="h-5 w-5 shrink-0 overflow-hidden rounded-md mt-0.5">
+                        <ProductMedia src={item.media_url} alt={item.k} className="h-full w-full object-cover" />
+                      </div>
+                    ) : (
+                      <Wrench className="mt-0.5 h-5 w-5 text-[var(--brand-orange)] shrink-0" />
+                    )}
+                    <span>
+                      <strong className="font-bold">{item.k}</strong> {item.v ? `— ${item.v}` : ""}
+                    </span>
+                  </li>
+                ))
+              ) : (
+                <>
+                  <li className="flex items-start gap-3">
+                    <Wrench className="mt-0.5 h-5 w-5 text-[var(--brand-orange)]" />
+                    <span>Impresoras FDM de gran formato hasta 500×500×500 mm.</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Wrench className="mt-0.5 h-5 w-5 text-[var(--brand-teal)]" />
+                    <span>Impresoras de resina 12K para alto detalle.</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Wrench className="mt-0.5 h-5 w-5 text-[var(--brand-wine)]" />
+                    <span>Área de acabados con cabina de pintura profesional.</span>
+                  </li>
+                </>
+              )}
               <li className="flex items-start gap-3">
-                <Wrench className="mt-0.5 h-5 w-5 text-[var(--brand-orange)]" />
-                <span>
-                  Impresoras FDM de gran formato hasta 500×500×500 mm.
-                </span>
-              </li>
-              <li className="flex items-start gap-3">
-                <Wrench className="mt-0.5 h-5 w-5 text-[var(--brand-teal)]" />
-                <span>Impresoras de resina 12K para alto detalle.</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <Wrench className="mt-0.5 h-5 w-5 text-[var(--brand-wine)]" />
-                <span>Área de acabados con cabina de pintura profesional.</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <MapPin className="mt-0.5 h-5 w-5 text-[var(--brand-wine)]" />
-                <span>Bogotá, Colombia · Atención por cita previa.</span>
+                <MapPin className="mt-0.5 h-5 w-5 text-[var(--brand-wine)] shrink-0" />
+                <span>{workshopAddress}</span>
               </li>
             </ul>
+
             <Link to="/contacto" className="btn-primary mt-6 text-sm">
               Agenda una visita
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-          <div
-            className="min-h-64 rounded-3xl"
-            style={{
-              background:
-                "linear-gradient(135deg, color-mix(in oklab, var(--brand-teal) 30%, white), color-mix(in oklab, var(--brand-wine) 40%, white))",
-            }}
-          />
+
+          <div className="relative min-h-64 h-full w-full overflow-hidden rounded-3xl border border-border bg-card shadow-xl flex items-center justify-center p-4">
+            {workshopMedia && workshopMedia.trim() ? (
+              <ProductMedia
+                src={workshopMedia.trim()}
+                alt={workshopTitle}
+                className="h-full w-full min-h-64 max-h-[400px] object-cover rounded-2xl"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center p-8 text-center space-y-4">
+                <img
+                  src="/logo.png"
+                  alt={businessName}
+                  className="h-32 w-auto object-contain opacity-80"
+                />
+                <span className="text-xs font-semibold text-muted-foreground">
+                  {businessName} — {workshopTitle}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </section>
     </>
