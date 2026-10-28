@@ -57,6 +57,18 @@ export const Route = createFileRoute("/panel/contenido")({
   component: ContenidoAdmin,
 });
 
+function shortMediaName(url?: string): string {
+  if (!url) return "logo Will (/logo.png)";
+  if (url.startsWith("/")) return url;
+  try {
+    const u = new URL(url);
+    const last = u.pathname.split("/").pop() || "imagen";
+    return last.slice(0, 35);
+  } catch {
+    return url.split("/").pop()?.split("?")[0]?.slice(0, 35) || "imagen";
+  }
+}
+
 export type HeroStatItem = {
   id: string;
   k: string;
@@ -655,94 +667,108 @@ function SortableHeroStatCard({
           />
         </div>
 
-        <div>
-          <Label className="text-xs font-semibold">Acción Clickeable</Label>
-          <Select
-            value={item.action_type || "none"}
-            onValueChange={(val: any) => onUpdate({ action_type: val })}
-          >
-            <SelectTrigger className="mt-1 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Sin Acción (Texto Estático)</SelectItem>
-              <SelectItem value="link">Abrir Enlace / URL</SelectItem>
-              <SelectItem value="whatsapp">Abrir Chat de WhatsApp</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {item.action_type && item.action_type !== "none" && (
-          <div>
-            <Label className="text-xs font-semibold">
-              {item.action_type === "link" ? "URL o Ruta de Destino" : "Número de WhatsApp (Opcional)"}
-            </Label>
-            <Input
-              value={item.action_value || ""}
-              onChange={(e) => onUpdate({ action_value: e.target.value })}
-              placeholder={item.action_type === "link" ? "/cotizador o https://..." : "573156724474"}
-              className="mt-1 text-xs"
-            />
-          </div>
-        )}
-
-        {item.action_type === "whatsapp" && (
-          <>
-            <div className="sm:col-span-2 space-y-1">
-              <Label className="text-xs font-semibold">Mensaje WhatsApp Personalizado</Label>
-              <Textarea
-                rows={2}
-                value={item.whatsapp_message || ""}
-                onChange={(e) => onUpdate({ whatsapp_message: e.target.value })}
-                placeholder={`Hola Will Design 3D, me interesa la consulta sobre: ${item.k || ""} (${item.v || ""}).`}
-                className="text-xs resize-y"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                💡 Si dejas vacío, se usa mensaje por defecto de /panel/contenido -&gt; Mensajes WhatsApp.
-              </p>
-            </div>
-
+        <div className="sm:col-span-2 rounded-xl border border-dashed p-4 space-y-3 bg-muted/30">
+          <p className="text-xs font-bold uppercase tracking-wider mb-2">🎯 Botón: {item.k || 'Sin texto'}</p>
+          <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <Label className="text-xs font-semibold">Lógica de Logo / Imagen / Video</Label>
+              <Label className="text-xs font-semibold">Acción Clickeable</Label>
               <Select
-                value={item.whatsapp_image_logic || "auto"}
-                onValueChange={(val: any) => onUpdate({ whatsapp_image_logic: val })}
+                value={item.action_type || "none"}
+                onValueChange={(val: any) => onUpdate({ action_type: val })}
               >
                 <SelectTrigger className="mt-1 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="auto">Automático (Reglas CEO: Logo si es video, Imagen si existe)</SelectItem>
-                  <SelectItem value="logo">Forzar Enviar Logo de la Empresa</SelectItem>
-                  <SelectItem value="product_image">Enviar Imagen de la Sección / Producto</SelectItem>
+                  <SelectItem value="none">Sin Acción (Texto Estático)</SelectItem>
+                  <SelectItem value="link">Abrir Enlace / URL</SelectItem>
+                  <SelectItem value="whatsapp">Abrir Chat de WhatsApp</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Live WhatsApp Message Preview Box */}
-            <div className="sm:col-span-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-1 text-xs">
-              <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                💬 Así se verá en WhatsApp:
-              </span>
-              <p className="text-muted-foreground whitespace-pre-wrap font-mono text-[11px]">
-                {getWhatsAppPayloadForButton(
-                  { whatsapp_message: item.whatsapp_message, whatsapp_image_logic: item.whatsapp_image_logic },
-                  bgUrl,
-                  null,
-                  `Hola Will Design 3D, me interesa la consulta sobre: ${item.k || ""} (${item.v || ""}).`
-                ).formattedText || `Hola Will Design 3D, me interesa la consulta sobre: ${item.k || ""} (${item.v || ""}).`}
-              </p>
-              <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 font-semibold mt-1">
-                📎 Adjunto a enviar: {
-                  getWhatsAppPayloadForButton(
-                    { whatsapp_message: item.whatsapp_message, whatsapp_image_logic: item.whatsapp_image_logic },
-                    bgUrl
-                  ).mediaToSend
-                }
-              </p>
-            </div>
-          </>
-        )}
+            {item.action_type && item.action_type !== "none" && (
+              <div>
+                <Label className="text-xs font-semibold">
+                  {item.action_type === "link" ? "URL o Ruta de Destino" : "Número de WhatsApp (Opcional)"}
+                </Label>
+                <Input
+                  value={item.action_value || ""}
+                  onChange={(e) => onUpdate({ action_value: e.target.value })}
+                  placeholder={item.action_type === "link" ? "/cotizador o https://..." : "573156724474"}
+                  className="mt-1 text-xs"
+                />
+              </div>
+            )}
+
+            {item.action_type === "whatsapp" && (
+              <>
+                <div className="sm:col-span-2 space-y-1">
+                  <Label className="text-xs font-semibold">Mensaje WhatsApp Personalizado</Label>
+                  <Textarea
+                    rows={2}
+                    value={item.whatsapp_message || ""}
+                    onChange={(e) => onUpdate({ whatsapp_message: e.target.value })}
+                    placeholder={`Hola Will Design 3D, me interesa la consulta sobre: ${item.k || ""} (${item.v || ""}).`}
+                    className="text-xs resize-y"
+                  />
+                  <p className="text-[11px] text-muted-foreground">Usa {"{media}"} para insertar imagen. Ej: Hola Will, vi {"{media}"}</p>
+                </div>
+
+                <div>
+                  <Label className="text-xs font-semibold">Lógica de Logo / Imagen / Video</Label>
+                  <Select
+                    value={item.whatsapp_image_logic || "auto"}
+                    onValueChange={(val: any) => onUpdate({ whatsapp_image_logic: val })}
+                  >
+                    <SelectTrigger className="mt-1 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">Automático (Reglas CEO: Logo si es video, Imagen si existe)</SelectItem>
+                      <SelectItem value="logo">Forzar Enviar Logo de la Empresa</SelectItem>
+                      <SelectItem value="product_image">Enviar Imagen de la Sección / Producto</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Live WhatsApp Message Preview Box */}
+                <div className="sm:col-span-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-1 text-xs">
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                    💬 Así se verá en WhatsApp:
+                  </span>
+                  <p className="text-muted-foreground whitespace-pre-wrap font-mono text-[11px]">
+                    {getWhatsAppPayloadForButton(
+                      { whatsapp_message: item.whatsapp_message, whatsapp_image_logic: item.whatsapp_image_logic },
+                      bgUrl,
+                      null,
+                      `Hola Will Design 3D, me interesa la consulta sobre: ${item.k || ""} (${item.v || ""}).`
+                    ).formattedText || `Hola Will Design 3D, me interesa la consulta sobre: ${item.k || ""} (${item.v || ""}).`}
+                  </p>
+                  <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 font-semibold mt-1 flex items-center gap-1.5 flex-wrap">
+                    <span>📎 Adjunto: {shortMediaName(
+                      getWhatsAppPayloadForButton(
+                        { whatsapp_message: item.whatsapp_message, whatsapp_image_logic: item.whatsapp_image_logic },
+                        bgUrl
+                      ).mediaToSend
+                    )}</span>
+                    {getWhatsAppPayloadForButton(
+                      { whatsapp_message: item.whatsapp_message, whatsapp_image_logic: item.whatsapp_image_logic },
+                      bgUrl
+                    ).mediaToSend.includes("logo") || getWhatsAppPayloadForButton(
+                      { whatsapp_message: item.whatsapp_message, whatsapp_image_logic: item.whatsapp_image_logic },
+                      bgUrl
+                    ).mediaToSend.startsWith("/") ? (
+                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-bold text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
+                        logo
+                      </span>
+                    ) : null}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
 
         <div>
           <Label className="text-xs font-semibold">Tipo de Fondo / Estilo Visual</Label>
@@ -1222,6 +1248,181 @@ function HeroStatsEditor({
   );
 }
 
+function CTAButtonGroup({
+  prefix,
+  values,
+  setValues,
+  uploadingKey,
+  uploadImage,
+}: {
+  prefix: "hero_cta_" | "hero_secondary_cta_" | "about_cta_";
+  values: Record<string, string>;
+  setValues: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  uploadingKey: string | null;
+  uploadImage: (key: string, file: File) => Promise<void>;
+}) {
+  const textKey = `${prefix}text`;
+  const urlKey = `${prefix}url`;
+  const mediaKey = `${prefix}media_url`;
+  const actionTypeKey = `${prefix}action_type`;
+  const messageKey = `${prefix}whatsapp_message`;
+  const logicKey = `${prefix}whatsapp_image_logic`;
+
+  const ctaText = values[textKey] || "";
+  const actionType = values[actionTypeKey] || "link";
+  const whatsappMsg = values[messageKey] || "";
+  const whatsappLogic = values[logicKey] || "auto";
+  const mediaUrl = values[mediaKey] || values["hero_image_url"] || "";
+
+  const payload = getWhatsAppPayloadForButton(
+    {
+      whatsapp_message: whatsappMsg,
+      whatsapp_image_logic: whatsappLogic,
+    },
+    mediaUrl,
+    values["site_logo_url"],
+    "Hola Will, me interesa cotizar..."
+  );
+
+  return (
+    <div className="rounded-xl border border-dashed p-4 space-y-3 bg-muted/30">
+      <p className="text-xs font-bold uppercase tracking-wider mb-2">
+        🎯 Botón: {ctaText || "Sin texto"}
+      </p>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <Label className="text-xs font-semibold">Texto del Botón</Label>
+          <Input
+            value={ctaText}
+            onChange={(e) => setValues((v) => ({ ...v, [textKey]: e.target.value }))}
+            placeholder="Ej: Cotizar Proyecto"
+            className="mt-1 text-xs"
+          />
+        </div>
+
+        <div>
+          <Label className="text-xs font-semibold">Acción del Botón</Label>
+          <Select
+            value={actionType}
+            onValueChange={(val) => setValues((v) => ({ ...v, [actionTypeKey]: val }))}
+          >
+            <SelectTrigger className="mt-1 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="link">Abrir Enlace / Ruta Interna</SelectItem>
+              <SelectItem value="whatsapp">Abrir Chat de WhatsApp</SelectItem>
+              <SelectItem value="cotizador">Abrir Cotizador Interactivo</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {actionType !== "cotizador" && (
+          <div>
+            <Label className="text-xs font-semibold">
+              {actionType === "whatsapp" ? "Número de WhatsApp (Opcional)" : "Enlace / Ruta Destino"}
+            </Label>
+            <Input
+              value={values[urlKey] ?? ""}
+              onChange={(e) => setValues((v) => ({ ...v, [urlKey]: e.target.value }))}
+              placeholder={actionType === "whatsapp" ? "573156724474" : "/cotizador o https://..."}
+              className="mt-1 text-xs"
+            />
+          </div>
+        )}
+
+        <div>
+          <Label className="text-xs font-semibold">Multimedia / Imagen del Botón</Label>
+          <div className="flex items-center gap-2 mt-1">
+            {values[mediaKey] ? (
+              <img src={values[mediaKey]} alt="" className="h-9 w-9 rounded-lg object-cover" />
+            ) : (
+              <div className="h-9 w-9 rounded-lg bg-muted border" />
+            )}
+            <Button asChild variant="outline" size="sm" type="button" className="h-9 text-xs">
+              <label className="cursor-pointer">
+                <Upload className="mr-1.5 h-3.5 w-3.5" />
+                {uploadingKey === mediaKey ? "Subiendo…" : "Subir"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => e.target.files?.[0] && uploadImage(mediaKey, e.target.files[0])}
+                />
+              </label>
+            </Button>
+            {values[mediaKey] && (
+              <Button
+                variant="ghost"
+                size="sm"
+                type="button"
+                onClick={() => setValues((v) => ({ ...v, [mediaKey]: "" }))}
+                className="h-9 text-xs text-muted-foreground hover:text-foreground"
+              >
+                Quitar
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {actionType === "whatsapp" && (
+          <>
+            <div className="sm:col-span-2 space-y-1">
+              <Label className="text-xs font-semibold">Mensaje WhatsApp Personalizado</Label>
+              <Textarea
+                rows={2}
+                value={whatsappMsg}
+                onChange={(e) => setValues((v) => ({ ...v, [messageKey]: e.target.value }))}
+                placeholder="Hola Will, me interesa cotizar..."
+                className="text-xs resize-y"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Usa {"{media}"} para insertar imagen. Ej: Hola Will, vi {"{media}"}
+              </p>
+            </div>
+
+            <div>
+              <Label className="text-xs font-semibold">Lógica de Logo / Imagen / Video</Label>
+              <Select
+                value={whatsappLogic}
+                onValueChange={(val) => setValues((v) => ({ ...v, [logicKey]: val }))}
+              >
+                <SelectTrigger className="mt-1 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Automático (Reglas CEO: Logo si es video, Imagen si existe)</SelectItem>
+                  <SelectItem value="logo">Forzar Enviar Logo de la Empresa</SelectItem>
+                  <SelectItem value="product_image">Enviar Imagen de la Sección / Producto</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Live WhatsApp Message Preview Box */}
+            <div className="sm:col-span-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-1 text-xs">
+              <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                💬 Así se verá en WhatsApp:
+              </span>
+              <p className="text-muted-foreground whitespace-pre-wrap font-mono text-[11px]">
+                {payload.formattedText || "Hola Will, me interesa cotizar..."}
+              </p>
+              <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 font-semibold mt-1 flex items-center gap-1.5 flex-wrap">
+                <span>📎 Adjunto: {shortMediaName(payload.mediaToSend)}</span>
+                {payload.mediaToSend.includes("logo") || payload.mediaToSend.startsWith("/") ? (
+                  <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-bold text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
+                    logo
+                  </span>
+                ) : null}
+              </p>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ContenidoAdmin() {
   const queryClient = useQueryClient();
   const [values, setValues] = useState<Record<string, string>>({});
@@ -1381,6 +1582,63 @@ function ContenidoAdmin() {
   }
 
   function renderField(f: FieldDef) {
+    if (f.key === "hero_cta_text") {
+      return (
+        <CTAButtonGroup
+          key="hero_cta_group"
+          prefix="hero_cta_"
+          values={values}
+          setValues={setValues}
+          uploadingKey={uploadingKey}
+          uploadImage={uploadImage}
+        />
+      );
+    }
+    if (
+      f.key.startsWith("hero_cta_") &&
+      f.key !== "hero_cta_text"
+    ) {
+      return null;
+    }
+
+    if (f.key === "hero_secondary_cta_text") {
+      return (
+        <CTAButtonGroup
+          key="hero_secondary_cta_group"
+          prefix="hero_secondary_cta_"
+          values={values}
+          setValues={setValues}
+          uploadingKey={uploadingKey}
+          uploadImage={uploadImage}
+        />
+      );
+    }
+    if (
+      f.key.startsWith("hero_secondary_cta_") &&
+      f.key !== "hero_secondary_cta_text"
+    ) {
+      return null;
+    }
+
+    if (f.key === "about_cta_text") {
+      return (
+        <CTAButtonGroup
+          key="about_cta_group"
+          prefix="about_cta_"
+          values={values}
+          setValues={setValues}
+          uploadingKey={uploadingKey}
+          uploadImage={uploadImage}
+        />
+      );
+    }
+    if (
+      f.key.startsWith("about_cta_") &&
+      f.key !== "about_cta_text"
+    ) {
+      return null;
+    }
+
     if (f.type === "media") {
       return (
         <div key={f.key} className="space-y-2">
