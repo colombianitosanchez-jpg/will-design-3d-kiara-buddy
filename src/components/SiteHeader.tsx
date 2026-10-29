@@ -304,7 +304,7 @@ export function SiteHeader() {
   const logoUrl = content?.site_logo_url?.trim();
   const businessName = content?.site_business_name?.trim() || "Will Design 3D";
   const subtitle = content?.site_subtitle?.trim() || "";
-  const WHATSAPP_URL = waLink(contact.whatsapp, `Hola ${businessName}`);
+  const WHATSAPP_URL = waLink(contact.whatsapp, `Hola ${businessName}`) || "#";
   const roots = menu ?? [];
 
   return (

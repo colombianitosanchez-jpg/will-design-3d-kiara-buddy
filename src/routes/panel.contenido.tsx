@@ -10,20 +10,13 @@ import {
   Eye,
   EyeOff,
   Film,
-  ArrowUp,
-  ArrowDown,
   Trash2,
   Layout,
   Plus,
   GripVertical,
   Sparkles,
-  Smartphone,
-  Tablet,
-  Monitor,
-  ExternalLink,
-  RefreshCw,
-  Edit3,
   SlidersHorizontal,
+  Save,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +32,7 @@ import { ProductMedia, isVideoUrl } from "@/components/ProductMedia";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { getActiveTheme } from "@/lib/theme";
 import { getWhatsAppPayloadForButton } from "@/lib/whatsapp-buttons";
+import { UnifiedButton } from "@/components/UnifiedButton";
 import { Lottie } from "lottie-react";
 import { motion } from "framer-motion";
 import {
@@ -90,7 +84,6 @@ export type HeroStatItem = {
   media_url?: string;
   animation_type?: "none" | "image" | "video" | "gif" | "lottie";
   animation_style?: string;
-  // FASE 3: Fondo vivo y estilos avanzados
   type?: "solid" | "gradient" | "imageFill" | "videoFill";
   bgImageUrl?: string;
   gradientFrom?: string;
@@ -312,7 +305,7 @@ const FIELDS: FieldDef[] = [
     key: "hero_cta_whatsapp_message",
     label: "Mensaje WhatsApp Botón Principal",
     type: "textarea",
-    help: "Si dejas vacío, se usa mensaje por defecto de /panel/contenido -> Mensajes WhatsApp. Puedes usar {media} para incluir el enlace al logo/imagen.",
+    help: "Si dejas vacío, se usa mensaje por defecto. Puedes usar {media} para incluir el enlace al logo/imagen.",
     section: "Inicio",
     group: "Hero Principal",
   },
@@ -349,7 +342,7 @@ const FIELDS: FieldDef[] = [
     key: "hero_secondary_cta_whatsapp_message",
     label: "Mensaje WhatsApp Botón Secundario",
     type: "textarea",
-    help: "Si dejas vacío, se usa mensaje por defecto de /panel/contenido -> Mensajes WhatsApp. Puedes usar {media} para incluir el enlace al logo/imagen.",
+    help: "Si dejas vacío, se usa mensaje por defecto. Puedes usar {media} para incluir el enlace al logo/imagen.",
     section: "Inicio",
     group: "Hero Principal",
   },
@@ -366,7 +359,7 @@ const FIELDS: FieldDef[] = [
     ],
   },
 
-  // Estadísticas del Hero (Convertidas en Botones de Acción con Drag & Drop)
+  // Estadísticas del Hero
   {
     key: "hero_stats",
     label: "Botones de Acción y Estadísticas del Hero",
@@ -428,7 +421,7 @@ const FIELDS: FieldDef[] = [
     key: "about_cta_whatsapp_message",
     label: "Mensaje WhatsApp Botón 'Nosotros'",
     type: "textarea",
-    help: "Si dejas vacío, se usa mensaje por defecto de /panel/contenido -> Mensajes WhatsApp. Puedes usar {media} para incluir el enlace al logo/imagen.",
+    help: "Si dejas vacío, se usa mensaje por defecto. Puedes usar {media} para incluir el enlace al logo/imagen.",
     section: "Inicio",
     group: "Sección Nosotros",
   },
@@ -605,7 +598,7 @@ function SortableHeroStatCard({
             <GripVertical className="h-4 w-4" />
           </button>
           <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">
-            Botón Estadístico {index + 1}
+            Elemento {index + 1}
           </span>
         </div>
 
@@ -645,7 +638,7 @@ function SortableHeroStatCard({
             size="icon"
             onClick={onRemove}
             className="text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
-            title="Eliminar botón estadístico"
+            title="Eliminar elemento"
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -674,10 +667,10 @@ function SortableHeroStatCard({
         </div>
 
         <div className="sm:col-span-2 rounded-xl border border-dashed p-4 space-y-3 bg-muted/30">
-          <p className="text-xs font-bold uppercase tracking-wider mb-2">🎯 Botón: {item.k || 'Sin texto'}</p>
+          <p className="text-xs font-bold uppercase tracking-wider mb-2">🎯 Acción Clickeable: {item.k || 'Sin texto'}</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <Label className="text-xs font-semibold">Acción Clickeable</Label>
+              <Label className="text-xs font-semibold">Acción</Label>
               <Select
                 value={item.action_type || "none"}
                 onValueChange={(val: any) => onUpdate({ action_type: val })}
@@ -1221,7 +1214,7 @@ function HeroStatsEditor({
       action_type: "none",
     };
     onChange(JSON.stringify([...items, newItem]));
-    toast.success("Nuevo botón estadístico añadido");
+    toast.success("Nuevo elemento añadido");
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -1254,7 +1247,7 @@ function HeroStatsEditor({
       </DndContext>
 
       <Button type="button" variant="outline" size="sm" onClick={handleAddItem} className="mt-2 text-xs font-bold">
-        <Plus className="mr-1.5 h-3.5 w-3.5" /> + Añadir botón estadístico
+        <Plus className="mr-1.5 h-3.5 w-3.5" /> + Añadir elemento
       </Button>
     </div>
   );
@@ -1267,7 +1260,7 @@ function CTAButtonGroup({
   uploadingKey,
   uploadImage,
 }: {
-  prefix: "hero_cta_" | "hero_secondary_cta_" | "about_cta_";
+  prefix: "hero_cta_" | "hero_secondary_cta_" | "about_cta_" | "about_mission_cta_" | "about_vision_cta_";
   values: Record<string, string>;
   setValues: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   uploadingKey: string | null;
@@ -1296,11 +1289,45 @@ function CTAButtonGroup({
     "Hola Will, me interesa cotizar..."
   );
 
+  const isVid = /\.(mp4|webm|quicktime)($|\?)/i.test(mediaUrl);
+  const isGif = /\.gif($|\?)/i.test(mediaUrl);
+  const isLottie = /\.json($|\?)/i.test(mediaUrl);
+  const animType = isVid ? "video" : isGif ? "gif" : isLottie ? "lottie" : mediaUrl ? "image" : "none";
+
   return (
-    <div className="rounded-xl border border-dashed p-4 space-y-3 bg-muted/30">
-      <p className="text-xs font-bold uppercase tracking-wider mb-2">
-        🎯 Botón: {ctaText || "Sin texto"}
-      </p>
+    <div className="rounded-2xl border border-dashed border-border p-4 space-y-4 bg-muted/20">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2">
+        <p className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+          <Sparkles className="h-4 w-4 text-primary" />
+          Botón: {ctaText || "Sin texto definido"}
+        </p>
+
+        {/* Live UnifiedButton Preview */}
+        <div className="shrink-0">
+          <UnifiedButton
+            button={{
+              id: prefix,
+              text: ctaText || "Vista Previa",
+              action_type: actionType === "cotizador" ? "link" : (actionType as any),
+              action_value: values[urlKey] || "/cotizador",
+              whatsapp_message: whatsappMsg,
+              custom_hex: prefix.includes("mission")
+                ? "var(--brand-orange)"
+                : prefix.includes("vision")
+                ? "var(--brand-teal)"
+                : prefix.includes("secondary")
+                ? "var(--brand-wine)"
+                : "var(--brand-orange)",
+              media_url: mediaUrl,
+              animation_type: animType as any,
+              variant: "default",
+              width: "auto",
+              position: "left",
+              include_image_link: true,
+            }}
+          />
+        </div>
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
@@ -1314,7 +1341,7 @@ function CTAButtonGroup({
         </div>
 
         <div>
-          <Label className="text-xs font-semibold">Acción del Botón</Label>
+          <Label className="text-xs font-semibold">Acción al Pulsar</Label>
           <Select
             value={actionType}
             onValueChange={(val) => setValues((v) => ({ ...v, [actionTypeKey]: val }))}
@@ -1344,38 +1371,12 @@ function CTAButtonGroup({
           </div>
         )}
 
-        <div>
-          <Label className="text-xs font-semibold">Multimedia / Imagen del Botón</Label>
-          <div className="flex items-center gap-2 mt-1">
-            {values[mediaKey] ? (
-              <img src={values[mediaKey]} alt="" className="h-9 w-9 rounded-lg object-cover" />
-            ) : (
-              <div className="h-9 w-9 rounded-lg bg-muted border" />
-            )}
-            <Button asChild variant="outline" size="sm" type="button" className="h-9 text-xs">
-              <label className="cursor-pointer">
-                <Upload className="mr-1.5 h-3.5 w-3.5" />
-                {uploadingKey === mediaKey ? "Subiendo…" : "Subir"}
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => e.target.files?.[0] && uploadImage(mediaKey, e.target.files[0])}
-                />
-              </label>
-            </Button>
-            {values[mediaKey] && (
-              <Button
-                variant="ghost"
-                size="sm"
-                type="button"
-                onClick={() => setValues((v) => ({ ...v, [mediaKey]: "" }))}
-                className="h-9 text-xs text-muted-foreground hover:text-foreground"
-              >
-                Quitar
-              </Button>
-            )}
-          </div>
+        <div className="sm:col-span-2 space-y-1.5">
+          <Label className="text-xs font-semibold">Multimedia / Fondo Vivo / GIF del Botón</Label>
+          <MediaDropZone
+            value={values[mediaKey] || ""}
+            onChange={(url) => setValues((v) => ({ ...v, [mediaKey]: url }))}
+          />
         </div>
 
         {actionType === "whatsapp" && (
@@ -1390,12 +1391,12 @@ function CTAButtonGroup({
                 className="text-xs resize-y"
               />
               <p className="text-[11px] text-muted-foreground">
-                Usa {"{media}"} para insertar imagen. Ej: Hola Will, vi {"{media}"}
+                Usa {"{media}"} para insertar la URL del logo o imagen. Ej: Hola Will, vi {"{media}"}
               </p>
             </div>
 
-            <div>
-              <Label className="text-xs font-semibold">Lógica de Logo / Imagen / Video</Label>
+            <div className="sm:col-span-2">
+              <Label className="text-xs font-semibold">Lógica de Logo / Imagen / Video en WhatsApp</Label>
               <Select
                 value={whatsappLogic}
                 onValueChange={(val) => setValues((v) => ({ ...v, [logicKey]: val }))}
@@ -1414,13 +1415,13 @@ function CTAButtonGroup({
             {/* Live WhatsApp Message Preview Box */}
             <div className="sm:col-span-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-1 text-xs">
               <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                💬 Así se verá en WhatsApp:
+                💬 Previsualización de mensaje en WhatsApp:
               </span>
               <p className="text-muted-foreground whitespace-pre-wrap font-mono text-[11px]">
                 {payload.formattedText || "Hola Will, me interesa cotizar..."}
               </p>
               <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 font-semibold mt-1 flex items-center gap-1.5 flex-wrap">
-                <span>📎 Adjunto: {shortMediaName(payload.mediaToSend)}</span>
+                <span>📎 Adjunto a enviar: {shortMediaName(payload.mediaToSend)}</span>
                 {payload.mediaToSend.includes("logo") || payload.mediaToSend.startsWith("/") ? (
                   <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-bold text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
                     logo
@@ -1435,114 +1436,6 @@ function CTAButtonGroup({
   );
 }
 
-/** Componente de Vista Previa en Vivo con selector de dispositivos (Desktop, Tablet, Mobile) */
-function LivePreviewFrame({
-  lastSavedKey,
-}: {
-  lastSavedKey: number;
-}) {
-  const [device, setDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-
-  function reloadIframe() {
-    if (iframeRef.current) {
-      iframeRef.current.src = `/?preview_ts=${Date.now()}`;
-    }
-  }
-
-  useEffect(() => {
-    reloadIframe();
-  }, [lastSavedKey]);
-
-  const frameWidths = {
-    desktop: "w-full h-full",
-    tablet: "w-[768px] max-w-full h-full shadow-2xl rounded-2xl border-4 border-muted-foreground/30",
-    mobile: "w-[390px] max-w-full h-full shadow-2xl rounded-3xl border-8 border-muted-foreground/40",
-  };
-
-  return (
-    <div className="flex flex-col h-full rounded-2xl border border-border bg-card overflow-hidden shadow-lg">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/40 px-3 py-2 text-xs">
-        <div className="flex items-center gap-1.5 font-bold text-foreground">
-          <Eye className="h-4 w-4 text-primary" />
-          <span>Vista Previa en Vivo</span>
-          <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-            • En tiempo real
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1">
-          <div className="flex items-center rounded-lg border border-border bg-background p-0.5">
-            <button
-              type="button"
-              onClick={() => setDevice("desktop")}
-              className={`rounded-md p-1.5 transition ${
-                device === "desktop" ? "bg-primary text-primary-foreground font-bold" : "text-muted-foreground hover:bg-muted"
-              }`}
-              title="Vista de Escritorio"
-            >
-              <Monitor className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setDevice("tablet")}
-              className={`rounded-md p-1.5 transition ${
-                device === "tablet" ? "bg-primary text-primary-foreground font-bold" : "text-muted-foreground hover:bg-muted"
-              }`}
-              title="Vista de Tablet"
-            >
-              <Tablet className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setDevice("mobile")}
-              className={`rounded-md p-1.5 transition ${
-                device === "mobile" ? "bg-primary text-primary-foreground font-bold" : "text-muted-foreground hover:bg-muted"
-              }`}
-              title="Vista Móvil"
-            >
-              <Smartphone className="h-3.5 w-3.5" />
-            </button>
-          </div>
-
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={reloadIframe}
-            className="h-7 w-7 text-muted-foreground hover:text-foreground"
-            title="Recargar vista previa"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-          </Button>
-
-          <a
-            href="/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 rounded-lg border border-border bg-background px-2 py-1 text-[11px] font-semibold text-foreground hover:bg-accent"
-            title="Abrir en pestaña nueva"
-          >
-            <span>Ver sitio</span>
-            <ExternalLink className="h-3 w-3" />
-          </a>
-        </div>
-      </div>
-
-      <div className="flex-1 bg-muted/20 p-2 flex items-center justify-center overflow-auto min-h-[450px]">
-        <div className={`transition-all duration-300 ${frameWidths[device]} overflow-hidden`}>
-          <iframe
-            ref={iframeRef}
-            src="/"
-            title="Vista Previa de Inicio"
-            className="w-full h-full border-0 bg-background"
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function ContenidoAdmin() {
   const queryClient = useQueryClient();
   const [values, setValues] = useState<Record<string, string>>({});
@@ -1550,8 +1443,11 @@ function ContenidoAdmin() {
   const [saving, setSaving] = useState(false);
   const [hasUnsaved, setHasUnsaved] = useState(false);
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
-  const [lastSavedKey, setLastSavedKey] = useState(0);
+
+  const valuesRef = useRef(values);
+  useEffect(() => {
+    valuesRef.current = values;
+  }, [values]);
 
   async function load() {
     setLoading(true);
@@ -1575,6 +1471,29 @@ function ContenidoAdmin() {
   }, []);
 
   const lastSaved = useRef<Record<string, string> | null>(null);
+
+  async function save(fields: FieldDef[], snapshot: Record<string, string>) {
+    if (!fields.length) return;
+    setSaving(true);
+    try {
+      const rows = fields.map((f) => ({
+        key: f.key,
+        value: snapshot[f.key] ?? "",
+        section: f.section,
+      }));
+      const { error } = await supabase.from("site_content").upsert(rows, { onConflict: "key" });
+      if (error) throw error;
+      lastSaved.current = { ...lastSaved.current, ...Object.fromEntries(rows.map((r) => [r.key, r.value])) };
+      setHasUnsaved(false);
+      await queryClient.invalidateQueries({ queryKey: ["site_content"] });
+    } catch (e) {
+      toast.error("No pudimos guardar los cambios", { description: (e as Error).message });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Debounced Auto-Save
   useEffect(() => {
     if (loading) return;
     if (!lastSaved.current) {
@@ -1591,26 +1510,35 @@ function ContenidoAdmin() {
     return () => clearTimeout(timer);
   }, [values, loading]);
 
-  async function save(fields: FieldDef[], snapshot: Record<string, string>) {
-    setSaving(true);
-    try {
-      const rows = fields.map((f) => ({
-        key: f.key,
-        value: snapshot[f.key] ?? "",
-        section: f.section,
-      }));
-      const { error } = await supabase.from("site_content").upsert(rows, { onConflict: "key" });
-      if (error) throw error;
-      lastSaved.current = { ...lastSaved.current, ...Object.fromEntries(rows.map((r) => [r.key, r.value])) };
-      setHasUnsaved(false);
-      setLastSavedKey((k) => k + 1);
-      await queryClient.invalidateQueries({ queryKey: ["site_content"] });
-    } catch (e) {
-      toast.error("No pudimos guardar", { description: (e as Error).message });
-    } finally {
-      setSaving(false);
+  // Guardado inmediato en cambio de pestaña o app (visibilitychange / beforeunload)
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.visibilityState === "hidden") {
+        const currentValues = valuesRef.current;
+        if (!lastSaved.current) return;
+        const changed = FIELDS.filter((f) => (currentValues[f.key] ?? "") !== (lastSaved.current?.[f.key] ?? ""));
+        if (changed.length) {
+          save(changed, currentValues);
+        }
+      }
     }
-  }
+
+    function handleBeforeUnload() {
+      const currentValues = valuesRef.current;
+      if (!lastSaved.current) return;
+      const changed = FIELDS.filter((f) => (currentValues[f.key] ?? "") !== (lastSaved.current?.[f.key] ?? ""));
+      if (changed.length) {
+        save(changed, currentValues);
+      }
+    }
+
+    window.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, []);
 
   async function uploadToStorage(key: string, file: File, bucket = "site-media") {
     if (file.size > 50 * 1024 * 1024) {
@@ -1642,68 +1570,6 @@ function ContenidoAdmin() {
     }
   }
 
-  function parseList(raw: string | undefined): PortfolioPhoto[] {
-    return parsePhotos(raw);
-  }
-
-  async function uploadImages(key: string, files: File[]) {
-    setUploadingKey(key);
-    try {
-      const added: PortfolioPhoto[] = [];
-      for (const f of files) {
-        const url = await uploadToStorage(key, f, "site-media");
-        added.push({ id: crypto.randomUUID(), url, is_visible: true });
-      }
-      setValues((v) => ({
-        ...v,
-        [key]: JSON.stringify([...parseList(v[key]), ...added]),
-      }));
-      toast.success(`${added.length} elemento(s) subido(s)`);
-    } catch (e) {
-      toast.error("Error al subir", { description: (e as Error).message });
-    } finally {
-      setUploadingKey(null);
-    }
-  }
-
-  function removeImageAt(key: string, index: number) {
-    setValues((v) => {
-      const list = parseList(v[key]).filter((_, i) => i !== index);
-      return { ...v, [key]: list.length ? JSON.stringify(list) : "" };
-    });
-  }
-
-  function movePhotoAt(key: string, index: number, dir: -1 | 1) {
-    setValues((v) => {
-      const list = parseList(v[key]);
-      const target = index + dir;
-      if (target < 0 || target >= list.length) return v;
-      const next = [...list];
-      const temp = next[index];
-      next[index] = next[target];
-      next[target] = temp;
-      return { ...v, [key]: JSON.stringify(next) };
-    });
-  }
-
-  function updatePhotoLinkAt(key: string, index: number, link_url: string) {
-    setValues((v) => {
-      const list = parseList(v[key]).map((p, i) =>
-        i === index ? { ...p, link_url: link_url ? link_url : undefined } : p,
-      );
-      return { ...v, [key]: list.length ? JSON.stringify(list) : "" };
-    });
-  }
-
-  function togglePhotoAt(key: string, index: number) {
-    setValues((v) => {
-      const list = parseList(v[key]).map((p, i) =>
-        i === index ? { ...p, is_visible: !p.is_visible } : p,
-      );
-      return { ...v, [key]: list.length ? JSON.stringify(list) : "" };
-    });
-  }
-
   function isFlagOn(key: string) {
     const v = (values[key] ?? "").trim().toLowerCase();
     if (!v) return true;
@@ -1723,10 +1589,7 @@ function ContenidoAdmin() {
         />
       );
     }
-    if (
-      f.key.startsWith("hero_cta_") &&
-      f.key !== "hero_cta_text"
-    ) {
+    if (f.key.startsWith("hero_cta_") && f.key !== "hero_cta_text") {
       return null;
     }
 
@@ -1742,10 +1605,7 @@ function ContenidoAdmin() {
         />
       );
     }
-    if (
-      f.key.startsWith("hero_secondary_cta_") &&
-      f.key !== "hero_secondary_cta_text"
-    ) {
+    if (f.key.startsWith("hero_secondary_cta_") && f.key !== "hero_secondary_cta_text") {
       return null;
     }
 
@@ -1761,10 +1621,39 @@ function ContenidoAdmin() {
         />
       );
     }
-    if (
-      f.key.startsWith("about_cta_") &&
-      f.key !== "about_cta_text"
-    ) {
+    if (f.key.startsWith("about_cta_") && f.key !== "about_cta_text") {
+      return null;
+    }
+
+    if (f.key === "about_mission_cta_text") {
+      return (
+        <CTAButtonGroup
+          key="about_mission_cta_group"
+          prefix="about_mission_cta_"
+          values={values}
+          setValues={setValues}
+          uploadingKey={uploadingKey}
+          uploadImage={uploadImage}
+        />
+      );
+    }
+    if (f.key.startsWith("about_mission_cta_") && f.key !== "about_mission_cta_text") {
+      return null;
+    }
+
+    if (f.key === "about_vision_cta_text") {
+      return (
+        <CTAButtonGroup
+          key="about_vision_cta_group"
+          prefix="about_vision_cta_"
+          values={values}
+          setValues={setValues}
+          uploadingKey={uploadingKey}
+          uploadImage={uploadImage}
+        />
+      );
+    }
+    if (f.key.startsWith("about_vision_cta_") && f.key !== "about_vision_cta_text") {
       return null;
     }
 
@@ -1860,36 +1749,6 @@ function ContenidoAdmin() {
               }}
               className="resize-y"
             />
-            {f.key.endsWith("_whatsapp_message") && (
-              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-1 text-xs">
-                <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                  💬 Así se verá en WhatsApp:
-                </span>
-                <p className="text-muted-foreground whitespace-pre-wrap font-mono text-[11px]">
-                  {getWhatsAppPayloadForButton(
-                    {
-                      whatsapp_message: values[f.key],
-                      whatsapp_image_logic: values[f.key.replace("_whatsapp_message", "_whatsapp_image_logic")],
-                    },
-                    values[f.key.startsWith("hero_secondary") ? "hero_secondary_cta_media_url" : f.key.startsWith("hero_cta") ? "hero_cta_media_url" : "about_cta_media_url"] || values["hero_image_url"],
-                    values["site_logo_url"],
-                    "Hola Will, me interesa cotizar..."
-                  ).formattedText || "Hola Will, me interesa cotizar..."}
-                </p>
-                <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 font-semibold mt-1">
-                  📎 Adjunto a enviar: {
-                    getWhatsAppPayloadForButton(
-                      {
-                        whatsapp_message: values[f.key],
-                        whatsapp_image_logic: values[f.key.replace("_whatsapp_message", "_whatsapp_image_logic")],
-                      },
-                      values[f.key.startsWith("hero_secondary") ? "hero_secondary_cta_media_url" : f.key.startsWith("hero_cta") ? "hero_cta_media_url" : "about_cta_media_url"] || values["hero_image_url"],
-                      values["site_logo_url"]
-                    ).mediaToSend
-                  }
-                </p>
-              </div>
-            )}
           </>
         )}
 
@@ -1910,7 +1769,6 @@ function ContenidoAdmin() {
             </SelectContent>
           </Select>
         )}
-
       </div>
     );
   }
@@ -1918,7 +1776,7 @@ function ContenidoAdmin() {
   if (loading) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground p-8">
-        <Loader2 className="h-4 w-4 animate-spin" /> Cargando contenido de la página principal…
+        <Loader2 className="h-4 w-4 animate-spin" /> Cargando contenido del sitio…
       </div>
     );
   }
@@ -1926,102 +1784,68 @@ function ContenidoAdmin() {
   const groups = Array.from(new Set(FIELDS.map((f) => f.group)));
 
   return (
-    <div className="space-y-6">
-      {/* Top Header Bar con Auto-Save Status y Mobile Tabs Toggle */}
-      <div className="sticky top-16 z-20 -mx-1 mb-6 flex flex-col gap-3 rounded-2xl border border-border bg-card/95 p-4 backdrop-blur shadow-xs sm:flex-row sm:items-center sm:justify-between">
+    <div className="max-w-5xl mx-auto space-y-6">
+      {/* Barra de Estado Flotante de Auto-Guardado Siempre Visible */}
+      <div className="sticky top-16 z-20 -mx-1 mb-6 flex flex-col gap-3 rounded-2xl border border-border bg-card/95 p-4 backdrop-blur shadow-md sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-black flex items-center gap-2">
-            <Layout className="h-6 w-6 text-primary" /> Visual Home Builder & CMS
+            <Layout className="h-6 w-6 text-primary" /> Contenido del Sitio
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            Personaliza el contenido de inicio con vista previa en vivo y auto-guardado.
+            Personaliza fácilmente el inicio, la sección Nosotros y los textos de tu tienda.
           </p>
         </div>
 
-        <div className="flex items-center justify-between sm:justify-end gap-3 border-t sm:border-t-0 pt-2 sm:pt-0 border-border/60">
-          {/* Mobile Tab Switcher */}
-          <div className="flex lg:hidden items-center rounded-xl border border-border bg-muted p-1">
-            <button
-              type="button"
-              onClick={() => setActiveTab("edit")}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                activeTab === "edit"
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Edit3 className="h-3.5 w-3.5" />
-              <span>Editar</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("preview")}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                activeTab === "preview"
-                  ? "bg-primary text-primary-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Eye className="h-3.5 w-3.5" />
-              <span>Vista Previa</span>
-            </button>
-          </div>
-
-          {/* Auto-Save Status Badge */}
-          <div className="flex items-center gap-2">
-            {saving ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-3 py-1 text-xs font-bold text-amber-600 dark:text-amber-400">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Guardando...
+        <div className="flex items-center gap-3 shrink-0">
+          {saving ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-3 py-1.5 text-xs font-bold text-amber-600 dark:text-amber-400">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Guardando...
+            </span>
+          ) : hasUnsaved ? (
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/15 px-3 py-1.5 text-xs font-bold text-blue-600 dark:text-blue-400">
+                <SlidersHorizontal className="h-3.5 w-3.5" /> Cambios pendientes
               </span>
-            ) : hasUnsaved ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/15 px-3 py-1 text-xs font-bold text-blue-600 dark:text-blue-400">
-                <SlidersHorizontal className="h-3.5 w-3.5" /> Cambios sin guardar
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                <Check className="h-3.5 w-3.5" /> Guardado
-              </span>
-            )}
-          </div>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  const changed = FIELDS.filter((f) => (values[f.key] ?? "") !== (lastSaved.current?.[f.key] ?? ""));
+                  if (changed.length) save(changed, values);
+                }}
+                className="h-8 text-xs font-bold gap-1.5"
+              >
+                <Save className="h-3.5 w-3.5" /> Guardar ahora
+              </Button>
+            </div>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+              <Check className="h-3.5 w-3.5" /> Guardado
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Main Responsive Grid Layout: Split Screen on Desktop (lg+), Toggle Tabs on Mobile (< lg) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Form Fields & Controls */}
-        <div
-          className={`space-y-6 ${
-            activeTab === "edit" ? "block" : "hidden lg:block"
-          } lg:col-span-6 xl:col-span-6`}
-        >
-          {groups.map((group) => (
-            <Card key={group}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-bold flex items-center justify-between">
-                  <span>{group}</span>
-                  <span className="text-xs font-normal text-muted-foreground">
-                    {FIELDS.filter((f) => f.group === group).length} campos
-                  </span>
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Modifica los datos para ver reflejado el cambio en la vista previa.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6 pt-0">
-                {FIELDS.filter((f) => f.group === group).map(renderField)}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Right Column: Live Interactive Preview */}
-        <div
-          className={`${
-            activeTab === "preview" ? "block" : "hidden lg:block"
-          } lg:col-span-6 xl:col-span-6 lg:sticky lg:top-24 h-[calc(100vh-8rem)] min-h-[550px]`}
-        >
-          <LivePreviewFrame lastSavedKey={lastSavedKey} />
-        </div>
+      {/* Lista de Grupos de Configuración */}
+      <div className="space-y-6">
+        {groups.map((group) => (
+          <Card key={group} className="border-border shadow-xs">
+            <CardHeader className="pb-3 border-b border-border/60">
+              <CardTitle className="text-base font-bold flex items-center justify-between">
+                <span>{group}</span>
+                <span className="text-xs font-normal text-muted-foreground">
+                  {FIELDS.filter((f) => f.group === group).length} campos
+                </span>
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Modifica los textos, imágenes y configuraciones de esta sección.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6 pt-6">
+              {FIELDS.filter((f) => f.group === group).map(renderField)}
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </div>
   );
