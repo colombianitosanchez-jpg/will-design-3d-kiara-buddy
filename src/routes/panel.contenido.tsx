@@ -17,6 +17,13 @@ import {
   Plus,
   GripVertical,
   Sparkles,
+  Smartphone,
+  Tablet,
+  Monitor,
+  ExternalLink,
+  RefreshCw,
+  Edit3,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +46,7 @@ import {
   closestCenter,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -277,7 +285,7 @@ const FIELDS: FieldDef[] = [
   {
     key: "hero_image_url",
     label: "Imagen del Hero (Respaldo)",
-    type: "image",
+    type: "media",
     help: "Se usa como respaldo si el Carrusel Hero no tiene diapositivas activas.",
     section: "Inicio",
     group: "Hero Principal",
@@ -287,7 +295,7 @@ const FIELDS: FieldDef[] = [
   // Botón Principal Hero
   { key: "hero_cta_text", label: "Texto Botón Principal Hero", type: "text", help: "Ej: Cotizar Proyecto", section: "Inicio", group: "Hero Principal" },
   { key: "hero_cta_url", label: "Enlace/Ruta Botón Principal Hero", type: "text", help: "Ej: /cotizador o https://...", section: "Inicio", group: "Hero Principal" },
-  { key: "hero_cta_media_url", label: "Multimedia/Imagen Botón Principal Hero", type: "image", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_cta_media_url", label: "Multimedia/Imagen Botón Principal Hero", type: "media", section: "Inicio", group: "Hero Principal" },
   {
     key: "hero_cta_action_type",
     label: "Acción Botón Principal Hero",
@@ -324,7 +332,7 @@ const FIELDS: FieldDef[] = [
   // Botón Secundario Hero
   { key: "hero_secondary_cta_text", label: "Texto Botón Secundario Hero", type: "text", help: "Ej: Ver tienda", section: "Inicio", group: "Hero Principal" },
   { key: "hero_secondary_cta_url", label: "Enlace/Ruta Botón Secundario Hero", type: "text", help: "Ej: /tienda o https://...", section: "Inicio", group: "Hero Principal" },
-  { key: "hero_secondary_cta_media_url", label: "Multimedia Botón Secundario Hero", type: "image", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_secondary_cta_media_url", label: "Multimedia Botón Secundario Hero", type: "media", section: "Inicio", group: "Hero Principal" },
   {
     key: "hero_secondary_cta_action_type",
     label: "Acción Botón Secundario Hero",
@@ -368,8 +376,6 @@ const FIELDS: FieldDef[] = [
     group: "Estadísticas del Hero",
   },
 
-  // Sección Servicios: Movido a panel.servicios.tsx - fuente de verdad concentrada
-
   // Portafolio e Instagram
   { key: "show_manual_gallery", label: "Mostrar Galería Manual de Portafolio", type: "switch", help: "Se muestra si está activo y hay al menos una foto/video subida.", section: "Inicio", group: "Portafolio y Redes" },
   { key: "show_instagram_widget", label: "Mostrar Widget de Instagram en Vivo", type: "switch", help: "Se muestra si está activo y el ID del widget Elfsight es válido.", section: "Inicio", group: "Portafolio y Redes" },
@@ -401,11 +407,11 @@ const FIELDS: FieldDef[] = [
   { key: "about_subtitle", label: "Subtítulo / Bajada 'Nosotros'", type: "textarea", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_short", label: "Descripción Corta 'Nosotros'", type: "textarea", help: "Resumen que se muestra en la página principal.", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_long", label: "Descripción Detallada 'Nosotros'", type: "textarea", help: "Texto extendido que se muestra en la página /nosotros.", section: "Inicio", group: "Sección Nosotros" },
-  { key: "about_image_url", label: "Imagen Principal 'Nosotros'", type: "image", help: "Imagen destacada del taller o equipo.", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_image_url", label: "Imagen Principal 'Nosotros'", type: "media", help: "Imagen destacada del taller o equipo.", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_stats", label: "Métricas y Logros Destacados 'Nosotros'", type: "hero_stats", help: "Añade logros y estadísticas para mostrar en la sección Nosotros.", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_cta_text", label: "Texto del Botón 'Nosotros'", type: "text", help: "Ej: Conoce más sobre nosotros", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_cta_url", label: "Enlace del Botón 'Nosotros'", type: "text", help: "Ej: /nosotros o https://...", section: "Inicio", group: "Sección Nosotros" },
-  { key: "about_cta_media_url", label: "Multimedia Botón 'Nosotros'", type: "image", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_cta_media_url", label: "Multimedia Botón 'Nosotros'", type: "media", section: "Inicio", group: "Sección Nosotros" },
   {
     key: "about_cta_action_type",
     label: "Acción Botón 'Nosotros'",
@@ -1030,11 +1036,15 @@ function SortablePortfolioCard({
         type="button"
         {...attributes}
         {...listeners}
-        className="cursor-grab touch-none p-1 text-muted-foreground hover:text-foreground shrink-0"
-        title="Arrastrar para reordenar"
+        className="cursor-grab touch-none p-1.5 text-muted-foreground hover:text-foreground shrink-0 rounded-lg hover:bg-muted"
+        title="Arrastrar para reordenar elemento del portafolio"
       >
-        <GripVertical className="h-5 w-5" />
+        <GripVertical className="h-5 w-5 text-primary" />
       </button>
+
+      <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-xs font-black text-primary shrink-0">
+        #{index + 1}
+      </span>
 
       <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-border bg-muted">
         <ProductMedia
@@ -1107,6 +1117,7 @@ function PortfolioGalleryEditor({
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
@@ -1188,6 +1199,7 @@ function HeroStatsEditor({
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
@@ -1423,12 +1435,123 @@ function CTAButtonGroup({
   );
 }
 
+/** Componente de Vista Previa en Vivo con selector de dispositivos (Desktop, Tablet, Mobile) */
+function LivePreviewFrame({
+  lastSavedKey,
+}: {
+  lastSavedKey: number;
+}) {
+  const [device, setDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  function reloadIframe() {
+    if (iframeRef.current) {
+      iframeRef.current.src = `/?preview_ts=${Date.now()}`;
+    }
+  }
+
+  useEffect(() => {
+    reloadIframe();
+  }, [lastSavedKey]);
+
+  const frameWidths = {
+    desktop: "w-full h-full",
+    tablet: "w-[768px] max-w-full h-full shadow-2xl rounded-2xl border-4 border-muted-foreground/30",
+    mobile: "w-[390px] max-w-full h-full shadow-2xl rounded-3xl border-8 border-muted-foreground/40",
+  };
+
+  return (
+    <div className="flex flex-col h-full rounded-2xl border border-border bg-card overflow-hidden shadow-lg">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/40 px-3 py-2 text-xs">
+        <div className="flex items-center gap-1.5 font-bold text-foreground">
+          <Eye className="h-4 w-4 text-primary" />
+          <span>Vista Previa en Vivo</span>
+          <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+            • En tiempo real
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <div className="flex items-center rounded-lg border border-border bg-background p-0.5">
+            <button
+              type="button"
+              onClick={() => setDevice("desktop")}
+              className={`rounded-md p-1.5 transition ${
+                device === "desktop" ? "bg-primary text-primary-foreground font-bold" : "text-muted-foreground hover:bg-muted"
+              }`}
+              title="Vista de Escritorio"
+            >
+              <Monitor className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setDevice("tablet")}
+              className={`rounded-md p-1.5 transition ${
+                device === "tablet" ? "bg-primary text-primary-foreground font-bold" : "text-muted-foreground hover:bg-muted"
+              }`}
+              title="Vista de Tablet"
+            >
+              <Tablet className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setDevice("mobile")}
+              className={`rounded-md p-1.5 transition ${
+                device === "mobile" ? "bg-primary text-primary-foreground font-bold" : "text-muted-foreground hover:bg-muted"
+              }`}
+              title="Vista Móvil"
+            >
+              <Smartphone className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={reloadIframe}
+            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+            title="Recargar vista previa"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+          </Button>
+
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 rounded-lg border border-border bg-background px-2 py-1 text-[11px] font-semibold text-foreground hover:bg-accent"
+            title="Abrir en pestaña nueva"
+          >
+            <span>Ver sitio</span>
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        </div>
+      </div>
+
+      <div className="flex-1 bg-muted/20 p-2 flex items-center justify-center overflow-auto min-h-[450px]">
+        <div className={`transition-all duration-300 ${frameWidths[device]} overflow-hidden`}>
+          <iframe
+            ref={iframeRef}
+            src="/"
+            title="Vista Previa de Inicio"
+            className="w-full h-full border-0 bg-background"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ContenidoAdmin() {
   const queryClient = useQueryClient();
   const [values, setValues] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [hasUnsaved, setHasUnsaved] = useState(false);
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
+  const [lastSavedKey, setLastSavedKey] = useState(0);
 
   async function load() {
     setLoading(true);
@@ -1459,7 +1582,11 @@ function ContenidoAdmin() {
       return;
     }
     const changed = FIELDS.filter((f) => (values[f.key] ?? "") !== (lastSaved.current?.[f.key] ?? ""));
-    if (!changed.length) return;
+    if (!changed.length) {
+      setHasUnsaved(false);
+      return;
+    }
+    setHasUnsaved(true);
     const timer = setTimeout(() => save(changed, values), 800);
     return () => clearTimeout(timer);
   }, [values, loading]);
@@ -1475,6 +1602,8 @@ function ContenidoAdmin() {
       const { error } = await supabase.from("site_content").upsert(rows, { onConflict: "key" });
       if (error) throw error;
       lastSaved.current = { ...lastSaved.current, ...Object.fromEntries(rows.map((r) => [r.key, r.value])) };
+      setHasUnsaved(false);
+      setLastSavedKey((k) => k + 1);
       await queryClient.invalidateQueries({ queryKey: ["site_content"] });
     } catch (e) {
       toast.error("No pudimos guardar", { description: (e as Error).message });
@@ -1505,7 +1634,7 @@ function ContenidoAdmin() {
     try {
       const url = await uploadToStorage(key, file);
       setValues((v) => ({ ...v, [key]: url }));
-      toast.success("Imagen subida");
+      toast.success("Imagen subida con éxito");
     } catch (e) {
       toast.error("Error al subir", { description: (e as Error).message });
     } finally {
@@ -1639,7 +1768,7 @@ function ContenidoAdmin() {
       return null;
     }
 
-    if (f.type === "media") {
+    if (f.type === "media" || f.type === "image") {
       return (
         <div key={f.key} className="space-y-2">
           <Label className="text-sm font-bold">{f.label}</Label>
@@ -1691,7 +1820,7 @@ function ContenidoAdmin() {
       return (
         <div
           key={f.key}
-          className="flex items-start justify-between gap-4 rounded-2xl border border-border p-4"
+          className="flex items-start justify-between gap-4 rounded-2xl border border-border p-4 bg-card"
         >
           <div className="space-y-1">
             <Label htmlFor={f.key} className="text-sm font-bold">
@@ -1782,155 +1911,6 @@ function ContenidoAdmin() {
           </Select>
         )}
 
-        {f.type === "image" && (
-          <div className="flex flex-wrap items-center gap-4">
-            {values[f.key] ? (
-              <img src={values[f.key]} alt="" className="h-20 w-20 rounded-xl object-cover" />
-            ) : (
-              <div className="h-20 w-20 rounded-xl bg-muted" />
-            )}
-            <Button asChild variant="outline" size="sm" type="button">
-              <label className="cursor-pointer">
-                <Upload className="mr-2 h-4 w-4" />
-                {uploadingKey === f.key ? "Subiendo…" : "Subir imagen"}
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => e.target.files?.[0] && uploadImage(f.key, e.target.files[0])}
-                />
-              </label>
-            </Button>
-            {values[f.key] && (
-              <Button
-                variant="ghost"
-                size="sm"
-                type="button"
-                onClick={() => setValues((v) => ({ ...v, [f.key]: "" }))}
-              >
-                Quitar
-              </Button>
-            )}
-          </div>
-        )}
-
-        {f.type === "images" && (
-          <div>
-            <div className="space-y-3">
-              {parseList(values[f.key]).map((photo, idx, arr) => (
-                <div
-                  key={photo.id}
-                  className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm sm:flex-row sm:items-center"
-                >
-                  <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-border bg-muted">
-                    <ProductMedia
-                      src={photo.url}
-                      thumb={true}
-                      className={`h-full w-full object-cover ${photo.is_visible ? "" : "opacity-40"}`}
-                    />
-                    {isVideoUrl(photo.url) && (
-                      <span className="absolute bottom-1 right-1 flex items-center gap-0.5 rounded-md bg-black/70 px-1 py-0.5 text-[10px] font-bold text-white">
-                        <Film className="h-3 w-3" />
-                      </span>
-                    )}
-                    {!photo.is_visible && (
-                      <span className="absolute top-1 left-1 rounded-md bg-foreground/80 px-1 py-0.5 text-[9px] font-bold text-background">
-                        Oculto
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="w-full flex-1 space-y-1">
-                    <Label className="text-xs text-muted-foreground">
-                      Enlace de acción (opcional)
-                    </Label>
-                    <Input
-                      type="text"
-                      placeholder="Ej: /tienda/lampara-luna o https://..."
-                      className="h-9 text-xs"
-                      value={photo.link_url ?? ""}
-                      onChange={(e) => updatePhotoLinkAt(f.key, idx, e.target.value)}
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2 self-end sm:self-center">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => togglePhotoAt(f.key, idx)}
-                      aria-label={photo.is_visible ? "Ocultar elemento" : "Mostrar elemento"}
-                      title={photo.is_visible ? "Ocultar elemento" : "Mostrar elemento"}
-                    >
-                      {photo.is_visible ? (
-                        <Eye className="h-4 w-4" />
-                      ) : (
-                        <EyeOff className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => movePhotoAt(f.key, idx, -1)}
-                      disabled={idx === 0}
-                      aria-label="Mover arriba"
-                      title="Mover arriba"
-                    >
-                      <ArrowUp className="h-4 w-4" />
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => movePhotoAt(f.key, idx, 1)}
-                      disabled={idx === arr.length - 1}
-                      aria-label="Mover abajo"
-                      title="Mover abajo"
-                    >
-                      <ArrowDown className="h-4 w-4" />
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => removeImageAt(f.key, idx)}
-                      aria-label="Eliminar elemento"
-                      title="Eliminar elemento"
-                    >
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              {parseList(values[f.key]).length === 0 && (
-                <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                  No hay fotos ni videos subidos en el portafolio.
-                </div>
-              )}
-            </div>
-            <Button asChild variant="outline" size="sm" type="button" className="mt-3">
-              <label className="cursor-pointer">
-                <Upload className="mr-2 h-4 w-4" />
-                {uploadingKey === f.key ? "Subiendo…" : "Subir fotos o videos"}
-                <input
-                  type="file"
-                  accept="image/*,video/*,video/mp4,video/webm,video/quicktime"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files ?? []);
-                    if (files.length) uploadImages(f.key, files);
-                    e.target.value = "";
-                  }}
-                />
-              </label>
-            </Button>
-          </div>
-        )}
       </div>
     );
   }
@@ -1947,35 +1927,101 @@ function ContenidoAdmin() {
 
   return (
     <div className="space-y-6">
-      <div className="sticky top-16 z-20 -mx-1 mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card/95 px-4 py-3 backdrop-blur">
+      {/* Top Header Bar con Auto-Save Status y Mobile Tabs Toggle */}
+      <div className="sticky top-16 z-20 -mx-1 mb-6 flex flex-col gap-3 rounded-2xl border border-border bg-card/95 p-4 backdrop-blur shadow-xs sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-black flex items-center gap-2">
-            <Layout className="h-6 w-6 text-primary" /> Home Builder & Contenido de la Página
+          <h1 className="text-xl sm:text-2xl font-black flex items-center gap-2">
+            <Layout className="h-6 w-6 text-primary" /> Visual Home Builder & CMS
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Personaliza las secciones, el orden visual del inicio, textos y galería.
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Personaliza el contenido de inicio con vista previa en vivo y auto-guardado.
           </p>
         </div>
-        <span className="inline-flex items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-          {saving ? "Guardando…" : "Guardado automático"}
-        </span>
+
+        <div className="flex items-center justify-between sm:justify-end gap-3 border-t sm:border-t-0 pt-2 sm:pt-0 border-border/60">
+          {/* Mobile Tab Switcher */}
+          <div className="flex lg:hidden items-center rounded-xl border border-border bg-muted p-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab("edit")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                activeTab === "edit"
+                  ? "bg-background text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Edit3 className="h-3.5 w-3.5" />
+              <span>Editar</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("preview")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                activeTab === "preview"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Eye className="h-3.5 w-3.5" />
+              <span>Vista Previa</span>
+            </button>
+          </div>
+
+          {/* Auto-Save Status Badge */}
+          <div className="flex items-center gap-2">
+            {saving ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-3 py-1 text-xs font-bold text-amber-600 dark:text-amber-400">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Guardando...
+              </span>
+            ) : hasUnsaved ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/15 px-3 py-1 text-xs font-bold text-blue-600 dark:text-blue-400">
+                <SlidersHorizontal className="h-3.5 w-3.5" /> Cambios sin guardar
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                <Check className="h-3.5 w-3.5" /> Guardado
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
-      <div className="space-y-6">
-        {groups.map((group) => (
-          <Card key={group}>
-            <CardHeader>
-              <CardTitle className="text-base">{group}</CardTitle>
-              <CardDescription>
-                {FIELDS.filter((f) => f.group === group).length} campos editables
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {FIELDS.filter((f) => f.group === group).map(renderField)}
-            </CardContent>
-          </Card>
-        ))}
+      {/* Main Responsive Grid Layout: Split Screen on Desktop (lg+), Toggle Tabs on Mobile (< lg) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column: Form Fields & Controls */}
+        <div
+          className={`space-y-6 ${
+            activeTab === "edit" ? "block" : "hidden lg:block"
+          } lg:col-span-6 xl:col-span-6`}
+        >
+          {groups.map((group) => (
+            <Card key={group}>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-bold flex items-center justify-between">
+                  <span>{group}</span>
+                  <span className="text-xs font-normal text-muted-foreground">
+                    {FIELDS.filter((f) => f.group === group).length} campos
+                  </span>
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Modifica los datos para ver reflejado el cambio en la vista previa.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6 pt-0">
+                {FIELDS.filter((f) => f.group === group).map(renderField)}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Right Column: Live Interactive Preview */}
+        <div
+          className={`${
+            activeTab === "preview" ? "block" : "hidden lg:block"
+          } lg:col-span-6 xl:col-span-6 lg:sticky lg:top-24 h-[calc(100vh-8rem)] min-h-[550px]`}
+        >
+          <LivePreviewFrame lastSavedKey={lastSavedKey} />
+        </div>
       </div>
     </div>
   );
