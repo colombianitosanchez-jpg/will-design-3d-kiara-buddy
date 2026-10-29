@@ -238,7 +238,7 @@ function ServiciosPanel() {
       .in("key", ["services_section_title", "services_section_subtitle"]);
 
     if (data) {
-      const map = Object.fromEntries(data.map((r) => [r.key, r.value]));
+      const map = Object.fromEntries(data.map((r: any) => [r.key, r.value]));
       if (map.services_section_title !== undefined) setSectionTitle(map.services_section_title);
       if (map.services_section_subtitle !== undefined) setSectionSubtitle(map.services_section_subtitle);
     }

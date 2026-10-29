@@ -200,6 +200,10 @@ function NosotrosPage() {
                   action_value: missionCtaUrl,
                   whatsapp_message: missionWaMsg,
                   custom_hex: "var(--brand-orange)",
+                  variant: "default",
+                  width: "auto",
+                  position: "left",
+                  include_image_link: true,
                 }}
               />
             ) : (
@@ -233,6 +237,10 @@ function NosotrosPage() {
                   action_value: visionCtaUrl,
                   whatsapp_message: visionWaMsg,
                   custom_hex: "var(--brand-teal)",
+                  variant: "default",
+                  width: "auto",
+                  position: "left",
+                  include_image_link: true,
                 }}
               />
             ) : (
