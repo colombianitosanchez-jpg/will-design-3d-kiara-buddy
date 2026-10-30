@@ -1,41 +1,20 @@
-// Server Functions para el motor de Cotizaciones (Server-side calculation)
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { computeQuote, coerceAnswers } from "@/lib/quoter-core";
-import { getQuoterServices, getQuotingVars } from "@/lib/quoter.server";
+import { computeQuote, type QuoterResult } from "@/lib/quoter-core";
 
-const computeSchema = z.object({
-  serviceSlug: z.string().trim().min(1),
-  answers: z.record(z.unknown()),
-  quantity: z.number().min(1).default(1),
+const schema = z.object({
+  service_id: z.string().uuid(),
+  values: z.record(z.string().max(80), z.string().max(300)).default({}),
+  quantity: z.number().int().min(1).max(10000).default(1),
 });
 
-export const computeQuoteServerFn = createServerFn({ method: "POST" })
-  .validator((data: unknown) => computeSchema.parse(data))
-  .handler(async ({ data }) => {
-    const { serviceSlug, answers, quantity } = data;
-    const services = await getQuoterServices();
-    const service = services.find((s) => s.slug === serviceSlug || s.id === serviceSlug);
-    if (!service) {
-      throw new Error(`Servicio de cotización "${serviceSlug}" no encontrado.`);
-    }
-
-    const vars = await getQuotingVars();
-    const coerced = coerceAnswers(service, answers);
-    const result = computeQuote(service, coerced, quantity, vars as any);
-
-    // Si el servicio está configurado como 'final', se oculta el desglose detallado de costos
-    const isBreakdown = service.price_display === "breakdown";
-
-    return {
-      service_id: service.id,
-      service_name: service.name,
-      total_cop: result.total_cop,
-      unit_price_cop: result.unit_price_cop,
-      quantity: result.quantity,
-      requires_approval: result.requires_approval,
-      answers: result.answers,
-      lines: isBreakdown ? result.lines : [],
-      price_display: service.price_display || "final",
-    };
+/** Calcula el precio en el servidor: las variables globales internas nunca llegan al navegador. */
+export const computePublicQuote = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => schema.parse(data))
+  .handler(async ({ data }): Promise<QuoterResult | null> => {
+    const { getQuoterServices, getQuotingVars } = await import("@/lib/quoter.server");
+    const [services, vars] = await Promise.all([getQuoterServices(), getQuotingVars()]);
+    const service = services.find((s) => s.id === data.service_id);
+    if (!service) return null;
+    return computeQuote(service, data.values, data.quantity, vars);
   });

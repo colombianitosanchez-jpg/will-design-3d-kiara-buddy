@@ -35,8 +35,8 @@ export async function getQuoterServices(): Promise<QuoterService[]> {
 
 /** Variables globales del cotizador leídas en el servidor. */
 export async function getQuotingVars(): Promise<QuoterVars> {
-  const sb = publicClient();
-  const { data } = await sb.from("admin_settings").select("id, quoting_vars").limit(1).maybeSingle();
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin.from("admin_settings").select("id, quoting_vars").limit(1).maybeSingle();
   const raw = ((data as { quoting_vars?: unknown } | null)?.quoting_vars ?? {}) as Record<string, unknown>;
   return normalizeQuotingVars(raw) as QuoterVars;
 }

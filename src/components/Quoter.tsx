@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowRight,
@@ -27,7 +27,7 @@ import kiaraAsset from "@/assets/kiara.asset.json";
 import { siteContentQuery, getContactInfo, waLink, buildWhatsAppQuoteMessage } from "@/lib/catalog";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { useCart } from "@/lib/cart";
-import { quotingVarsQuery } from "@/lib/quoting-vars";
+import { computePublicQuote } from "@/lib/quoter.functions";
 import { Link } from "@tanstack/react-router";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -35,7 +35,6 @@ import { createQuoteRequest } from "@/lib/quotes.functions";
 import {
   quoterServicesQuery,
   defaultValuesFor,
-  computeQuote,
   formatCOP,
   isOn,
   type QuoterService,
@@ -228,7 +227,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
 
   const contact = getContactInfo(content);
   const saveQuote = useServerFn(createQuoteRequest);
-  const { data: quotingVars } = useQuery(quotingVarsQuery());
+  const computeQuoteFn = useServerFn(computePublicQuote);
   const { items: cartItems, addItem } = useCart();
 
 
@@ -249,10 +248,14 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
     [services, serviceId],
   );
 
-  const result = useMemo(
-    () => (service ? computeQuote(service, values, quantity, quotingVars?.vars) : null),
-    [service, values, quantity, quotingVars],
-  );
+  const { data: serverResult } = useQuery({
+    queryKey: ["quoter", "public-quote", service?.id ?? null, values, quantity],
+    queryFn: () =>
+      computeQuoteFn({ data: { service_id: service!.id, values, quantity } }),
+    enabled: !!service,
+    placeholderData: keepPreviousData,
+  });
+  const result = service ? (serverResult ?? null) : null;
 
   /** Agrega el servicio cotizado al carrito como una línea de servicio. */
   function addQuoteToCart() {
