@@ -5,6 +5,7 @@ import { ChevronDown, MessageCircle, Radio, Send } from "lucide-react";
 import kiaraAsset from "@/assets/kiara.asset.json";
 import { useLive } from "@/lib/live-store";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
+import { openExternalUrl } from "@/lib/whatsapp";
 import { useKiaraChat } from "@/hooks/use-kiara-chat";
 import { KiaraQuoteCard, KiaraOrderCard, KiaraProductsCard } from "@/components/KiaraToolCards";
 import { Button } from "@/components/ui/button";
@@ -178,7 +179,13 @@ function KiaraWidgetContent({ isPanel }: { isPanel: boolean }) {
           <a
             href={whatsappUrl}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
+            onClick={(e) => {
+              if (typeof window !== "undefined" && window.self !== window.top) {
+                e.preventDefault();
+                openExternalUrl(whatsappUrl);
+              }
+            }}
             className="flex items-center justify-center gap-2 border-t border-border bg-muted/40 py-2 text-xs font-semibold text-foreground hover:bg-muted"
           >
             <MessageCircle className="h-3.5 w-3.5" /> Prefiero WhatsApp

@@ -12,6 +12,7 @@ import { InstagramFeed } from "@/components/InstagramFeed";
 import { ProductCard } from "@/components/ProductCard";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 import { categoriesQuery, productsQuery, siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
+import { openExternalUrl } from "@/lib/whatsapp";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { heroCarouselQuery } from "@/lib/hero-carousel";
 import { HeroMedia } from "@/components/HeroMedia";
@@ -139,6 +140,7 @@ function Hero() {
   const heroCtaActionType = getText("hero_cta_action_type", "cotizador");
   const heroCtaWhatsappMsg = getText("hero_cta_whatsapp_message", "");
   const heroCtaWhatsappLogic = getText("hero_cta_whatsapp_image_logic", "auto");
+  const heroCtaWhatsappImg = getText("hero_cta_whatsapp_image_url", "");
   const heroCtaMedia = getText("hero_cta_media_url", "") || image;
 
   const heroSecCtaText = getText("hero_secondary_cta_text", "Ver tienda");
@@ -146,6 +148,7 @@ function Hero() {
   const heroSecCtaActionType = getText("hero_secondary_cta_action_type", "link");
   const heroSecCtaWhatsappMsg = getText("hero_secondary_cta_whatsapp_message", "");
   const heroSecCtaWhatsappLogic = getText("hero_secondary_cta_whatsapp_image_logic", "auto");
+  const heroSecCtaWhatsappImg = getText("hero_secondary_cta_whatsapp_image_url", "");
   const heroSecCtaMedia = getText("hero_secondary_cta_media_url", "") || image;
 
   function handleButtonClick(
@@ -154,11 +157,16 @@ function Hero() {
     whatsappMsg: string,
     whatsappLogic: string,
     mediaUrl: string,
-    defaultFallbackText: string
+    defaultFallbackText: string,
+    whatsappImageUrl?: string
   ) {
     if (actionType === "whatsapp") {
       const payload = getWhatsAppPayloadForButton(
-        { whatsapp_message: whatsappMsg, whatsapp_image_logic: whatsappLogic },
+        {
+          whatsapp_message: whatsappMsg,
+          whatsapp_image_logic: whatsappLogic,
+          whatsapp_image_url: whatsappImageUrl,
+        },
         mediaUrl,
         content?.site_logo_url,
         defaultFallbackText
@@ -168,7 +176,7 @@ function Hero() {
         toast.error("Configura WhatsApp en /panel/marca");
         return;
       }
-      window.open(waUrl, "_blank", "noopener,noreferrer");
+      openExternalUrl(waUrl);
     } else if (actionType === "cotizador") {
       router.navigate({ to: "/cotizador" });
     } else {
@@ -210,7 +218,7 @@ function Hero() {
         toast.error("Configura WhatsApp en /panel/marca");
         return;
       }
-      window.open(url, "_blank", "noopener,noreferrer");
+      openExternalUrl(url);
     }
   }
 
@@ -258,7 +266,8 @@ function Hero() {
                   heroCtaWhatsappMsg,
                   heroCtaWhatsappLogic,
                   heroCtaMedia,
-                  "Hola Will, me interesa cotizar del Hero"
+                  "Hola Will, me interesa cotizar del Hero",
+                  heroCtaWhatsappImg
                 )
               }
               className="btn-primary"
@@ -275,7 +284,8 @@ function Hero() {
                   heroSecCtaWhatsappMsg,
                   heroSecCtaWhatsappLogic,
                   heroSecCtaMedia,
-                  "Hola Will, quisiera ver la tienda"
+                  "Hola Will, quisiera ver la tienda",
+                  heroSecCtaWhatsappImg
                 )
               }
               className="btn-outline"
@@ -530,13 +540,18 @@ function AboutPreview() {
   const ctaActionType = getText("about_cta_action_type", "link");
   const ctaWhatsappMsg = getText("about_cta_whatsapp_message", "");
   const ctaWhatsappLogic = getText("about_cta_whatsapp_image_logic", "auto");
+  const ctaWhatsappImg = getText("about_cta_whatsapp_image_url", "");
   const ctaMediaUrl = getText("about_cta_media_url", "") || image;
   const fallbackWhatsapp = getContactInfo(content).whatsapp;
 
   function handleAboutCtaClick() {
     if (ctaActionType === "whatsapp") {
       const payload = getWhatsAppPayloadForButton(
-        { whatsapp_message: ctaWhatsappMsg, whatsapp_image_logic: ctaWhatsappLogic },
+        {
+          whatsapp_message: ctaWhatsappMsg,
+          whatsapp_image_logic: ctaWhatsappLogic,
+          whatsapp_image_url: ctaWhatsappImg,
+        },
         ctaMediaUrl,
         content?.site_logo_url,
         "Hola Will Design 3D, me interesa conocer más sobre ustedes."
@@ -546,7 +561,7 @@ function AboutPreview() {
         toast.error("Configura WhatsApp en /panel/marca");
         return;
       }
-      window.open(url, "_blank", "noopener,noreferrer");
+      openExternalUrl(url);
     } else if (ctaActionType === "cotizador") {
       router.navigate({ to: "/cotizador" });
     } else {

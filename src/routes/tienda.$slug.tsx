@@ -18,6 +18,7 @@ import {
   waLink,
   type Product,
 } from "@/lib/catalog";
+import { openExternalUrl } from "@/lib/whatsapp";
 
 import { KiaraTip } from "@/components/KiaraTip";
 import { ProductCard } from "@/components/ProductCard";

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { KiaraTip } from "@/components/KiaraTip";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
+import { openExternalUrl } from "@/lib/whatsapp";
 import { quoterServicesQuery, formatCOP } from "@/lib/quoter";
 import { supabase } from "@/integrations/supabase/client";
 import { parseProductButtons } from "@/lib/product-buttons";
@@ -254,11 +255,18 @@ function ServiciosPage() {
                     }
                     const customMsg = s.whatsapp_template || q?.whatsapp_custom_message ||
                       `Hola ${siteContent?.site_business_name || "Will Design 3D"}! Me interesa solicitar información y cotización sobre el servicio: *${s.title}*`;
+                    const waHref = waLink(contact.whatsapp, customMsg);
                     return (
                       <a
-                        href={waLink(contact.whatsapp, customMsg)}
+                        href={waHref}
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
+                        onClick={(e) => {
+                          if (typeof window !== "undefined" && window.self !== window.top) {
+                            e.preventDefault();
+                            openExternalUrl(waHref);
+                          }
+                        }}
                         className="btn-primary mt-6 text-sm inline-flex items-center gap-2"
                       >
                         Cotizar por WhatsApp

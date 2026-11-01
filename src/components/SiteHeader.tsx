@@ -3,6 +3,7 @@ import { Link, useMatches } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Menu, MessageCircle, ChevronDown, ShoppingCart } from "lucide-react";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
+import { openExternalUrl } from "@/lib/whatsapp";
 import { useCart } from "@/lib/cart";
 import { ShareButton, DEFAULT_SHARE_TEXT } from "@/components/ShareButton";
 import { menuItemsQuery, menuHref, menuLeafHref, type MenuNodeData } from "@/lib/menu";
@@ -221,7 +222,13 @@ function WhatsAppLink({
     <a
       href={url}
       target="_blank"
-      rel="noreferrer"
+      rel="noopener noreferrer"
+      onClick={(e) => {
+        if (typeof window !== "undefined" && window.self !== window.top) {
+          e.preventDefault();
+          openExternalUrl(url);
+        }
+      }}
       className={`btn-primary text-sm ${className ?? ""}`}
     >
       <MessageCircle className="h-4 w-4" />
@@ -268,8 +275,14 @@ function MobileNav({ roots, whatsappUrl }: { roots: MenuNodeData[]; whatsappUrl:
           <a
             href={whatsappUrl}
             target="_blank"
-            rel="noreferrer"
-            onClick={close}
+            rel="noopener noreferrer"
+            onClick={(e) => {
+              close();
+              if (typeof window !== "undefined" && window.self !== window.top) {
+                e.preventDefault();
+                openExternalUrl(whatsappUrl);
+              }
+            }}
             className="btn-primary mt-4 text-sm"
           >
             <MessageCircle className="h-4 w-4" />
@@ -369,8 +382,14 @@ export function SiteHeader() {
           <a
             href={WHATSAPP_URL}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             aria-label="WhatsApp"
+            onClick={(e) => {
+              if (typeof window !== "undefined" && window.self !== window.top) {
+                e.preventDefault();
+                openExternalUrl(WHATSAPP_URL);
+              }
+            }}
             className="btn-primary inline-flex h-9 w-9 items-center justify-center rounded-full p-0 sm:hidden"
           >
             <MessageCircle className="h-4 w-4" />

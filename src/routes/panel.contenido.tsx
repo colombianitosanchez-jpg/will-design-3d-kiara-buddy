@@ -310,6 +310,13 @@ const FIELDS: FieldDef[] = [
     group: "Hero Principal",
   },
   {
+    key: "hero_cta_whatsapp_image_url",
+    label: "Imagen Específica para WhatsApp Botón Principal",
+    type: "media",
+    section: "Inicio",
+    group: "Hero Principal",
+  },
+  {
     key: "hero_cta_whatsapp_image_logic",
     label: "Lógica Imagen/Logo WhatsApp Botón Principal",
     type: "select",
@@ -337,6 +344,13 @@ const FIELDS: FieldDef[] = [
       { value: "whatsapp", label: "Abrir Chat de WhatsApp" },
       { value: "cotizador", label: "Abrir Cotizador Interactivo" },
     ],
+  },
+  {
+    key: "hero_secondary_cta_whatsapp_image_url",
+    label: "Imagen Específica para WhatsApp Botón Secundario",
+    type: "media",
+    section: "Inicio",
+    group: "Hero Principal",
   },
   {
     key: "hero_secondary_cta_whatsapp_message",
@@ -426,6 +440,13 @@ const FIELDS: FieldDef[] = [
     group: "Sección Nosotros",
   },
   {
+    key: "about_cta_whatsapp_image_url",
+    label: "Imagen Específica para WhatsApp Botón 'Nosotros'",
+    type: "media",
+    section: "Inicio",
+    group: "Sección Nosotros",
+  },
+  {
     key: "about_cta_whatsapp_image_logic",
     label: "Lógica Imagen/Logo WhatsApp Botón 'Nosotros'",
     type: "select",
@@ -458,6 +479,7 @@ const FIELDS: FieldDef[] = [
     ],
   },
   { key: "about_mission_cta_whatsapp_message", label: "Mensaje WhatsApp Botón Misión", type: "textarea", help: "Usa {media} para incluir enlace al logo o imagen.", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_mission_cta_whatsapp_image_url", label: "Imagen Específica WhatsApp Botón Misión", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
 
   { key: "about_vision_title", label: "Título Visión", type: "text", help: "Default: Visión", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_vision_text", label: "Texto Visión", type: "textarea", help: "Default: Ser el referente colombiano en impresión 3D de gran formato...", section: "Inicio", group: "Nosotros Página Misión Visión" },
@@ -478,6 +500,7 @@ const FIELDS: FieldDef[] = [
     ],
   },
   { key: "about_vision_cta_whatsapp_message", label: "Mensaje WhatsApp Botón Visión", type: "textarea", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_vision_cta_whatsapp_image_url", label: "Imagen Específica WhatsApp Botón Visión", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
 
   { key: "about_values_title", label: "Título Sección Valores", type: "text", help: "Default: Valores", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_values_text", label: "Texto / Descripción Valores", type: "textarea", section: "Inicio", group: "Nosotros Página Misión Visión" },
@@ -1272,19 +1295,22 @@ function CTAButtonGroup({
   const actionTypeKey = `${prefix}action_type`;
   const messageKey = `${prefix}whatsapp_message`;
   const logicKey = `${prefix}whatsapp_image_logic`;
+  const waImageKey = `${prefix}whatsapp_image_url`;
 
   const ctaText = values[textKey] || "";
   const actionType = values[actionTypeKey] || "link";
   const whatsappMsg = values[messageKey] || "";
   const whatsappLogic = values[logicKey] || "auto";
-  const mediaUrl = values[mediaKey] || values["hero_image_url"] || "";
+  const whatsappImageUrl = values[waImageKey] || "";
+  const mediaUrl = values[mediaKey] || "";
 
   const payload = getWhatsAppPayloadForButton(
     {
       whatsapp_message: whatsappMsg,
       whatsapp_image_logic: whatsappLogic,
+      whatsapp_image_url: whatsappImageUrl,
     },
-    mediaUrl,
+    mediaUrl || values["hero_image_url"] || "",
     values["site_logo_url"],
     "Hola Will, me interesa cotizar..."
   );
@@ -1295,15 +1321,16 @@ function CTAButtonGroup({
   const animType = isVid ? "video" : isGif ? "gif" : isLottie ? "lottie" : mediaUrl ? "image" : "none";
 
   return (
-    <div className="rounded-2xl border border-dashed border-border p-4 space-y-4 bg-muted/20">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2">
-        <p className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+    <div className="rounded-2xl border border-dashed border-border p-5 space-y-6 bg-muted/20">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
+        <p className="text-sm font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
           <Sparkles className="h-4 w-4 text-primary" />
           Botón: {ctaText || "Sin texto definido"}
         </p>
 
         {/* Live UnifiedButton Preview */}
-        <div className="shrink-0">
+        <div className="shrink-0 flex items-center gap-2">
+          <span className="text-[11px] font-semibold text-muted-foreground">Vista previa:</span>
           <UnifiedButton
             button={{
               id: prefix,
@@ -1329,60 +1356,90 @@ function CTAButtonGroup({
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <Label className="text-xs font-semibold">Texto del Botón</Label>
-          <Input
-            value={ctaText}
-            onChange={(e) => setValues((v) => ({ ...v, [textKey]: e.target.value }))}
-            placeholder="Ej: Cotizar Proyecto"
-            className="mt-1 text-xs"
-          />
+      {/* SECCIÓN A: DISEÑO Y ANIMACIÓN DEL BOTÓN EN TIENDA */}
+      <div className="rounded-xl border border-border/80 bg-background/60 p-4 space-y-4 shadow-xs">
+        <div className="flex items-center gap-2 border-b border-border/50 pb-2">
+          <div className="h-2 w-2 rounded-full bg-primary" />
+          <h4 className="text-xs font-black uppercase tracking-wider text-foreground">
+            Sección A: Diseño y Animación del Botón en Tienda
+          </h4>
         </div>
 
-        <div>
-          <Label className="text-xs font-semibold">Acción al Pulsar</Label>
-          <Select
-            value={actionType}
-            onValueChange={(val) => setValues((v) => ({ ...v, [actionTypeKey]: val }))}
-          >
-            <SelectTrigger className="mt-1 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="link">Abrir Enlace / Ruta Interna</SelectItem>
-              <SelectItem value="whatsapp">Abrir Chat de WhatsApp</SelectItem>
-              <SelectItem value="cotizador">Abrir Cotizador Interactivo</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {actionType !== "cotizador" && (
+        <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <Label className="text-xs font-semibold">
-              {actionType === "whatsapp" ? "Número de WhatsApp (Opcional)" : "Enlace / Ruta Destino"}
-            </Label>
+            <Label className="text-xs font-semibold">Texto del Botón</Label>
             <Input
-              value={values[urlKey] ?? ""}
-              onChange={(e) => setValues((v) => ({ ...v, [urlKey]: e.target.value }))}
-              placeholder={actionType === "whatsapp" ? "573156724474" : "/cotizador o https://..."}
+              value={ctaText}
+              onChange={(e) => setValues((v) => ({ ...v, [textKey]: e.target.value }))}
+              placeholder="Ej: Cotizar Proyecto"
               className="mt-1 text-xs"
             />
           </div>
-        )}
 
-        <div className="sm:col-span-2 space-y-1.5">
-          <Label className="text-xs font-semibold">Multimedia / Fondo Vivo / GIF del Botón</Label>
-          <MediaDropZone
-            value={values[mediaKey] || ""}
-            onChange={(url) => setValues((v) => ({ ...v, [mediaKey]: url }))}
-          />
+          <div>
+            <Label className="text-xs font-semibold">Acción al Pulsar</Label>
+            <Select
+              value={actionType}
+              onValueChange={(val) => setValues((v) => ({ ...v, [actionTypeKey]: val }))}
+            >
+              <SelectTrigger className="mt-1 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="link">Abrir Enlace / Ruta Interna</SelectItem>
+                <SelectItem value="whatsapp">Abrir Chat de WhatsApp</SelectItem>
+                <SelectItem value="cotizador">Abrir Cotizador Interactivo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {actionType !== "cotizador" && (
+            <div className="sm:col-span-2">
+              <Label className="text-xs font-semibold">
+                {actionType === "whatsapp" ? "Número de WhatsApp (Opcional, vacío = WhatsApp de la marca)" : "Enlace / Ruta Destino"}
+              </Label>
+              <Input
+                value={values[urlKey] ?? ""}
+                onChange={(e) => setValues((v) => ({ ...v, [urlKey]: e.target.value }))}
+                placeholder={actionType === "whatsapp" ? "573156724474" : "/cotizador o https://..."}
+                className="mt-1 text-xs"
+              />
+            </div>
+          )}
+
+          <div className="sm:col-span-2 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold">
+                Medio de Fondo / Animación Visual del Botón Físico (Tienda)
+              </Label>
+              <span className="text-[10px] text-muted-foreground">
+                MP4, WebM, GIF animado o Imagen
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Este medio decorativo se reproduce directamente dentro del botón de la tienda (fondo vivo o animación).
+            </p>
+            <MediaDropZone
+              value={values[mediaKey] || ""}
+              onChange={(url) => setValues((v) => ({ ...v, [mediaKey]: url }))}
+            />
+          </div>
         </div>
+      </div>
 
-        {actionType === "whatsapp" && (
-          <>
+      {/* SECCIÓN B: CONTENIDO DEL MENSAJE DE WHATSAPP */}
+      {actionType === "whatsapp" && (
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.03] p-4 space-y-4 shadow-xs">
+          <div className="flex items-center gap-2 border-b border-emerald-500/20 pb-2">
+            <div className="h-2 w-2 rounded-full bg-emerald-500" />
+            <h4 className="text-xs font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+              Sección B: Contenido del Mensaje de WhatsApp
+            </h4>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
             <div className="sm:col-span-2 space-y-1">
-              <Label className="text-xs font-semibold">Mensaje WhatsApp Personalizado</Label>
+              <Label className="text-xs font-semibold">Texto o Plantilla del Mensaje de WhatsApp</Label>
               <Textarea
                 rows={2}
                 value={whatsappMsg}
@@ -1391,12 +1448,30 @@ function CTAButtonGroup({
                 className="text-xs resize-y"
               />
               <p className="text-[11px] text-muted-foreground">
-                Usa {"{media}"} para insertar la URL del logo o imagen. Ej: Hola Will, vi {"{media}"}
+                Usa <code className="text-xs font-bold font-mono">{"{media}"}</code> o <code className="text-xs font-bold font-mono">{"{media_link}"}</code> para incrustar el enlace a la imagen adjunta. Ej: <em>Hola Will, vi esta pieza {"{media}"}</em>
               </p>
             </div>
 
+            <div className="sm:col-span-2 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                  Imagen Específica que Acompaña el Enlace en WhatsApp
+                </Label>
+                <span className="text-[10px] text-muted-foreground font-semibold">
+                  Drag & Drop o Explorar Dispositivo
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Esta es la foto que recibirá el asesor en el chat de WhatsApp. Es completamente independiente del video o GIF decorativo del botón de la tienda.
+              </p>
+              <MediaDropZone
+                value={values[waImageKey] || ""}
+                onChange={(url) => setValues((v) => ({ ...v, [waImageKey]: url }))}
+              />
+            </div>
+
             <div className="sm:col-span-2">
-              <Label className="text-xs font-semibold">Lógica de Logo / Imagen / Video en WhatsApp</Label>
+              <Label className="text-xs font-semibold">Lógica de Respaldo de Imagen (si no subes imagen propia)</Label>
               <Select
                 value={whatsappLogic}
                 onValueChange={(val) => setValues((v) => ({ ...v, [logicKey]: val }))}
@@ -1413,25 +1488,29 @@ function CTAButtonGroup({
             </div>
 
             {/* Live WhatsApp Message Preview Box */}
-            <div className="sm:col-span-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-1 text-xs">
-              <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                💬 Previsualización de mensaje en WhatsApp:
+            <div className="sm:col-span-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 space-y-1 text-xs">
+              <span className="font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+                💬 Previsualización del enlace/mensaje que se enviará:
               </span>
-              <p className="text-muted-foreground whitespace-pre-wrap font-mono text-[11px]">
+              <p className="text-muted-foreground whitespace-pre-wrap font-mono text-[11px] bg-background/50 p-2 rounded-lg border border-emerald-500/20">
                 {payload.formattedText || "Hola Will, me interesa cotizar..."}
               </p>
-              <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 font-semibold mt-1 flex items-center gap-1.5 flex-wrap">
-                <span>📎 Adjunto a enviar: {shortMediaName(payload.mediaToSend)}</span>
-                {payload.mediaToSend.includes("logo") || payload.mediaToSend.startsWith("/") ? (
+              <p className="text-[10px] text-emerald-700/90 dark:text-emerald-300/90 font-semibold mt-1 flex items-center gap-1.5 flex-wrap">
+                <span>📎 Adjunto a enviar: <strong>{shortMediaName(payload.mediaToSend)}</strong></span>
+                {values[waImageKey] ? (
+                  <span className="inline-flex items-center rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] font-bold text-white">
+                    Imagen específica configurada ✓
+                  </span>
+                ) : payload.mediaToSend.includes("logo") || payload.mediaToSend.startsWith("/") ? (
                   <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-bold text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
-                    logo
+                    Logo de la marca
                   </span>
                 ) : null}
               </p>
             </div>
-          </>
-        )}
-      </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

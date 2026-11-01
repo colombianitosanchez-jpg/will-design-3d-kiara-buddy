@@ -146,27 +146,48 @@ function SortableButtonCard({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const [uploadingWa, setUploadingWa] = useState(false);
+  const [dragActiveMedia, setDragActiveMedia] = useState(false);
+  const [dragActiveWa, setDragActiveWa] = useState(false);
+
+  async function uploadToStorage(file: File, folder = "buttons") {
+    if (file.size > 50 * 1024 * 1024) throw new Error("Supera el límite de 50MB");
+    const path = `${folder}/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    const up = await supabase.storage.from("site-media").upload(path, file, { upsert: false });
+    if (up.error) throw up.error;
+    const signed = await supabase.storage.from("site-media").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+    if (signed.error) throw signed.error;
+    return signed.data.signedUrl;
+  }
+
   async function handleUploadMedia(file: File) {
     setUploading(true);
     try {
-      if (file.size > 50 * 1024 * 1024) throw new Error("Supera el límite de 50MB");
-      const path = `buttons/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-      const up = await supabase.storage.from("site-media").upload(path, file, { upsert: false });
-      if (up.error) throw up.error;
-      const signed = await supabase.storage.from("site-media").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-      if (signed.error) throw signed.error;
-
+      const url = await uploadToStorage(file, "buttons");
       let detectedType: ButtonAnimationType = "image";
-      if (file.type.includes("json")) detectedType = "lottie";
-      else if (file.type.includes("video")) detectedType = "video";
-      else if (file.type.includes("gif")) detectedType = "gif";
+      if (file.type.includes("json") || file.name.endsWith(".json")) detectedType = "lottie";
+      else if (file.type.includes("video") || /\.(mp4|webm|quicktime)$/i.test(file.name)) detectedType = "video";
+      else if (file.type.includes("gif") || file.name.endsWith(".gif")) detectedType = "gif";
 
-      onUpdate({ media_url: signed.data.signedUrl, animation_type: detectedType });
-      toast.success("Archivo subido para el botón vivo");
+      onUpdate({ media_url: url, animation_type: detectedType });
+      toast.success("Medio para botón físico subido con éxito");
     } catch (e) {
-      toast.error("Error al subir", { description: (e as Error).message });
+      toast.error("Error al subir medio de botón", { description: (e as Error).message });
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function handleUploadWaImage(file: File) {
+    setUploadingWa(true);
+    try {
+      const url = await uploadToStorage(file, "whatsapp-payload");
+      onUpdate({ whatsapp_image_url: url, include_image_link: true });
+      toast.success("Imagen para WhatsApp subida con éxito");
+    } catch (e) {
+      toast.error("Error al subir imagen de WhatsApp", { description: (e as Error).message });
+    } finally {
+      setUploadingWa(false);
     }
   }
 
@@ -242,146 +263,144 @@ function SortableButtonCard({
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="text-xs font-semibold text-muted-foreground">
-          Texto del Botón
-          <input
-            value={b.text}
-            onChange={(e) => onUpdate({ text: e.target.value })}
-            placeholder="Comprar ahora"
-            className={inputCls}
-          />
-        </label>
-
-        <label className="text-xs font-semibold text-muted-foreground">
-          Acción al pulsar
-          <select
-            value={b.action_type}
-            onChange={(e) =>
-              onUpdate({
-                action_type: e.target.value as ProductButton["action_type"],
-                action_value: "",
-              })
-            }
-            className={inputCls}
-          >
-            {BUTTON_ACTIONS.map((a) => (
-              <option key={a} value={a}>
-                {ACTION_LABELS[a]}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        {/* Dynamic Theme Color Selector */}
-        <label className="text-xs font-semibold text-muted-foreground">
-          Color del Botón (Paleta del Tema / HEX)
-          <select
-            value={b.color_id || ""}
-            onChange={(e) => onUpdate({ color_id: e.target.value })}
-            className={inputCls}
-          >
-            <option value="">Predeterminado del Tema</option>
-            {palette.map((col) => (
-              <option key={col.id} value={col.id}>
-                {col.name} ({col.hex})
-              </option>
-            ))}
-            <option value="custom">Color personalizado (HEX Libre)</option>
-          </select>
-        </label>
-
-        {b.color_id === "custom" && (
-          <label className="text-xs font-semibold text-muted-foreground">
-            HEX Libre
-            <div className="flex items-center gap-2 mt-1">
-              <input
-                type="color"
-                value={b.custom_hex?.startsWith("#") ? b.custom_hex : "#f97316"}
-                onChange={(e) => onUpdate({ custom_hex: e.target.value })}
-                className="h-9 w-10 cursor-pointer rounded-lg border border-input p-0"
-              />
-              <input
-                type="text"
-                value={b.custom_hex || ""}
-                onChange={(e) => onUpdate({ custom_hex: e.target.value })}
-                placeholder="#FF0000"
-                className={inputCls}
-              />
-            </div>
-          </label>
-        )}
-
-        <label className="text-xs font-semibold text-muted-foreground">
-          Estilo / Preset Tailwind
-          <select
-            value={b.variant}
-            onChange={(e) => onUpdate({ variant: e.target.value as ProductButton["variant"] })}
-            className={inputCls}
-          >
-            {BUTTON_VARIANTS.map((v) => (
-              <option key={v} value={v}>
-                {VARIANT_LABELS[v]}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="text-xs font-semibold text-muted-foreground">
-          Ancho
-          <select
-            value={b.width}
-            onChange={(e) => onUpdate({ width: e.target.value as ProductButton["width"] })}
-            className={inputCls}
-          >
-            {BUTTON_WIDTHS.map((w) => (
-              <option key={w} value={w}>
-                {WIDTH_LABELS[w]}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="text-xs font-semibold text-muted-foreground">
-          Alineación
-          <select
-            value={b.position}
-            onChange={(e) => onUpdate({ position: e.target.value as ProductButton["position"] })}
-            className={inputCls}
-          >
-            {BUTTON_POSITIONS.map((p) => (
-              <option key={p} value={p}>
-                {POSITION_LABELS[p]}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        {(b.action_type === "link" || b.action_type === "whatsapp") && (
-          <label className="text-xs font-semibold text-muted-foreground">
-            {b.action_type === "link" ? "URL o ruta de destino" : "Número de WhatsApp (opcional)"}
-            <input
-              value={b.action_value}
-              onChange={(e) => onUpdate({ action_value: e.target.value })}
-              placeholder={b.action_type === "link" ? "/cotizador o https://…" : "573156724474"}
-              className={inputCls}
-            />
-          </label>
-        )}
-      </div>
-
-      {/* Control de Accesibilidad y Botón Vivo */}
-      <div className="rounded-xl border border-border/80 bg-muted/20 p-3 space-y-3">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Botón Vivo, Fondo Completo y Accesibilidad WCAG
-          </span>
+      {/* SECCIÓN A: DISEÑO Y ANIMACIÓN DEL BOTÓN EN TIENDA */}
+      <div className="rounded-xl border border-border/80 bg-background/60 p-4 space-y-4 shadow-xs">
+        <div className="flex items-center gap-2 border-b border-border/50 pb-2">
+          <div className="h-2 w-2 rounded-full bg-primary" />
+          <h4 className="text-xs font-black uppercase tracking-wider text-foreground">
+            Sección A: Diseño y Animación del Botón en Tienda
+          </h4>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="text-xs font-semibold text-muted-foreground">
-            Tipo de Media / Fondo Vivo
+            Texto del Botón
+            <input
+              value={b.text}
+              onChange={(e) => onUpdate({ text: e.target.value })}
+              placeholder="Comprar ahora"
+              className={inputCls}
+            />
+          </label>
+
+          <label className="text-xs font-semibold text-muted-foreground">
+            Acción al pulsar
+            <select
+              value={b.action_type}
+              onChange={(e) =>
+                onUpdate({
+                  action_type: e.target.value as ProductButton["action_type"],
+                  action_value: "",
+                })
+              }
+              className={inputCls}
+            >
+              {BUTTON_ACTIONS.map((a) => (
+                <option key={a} value={a}>
+                  {ACTION_LABELS[a]}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {/* Dynamic Theme Color Selector */}
+          <label className="text-xs font-semibold text-muted-foreground">
+            Color del Botón (Paleta del Tema / HEX)
+            <select
+              value={b.color_id || ""}
+              onChange={(e) => onUpdate({ color_id: e.target.value })}
+              className={inputCls}
+            >
+              <option value="">Predeterminado del Tema</option>
+              {palette.map((col) => (
+                <option key={col.id} value={col.id}>
+                  {col.name} ({col.hex})
+                </option>
+              ))}
+              <option value="custom">Color personalizado (HEX Libre)</option>
+            </select>
+          </label>
+
+          {b.color_id === "custom" && (
+            <label className="text-xs font-semibold text-muted-foreground">
+              HEX Libre
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="color"
+                  value={b.custom_hex?.startsWith("#") ? b.custom_hex : "#f97316"}
+                  onChange={(e) => onUpdate({ custom_hex: e.target.value })}
+                  className="h-9 w-10 cursor-pointer rounded-lg border border-input p-0"
+                />
+                <input
+                  type="text"
+                  value={b.custom_hex || ""}
+                  onChange={(e) => onUpdate({ custom_hex: e.target.value })}
+                  placeholder="#FF0000"
+                  className={inputCls}
+                />
+              </div>
+            </label>
+          )}
+
+          <label className="text-xs font-semibold text-muted-foreground">
+            Estilo / Preset Tailwind
+            <select
+              value={b.variant}
+              onChange={(e) => onUpdate({ variant: e.target.value as ProductButton["variant"] })}
+              className={inputCls}
+            >
+              {BUTTON_VARIANTS.map((v) => (
+                <option key={v} value={v}>
+                  {VARIANT_LABELS[v]}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="text-xs font-semibold text-muted-foreground">
+            Ancho
+            <select
+              value={b.width}
+              onChange={(e) => onUpdate({ width: e.target.value as ProductButton["width"] })}
+              className={inputCls}
+            >
+              {BUTTON_WIDTHS.map((w) => (
+                <option key={w} value={w}>
+                  {WIDTH_LABELS[w]}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="text-xs font-semibold text-muted-foreground">
+            Alineación
+            <select
+              value={b.position}
+              onChange={(e) => onUpdate({ position: e.target.value as ProductButton["position"] })}
+              className={inputCls}
+            >
+              {BUTTON_POSITIONS.map((p) => (
+                <option key={p} value={p}>
+                  {POSITION_LABELS[p]}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {(b.action_type === "link" || b.action_type === "whatsapp") && (
+            <label className="text-xs font-semibold text-muted-foreground">
+              {b.action_type === "link" ? "URL o ruta de destino" : "Número de WhatsApp (opcional)"}
+              <input
+                value={b.action_value}
+                onChange={(e) => onUpdate({ action_value: e.target.value })}
+                placeholder={b.action_type === "link" ? "/cotizador o https://…" : "573156724474"}
+                className={inputCls}
+              />
+            </label>
+          )}
+
+          <label className="text-xs font-semibold text-muted-foreground">
+            Tipo de Animación / Medio Visual
             <select
               value={b.animation_type || "none"}
               onChange={(e) => onUpdate({ animation_type: e.target.value as ButtonAnimationType })}
@@ -411,91 +430,204 @@ function SortableButtonCard({
           </label>
         </div>
 
-        {b.animation_type && b.animation_type !== "none" && (
+        {/* Zona Drag & Drop / Explorador para Medio Físico del Botón */}
+        <div className="space-y-1.5 pt-2 border-t border-border/50">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold text-muted-foreground">
+              Medio de Fondo / Animación Visual del Botón Físico (Tienda)
+            </label>
+            <span className="text-[10px] text-muted-foreground">
+              MP4, WebM, GIF animado o Imagen
+            </span>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Este medio decorativo se reproduce dentro del botón en la tienda (fondo vivo o animación).
+          </p>
+
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragActiveMedia(true);
+            }}
+            onDragLeave={() => setDragActiveMedia(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragActiveMedia(false);
+              if (e.dataTransfer.files?.[0]) handleUploadMedia(e.dataTransfer.files[0]);
+            }}
+            className={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-4 text-center transition ${
+              dragActiveMedia
+                ? "border-primary bg-primary/10"
+                : "border-border bg-card/60 hover:border-primary/50"
+            }`}
+          >
+            {b.media_url ? (
+              <div className="w-full flex items-center justify-between gap-3 text-left">
+                <div className="min-w-0 flex-1">
+                  <span className="text-xs font-mono font-medium truncate block">
+                    {b.media_url}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    Tipo actual: {b.animation_type || "imagen"}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onUpdate({ media_url: "", animation_type: "none" })}
+                  className="shrink-0 text-xs text-red-500 hover:underline"
+                >
+                  Quitar
+                </button>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Arrastra y suelta aquí tu archivo de video/GIF/imagen o examina tu equipo
+              </p>
+            )}
+
+            <label className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-bold hover:bg-muted shadow-xs">
+              <Upload className="h-3.5 w-3.5" />
+              {uploading ? "Subiendo…" : "Explorar en dispositivo"}
+              <input
+                type="file"
+                accept="image/*,video/*,.json,application/json"
+                className="hidden"
+                onChange={(e) => e.target.files?.[0] && handleUploadMedia(e.target.files[0])}
+              />
+            </label>
+          </div>
+
+          {/* Slider de Oscurecimiento Overlay (WCAG AA) */}
+          {isLiveButton && (
+            <div className="rounded-xl border border-border bg-card p-3 space-y-2 mt-3">
+              <div className="flex items-center justify-between text-xs font-bold">
+                <span>Overlay Oscuro Automático (WCAG AA): {overlayOpacity}%</span>
+                <span className={overlayOpacity < 45 ? "text-amber-600" : "text-emerald-600"}>
+                  {overlayOpacity < 45 ? "Advertencia: Legibilidad baja" : "Accesible ✓"}
+                </span>
+              </div>
+
+              <input
+                type="range"
+                min={30}
+                max={75}
+                value={overlayOpacity}
+                onChange={(e) => setOverlayOpacity(Number(e.target.value))}
+                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+              />
+
+              {overlayOpacity < 45 && (
+                <p className="flex items-center gap-1.5 text-[11px] text-amber-700 bg-amber-50 dark:bg-amber-950/40 p-2 rounded-lg border border-amber-200">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" />
+                  Menos de 45% de overlay reduce la legibilidad del texto bajo luz solar directa. Se aplicará un piso automático de 45% en producción para mantener conversión.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* SECCIÓN B: CONTENIDO DEL MENSAJE DE WHATSAPP */}
+      {b.action_type === "whatsapp" && (
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.03] p-4 space-y-4 shadow-xs">
+          <div className="flex items-center gap-2 border-b border-emerald-500/20 pb-2">
+            <div className="h-2 w-2 rounded-full bg-emerald-500" />
+            <h4 className="text-xs font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+              Sección B: Contenido del Mensaje de WhatsApp
+            </h4>
+          </div>
+
           <div className="space-y-3">
-            <label className="text-xs font-semibold text-muted-foreground block">
-              URL del Archivo Fondo Vivo ({b.animation_type.toUpperCase()} / MP4 / WebM / Lottie JSON)
-              <div className="flex gap-2 mt-1">
-                <input
-                  value={b.media_url || ""}
-                  onChange={(e) => onUpdate({ media_url: e.target.value })}
-                  placeholder="https://... .gif, .mp4, .json"
-                  className={inputCls}
-                />
-                <label className="cursor-pointer shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-xs font-bold hover:bg-muted">
-                  <Upload className="h-3.5 w-3.5" />
-                  {uploading ? "Subiendo…" : "Subir"}
+            <label className="block text-xs font-semibold text-muted-foreground">
+              Mensaje Personalizado de WhatsApp
+              <Textarea
+                value={b.whatsapp_message}
+                onChange={(e) => onUpdate({ whatsapp_message: e.target.value })}
+                placeholder="Hola Will Design 3D, me interesa el producto {{producto}}..."
+                rows={3}
+                className="mt-1 text-xs resize-y"
+              />
+            </label>
+            <p className="text-[11px] text-muted-foreground">
+              Variables disponibles: <code className="font-mono font-bold">{"{{producto}}"}</code>, <code className="font-mono font-bold">{"{{precio}}"}</code>{showVariantToken ? <>, <code className="font-mono font-bold">{"{{variante}}"}</code></> : null}. Si lo dejas vacío, enviamos el mensaje estándar de compra.
+            </p>
+
+            {/* Selector de Imagen para WhatsApp con Drag & Drop y Explorador */}
+            <div className="space-y-1.5 pt-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                  Imagen Específica para el Mensaje de WhatsApp
+                </span>
+                <span className="text-[10px] text-muted-foreground font-semibold">
+                  Drag & Drop o Explorar Dispositivo
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Esta es la foto que acompaña el enlace enviado a WhatsApp (independiente de los videos o GIF decorativos del botón en la tienda).
+              </p>
+
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragActiveWa(true);
+                }}
+                onDragLeave={() => setDragActiveWa(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragActiveWa(false);
+                  if (e.dataTransfer.files?.[0]) handleUploadWaImage(e.dataTransfer.files[0]);
+                }}
+                className={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-4 text-center transition ${
+                  dragActiveWa
+                    ? "border-emerald-500 bg-emerald-500/10"
+                    : "border-emerald-500/30 bg-card/60 hover:border-emerald-500/60"
+                }`}
+              >
+                {b.whatsapp_image_url ? (
+                  <div className="w-full flex items-center justify-between gap-3 text-left">
+                    <span className="text-xs font-mono font-medium truncate block text-emerald-700 dark:text-emerald-300">
+                      {b.whatsapp_image_url}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => onUpdate({ whatsapp_image_url: "" })}
+                      className="shrink-0 text-xs text-red-500 hover:underline"
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Arrastra aquí una foto para el mensaje o búscala en tus carpetas
+                  </p>
+                )}
+
+                <label className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-background px-3 py-1.5 text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-950/30 shadow-xs">
+                  <Upload className="h-3.5 w-3.5 text-emerald-600" />
+                  {uploadingWa ? "Subiendo…" : "Explorar en dispositivo"}
                   <input
                     type="file"
-                    accept="image/*,video/*,.json,application/json"
+                    accept="image/*"
                     className="hidden"
-                    onChange={(e) => e.target.files?.[0] && handleUploadMedia(e.target.files[0])}
+                    onChange={(e) => e.target.files?.[0] && handleUploadWaImage(e.target.files[0])}
                   />
                 </label>
               </div>
-            </label>
+            </div>
 
-            {/* Slider de Oscurecimiento Overlay (WCAG AA) */}
-            {isLiveButton && (
-              <div className="rounded-xl border border-border bg-card p-3 space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold">
-                  <span>Overlay Oscuro Automático (WCAG AA): {overlayOpacity}%</span>
-                  <span className={overlayOpacity < 45 ? "text-amber-600" : "text-emerald-600"}>
-                    {overlayOpacity < 45 ? "Advertencia: Legibilidad baja" : "Accesible ✓"}
-                  </span>
-                </div>
-
-                <input
-                  type="range"
-                  min={30}
-                  max={75}
-                  value={overlayOpacity}
-                  onChange={(e) => setOverlayOpacity(Number(e.target.value))}
-                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-                />
-
-                {overlayOpacity < 45 && (
-                  <p className="flex items-center gap-1.5 text-[11px] text-amber-700 bg-amber-50 dark:bg-amber-950/40 p-2 rounded-lg border border-amber-200">
-                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" />
-                    Menos de 45% de overlay reduce la legibilidad del texto bajo luz solar directa. Se aplicará un piso automático de 45% en producción para mantener conversión.
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {b.action_type === "whatsapp" && (
-        <div className="mt-2 space-y-3">
-          <p className="text-xs text-muted-foreground">
-            Si lo dejas vacío usamos el WhatsApp general del sitio.
-          </p>
-          <label className="block text-xs font-semibold text-muted-foreground">
-            Mensaje personalizado de WhatsApp
-            <Textarea
-              value={b.whatsapp_message}
-              onChange={(e) => onUpdate({ whatsapp_message: e.target.value })}
-              placeholder="Hola Will Design 3D, me interesa el producto {{producto}}..."
-              rows={3}
-              className="mt-1"
-            />
-          </label>
-          <p className="text-xs text-muted-foreground">
-            Puedes usar {"{{producto}}"}, {"{{precio}}"}{showVariantToken ? <> y {"{{variante}}"}</> : null}; si lo dejas vacío enviamos el mensaje estándar.
-          </p>
-          <label className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted/30 px-3 py-2">
-            <span className="text-xs font-semibold">
-              Incluir la foto del producto en el mensaje
-              <span className="mt-0.5 block font-normal text-muted-foreground">
-                Añade el enlace de la ficha del producto; WhatsApp muestra la foto, el nombre y el precio como vista previa.
+            <label className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card/80 px-3 py-2">
+              <span className="text-xs font-semibold">
+                Adjuntar automáticamente enlace con vista previa de imagen en WhatsApp
+                <span className="mt-0.5 block font-normal text-muted-foreground text-[11px]">
+                  WhatsApp muestra la imagen y el título en la vista previa del chat.
+                </span>
               </span>
-            </span>
-            <Switch
-              checked={b.include_image_link}
-              onCheckedChange={(v) => onUpdate({ include_image_link: v })}
-            />
-          </label>
+              <Switch
+                checked={b.include_image_link}
+                onCheckedChange={(v) => onUpdate({ include_image_link: v })}
+              />
+            </label>
+          </div>
         </div>
       )}
 

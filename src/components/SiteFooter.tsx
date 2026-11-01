@@ -5,6 +5,7 @@ import { Instagram, MessageCircle, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { ShareButton } from "@/components/ShareButton";
 import { siteContentQuery, categoriesQuery, getContactInfo, waLink } from "@/lib/catalog";
+import { openExternalUrl } from "@/lib/whatsapp";
 import { siteServicesQuery } from "@/routes/servicios";
 
 export function SiteFooter() {
@@ -118,11 +119,17 @@ export function SiteFooter() {
               <a
                 href={waLink(contact.whatsapp) || "#"}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 onClick={(e) => {
-                  if (!waLink(contact.whatsapp)) {
+                  const url = waLink(contact.whatsapp);
+                  if (!url) {
                     e.preventDefault();
                     toast.error("Configura WhatsApp en /panel/marca");
+                    return;
+                  }
+                  if (typeof window !== "undefined" && window.self !== window.top) {
+                    e.preventDefault();
+                    openExternalUrl(url);
                   }
                 }}
                 className="inline-flex items-center gap-2 font-semibold hover:underline"

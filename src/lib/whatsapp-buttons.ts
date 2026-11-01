@@ -1,6 +1,7 @@
 export type ButtonWhatsAppConfig = {
   whatsapp_message?: string;
-  whatsapp_image_logic?: "auto" | "logo" | "product_image" | string;
+  whatsapp_image_logic?: "auto" | "logo" | "product_image" | "custom" | string;
+  whatsapp_image_url?: string;
 };
 
 export type WhatsAppPayload = {
@@ -25,8 +26,11 @@ export function getWhatsAppPayloadForButton(
   const logic = buttonConfig.whatsapp_image_logic || "auto";
 
   let mediaToSend = fallbackLogo;
+  const explicitImage = (buttonConfig.whatsapp_image_url || "").trim();
 
-  if (logic === "logo") {
+  if (explicitImage) {
+    mediaToSend = explicitImage;
+  } else if (logic === "logo") {
     mediaToSend = fallbackLogo;
   } else if (logic === "product_image") {
     mediaToSend = isImage ? mainMedia : fallbackLogo;

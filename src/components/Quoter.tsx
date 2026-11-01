@@ -25,6 +25,7 @@ import { ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import kiaraAsset from "@/assets/kiara.asset.json";
 import { siteContentQuery, getContactInfo, waLink, buildWhatsAppQuoteMessage } from "@/lib/catalog";
+import { openExternalUrl } from "@/lib/whatsapp";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { useCart } from "@/lib/cart";
 import { computePublicQuote } from "@/lib/quoter.functions";
@@ -369,7 +370,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
         toast.error("Configura WhatsApp en /panel/marca");
         return;
       }
-      window.open(url, "_blank");
+      openExternalUrl(url);
     } catch (err) {
       setSendError((err as Error).message || "No pudimos enviar la cotización.");
     } finally {

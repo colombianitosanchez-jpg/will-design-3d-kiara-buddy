@@ -61,4 +61,18 @@ describe("getWhatsAppPayloadForButton & waLink CEO Rules", () => {
 
     expect(link).toBe("https://wa.me/573156724474?text=Hola%20Will%20Design%203D");
   });
+
+  test("Rule 4: Explicit whatsapp_image_url takes priority over background media or video", () => {
+    const payload = getWhatsAppPayloadForButton(
+      {
+        whatsapp_message: "Cotización con imagen {media}",
+        whatsapp_image_url: "https://example.com/wa-attached.jpg",
+      },
+      "https://example.com/button-loop.mp4",
+      "/site-logo.png"
+    );
+
+    expect(payload.mediaToSend).toBe("https://example.com/wa-attached.jpg");
+    expect(payload.formattedText).toBe("Cotización con imagen https://example.com/wa-attached.jpg");
+  });
 });

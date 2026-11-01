@@ -6,6 +6,7 @@ import { Lottie } from "lottie-react";
 import { useCart } from "@/lib/cart";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { getContactInfo, waLink, formatCOP, type Product } from "@/lib/catalog";
+import { openExternalUrl } from "@/lib/whatsapp";
 import { cartLineKey } from "@/lib/payment-rules";
 import {
   buildButtonWhatsappText,
@@ -143,7 +144,7 @@ export function UnifiedButton({
           toast.error("Configura WhatsApp en /panel/marca");
           return;
         }
-        window.open(url, "_blank", "noopener,noreferrer");
+        openExternalUrl(url);
         return;
       }
       case "add_to_cart": {

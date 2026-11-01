@@ -27,6 +27,8 @@ export type ProductButton = {
   whatsapp_message: string;
   /** Añade al final del mensaje el enlace de la imagen principal. */
   include_image_link: boolean;
+  /** URL de imagen específica cargada para acompañar el mensaje de WhatsApp. */
+  whatsapp_image_url?: string;
   /** ID del color seleccionado de la paleta del tema activo */
   color_id?: string;
   /** Color personalizado libre HEX si no usa color de paleta */
@@ -124,6 +126,7 @@ export function parseProductButtons(raw: unknown): ProductButton[] {
       action_value: typeof b.action_value === "string" ? b.action_value.trim() : "",
       whatsapp_message: typeof b.whatsapp_message === "string" ? b.whatsapp_message : "",
       include_image_link: b.include_image_link === true,
+      whatsapp_image_url: typeof b.whatsapp_image_url === "string" ? b.whatsapp_image_url.trim() : "",
       color_id: typeof b.color_id === "string" ? b.color_id : "",
       custom_hex: typeof b.custom_hex === "string" ? b.custom_hex : "",
       media_url: typeof b.media_url === "string" ? b.media_url.trim() : "",
@@ -166,7 +169,7 @@ export function productPageUrl(slug?: string | null, variantId?: string | null):
  * (con Open Graph) en una línea aparte para que WhatsApp muestre la miniatura.
  */
 export function buildButtonWhatsappText(
-  button: Pick<ProductButton, "whatsapp_message" | "include_image_link">,
+  button: Pick<ProductButton, "whatsapp_message" | "include_image_link" | "whatsapp_image_url">,
   product: {
     name: string;
     slug?: string | null;
@@ -189,6 +192,7 @@ export function buildButtonWhatsappText(
   let text = parts.join(" ");
   if (button.include_image_link) {
     const preview =
+      (button.whatsapp_image_url ? shortenStorageUrl(button.whatsapp_image_url) : "") ||
       productPageUrl(product.slug, product.variant_id) ||
       shortenStorageUrl(product.image_url || product.images?.[0] || "");
     if (preview) text = `${text}\n\n${preview}`;
