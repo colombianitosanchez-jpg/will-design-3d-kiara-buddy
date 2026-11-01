@@ -5,6 +5,7 @@ import { z } from "zod";
 import { MessageCircle, Instagram, MapPin, Mail, Send } from "lucide-react";
 import { toast } from "sonner";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
+import { openExternalUrl } from "@/lib/whatsapp";
 import { getSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/contacto")({
@@ -102,7 +103,7 @@ function ContactoPage() {
       toast.error("Configura WhatsApp en /panel/marca");
       return;
     }
-    window.open(url, "_blank");
+    openExternalUrl(url);
   };
 
 
@@ -130,11 +131,17 @@ function ContactoPage() {
               <a
                 href={waLink(contact.whatsapp) || "#"}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 onClick={(e) => {
-                  if (!waLink(contact.whatsapp)) {
+                  const u = waLink(contact.whatsapp);
+                  if (!u) {
                     e.preventDefault();
                     toast.error("Configura WhatsApp en /panel/marca");
+                    return;
+                  }
+                  if (typeof window !== "undefined" && window.self !== window.top) {
+                    e.preventDefault();
+                    openExternalUrl(u);
                   }
                 }}
                 className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition hover:-translate-y-0.5 hover:shadow-md"

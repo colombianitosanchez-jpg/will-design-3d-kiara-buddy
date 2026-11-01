@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useCart } from "@/lib/cart";
 import { formatCOP, getContactInfo, waLink } from "@/lib/catalog";
+import { openExternalUrl } from "@/lib/whatsapp";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { cartPaymentRules, createCartOrder } from "@/lib/cart-order.functions";
 import { commonMethods, methodsForLine } from "@/lib/payment-rules";
@@ -383,6 +384,16 @@ function CarritoPage() {
               )}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={(e) => {
+                const u = receiptWaUrl(
+                  done.order_id.slice(0, 8).toUpperCase(),
+                  done.payment_method_type,
+                );
+                if (typeof window !== "undefined" && window.self !== window.top) {
+                  e.preventDefault();
+                  openExternalUrl(u);
+                }
+              }}
               className="inline-flex items-center gap-2 rounded-xl bg-[#25D366] px-5 py-2.5 text-sm font-bold text-white shadow transition hover:brightness-95"
             >
               <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" aria-hidden="true">

@@ -11,6 +11,9 @@ import {
   siteContentQuery,
   getContactInfo,
   waLink,
+} from "@/lib/catalog";
+import { openExternalUrl } from "@/lib/whatsapp";
+import {
   resolveStoreFilter,
   brandSlugOf,
   buildCategoryTree,
@@ -509,7 +512,18 @@ function TiendaPage() {
                   {emptyMessage} Escríbenos por WhatsApp y te avisamos apenas lleguen.
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-3">
-                  <a href={emptyWaLink} target="_blank" rel="noreferrer" className="btn-primary text-sm">
+                  <a
+                    href={emptyWaLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => {
+                      if (typeof window !== "undefined" && window.self !== window.top) {
+                        e.preventDefault();
+                        openExternalUrl(emptyWaLink);
+                      }
+                    }}
+                    className="btn-primary text-sm"
+                  >
                     <MessageCircle className="h-4 w-4" /> Consultar por WhatsApp
                   </a>
                   <button

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Target, Eye, Heart, MapPin, Wrench, ArrowRight, MessageCircle } from "lucide-react";
 import kiaraAsset from "@/assets/kiara.asset.json";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
+import { openExternalUrl } from "@/lib/whatsapp";
 import { getWhatsAppPayloadForButton } from "@/lib/whatsapp-buttons";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { parseHeroStats } from "@/routes/panel.contenido";
@@ -102,6 +103,7 @@ function NosotrosPage() {
   const missionCtaMedia = getText("about_mission_cta_media_url", "") || missionMedia || imageUrl;
   const missionActionType = getText("about_mission_cta_action_type", "whatsapp");
   const missionWaMsg = getText("about_mission_cta_whatsapp_message", "");
+  const missionWaImg = getText("about_mission_cta_whatsapp_image_url", "");
 
   // Visión
   const visionTitle = getText("about_vision_title", "Visión");
@@ -112,6 +114,7 @@ function NosotrosPage() {
   const visionCtaMedia = getText("about_vision_cta_media_url", "") || visionMedia || imageUrl;
   const visionActionType = getText("about_vision_cta_action_type", "whatsapp");
   const visionWaMsg = getText("about_vision_cta_whatsapp_message", "");
+  const visionWaImg = getText("about_vision_cta_whatsapp_image_url", "");
 
   // Valores
   const valuesTitle = getText("about_values_title", "Valores");
@@ -150,7 +153,7 @@ function NosotrosPage() {
       toast.error("Configura WhatsApp en /panel/marca");
       return;
     }
-    window.open(url, "_blank", "noopener,noreferrer");
+    openExternalUrl(url);
   }
 
   return (
@@ -199,6 +202,7 @@ function NosotrosPage() {
                   action_type: missionActionType as any,
                   action_value: missionCtaUrl,
                   whatsapp_message: missionWaMsg,
+                  whatsapp_image_url: missionWaImg,
                   custom_hex: "var(--brand-orange)",
                   variant: "default",
                   width: "auto",
@@ -236,6 +240,7 @@ function NosotrosPage() {
                   action_type: visionActionType as any,
                   action_value: visionCtaUrl,
                   whatsapp_message: visionWaMsg,
+                  whatsapp_image_url: visionWaImg,
                   custom_hex: "var(--brand-teal)",
                   variant: "default",
                   width: "auto",

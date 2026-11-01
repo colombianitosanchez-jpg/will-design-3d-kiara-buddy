@@ -11,6 +11,7 @@ import {
   waLink,
   type Product,
 } from "@/lib/catalog";
+import { openExternalUrl } from "@/lib/whatsapp";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { ProductButtons } from "@/components/ProductButtons";
 import { ProductQuickView } from "@/components/ProductQuickView";
@@ -133,6 +134,11 @@ export const ProductCard = memo(function ProductCard({ product, variant }: { pro
                   if (!whatsappUrl) {
                     e.preventDefault();
                     toast.error("Configura WhatsApp en /panel/marca");
+                    return;
+                  }
+                  if (typeof window !== "undefined" && window.self !== window.top) {
+                    e.preventDefault();
+                    openExternalUrl(whatsappUrl);
                   }
                 }}
                 target="_blank"
