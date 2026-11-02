@@ -1,3 +1,4 @@
+import { UnifiedButton } from "@/components/UnifiedButton";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
@@ -142,6 +143,10 @@ function Hero() {
   const heroCtaWhatsappLogic = getText("hero_cta_whatsapp_image_logic", "auto");
   const heroCtaWhatsappImg = getText("hero_cta_whatsapp_image_url", "");
   const heroCtaMedia = getText("hero_cta_media_url", "") || image;
+  const heroCtaMediaMode = getText("hero_cta_media_mode", "fill");
+  const heroCtaIconUrl = getText("hero_cta_icon_url", "");
+  const heroCtaIconPos = getText("hero_cta_icon_position", "none");
+  const heroCtaTextColor = getText("hero_cta_text_color", "");
 
   const heroSecCtaText = getText("hero_secondary_cta_text", "Ver tienda");
   const heroSecCtaUrl = getText("hero_secondary_cta_url", "/tienda");
@@ -150,6 +155,10 @@ function Hero() {
   const heroSecCtaWhatsappLogic = getText("hero_secondary_cta_whatsapp_image_logic", "auto");
   const heroSecCtaWhatsappImg = getText("hero_secondary_cta_whatsapp_image_url", "");
   const heroSecCtaMedia = getText("hero_secondary_cta_media_url", "") || image;
+  const heroSecCtaMediaMode = getText("hero_secondary_cta_media_mode", "fill");
+  const heroSecCtaIconUrl = getText("hero_secondary_cta_icon_url", "");
+  const heroSecCtaIconPos = getText("hero_secondary_cta_icon_position", "none");
+  const heroSecCtaTextColor = getText("hero_secondary_cta_text_color", "");
 
   function handleButtonClick(
     actionType: string,
@@ -257,41 +266,68 @@ function Hero() {
             {subtitle}
           </p>
           <div className="mt-7 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() =>
-                handleButtonClick(
-                  heroCtaActionType,
-                  heroCtaUrl,
-                  heroCtaWhatsappMsg,
-                  heroCtaWhatsappLogic,
-                  heroCtaMedia,
-                  "Hola Will, me interesa cotizar del Hero",
-                  heroCtaWhatsappImg
-                )
-              }
-              className="btn-primary"
-            >
-              {heroCtaText}
-              <ArrowRight className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                handleButtonClick(
-                  heroSecCtaActionType,
-                  heroSecCtaUrl,
-                  heroSecCtaWhatsappMsg,
-                  heroSecCtaWhatsappLogic,
-                  heroSecCtaMedia,
-                  "Hola Will, quisiera ver la tienda",
-                  heroSecCtaWhatsappImg
-                )
-              }
-              className="btn-outline"
-            >
-              {heroSecCtaText}
-            </button>
+            {heroCtaText && (
+              <UnifiedButton
+                button={{
+                  id: "hero-cta-btn",
+                  text: heroCtaText,
+                  action_type: heroCtaActionType === "cotizador" ? "link" : (heroCtaActionType as any),
+                  action_value: heroCtaUrl,
+                  whatsapp_message: heroCtaWhatsappMsg,
+                  text_color: heroCtaTextColor || undefined,
+                  media_url: heroCtaMediaMode === "fill" ? heroCtaMedia : undefined,
+                  media_mode: heroCtaMediaMode as any,
+                  icon_url: heroCtaIconUrl || (heroCtaMediaMode === "icon" ? heroCtaMedia : undefined),
+                  icon_position: heroCtaIconPos !== "none" ? (heroCtaIconPos as any) : (heroCtaMediaMode === "icon" ? "left" : "none"),
+                  variant: "default",
+                  width: "auto",
+                  position: "left",
+                  include_image_link: true,
+                }}
+                onClick={() =>
+                  handleButtonClick(
+                    heroCtaActionType,
+                    heroCtaUrl,
+                    heroCtaWhatsappMsg,
+                    heroCtaWhatsappLogic,
+                    heroCtaMedia,
+                    "Hola Will, me interesa cotizar del Hero",
+                    heroCtaWhatsappImg
+                  )
+                }
+              />
+            )}
+            {heroSecCtaText && (
+              <UnifiedButton
+                button={{
+                  id: "hero-secondary-cta-btn",
+                  text: heroSecCtaText,
+                  action_type: heroSecCtaActionType === "cotizador" ? "link" : (heroSecCtaActionType as any),
+                  action_value: heroSecCtaUrl,
+                  whatsapp_message: heroSecCtaWhatsappMsg,
+                  text_color: heroSecCtaTextColor || undefined,
+                  media_url: heroSecCtaMediaMode === "fill" ? heroSecCtaMedia : undefined,
+                  media_mode: heroSecCtaMediaMode as any,
+                  icon_url: heroSecCtaIconUrl || (heroSecCtaMediaMode === "icon" ? heroSecCtaMedia : undefined),
+                  icon_position: heroSecCtaIconPos !== "none" ? (heroSecCtaIconPos as any) : (heroSecCtaMediaMode === "icon" ? "left" : "none"),
+                  variant: "secondary",
+                  width: "auto",
+                  position: "left",
+                  include_image_link: true,
+                }}
+                onClick={() =>
+                  handleButtonClick(
+                    heroSecCtaActionType,
+                    heroSecCtaUrl,
+                    heroSecCtaWhatsappMsg,
+                    heroSecCtaWhatsappLogic,
+                    heroSecCtaMedia,
+                    "Hola Will, quisiera ver la tienda",
+                    heroSecCtaWhatsappImg
+                  )
+                }
+              />
+            )}
           </div>
 
           {stats.length > 0 && (
@@ -542,6 +578,10 @@ function AboutPreview() {
   const ctaWhatsappLogic = getText("about_cta_whatsapp_image_logic", "auto");
   const ctaWhatsappImg = getText("about_cta_whatsapp_image_url", "");
   const ctaMediaUrl = getText("about_cta_media_url", "") || image;
+  const ctaMediaMode = getText("about_cta_media_mode", "fill");
+  const ctaIconUrl = getText("about_cta_icon_url", "");
+  const ctaIconPos = getText("about_cta_icon_position", "none");
+  const ctaTextColor = getText("about_cta_text_color", "");
   const fallbackWhatsapp = getContactInfo(content).whatsapp;
 
   function handleAboutCtaClick() {
@@ -628,14 +668,25 @@ function AboutPreview() {
           )}
 
           <div className="mt-6 flex flex-wrap items-center justify-center md:justify-start gap-3">
-            <button
-              type="button"
+            <UnifiedButton
+              button={{
+                id: "about-cta-btn",
+                text: ctaText,
+                action_type: ctaActionType === "cotizador" ? "link" : (ctaActionType as any),
+                action_value: ctaUrl,
+                whatsapp_message: ctaWhatsappMsg,
+                text_color: ctaTextColor || undefined,
+                media_url: ctaMediaMode === "fill" ? ctaMediaUrl : undefined,
+                media_mode: ctaMediaMode as any,
+                icon_url: ctaIconUrl || (ctaMediaMode === "icon" ? ctaMediaUrl : undefined),
+                icon_position: ctaIconPos !== "none" ? (ctaIconPos as any) : (ctaMediaMode === "icon" ? "left" : "none"),
+                variant: "default",
+                width: "auto",
+                position: "left",
+                include_image_link: true,
+              }}
               onClick={handleAboutCtaClick}
-              className="btn-primary text-sm"
-            >
-              {ctaText}
-              <ArrowRight className="h-4 w-4" />
-            </button>
+            />
           </div>
         </div>
       </div>

@@ -136,20 +136,40 @@ export function getBestAccessibility(
 
 /** Convierte una estructura legacy ProductButton a la interfaz UnifiedButtonStyle */
 export function productButtonToUnified(b: ProductButton): UnifiedButtonStyle {
+  const isFillMode = b.media_mode === "fill" || (!b.media_mode && Boolean(b.media_url));
+  const isIconMode = b.media_mode === "icon";
+
   let type: ButtonType = "solid";
-  if (b.animation_type === "video") type = "videoFill";
-  else if (b.animation_type === "gif" || b.animation_type === "image") type = "imageFill";
-  else if (b.animation_type === "lottie") type = "lottieFill";
+  if (isFillMode && b.media_url) {
+    if (b.animation_type === "video" || /\.(mp4|webm|quicktime)($|\?)/i.test(b.media_url)) {
+      type = "videoFill";
+    } else if (b.animation_type === "lottie" || /\.json($|\?)/i.test(b.media_url)) {
+      type = "lottieFill";
+    } else {
+      type = "imageFill";
+    }
+  }
+
+  let iconUrl: string | undefined = undefined;
+  let iconPosition: "none" | "left" | "right" = "none";
+
+  if (b.icon_url && b.icon_position && b.icon_position !== "none") {
+    iconUrl = b.icon_url;
+    iconPosition = b.icon_position;
+  } else if (isIconMode && b.media_url) {
+    iconUrl = b.media_url;
+    iconPosition = b.icon_position && b.icon_position !== "none" ? b.icon_position : "left";
+  }
 
   return {
     type,
     background: b.custom_hex || undefined,
-    bgImageUrl: b.media_url || undefined,
+    bgImageUrl: isFillMode ? b.media_url || undefined : undefined,
     overlayOpacity: 50,
     animation: (b.animation_style as any) || "none",
-    textColor: "#ffffff",
+    textColor: b.text_color || (isFillMode ? "#ffffff" : undefined),
     rounded: "xl",
-    iconPosition: b.media_url ? "left" : "none",
-    iconUrl: b.media_url,
+    iconPosition,
+    iconUrl,
   };
 }
