@@ -290,6 +290,10 @@ const FIELDS: FieldDef[] = [
   { key: "hero_cta_text", label: "Texto Botón Principal Hero", type: "text", help: "Ej: Cotizar Proyecto", section: "Inicio", group: "Hero Principal" },
   { key: "hero_cta_url", label: "Enlace/Ruta Botón Principal Hero", type: "text", help: "Ej: /cotizador o https://...", section: "Inicio", group: "Hero Principal" },
   { key: "hero_cta_media_url", label: "Multimedia/Imagen Botón Principal Hero", type: "media", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_cta_media_mode", label: "Modo multimedia Botón Principal Hero", type: "text", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_cta_icon_url", label: "Ícono Botón Principal Hero", type: "media", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_cta_icon_position", label: "Posición Ícono Botón Principal Hero", type: "text", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_cta_text_color", label: "Color Texto Botón Principal Hero", type: "text", section: "Inicio", group: "Hero Principal" },
   {
     key: "hero_cta_action_type",
     label: "Acción Botón Principal Hero",
@@ -334,6 +338,10 @@ const FIELDS: FieldDef[] = [
   { key: "hero_secondary_cta_text", label: "Texto Botón Secundario Hero", type: "text", help: "Ej: Ver tienda", section: "Inicio", group: "Hero Principal" },
   { key: "hero_secondary_cta_url", label: "Enlace/Ruta Botón Secundario Hero", type: "text", help: "Ej: /tienda o https://...", section: "Inicio", group: "Hero Principal" },
   { key: "hero_secondary_cta_media_url", label: "Multimedia Botón Secundario Hero", type: "media", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_secondary_cta_media_mode", label: "Modo multimedia Botón Secundario Hero", type: "text", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_secondary_cta_icon_url", label: "Ícono Botón Secundario Hero", type: "media", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_secondary_cta_icon_position", label: "Posición Ícono Botón Secundario Hero", type: "text", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_secondary_cta_text_color", label: "Color Texto Botón Secundario Hero", type: "text", section: "Inicio", group: "Hero Principal" },
   {
     key: "hero_secondary_cta_action_type",
     label: "Acción Botón Secundario Hero",
