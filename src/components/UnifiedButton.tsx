@@ -192,8 +192,7 @@ export function UnifiedButton({
 
   return (
     <motion.div
-      whileHover={{ scale: 1.03 }}
-      whileTap={{ scale: 0.97 }}
+      whileTap={{ scale: 0.96 }}
       className={`${widthClass} inline-block`}
     >
       <button
