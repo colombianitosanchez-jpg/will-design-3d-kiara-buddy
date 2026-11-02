@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { getBestAccessibility, getHexLuminance } from "./unifiedButton";
+import { getBestAccessibility, getHexLuminance, productButtonToUnified } from "./unifiedButton";
+import { newProductButton, duplicateProductButton } from "./product-buttons";
 
 describe("unifiedButton accessibility engine", () => {
   it("calculates luminance correctly for hex colors", () => {
@@ -31,5 +32,34 @@ describe("unifiedButton accessibility engine", () => {
     expect(res.tapTargetClass).toContain("min-h-[44px]");
     expect(res.tapTargetClass).toContain("min-w-[44px]");
     expect(res.textShadowClass).toContain("drop-shadow");
+  });
+
+  it("converts product button with circular icon, background fill and custom text color", () => {
+    const btn = newProductButton();
+    btn.media_url = "https://example.com/live-bg.mp4";
+    btn.media_mode = "fill";
+    btn.icon_url = "https://example.com/logo.png";
+    btn.icon_position = "left";
+    btn.text_color = "#fef08a";
+
+    const style = productButtonToUnified(btn);
+    expect(style.type).toBe("videoFill");
+    expect(style.bgImageUrl).toBe("https://example.com/live-bg.mp4");
+    expect(style.iconPosition).toBe("left");
+    expect(style.iconUrl).toBe("https://example.com/logo.png");
+    expect(style.textColor).toBe("#fef08a");
+  });
+
+  it("duplicates product button with unique id and suffix", () => {
+    const original = newProductButton();
+    original.text = "Cotizar Ahora";
+    original.action_type = "whatsapp";
+    original.media_url = "https://example.com/video.mp4";
+
+    const copy = duplicateProductButton(original);
+    expect(copy.id).not.toBe(original.id);
+    expect(copy.text).toBe("Cotizar Ahora (Copia)");
+    expect(copy.action_type).toBe("whatsapp");
+    expect(copy.media_url).toBe("https://example.com/video.mp4");
   });
 });

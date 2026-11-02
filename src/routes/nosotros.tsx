@@ -101,6 +101,7 @@ function NosotrosPage() {
   const missionCtaText = getText("about_mission_cta_text", "");
   const missionCtaUrl = getText("about_mission_cta_url", "");
   const missionCtaMedia = getText("about_mission_cta_media_url", "") || missionMedia || imageUrl;
+  const missionCtaTextColor = getText("about_mission_cta_text_color", "");
   const missionActionType = getText("about_mission_cta_action_type", "whatsapp");
   const missionWaMsg = getText("about_mission_cta_whatsapp_message", "");
   const missionWaImg = getText("about_mission_cta_whatsapp_image_url", "");
@@ -112,6 +113,7 @@ function NosotrosPage() {
   const visionCtaText = getText("about_vision_cta_text", "");
   const visionCtaUrl = getText("about_vision_cta_url", "");
   const visionCtaMedia = getText("about_vision_cta_media_url", "") || visionMedia || imageUrl;
+  const visionCtaTextColor = getText("about_vision_cta_text_color", "");
   const visionActionType = getText("about_vision_cta_action_type", "whatsapp");
   const visionWaMsg = getText("about_vision_cta_whatsapp_message", "");
   const visionWaImg = getText("about_vision_cta_whatsapp_image_url", "");
@@ -203,6 +205,7 @@ function NosotrosPage() {
                   action_value: missionCtaUrl,
                   whatsapp_message: missionWaMsg,
                   whatsapp_image_url: missionWaImg,
+                  text_color: missionCtaTextColor || undefined,
                   custom_hex: "var(--brand-orange)",
                   variant: "default",
                   width: "auto",
@@ -241,6 +244,7 @@ function NosotrosPage() {
                   action_value: visionCtaUrl,
                   whatsapp_message: visionWaMsg,
                   whatsapp_image_url: visionWaImg,
+                  text_color: visionCtaTextColor || undefined,
                   custom_hex: "var(--brand-teal)",
                   variant: "default",
                   width: "auto",

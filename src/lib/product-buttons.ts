@@ -15,6 +15,9 @@ export type ButtonActionType = (typeof BUTTON_ACTIONS)[number];
 export const ANIMATION_TYPES = ["none", "image", "video", "gif", "lottie"] as const;
 export type ButtonAnimationType = (typeof ANIMATION_TYPES)[number];
 
+export type ButtonMediaMode = "fill" | "icon" | "none";
+export type ButtonIconPosition = "left" | "right" | "none";
+
 export type ProductButton = {
   id: string;
   text: string;
@@ -33,8 +36,16 @@ export type ProductButton = {
   color_id?: string;
   /** Color personalizado libre HEX si no usa color de paleta */
   custom_hex?: string;
+  /** Color personalizado libre HEX para el texto del botón (ej: #ffffff) */
+  text_color?: string;
   /** URL de GIF, Video (MP4/WebM), Lottie JSON o Imagen decorativa para el botón */
   media_url?: string;
+  /** Modo de visualización del medio principal: relleno completo ("fill"), icono circular ("icon") o ninguno */
+  media_mode?: ButtonMediaMode;
+  /** URL independiente para icono o logo circular en el botón */
+  icon_url?: string;
+  /** Posición del icono circular dentro del botón */
+  icon_position?: ButtonIconPosition;
   /** Tipo de animación/media */
   animation_type?: ButtonAnimationType;
   /** Estilo de animación dinámica (Neón, Pulso Cyber, Shimmer) */
@@ -75,6 +86,17 @@ export const ANIMATION_TYPE_LABELS: Record<ButtonAnimationType, string> = {
   lottie: "Lottie JSON",
 };
 
+export function duplicateProductButton(original: ProductButton): ProductButton {
+  return {
+    ...original,
+    id:
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : "btn-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8),
+    text: original.text + " (Copia)",
+  };
+}
+
 export function newProductButton(): ProductButton {
   return {
     id:
@@ -91,7 +113,11 @@ export function newProductButton(): ProductButton {
     include_image_link: false,
     color_id: "",
     custom_hex: "",
+    text_color: "",
     media_url: "",
+    media_mode: "fill",
+    icon_url: "",
+    icon_position: "none",
     animation_type: "none",
     animation_style: "none",
   };
@@ -129,7 +155,11 @@ export function parseProductButtons(raw: unknown): ProductButton[] {
       whatsapp_image_url: typeof b.whatsapp_image_url === "string" ? b.whatsapp_image_url.trim() : "",
       color_id: typeof b.color_id === "string" ? b.color_id : "",
       custom_hex: typeof b.custom_hex === "string" ? b.custom_hex : "",
+      text_color: typeof b.text_color === "string" ? b.text_color : "",
       media_url: typeof b.media_url === "string" ? b.media_url.trim() : "",
+      media_mode: (b.media_mode === "fill" || b.media_mode === "icon" || b.media_mode === "none" ? b.media_mode : "fill") as ButtonMediaMode,
+      icon_url: typeof b.icon_url === "string" ? b.icon_url.trim() : "",
+      icon_position: (b.icon_position === "left" || b.icon_position === "right" || b.icon_position === "none" ? b.icon_position : "none") as ButtonIconPosition,
       animation_type: pick(b.animation_type || (b.media_type as string), ANIMATION_TYPES, "none"),
       animation_style: typeof b.animation_style === "string" ? b.animation_style : "none",
     }))

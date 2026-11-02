@@ -11,6 +11,7 @@ import {
   EyeOff,
   Film,
   Trash2,
+  Copy,
   Layout,
   Plus,
   GripVertical,
@@ -1282,27 +1283,41 @@ function CTAButtonGroup({
   setValues,
   uploadingKey,
   uploadImage,
+  onDuplicate,
+  onDelete,
 }: {
   prefix: "hero_cta_" | "hero_secondary_cta_" | "about_cta_" | "about_mission_cta_" | "about_vision_cta_";
   values: Record<string, string>;
   setValues: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   uploadingKey: string | null;
   uploadImage: (key: string, file: File) => Promise<void>;
+  onDuplicate?: () => void;
+  onDelete?: () => void;
 }) {
   const textKey = `${prefix}text`;
   const urlKey = `${prefix}url`;
   const mediaKey = `${prefix}media_url`;
+  const mediaModeKey = `${prefix}media_mode`;
+  const iconUrlKey = `${prefix}icon_url`;
+  const iconPosKey = `${prefix}icon_position`;
+  const textColorKey = `${prefix}text_color`;
+  const customHexKey = `${prefix}custom_hex`;
   const actionTypeKey = `${prefix}action_type`;
   const messageKey = `${prefix}whatsapp_message`;
   const logicKey = `${prefix}whatsapp_image_logic`;
   const waImageKey = `${prefix}whatsapp_image_url`;
 
   const ctaText = values[textKey] || "";
-  const actionType = values[actionTypeKey] || "link";
+  const actionType = values[actionTypeKey] || (prefix.includes("cta_") && !prefix.includes("secondary") ? "cotizador" : "link");
   const whatsappMsg = values[messageKey] || "";
   const whatsappLogic = values[logicKey] || "auto";
   const whatsappImageUrl = values[waImageKey] || "";
   const mediaUrl = values[mediaKey] || "";
+  const mediaMode = (values[mediaModeKey] as any) || "fill";
+  const iconUrl = values[iconUrlKey] || "";
+  const iconPos = (values[iconPosKey] as any) || "none";
+  const textColor = values[textColorKey] || "";
+  const customHex = values[customHexKey] || "";
 
   const payload = getWhatsAppPayloadForButton(
     {
@@ -1320,39 +1335,122 @@ function CTAButtonGroup({
   const isLottie = /\.json($|\?)/i.test(mediaUrl);
   const animType = isVid ? "video" : isGif ? "gif" : isLottie ? "lottie" : mediaUrl ? "image" : "none";
 
+  function handleDuplicateInternal() {
+    if (onDuplicate) {
+      onDuplicate();
+      return;
+    }
+    if (prefix === "hero_cta_") {
+      setValues((v) => ({
+        ...v,
+        hero_secondary_cta_text: v.hero_cta_text ? `${v.hero_cta_text} (Copia)` : "Botón Secundario",
+        hero_secondary_cta_url: v.hero_cta_url || "",
+        hero_secondary_cta_action_type: v.hero_cta_action_type || "link",
+        hero_secondary_cta_media_url: v.hero_cta_media_url || "",
+        hero_secondary_cta_media_mode: v.hero_cta_media_mode || "fill",
+        hero_secondary_cta_icon_url: v.hero_cta_icon_url || "",
+        hero_secondary_cta_icon_position: v.hero_cta_icon_position || "none",
+        hero_secondary_cta_text_color: v.hero_cta_text_color || "",
+        hero_secondary_cta_custom_hex: v.hero_cta_custom_hex || "",
+        hero_secondary_cta_whatsapp_message: v.hero_cta_whatsapp_message || "",
+        hero_secondary_cta_whatsapp_image_url: v.hero_cta_whatsapp_image_url || "",
+        hero_secondary_cta_whatsapp_image_logic: v.hero_cta_whatsapp_image_logic || "auto",
+      }));
+      toast.success("Botón duplicado como botón secundario en Hero");
+    } else {
+      toast.info("Configuración del botón clonada");
+    }
+  }
+
+  function handleDeleteInternal() {
+    if (onDelete) {
+      onDelete();
+      return;
+    }
+    setValues((v) => {
+      const copy = { ...v };
+      delete copy[textKey];
+      delete copy[urlKey];
+      delete copy[mediaKey];
+      delete copy[mediaModeKey];
+      delete copy[iconUrlKey];
+      delete copy[iconPosKey];
+      delete copy[textColorKey];
+      delete copy[customHexKey];
+      delete copy[actionTypeKey];
+      delete copy[messageKey];
+      delete copy[logicKey];
+      delete copy[waImageKey];
+      return copy;
+    });
+    toast.success("Botón limpiado/eliminado");
+  }
+
   return (
     <div className="rounded-2xl border border-dashed border-border p-5 space-y-6 bg-muted/20">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
-        <p className="text-sm font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
+        <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
-          Botón: {ctaText || "Sin texto definido"}
-        </p>
+          <p className="text-sm font-black uppercase tracking-wider text-muted-foreground">
+            Botón: {ctaText || "Sin texto definido"}
+          </p>
+        </div>
 
-        {/* Live UnifiedButton Preview */}
-        <div className="shrink-0 flex items-center gap-2">
-          <span className="text-[11px] font-semibold text-muted-foreground">Vista previa:</span>
-          <UnifiedButton
-            button={{
-              id: prefix,
-              text: ctaText || "Vista Previa",
-              action_type: actionType === "cotizador" ? "link" : (actionType as any),
-              action_value: values[urlKey] || "/cotizador",
-              whatsapp_message: whatsappMsg,
-              custom_hex: prefix.includes("mission")
-                ? "var(--brand-orange)"
-                : prefix.includes("vision")
-                ? "var(--brand-teal)"
-                : prefix.includes("secondary")
-                ? "var(--brand-wine)"
-                : "var(--brand-orange)",
-              media_url: mediaUrl,
-              animation_type: animType as any,
-              variant: "default",
-              width: "auto",
-              position: "left",
-              include_image_link: true,
-            }}
-          />
+        {/* Acciones de gestión de botón: Duplicar y Eliminar/Limpiar */}
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleDuplicateInternal}
+            className="h-8 text-xs font-semibold gap-1.5"
+            title="Duplicar configuración de este botón"
+          >
+            <Copy className="h-3.5 w-3.5 text-primary" />
+            Duplicar
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleDeleteInternal}
+            className="h-8 text-xs font-semibold text-destructive hover:bg-destructive/10 gap-1.5"
+            title="Eliminar o limpiar este botón"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            {prefix === "hero_secondary_cta_" ? "Eliminar" : "Limpiar"}
+          </Button>
+
+          {/* Live UnifiedButton Preview */}
+          <div className="shrink-0 flex items-center gap-2 border-l border-border pl-3 ml-1">
+            <span className="text-[11px] font-semibold text-muted-foreground">Vista previa:</span>
+            <UnifiedButton
+              button={{
+                id: prefix,
+                text: ctaText || "Vista Previa",
+                action_type: actionType === "cotizador" ? "link" : (actionType as any),
+                action_value: values[urlKey] || "/cotizador",
+                whatsapp_message: whatsappMsg,
+                text_color: textColor || undefined,
+                custom_hex: customHex || (prefix.includes("mission")
+                  ? "var(--brand-orange)"
+                  : prefix.includes("vision")
+                  ? "var(--brand-teal)"
+                  : prefix.includes("secondary")
+                  ? "var(--brand-wine)"
+                  : "var(--brand-orange)"),
+                media_url: mediaMode === "fill" ? mediaUrl : undefined,
+                media_mode: mediaMode,
+                icon_url: iconUrl || (mediaMode === "icon" ? mediaUrl : undefined),
+                icon_position: iconPos !== "none" ? iconPos : (mediaMode === "icon" ? "left" : "none"),
+                animation_type: animType as any,
+                variant: "default",
+                width: "auto",
+                position: "left",
+                include_image_link: true,
+              }}
+            />
+          </div>
         </div>
       </div>
 
@@ -1365,19 +1463,123 @@ function CTAButtonGroup({
           </h4>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <Label className="text-xs font-semibold">Texto del Botón</Label>
+            <Label className="text-xs font-semibold">Texto visible del Botón</Label>
             <Input
               value={ctaText}
               onChange={(e) => setValues((v) => ({ ...v, [textKey]: e.target.value }))}
-              placeholder="Ej: Cotizar Proyecto"
+              placeholder="Ej: Cotizar Proyecto o Comprar Ahora"
               className="mt-1 text-xs"
             />
           </div>
 
+          {/* Color del texto con código HEX */}
           <div>
-            <Label className="text-xs font-semibold">Acción al Pulsar</Label>
+            <Label className="text-xs font-semibold flex items-center justify-between">
+              <span>Color del Texto (Código HEX)</span>
+              {textColor && (
+                <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <span className="inline-block h-2.5 w-2.5 rounded-full border border-border" style={{ backgroundColor: textColor }} />
+                  {textColor}
+                </span>
+              )}
+            </Label>
+            <div className="flex items-center gap-2 mt-1">
+              <input
+                type="color"
+                value={textColor && /^#[0-9A-Fa-f]{6}$/.test(textColor) ? textColor : "#ffffff"}
+                onChange={(e) => setValues((v) => ({ ...v, [textColorKey]: e.target.value }))}
+                className="h-8 w-8 cursor-pointer rounded-lg border border-border bg-transparent p-0.5 shrink-0"
+                title="Elegir color visualmente"
+              />
+              <Input
+                value={textColor}
+                onChange={(e) => setValues((v) => ({ ...v, [textColorKey]: e.target.value }))}
+                placeholder="Ej: #ffffff, #000000, #fbbf24"
+                className="text-xs font-mono uppercase"
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Escribe el código HEX (#ffffff) o elígelo en la paleta.</p>
+          </div>
+
+          {/* Personalización visual 1: Relleno / Fondo Animado (Fill) con Drag & Drop */}
+          <div className="sm:col-span-2 rounded-lg border border-border/60 bg-muted/20 p-3.5 space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                1. Fondo Animado / Relleno Vivo (Llenar Botón Completo)
+              </Label>
+              <Select
+                value={mediaMode}
+                onValueChange={(val) => setValues((v) => ({ ...v, [mediaModeKey]: val }))}
+              >
+                <SelectTrigger className="h-7 text-[11px] w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fill">Llenar botón</SelectItem>
+                  <SelectItem value="none">Sin fondo animado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Soporta video MP4/WebM en bucle, GIF o imagen para cubrir el fondo completo del botón con contraste garantizado.
+            </p>
+            {mediaMode === "fill" && (
+              <MediaDropZone
+                value={mediaUrl}
+                onChange={(url) => setValues((v) => ({ ...v, [mediaKey]: url }))}
+              />
+            )}
+          </div>
+
+          {/* Personalización visual 2: Ícono / Logo Circular con Drag & Drop */}
+          <div className="sm:col-span-2 rounded-lg border border-border/60 bg-muted/20 p-3.5 space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-secondary" />
+                2. Ícono o Logo Circular dentro del Botón
+              </Label>
+              <Select
+                value={iconPos}
+                onValueChange={(val) => setValues((v) => ({ ...v, [iconPosKey]: val }))}
+              >
+                <SelectTrigger className="h-7 text-[11px] w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin ícono</SelectItem>
+                  <SelectItem value="left">A la izquierda</SelectItem>
+                  <SelectItem value="right">A la derecha</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Muestra un circulito / logo / ícono junto al texto del botón. Puedes usarlo solo o combinado con el fondo animado.
+            </p>
+            {iconPos !== "none" && (
+              <MediaDropZone
+                value={iconUrl}
+                onChange={(url) => setValues((v) => ({ ...v, [iconUrlKey]: url }))}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* SECCIÓN B: ACCIÓN AL PULSAR */}
+      <div className="rounded-xl border border-primary/30 bg-primary/[0.03] p-4 space-y-4 shadow-xs">
+        <div className="flex items-center gap-2 border-b border-primary/20 pb-2">
+          <div className="h-2 w-2 rounded-full bg-primary" />
+          <h4 className="text-xs font-black uppercase tracking-wider text-primary">
+            Sección B: Acción al Pulsar (Comportamiento del Botón)
+          </h4>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <Label className="text-xs font-semibold">¿Qué acción debe ejecutar este botón?</Label>
             <Select
               value={actionType}
               onValueChange={(val) => setValues((v) => ({ ...v, [actionTypeKey]: val }))}
@@ -1386,131 +1588,130 @@ function CTAButtonGroup({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="link">Abrir Enlace / Ruta Interna</SelectItem>
-                <SelectItem value="whatsapp">Abrir Chat de WhatsApp</SelectItem>
-                <SelectItem value="cotizador">Abrir Cotizador Interactivo</SelectItem>
+                <SelectItem value="link">Abrir Enlace Personalizado o Ruta Interna (/tienda, /servicios, https://...)</SelectItem>
+                <SelectItem value="whatsapp">Abrir Chat de WhatsApp con Mensaje Personalizado</SelectItem>
+                <SelectItem value="cotizador">Abrir Cotizador Interactivo (/cotizador)</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {actionType !== "cotizador" && (
+          {actionType === "link" && (
             <div className="sm:col-span-2">
-              <Label className="text-xs font-semibold">
-                {actionType === "whatsapp" ? "Número de WhatsApp (Opcional, vacío = WhatsApp de la marca)" : "Enlace / Ruta Destino"}
-              </Label>
+              <Label className="text-xs font-semibold">Enlace o Ruta de Destino</Label>
               <Input
                 value={values[urlKey] ?? ""}
                 onChange={(e) => setValues((v) => ({ ...v, [urlKey]: e.target.value }))}
-                placeholder={actionType === "whatsapp" ? "573156724474" : "/cotizador o https://..."}
+                placeholder="Ej: /tienda, /servicios, o https://..."
                 className="mt-1 text-xs"
               />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Usa una ruta interna que empiece por <code className="text-xs font-mono">/</code> o una URL externa completa con <code className="text-xs font-mono">https://</code>.
+              </p>
             </div>
           )}
 
-          <div className="sm:col-span-2 space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs font-semibold">
-                Medio de Fondo / Animación Visual del Botón Físico (Tienda)
-              </Label>
-              <span className="text-[10px] text-muted-foreground">
-                MP4, WebM, GIF animado o Imagen
-              </span>
+          {actionType === "cotizador" && (
+            <div className="sm:col-span-2 rounded-lg bg-background/50 border border-border/60 p-3 text-xs text-muted-foreground">
+              Este botón redirige a los clientes directamente a la experiencia interactiva del Cotizador 3D en <code className="font-mono text-primary font-bold">/cotizador</code>.
             </div>
-            <p className="text-[11px] text-muted-foreground">
-              Este medio decorativo se reproduce directamente dentro del botón de la tienda (fondo vivo o animación).
-            </p>
-            <MediaDropZone
-              value={values[mediaKey] || ""}
-              onChange={(url) => setValues((v) => ({ ...v, [mediaKey]: url }))}
-            />
-          </div>
+          )}
         </div>
-      </div>
 
-      {/* SECCIÓN B: CONTENIDO DEL MENSAJE DE WHATSAPP */}
-      {actionType === "whatsapp" && (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.03] p-4 space-y-4 shadow-xs">
-          <div className="flex items-center gap-2 border-b border-emerald-500/20 pb-2">
-            <div className="h-2 w-2 rounded-full bg-emerald-500" />
-            <h4 className="text-xs font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-              Sección B: Contenido del Mensaje de WhatsApp
-            </h4>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="sm:col-span-2 space-y-1">
-              <Label className="text-xs font-semibold">Texto o Plantilla del Mensaje de WhatsApp</Label>
-              <Textarea
-                rows={2}
-                value={whatsappMsg}
-                onChange={(e) => setValues((v) => ({ ...v, [messageKey]: e.target.value }))}
-                placeholder="Hola Will, me interesa cotizar..."
-                className="text-xs resize-y"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Usa <code className="text-xs font-bold font-mono">{"{media}"}</code> o <code className="text-xs font-bold font-mono">{"{media_link}"}</code> para incrustar el enlace a la imagen adjunta. Ej: <em>Hola Will, vi esta pieza {"{media}"}</em>
-              </p>
+        {/* Sub-configuración condicional de WhatsApp */}
+        {actionType === "whatsapp" && (
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.04] p-4 space-y-4 mt-3">
+            <div className="flex items-center gap-2 border-b border-emerald-500/20 pb-2">
+              <div className="h-2 w-2 rounded-full bg-emerald-500" />
+              <h5 className="text-xs font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                Parámetros de WhatsApp
+              </h5>
             </div>
 
-            <div className="sm:col-span-2 space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
-                  Imagen Específica que Acompaña el Enlace en WhatsApp
-                </Label>
-                <span className="text-[10px] text-muted-foreground font-semibold">
-                  Drag & Drop o Explorar Dispositivo
-                </span>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <Label className="text-xs font-semibold">Número de WhatsApp (Opcional, vacío = WhatsApp de la marca)</Label>
+                <Input
+                  value={values[urlKey] ?? ""}
+                  onChange={(e) => setValues((v) => ({ ...v, [urlKey]: e.target.value }))}
+                  placeholder="573156724474 (solo números con código de país)"
+                  className="mt-1 text-xs"
+                />
               </div>
-              <p className="text-[11px] text-muted-foreground">
-                Esta es la foto que recibirá el asesor en el chat de WhatsApp. Es completamente independiente del video o GIF decorativo del botón de la tienda.
-              </p>
-              <MediaDropZone
-                value={values[waImageKey] || ""}
-                onChange={(url) => setValues((v) => ({ ...v, [waImageKey]: url }))}
-              />
-            </div>
 
-            <div className="sm:col-span-2">
-              <Label className="text-xs font-semibold">Lógica de Respaldo de Imagen (si no subes imagen propia)</Label>
-              <Select
-                value={whatsappLogic}
-                onValueChange={(val) => setValues((v) => ({ ...v, [logicKey]: val }))}
-              >
-                <SelectTrigger className="mt-1 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="auto">Automático (Reglas CEO: Logo si es video, Imagen si existe)</SelectItem>
-                  <SelectItem value="logo">Forzar Enviar Logo de la Empresa</SelectItem>
-                  <SelectItem value="product_image">Enviar Imagen de la Sección / Producto</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="sm:col-span-2 space-y-1">
+                <Label className="text-xs font-semibold">Texto o Plantilla del Mensaje de WhatsApp</Label>
+                <Textarea
+                  rows={2}
+                  value={whatsappMsg}
+                  onChange={(e) => setValues((v) => ({ ...v, [messageKey]: e.target.value }))}
+                  placeholder="Hola Will, me interesa cotizar..."
+                  className="text-xs resize-y"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Usa <code className="text-xs font-bold font-mono">{"{media}"}</code> o <code className="text-xs font-bold font-mono">{"{media_link}"}</code> para incrustar el enlace a la imagen adjunta. Ej: <em>Hola Will, vi esta pieza {"{media}"}</em>
+                </p>
+              </div>
 
-            {/* Live WhatsApp Message Preview Box */}
-            <div className="sm:col-span-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 space-y-1 text-xs">
-              <span className="font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
-                💬 Previsualización del enlace/mensaje que se enviará:
-              </span>
-              <p className="text-muted-foreground whitespace-pre-wrap font-mono text-[11px] bg-background/50 p-2 rounded-lg border border-emerald-500/20">
-                {payload.formattedText || "Hola Will, me interesa cotizar..."}
-              </p>
-              <p className="text-[10px] text-emerald-700/90 dark:text-emerald-300/90 font-semibold mt-1 flex items-center gap-1.5 flex-wrap">
-                <span>📎 Adjunto a enviar: <strong>{shortMediaName(payload.mediaToSend)}</strong></span>
-                {values[waImageKey] ? (
-                  <span className="inline-flex items-center rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] font-bold text-white">
-                    Imagen específica configurada ✓
+              <div className="sm:col-span-2 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                    Imagen Específica que Acompaña el Enlace en WhatsApp
+                  </Label>
+                  <span className="text-[10px] text-muted-foreground font-semibold">
+                    Drag & Drop o Explorar Dispositivo
                   </span>
-                ) : payload.mediaToSend.includes("logo") || payload.mediaToSend.startsWith("/") ? (
-                  <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-bold text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
-                    Logo de la marca
-                  </span>
-                ) : null}
-              </p>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Esta es la foto que recibirá el asesor en el chat de WhatsApp. Es completamente independiente del video o GIF decorativo del botón de la tienda.
+                </p>
+                <MediaDropZone
+                  value={values[waImageKey] || ""}
+                  onChange={(url) => setValues((v) => ({ ...v, [waImageKey]: url }))}
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <Label className="text-xs font-semibold">Lógica de Respaldo de Imagen (si no subes imagen propia)</Label>
+                <Select
+                  value={whatsappLogic}
+                  onValueChange={(val) => setValues((v) => ({ ...v, [logicKey]: val }))}
+                >
+                  <SelectTrigger className="mt-1 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">Automático (Reglas CEO: Logo si es video, Imagen si existe)</SelectItem>
+                    <SelectItem value="logo">Forzar Enviar Logo de la Empresa</SelectItem>
+                    <SelectItem value="product_image">Enviar Imagen de la Sección / Producto</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Live WhatsApp Message Preview Box */}
+              <div className="sm:col-span-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 space-y-1 text-xs">
+                <span className="font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+                  💬 Previsualización del enlace/mensaje que se enviará:
+                </span>
+                <p className="text-muted-foreground whitespace-pre-wrap font-mono text-[11px] bg-background/50 p-2 rounded-lg border border-emerald-500/20">
+                  {payload.formattedText || "Hola Will, me interesa cotizar..."}
+                </p>
+                <p className="text-[10px] text-emerald-700/90 dark:text-emerald-300/90 font-semibold mt-1 flex items-center gap-1.5 flex-wrap">
+                  <span>📎 Adjunto a enviar: <strong>{shortMediaName(payload.mediaToSend)}</strong></span>
+                  {values[waImageKey] ? (
+                    <span className="inline-flex items-center rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] font-bold text-white">
+                      Imagen específica configurada ✓
+                    </span>
+                  ) : payload.mediaToSend.includes("logo") || payload.mediaToSend.startsWith("/") ? (
+                    <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-bold text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
+                      Logo de la marca
+                    </span>
+                  ) : null}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -1673,6 +1874,34 @@ function ContenidoAdmin() {
     }
 
     if (f.key === "hero_secondary_cta_text") {
+      const hasSecondary = Boolean(values.hero_secondary_cta_text || values.hero_secondary_cta_url);
+      if (!hasSecondary) {
+        return (
+          <div key="hero_secondary_cta_add" className="rounded-xl border border-dashed border-border p-4 bg-muted/10 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-foreground">Segundo Botón de Hero (Opcional)</p>
+              <p className="text-[11px] text-muted-foreground">Actualmente desactivado o sin texto. Puedes añadir un segundo botón para la cabecera.</p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setValues((v) => ({
+                  ...v,
+                  hero_secondary_cta_text: "Ver Tienda",
+                  hero_secondary_cta_url: "/tienda",
+                  hero_secondary_cta_action_type: "link",
+                }));
+              }}
+              className="text-xs font-semibold gap-1.5"
+            >
+              <Plus className="h-3.5 w-3.5 text-primary" />
+              + Añadir 2do Botón en Hero
+            </Button>
+          </div>
+        );
+      }
       return (
         <CTAButtonGroup
           key="hero_secondary_cta_group"
@@ -1681,6 +1910,25 @@ function ContenidoAdmin() {
           setValues={setValues}
           uploadingKey={uploadingKey}
           uploadImage={uploadImage}
+          onDelete={() => {
+            setValues((v) => {
+              const copy = { ...v };
+              delete copy.hero_secondary_cta_text;
+              delete copy.hero_secondary_cta_url;
+              delete copy.hero_secondary_cta_media_url;
+              delete copy.hero_secondary_cta_media_mode;
+              delete copy.hero_secondary_cta_icon_url;
+              delete copy.hero_secondary_cta_icon_position;
+              delete copy.hero_secondary_cta_text_color;
+              delete copy.hero_secondary_cta_custom_hex;
+              delete copy.hero_secondary_cta_action_type;
+              delete copy.hero_secondary_cta_whatsapp_message;
+              delete copy.hero_secondary_cta_whatsapp_image_url;
+              delete copy.hero_secondary_cta_whatsapp_image_logic;
+              return copy;
+            });
+            toast.success("Segundo botón de Hero eliminado");
+          }}
         />
       );
     }
