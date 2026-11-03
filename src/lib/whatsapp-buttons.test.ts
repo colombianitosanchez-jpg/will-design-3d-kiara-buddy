@@ -75,4 +75,16 @@ describe("getWhatsAppPayloadForButton & waLink CEO Rules", () => {
     expect(payload.mediaToSend).toBe("https://example.com/wa-attached.jpg");
     expect(payload.formattedText).toBe("Cotización con imagen https://example.com/wa-attached.jpg");
   });
+
+  test("Global default message: applies when button has no message defined", () => {
+    const payload = getWhatsAppPayloadForButton(
+      { whatsapp_message: "" },
+      "https://example.com/item.jpg",
+      "/logo.png",
+      "Fallback local",
+      "Mensaje configurado en panel como whatsapp_default_message {media}"
+    );
+
+    expect(payload.formattedText).toBe("Mensaje configurado en panel como whatsapp_default_message https://example.com/item.jpg");
+  });
 });

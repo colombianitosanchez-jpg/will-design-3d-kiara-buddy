@@ -93,6 +93,7 @@ function NosotrosPage() {
   const imageUrl = getText("about_image_url", "") || content?.site_logo_url?.trim();
   const businessName = content?.site_business_name?.trim() || "Will Design 3D";
   const fallbackWhatsapp = getContactInfo(content).whatsapp;
+  const globalDefaultMessage = getText("whatsapp_default_message", "");
 
   // Misión
   const missionTitle = getText("about_mission_title", "Misión");
@@ -101,7 +102,11 @@ function NosotrosPage() {
   const missionCtaText = getText("about_mission_cta_text", "");
   const missionCtaUrl = getText("about_mission_cta_url", "");
   const missionCtaMedia = getText("about_mission_cta_media_url", "");
+  const missionCtaMediaMode = getText("about_mission_cta_media_mode", "fill");
+  const missionCtaIconUrl = getText("about_mission_cta_icon_url", "");
+  const missionCtaIconPos = getText("about_mission_cta_icon_position", "none");
   const missionCtaTextColor = getText("about_mission_cta_text_color", "");
+  const missionCtaCustomHex = getText("about_mission_cta_custom_hex", "");
   const missionActionType = getText("about_mission_cta_action_type", "whatsapp");
   const missionWaMsg = getText("about_mission_cta_whatsapp_message", "");
   const missionWaImg = getText("about_mission_cta_whatsapp_image_url", "");
@@ -113,7 +118,11 @@ function NosotrosPage() {
   const visionCtaText = getText("about_vision_cta_text", "");
   const visionCtaUrl = getText("about_vision_cta_url", "");
   const visionCtaMedia = getText("about_vision_cta_media_url", "");
+  const visionCtaMediaMode = getText("about_vision_cta_media_mode", "fill");
+  const visionCtaIconUrl = getText("about_vision_cta_icon_url", "");
+  const visionCtaIconPos = getText("about_vision_cta_icon_position", "none");
   const visionCtaTextColor = getText("about_vision_cta_text_color", "");
+  const visionCtaCustomHex = getText("about_vision_cta_custom_hex", "");
   const visionActionType = getText("about_vision_cta_action_type", "whatsapp");
   const visionWaMsg = getText("about_vision_cta_whatsapp_message", "");
   const visionWaImg = getText("about_vision_cta_whatsapp_image_url", "");
@@ -143,12 +152,13 @@ function NosotrosPage() {
   function handleSectionWaClick(itemTitle: string, itemBody: string, customMsg?: string, customMedia?: string) {
     const payload = getWhatsAppPayloadForButton(
       {
-        whatsapp_message: customMsg,
+        whatsapp_message: customMsg || globalDefaultMessage,
         whatsapp_image_logic: content?.about_cta_whatsapp_image_logic,
       },
       customMedia || imageUrl,
       content?.site_logo_url,
-      `Hola Will Design 3D, me interesa saber más sobre ${itemTitle}: ${itemBody}`
+      `Hola Will Design 3D, me interesa saber más sobre ${itemTitle}: ${itemBody}`,
+      globalDefaultMessage
     );
     const url = waLink(fallbackWhatsapp, payload.formattedText);
     if (!url) {
@@ -201,12 +211,16 @@ function NosotrosPage() {
                 button={{
                   id: "mission_btn",
                   text: missionCtaText,
-                  action_type: missionActionType as any,
-                  action_value: missionCtaUrl,
+                  action_type: missionActionType === "cotizador" ? "link" : (missionActionType as any),
+                  action_value: missionCtaUrl || "/cotizador",
                   whatsapp_message: missionWaMsg,
                   whatsapp_image_url: missionWaImg,
                   text_color: missionCtaTextColor || undefined,
-                  custom_hex: "var(--brand-orange)",
+                  custom_hex: missionCtaCustomHex || "var(--brand-orange)",
+                  media_url: missionCtaMediaMode === "fill" ? missionCtaMedia : undefined,
+                  media_mode: missionCtaMediaMode as any,
+                  icon_url: missionCtaIconUrl || (missionCtaMediaMode === "icon" ? missionCtaMedia : undefined),
+                  icon_position: missionCtaIconPos !== "none" ? (missionCtaIconPos as any) : (missionCtaMediaMode === "icon" ? "left" : "none"),
                   variant: "default",
                   width: "auto",
                   position: "left",
@@ -240,12 +254,16 @@ function NosotrosPage() {
                 button={{
                   id: "vision_btn",
                   text: visionCtaText,
-                  action_type: visionActionType as any,
-                  action_value: visionCtaUrl,
+                  action_type: visionActionType === "cotizador" ? "link" : (visionActionType as any),
+                  action_value: visionCtaUrl || "/cotizador",
                   whatsapp_message: visionWaMsg,
                   whatsapp_image_url: visionWaImg,
                   text_color: visionCtaTextColor || undefined,
-                  custom_hex: "var(--brand-teal)",
+                  custom_hex: visionCtaCustomHex || "var(--brand-teal)",
+                  media_url: visionCtaMediaMode === "fill" ? visionCtaMedia : undefined,
+                  media_mode: visionCtaMediaMode as any,
+                  icon_url: visionCtaIconUrl || (visionCtaMediaMode === "icon" ? visionCtaMedia : undefined),
+                  icon_position: visionCtaIconPos !== "none" ? (visionCtaIconPos as any) : (visionCtaMediaMode === "icon" ? "left" : "none"),
                   variant: "default",
                   width: "auto",
                   position: "left",

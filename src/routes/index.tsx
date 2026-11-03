@@ -137,6 +137,7 @@ function Hero() {
   const activeTheme = getActiveTheme(content);
   const palette = activeTheme.colors.palette || [];
   const fallbackWhatsapp = getContactInfo(content).whatsapp;
+  const globalDefaultMessage = getText("whatsapp_default_message", "");
 
   const title = getText("hero_title", "");
   const subtitle = getText("hero_subtitle", "");
@@ -156,6 +157,7 @@ function Hero() {
   const heroCtaIconUrl = getText("hero_cta_icon_url", "");
   const heroCtaIconPos = getText("hero_cta_icon_position", "none");
   const heroCtaTextColor = getText("hero_cta_text_color", "");
+  const heroCtaCustomHex = getText("hero_cta_custom_hex", "");
 
   const heroSecCtaText = getText("hero_secondary_cta_text", "");
   const heroSecCtaUrl = getText("hero_secondary_cta_url", "/tienda");
@@ -168,6 +170,7 @@ function Hero() {
   const heroSecCtaIconUrl = getText("hero_secondary_cta_icon_url", "");
   const heroSecCtaIconPos = getText("hero_secondary_cta_icon_position", "none");
   const heroSecCtaTextColor = getText("hero_secondary_cta_text_color", "");
+  const heroSecCtaCustomHex = getText("hero_secondary_cta_custom_hex", "");
 
   function handleButtonClick(
     actionType: string,
@@ -187,7 +190,8 @@ function Hero() {
         },
         mediaUrl,
         content?.site_logo_url,
-        defaultFallbackText
+        defaultFallbackText,
+        globalDefaultMessage
       );
       const waUrl = waLink(fallbackWhatsapp, payload.formattedText);
       if (!waUrl) {
@@ -211,13 +215,15 @@ function Hero() {
   function handleStatClick(stat: HeroStatItem) {
     if (!stat.action_type || stat.action_type === "none") return;
 
-    if (stat.action_type === "link") {
+    if (stat.action_type === "cotizador") {
+      router.navigate({ to: "/cotizador" });
+    } else if (stat.action_type === "link") {
       const val = stat.action_value?.trim();
       if (!val) return;
       if (/^https?:\/\//i.test(val)) {
         window.open(val, "_blank", "noopener,noreferrer");
       } else {
-        router.navigate({ to: val.startsWith("/") ? val : `/${val}` });
+        router.navigate({ to: val.startsWith("/") ? (val as any) : (`/${val}` as any) });
       }
     } else if (stat.action_type === "whatsapp") {
       const num = stat.action_value?.trim() || fallbackWhatsapp;
@@ -229,7 +235,8 @@ function Hero() {
         },
         stat.bgImageUrl || stat.media_url || image,
         content?.site_logo_url,
-        defaultMsg
+        defaultMsg,
+        globalDefaultMessage
       );
       const url = waLink(num, payload.formattedText);
       if (!url) {
@@ -284,6 +291,7 @@ function Hero() {
                   action_value: heroCtaUrl,
                   whatsapp_message: heroCtaWhatsappMsg,
                   text_color: heroCtaTextColor || undefined,
+                  custom_hex: heroCtaCustomHex || undefined,
                   media_url: heroCtaMediaMode === "fill" ? heroCtaMedia : undefined,
                   media_mode: heroCtaMediaMode as any,
                   icon_url: heroCtaIconUrl || (heroCtaMediaMode === "icon" ? heroCtaMedia : undefined),
@@ -315,6 +323,7 @@ function Hero() {
                   action_value: heroSecCtaUrl,
                   whatsapp_message: heroSecCtaWhatsappMsg,
                   text_color: heroSecCtaTextColor || undefined,
+                  custom_hex: heroSecCtaCustomHex || undefined,
                   media_url: heroSecCtaMediaMode === "fill" ? heroSecCtaMedia : undefined,
                   media_mode: heroSecCtaMediaMode as any,
                   icon_url: heroSecCtaIconUrl || (heroSecCtaMediaMode === "icon" ? heroSecCtaMedia : undefined),
@@ -591,19 +600,22 @@ function AboutPreview() {
   const ctaIconUrl = getText("about_cta_icon_url", "");
   const ctaIconPos = getText("about_cta_icon_position", "none");
   const ctaTextColor = getText("about_cta_text_color", "");
+  const ctaCustomHex = getText("about_cta_custom_hex", "");
   const fallbackWhatsapp = getContactInfo(content).whatsapp;
+  const globalDefaultMessage = getText("whatsapp_default_message", "");
 
   function handleAboutCtaClick() {
     if (ctaActionType === "whatsapp") {
       const payload = getWhatsAppPayloadForButton(
         {
-          whatsapp_message: ctaWhatsappMsg,
+          whatsapp_message: ctaWhatsappMsg || globalDefaultMessage,
           whatsapp_image_logic: ctaWhatsappLogic,
           whatsapp_image_url: ctaWhatsappImg,
         },
         ctaMediaUrl,
         content?.site_logo_url,
-        "Hola Will Design 3D, me interesa conocer más sobre ustedes."
+        "Hola Will Design 3D, me interesa conocer más sobre ustedes.",
+        globalDefaultMessage
       );
       const url = waLink(fallbackWhatsapp, payload.formattedText);
       if (!url) {
@@ -685,6 +697,7 @@ function AboutPreview() {
                 action_value: ctaUrl,
                 whatsapp_message: ctaWhatsappMsg,
                 text_color: ctaTextColor || undefined,
+                custom_hex: ctaCustomHex || undefined,
                 media_url: ctaMediaMode === "fill" ? ctaMediaUrl : undefined,
                 media_mode: ctaMediaMode as any,
                 icon_url: ctaIconUrl || (ctaMediaMode === "icon" ? ctaMediaUrl : undefined),
