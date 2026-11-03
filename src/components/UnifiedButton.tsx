@@ -213,10 +213,10 @@ export function UnifiedButton({
                 muted
                 playsInline
                 onError={() => setMediaFailed(true)}
-                className="absolute inset-0 h-full w-full object-cover -z-10"
+                className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover"
               />
             ) : unifiedStyle.type === "lottieFill" || button.animation_type === "lottie" ? (
-              <div className="absolute inset-0 h-full w-full object-cover -z-10 pointer-events-none opacity-80">
+              <div className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover opacity-80">
                 <LottiePlayer url={unifiedStyle.bgImageUrl} className="h-full w-full" />
               </div>
             ) : (
@@ -224,13 +224,13 @@ export function UnifiedButton({
                 src={unifiedStyle.bgImageUrl}
                 alt=""
                 onError={() => setMediaFailed(true)}
-                className="absolute inset-0 h-full w-full object-cover -z-10"
+                className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover"
               />
             )}
 
-            {/* OVERLAY OSCURO AUTOMÁTICO PARA ACCESIBILIDAD WCAG (MIN 45%) */}
+            {/* OVERLAY OSCURO AUTOMÁTICO PARA ACCESIBILIDAD WCAG */}
             <div
-              className="absolute inset-0 bg-black -z-10 transition-opacity"
+              className="pointer-events-none absolute inset-0 z-0 bg-black transition-opacity"
               style={{ opacity: a11y.overlayOpacity / 100 }}
             />
           </>
