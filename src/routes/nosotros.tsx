@@ -100,7 +100,7 @@ function NosotrosPage() {
   const missionMedia = getText("about_mission_image_url", "");
   const missionCtaText = getText("about_mission_cta_text", "");
   const missionCtaUrl = getText("about_mission_cta_url", "");
-  const missionCtaMedia = getText("about_mission_cta_media_url", "") || missionMedia || imageUrl;
+  const missionCtaMedia = getText("about_mission_cta_media_url", "");
   const missionCtaTextColor = getText("about_mission_cta_text_color", "");
   const missionActionType = getText("about_mission_cta_action_type", "whatsapp");
   const missionWaMsg = getText("about_mission_cta_whatsapp_message", "");
@@ -112,7 +112,7 @@ function NosotrosPage() {
   const visionMedia = getText("about_vision_image_url", "");
   const visionCtaText = getText("about_vision_cta_text", "");
   const visionCtaUrl = getText("about_vision_cta_url", "");
-  const visionCtaMedia = getText("about_vision_cta_media_url", "") || visionMedia || imageUrl;
+  const visionCtaMedia = getText("about_vision_cta_media_url", "");
   const visionCtaTextColor = getText("about_vision_cta_text_color", "");
   const visionActionType = getText("about_vision_cta_action_type", "whatsapp");
   const visionWaMsg = getText("about_vision_cta_whatsapp_message", "");

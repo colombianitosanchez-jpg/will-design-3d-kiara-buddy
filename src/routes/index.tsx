@@ -142,19 +142,19 @@ function Hero() {
   const heroCtaWhatsappMsg = getText("hero_cta_whatsapp_message", "");
   const heroCtaWhatsappLogic = getText("hero_cta_whatsapp_image_logic", "auto");
   const heroCtaWhatsappImg = getText("hero_cta_whatsapp_image_url", "");
-  const heroCtaMedia = getText("hero_cta_media_url", "") || image;
+  const heroCtaMedia = getText("hero_cta_media_url", "");
   const heroCtaMediaMode = getText("hero_cta_media_mode", "fill");
   const heroCtaIconUrl = getText("hero_cta_icon_url", "");
   const heroCtaIconPos = getText("hero_cta_icon_position", "none");
   const heroCtaTextColor = getText("hero_cta_text_color", "");
 
-  const heroSecCtaText = getText("hero_secondary_cta_text", "Ver tienda");
+  const heroSecCtaText = getText("hero_secondary_cta_text", "");
   const heroSecCtaUrl = getText("hero_secondary_cta_url", "/tienda");
   const heroSecCtaActionType = getText("hero_secondary_cta_action_type", "link");
   const heroSecCtaWhatsappMsg = getText("hero_secondary_cta_whatsapp_message", "");
   const heroSecCtaWhatsappLogic = getText("hero_secondary_cta_whatsapp_image_logic", "auto");
   const heroSecCtaWhatsappImg = getText("hero_secondary_cta_whatsapp_image_url", "");
-  const heroSecCtaMedia = getText("hero_secondary_cta_media_url", "") || image;
+  const heroSecCtaMedia = getText("hero_secondary_cta_media_url", "");
   const heroSecCtaMediaMode = getText("hero_secondary_cta_media_mode", "fill");
   const heroSecCtaIconUrl = getText("hero_secondary_cta_icon_url", "");
   const heroSecCtaIconPos = getText("hero_secondary_cta_icon_position", "none");
@@ -577,7 +577,7 @@ function AboutPreview() {
   const ctaWhatsappMsg = getText("about_cta_whatsapp_message", "");
   const ctaWhatsappLogic = getText("about_cta_whatsapp_image_logic", "auto");
   const ctaWhatsappImg = getText("about_cta_whatsapp_image_url", "");
-  const ctaMediaUrl = getText("about_cta_media_url", "") || image;
+  const ctaMediaUrl = getText("about_cta_media_url", "");
   const ctaMediaMode = getText("about_cta_media_mode", "fill");
   const ctaIconUrl = getText("about_cta_icon_url", "");
   const ctaIconPos = getText("about_cta_icon_position", "none");
