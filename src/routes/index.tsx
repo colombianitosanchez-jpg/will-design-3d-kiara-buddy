@@ -25,30 +25,39 @@ import { parseHeroStats, type HeroStatItem } from "@/routes/panel.contenido";
 import { getActiveTheme } from "@/lib/theme";
 import { getWhatsAppPayloadForButton } from "@/lib/whatsapp-buttons";
 import { getSeo } from "@/lib/seo";
-import { Lottie } from "lottie-react";
 import { motion } from "framer-motion";
 
 function LottiePlayer({ url, className }: { url: string; className?: string }) {
   const [data, setData] = useState<any>(null);
+  const [LottieComp, setLottieComp] = useState<any>(null);
 
   useEffect(() => {
     if (!url) return;
     let isMounted = true;
-    fetch(url)
-      .then((res) => res.json())
-      .then((json) => {
-        if (isMounted) setData(json);
+    Promise.all([
+      fetch(url).then((res) => res.json()),
+      import("lottie-react").then((m: any) => m.Lottie || m.default),
+    ])
+      .then(([json, Comp]) => {
+        if (isMounted) {
+          setData(json);
+          setLottieComp(() => Comp);
+        }
       })
       .catch(() => {
-        if (isMounted) setData(null);
+        if (isMounted) {
+          setData(null);
+          setLottieComp(null);
+        }
       });
     return () => {
       isMounted = false;
     };
   }, [url]);
 
-  if (!data) return null;
-  return <Lottie animationData={data} loop={true} className={className} {...({} as any)} />;
+  if (!data || !LottieComp) return null;
+  const Component = LottieComp;
+  return <Component animationData={data} loop={true} className={className} />;
 }
 
 export const Route = createFileRoute("/")({

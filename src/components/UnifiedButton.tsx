@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Lottie } from "lottie-react";
 import { useCart } from "@/lib/cart";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { getContactInfo, waLink, formatCOP, type Product } from "@/lib/catalog";
@@ -20,25 +19,35 @@ import {
 
 function LottiePlayer({ url, className }: { url: string; className?: string }) {
   const [data, setData] = useState<any>(null);
+  const [LottieComp, setLottieComp] = useState<any>(null);
 
   useEffect(() => {
     if (!url) return;
     let isMounted = true;
-    fetch(url)
-      .then((res) => res.json())
-      .then((json) => {
-        if (isMounted) setData(json);
+    Promise.all([
+      fetch(url).then((res) => res.json()),
+      import("lottie-react").then((m: any) => m.Lottie || m.default),
+    ])
+      .then(([json, Comp]) => {
+        if (isMounted) {
+          setData(json);
+          setLottieComp(() => Comp);
+        }
       })
       .catch(() => {
-        if (isMounted) setData(null);
+        if (isMounted) {
+          setData(null);
+          setLottieComp(null);
+        }
       });
     return () => {
       isMounted = false;
     };
   }, [url]);
 
-  if (!data) return null;
-  return <Lottie animationData={data} loop={true} className={className} {...({} as any)} />;
+  if (!data || !LottieComp) return null;
+  const Component = LottieComp;
+  return <Component animationData={data} loop={true} className={className} />;
 }
 
 export interface UnifiedButtonProps {
