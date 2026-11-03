@@ -75,8 +75,9 @@ export function UnifiedButton({
 }: UnifiedButtonProps) {
   const router = useRouter();
   const { addItem } = useCart();
-  const { content } = useSiteContent();
+  const { content, getText } = useSiteContent();
   const fallbackWhatsapp = getContactInfo(content).whatsapp;
+  const globalDefaultMessage = getText("whatsapp_default_message", "");
 
   const [mediaFailed, setMediaFailed] = useState(false);
 
@@ -131,21 +132,22 @@ export function UnifiedButton({
       }
       case "whatsapp": {
         const number = button.action_value.trim() || fallbackWhatsapp;
-        const msg = (button.whatsapp_message ?? "").replaceAll(
+        const msg = (button.whatsapp_message || globalDefaultMessage || "").replaceAll(
           "{{variante}}",
           variantName ?? "",
         );
         const text = buildButtonWhatsappText(
           { ...button, whatsapp_message: msg },
           {
-            name: product?.name ?? "",
+            name: product?.name ?? (button.text || ""),
             slug: product?.slug ?? "",
-            image_url: product?.image_url ?? null,
+            image_url: product?.image_url ?? button.media_url ?? null,
             images: product?.images ?? [],
             price: product ? formatCOP(product.price_cop) : "",
             variant_id: variantId ?? null,
           },
           extraWhatsappNote ?? "",
+          globalDefaultMessage
         );
 
         const url = waLink(number, text);

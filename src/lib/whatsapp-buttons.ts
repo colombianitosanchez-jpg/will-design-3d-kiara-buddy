@@ -15,7 +15,8 @@ export function getWhatsAppPayloadForButton(
   buttonConfig: ButtonWhatsAppConfig,
   currentSectionMedia?: string | null,
   logoUrl?: string | null,
-  defaultMessage?: string
+  defaultMessage?: string,
+  globalDefaultMessage?: string
 ): WhatsAppPayload {
   const mainMedia = (currentSectionMedia || "").trim();
   const fallbackLogo = (logoUrl || "").trim() || "/logo.png";
@@ -47,7 +48,11 @@ export function getWhatsAppPayloadForButton(
     }
   }
 
-  const rawMessage = buttonConfig.whatsapp_message?.trim() || defaultMessage?.trim() || "";
+  const rawMessage =
+    buttonConfig.whatsapp_message?.trim() ||
+    globalDefaultMessage?.trim() ||
+    defaultMessage?.trim() ||
+    "";
 
   let formattedText = rawMessage;
   if (formattedText.includes("{media}")) {

@@ -209,8 +209,9 @@ export function buildButtonWhatsappText(
     variant_id?: string | null;
   },
   extraNote = "",
+  globalDefaultMessage = "",
 ): string {
-  const custom = (button.whatsapp_message ?? "").trim();
+  const custom = (button.whatsapp_message ?? "").trim() || globalDefaultMessage.trim();
   const base = custom
     ? custom
         .replaceAll("{{producto}}", product.name)

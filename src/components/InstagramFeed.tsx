@@ -280,7 +280,7 @@ function PhotoGallery({ photos, handle }: { photos: PortfolioPhoto[]; handle: st
               }}
               title="Ver en Lightbox"
               aria-label="Ver en Lightbox"
-              className="absolute top-2 right-2 z-10 backdrop-blur-md bg-black/60 text-white hover:bg-black/80 rounded-full p-2 shadow-lg transition-transform hover:scale-110"
+              className="absolute top-2 right-2 z-20 backdrop-blur-md bg-black/60 text-white hover:bg-black/80 rounded-full p-2 shadow-lg transition-transform hover:scale-110 cursor-pointer"
             >
               <Maximize2 className="h-4 w-4" />
             </button>
@@ -293,8 +293,8 @@ function PhotoGallery({ photos, handle }: { photos: PortfolioPhoto[]; handle: st
             </span>
           ) : null;
 
-          const cardContent = (
-            <div className="group relative aspect-square h-full w-full overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+          const mediaVisual = (
+            <>
               <ProductMedia
                 src={item.url}
                 alt={`Proyecto de impresión 3D de Will Design 3D ${i + 1}`}
@@ -307,50 +307,49 @@ function PhotoGallery({ photos, handle }: { photos: PortfolioPhoto[]; handle: st
                 </span>
               )}
               {externalBadge}
-              {zoomButton}
-            </div>
+            </>
           );
-
-          if (link) {
-            if (isExternal) {
-              return (
-                <a
-                  key={item.id}
-                  href={link}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block focus:outline-none focus:ring-2 focus:ring-primary rounded-2xl"
-                >
-                  {cardContent}
-                </a>
-              );
-            }
-            return (
-              <Link
-                key={item.id}
-                to={link}
-                className="block focus:outline-none focus:ring-2 focus:ring-primary rounded-2xl"
-              >
-                {cardContent}
-              </Link>
-            );
-          }
 
           return (
             <div
               key={item.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => setZoom(item)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  setZoom(item);
-                }
-              }}
-              className="block cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-primary rounded-2xl"
+              className="group relative aspect-square h-full w-full overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
             >
-              {cardContent}
+              {link ? (
+                isExternal ? (
+                  <a
+                    href={link}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block h-full w-full focus:outline-none focus:ring-2 focus:ring-primary rounded-2xl"
+                  >
+                    {mediaVisual}
+                  </a>
+                ) : (
+                  <Link
+                    to={link}
+                    className="block h-full w-full focus:outline-none focus:ring-2 focus:ring-primary rounded-2xl"
+                  >
+                    {mediaVisual}
+                  </Link>
+                )
+              ) : (
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setZoom(item)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setZoom(item);
+                    }
+                  }}
+                  className="block h-full w-full cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-primary rounded-2xl"
+                >
+                  {mediaVisual}
+                </div>
+              )}
+              {zoomButton}
             </div>
           );
         })}

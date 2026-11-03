@@ -76,7 +76,7 @@ export type HeroStatItem = {
   id: string;
   k: string;
   v: string;
-  action_type?: "none" | "link" | "whatsapp";
+  action_type?: "none" | "link" | "whatsapp" | "cotizador";
   action_value?: string;
   whatsapp_message?: string;
   whatsapp_image_logic?: "auto" | "logo" | "product_image";
@@ -294,6 +294,7 @@ const FIELDS: FieldDef[] = [
   { key: "hero_cta_icon_url", label: "Ícono Botón Principal Hero", type: "media", section: "Inicio", group: "Hero Principal" },
   { key: "hero_cta_icon_position", label: "Posición Ícono Botón Principal Hero", type: "text", section: "Inicio", group: "Hero Principal" },
   { key: "hero_cta_text_color", label: "Color Texto Botón Principal Hero", type: "text", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_cta_custom_hex", label: "Color Personalizado HEX Botón Principal Hero", type: "text", section: "Inicio", group: "Hero Principal" },
   {
     key: "hero_cta_action_type",
     label: "Acción Botón Principal Hero",
@@ -342,6 +343,7 @@ const FIELDS: FieldDef[] = [
   { key: "hero_secondary_cta_icon_url", label: "Ícono Botón Secundario Hero", type: "media", section: "Inicio", group: "Hero Principal" },
   { key: "hero_secondary_cta_icon_position", label: "Posición Ícono Botón Secundario Hero", type: "text", section: "Inicio", group: "Hero Principal" },
   { key: "hero_secondary_cta_text_color", label: "Color Texto Botón Secundario Hero", type: "text", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_secondary_cta_custom_hex", label: "Color Personalizado HEX Botón Secundario Hero", type: "text", section: "Inicio", group: "Hero Principal" },
   {
     key: "hero_secondary_cta_action_type",
     label: "Acción Botón Secundario Hero",
@@ -428,6 +430,11 @@ const FIELDS: FieldDef[] = [
   { key: "about_cta_text", label: "Texto del Botón 'Nosotros'", type: "text", help: "Ej: Conoce más sobre nosotros", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_cta_url", label: "Enlace del Botón 'Nosotros'", type: "text", help: "Ej: /nosotros o https://...", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_cta_media_url", label: "Multimedia Botón 'Nosotros'", type: "media", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_cta_media_mode", label: "Modo multimedia Botón 'Nosotros'", type: "text", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_cta_icon_url", label: "Ícono Botón 'Nosotros'", type: "media", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_cta_icon_position", label: "Posición Ícono Botón 'Nosotros'", type: "text", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_cta_text_color", label: "Color Texto Botón 'Nosotros'", type: "text", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_cta_custom_hex", label: "Color Personalizado HEX Botón 'Nosotros'", type: "text", section: "Inicio", group: "Sección Nosotros" },
   {
     key: "about_cta_action_type",
     label: "Acción Botón 'Nosotros'",
@@ -475,6 +482,11 @@ const FIELDS: FieldDef[] = [
   { key: "about_mission_cta_text", label: "Texto Botón Misión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_mission_cta_url", label: "Enlace Botón Misión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_mission_cta_media_url", label: "Multimedia Botón Misión", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_mission_cta_media_mode", label: "Modo multimedia Botón Misión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_mission_cta_icon_url", label: "Ícono Botón Misión", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_mission_cta_icon_position", label: "Posición Ícono Botón Misión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_mission_cta_text_color", label: "Color Texto Botón Misión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_mission_cta_custom_hex", label: "Color Personalizado HEX Botón Misión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
   {
     key: "about_mission_cta_action_type",
     label: "Acción Botón Misión",
@@ -489,6 +501,18 @@ const FIELDS: FieldDef[] = [
   },
   { key: "about_mission_cta_whatsapp_message", label: "Mensaje WhatsApp Botón Misión", type: "textarea", help: "Usa {media} para incluir enlace al logo o imagen.", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_mission_cta_whatsapp_image_url", label: "Imagen Específica WhatsApp Botón Misión", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  {
+    key: "about_mission_cta_whatsapp_image_logic",
+    label: "Lógica Imagen/Logo WhatsApp Botón Misión",
+    type: "select",
+    section: "Inicio",
+    group: "Nosotros Página Misión Visión",
+    options: [
+      { value: "auto", label: "Automático (Reglas CEO: Logo si es video, Imagen si existe)" },
+      { value: "logo", label: "Forzar Enviar Logo de la Empresa" },
+      { value: "product_image", label: "Enviar Imagen de la Sección / Producto" },
+    ],
+  },
 
   { key: "about_vision_title", label: "Título Visión", type: "text", help: "Default: Visión", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_vision_text", label: "Texto Visión", type: "textarea", help: "Default: Ser el referente colombiano en impresión 3D de gran formato...", section: "Inicio", group: "Nosotros Página Misión Visión" },
@@ -496,6 +520,11 @@ const FIELDS: FieldDef[] = [
   { key: "about_vision_cta_text", label: "Texto Botón Visión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_vision_cta_url", label: "Enlace Botón Visión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_vision_cta_media_url", label: "Multimedia Botón Visión", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_vision_cta_media_mode", label: "Modo multimedia Botón Visión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_vision_cta_icon_url", label: "Ícono Botón Visión", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_vision_cta_icon_position", label: "Posición Ícono Botón Visión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_vision_cta_text_color", label: "Color Texto Botón Visión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_vision_cta_custom_hex", label: "Color Personalizado HEX Botón Visión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
   {
     key: "about_vision_cta_action_type",
     label: "Acción Botón Visión",
@@ -510,6 +539,18 @@ const FIELDS: FieldDef[] = [
   },
   { key: "about_vision_cta_whatsapp_message", label: "Mensaje WhatsApp Botón Visión", type: "textarea", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_vision_cta_whatsapp_image_url", label: "Imagen Específica WhatsApp Botón Visión", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  {
+    key: "about_vision_cta_whatsapp_image_logic",
+    label: "Lógica Imagen/Logo WhatsApp Botón Visión",
+    type: "select",
+    section: "Inicio",
+    group: "Nosotros Página Misión Visión",
+    options: [
+      { value: "auto", label: "Automático (Reglas CEO: Logo si es video, Imagen si existe)" },
+      { value: "logo", label: "Forzar Enviar Logo de la Empresa" },
+      { value: "product_image", label: "Enviar Imagen de la Sección / Producto" },
+    ],
+  },
 
   { key: "about_values_title", label: "Título Sección Valores", type: "text", help: "Default: Valores", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_values_text", label: "Texto / Descripción Valores", type: "textarea", section: "Inicio", group: "Nosotros Página Misión Visión" },
@@ -714,11 +755,18 @@ function SortableHeroStatCard({
                   <SelectItem value="none">Sin Acción (Texto Estático)</SelectItem>
                   <SelectItem value="link">Abrir Enlace / URL</SelectItem>
                   <SelectItem value="whatsapp">Abrir Chat de WhatsApp</SelectItem>
+                  <SelectItem value="cotizador">Abrir Cotizador Interactivo (/cotizador)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {item.action_type && item.action_type !== "none" && (
+            {item.action_type === "cotizador" && (
+              <div className="sm:col-span-2 rounded-lg bg-background/50 border border-border/60 p-2.5 text-xs text-muted-foreground">
+                Esta estadística redirige directamente a la experiencia del Cotizador 3D en <code className="font-mono text-primary font-bold">/cotizador</code>.
+              </div>
+            )}
+
+            {item.action_type && item.action_type !== "none" && item.action_type !== "cotizador" && (
               <div>
                 <Label className="text-xs font-semibold">
                   {item.action_type === "link" ? "URL o Ruta de Destino" : "Número de WhatsApp (Opcional)"}
@@ -726,7 +774,7 @@ function SortableHeroStatCard({
                 <Input
                   value={item.action_value || ""}
                   onChange={(e) => onUpdate({ action_value: e.target.value })}
-                  placeholder={item.action_type === "link" ? "/cotizador o https://..." : "573156724474"}
+                  placeholder={item.action_type === "link" ? "/servicios o https://..." : "573156724474"}
                   className="mt-1 text-xs"
                 />
               </div>
@@ -1327,6 +1375,8 @@ function CTAButtonGroup({
   const textColor = values[textColorKey] || "";
   const customHex = values[customHexKey] || "";
 
+  const globalDefaultMsg = values["whatsapp_default_message"] || "";
+
   const payload = getWhatsAppPayloadForButton(
     {
       whatsapp_message: whatsappMsg,
@@ -1335,7 +1385,8 @@ function CTAButtonGroup({
     },
     mediaUrl || values["hero_image_url"] || "",
     values["site_logo_url"],
-    "Hola Will, me interesa cotizar..."
+    "Hola Will, me interesa cotizar...",
+    globalDefaultMsg
   );
 
   const isVid = /\.(mp4|webm|quicktime)($|\?)/i.test(mediaUrl);
