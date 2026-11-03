@@ -231,25 +231,25 @@ export async function fetchSiteContent(): Promise<Record<string, string>> {
 
 // Query options
 export const productsQuery = () =>
-  queryOptions({ queryKey: ["products"], queryFn: fetchProducts, staleTime: 30_000 });
+  queryOptions({ queryKey: ["products"], queryFn: fetchProducts, staleTime: 60_000 });
 export const featuredProductsQuery = () =>
-  queryOptions({ queryKey: ["products", "featured"], queryFn: fetchFeaturedProducts, staleTime: 30_000 });
+  queryOptions({ queryKey: ["products", "featured"], queryFn: fetchFeaturedProducts, staleTime: 60_000 });
 export const productBySlugQuery = (slug: string) =>
-  queryOptions({ queryKey: ["products", slug], queryFn: () => fetchProductBySlug(slug), staleTime: 30_000 });
+  queryOptions({ queryKey: ["products", slug], queryFn: () => fetchProductBySlug(slug), staleTime: 60_000 });
 export const categoriesQuery = () =>
-  queryOptions({ queryKey: ["categories"], queryFn: fetchCategories, staleTime: 5 * 60_000 });
+  queryOptions({ queryKey: ["categories"], queryFn: fetchCategories, staleTime: 10 * 60_000 });
 export const brandsQuery = () =>
-  queryOptions({ queryKey: ["brands"], queryFn: fetchBrands, staleTime: 5 * 60_000 });
+  queryOptions({ queryKey: ["brands"], queryFn: fetchBrands, staleTime: 10 * 60_000 });
 export const attributesQuery = () =>
-  queryOptions({ queryKey: ["attributes"], queryFn: fetchAttributes, staleTime: 5 * 60_000 });
+  queryOptions({ queryKey: ["attributes"], queryFn: fetchAttributes, staleTime: 10 * 60_000 });
 export const categoryAttributesQuery = () =>
   queryOptions({
     queryKey: ["category_attributes"],
     queryFn: fetchCategoryAttributes,
-    staleTime: 5 * 60_000,
+    staleTime: 10 * 60_000,
   });
 export const siteContentQuery = () =>
-  queryOptions({ queryKey: ["site_content"], queryFn: fetchSiteContent, staleTime: 30_000 });
+  queryOptions({ queryKey: ["site_content"], queryFn: fetchSiteContent, staleTime: 5 * 60_000 });
 
 export const DEFAULT_CONTACT = {
   whatsapp: "",

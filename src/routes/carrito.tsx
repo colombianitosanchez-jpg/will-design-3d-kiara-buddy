@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, Minus, Plus, Share2, ShoppingCart, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,6 @@ import { commonMethods, methodsForLine } from "@/lib/payment-rules";
 import { saveQuote } from "@/lib/saved-quotes.functions";
 import {
   listPublicPaymentMethods,
-  type PublicPaymentMethod,
 } from "@/lib/payment-methods.functions";
 import {
   PAYMENT_GROUPS,
@@ -53,14 +53,12 @@ const inputCls =
 function CarritoPage() {
   const { items, total, count, setQuantity, removeItem, clear } = useCart();
   const submit = useServerFn(createCartOrder);
-  const loadMethods = useServerFn(listPublicPaymentMethods);
+  const loadMethodsFn = useServerFn(listPublicPaymentMethods);
+  const loadRulesFn = useServerFn(cartPaymentRules);
   const persistQuote = useServerFn(saveQuote);
   const [sending, setSending] = useState(false);
   const [sharing, setSharing] = useState(false);
-  const [methods, setMethods] = useState<PublicPaymentMethod[]>([]);
   const [methodId, setMethodId] = useState<string>("");
-  const loadRules = useServerFn(cartPaymentRules);
-  const [rules, setRules] = useState<Record<string, string[] | null>>({});
   const [mode, setMode] = useState<"single" | "split">("single");
   const [itemMethod, setItemMethod] = useState<Record<string, string>>({});
   const [splitDone, setSplitDone] = useState<
@@ -89,31 +87,28 @@ function CarritoPage() {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  useEffect(() => {
-    let alive = true;
-    void loadMethods({})
-      .then((list) => {
-        if (!alive) return;
-        setMethods(list);
-        if (list.length) setMethodId((prev) => prev || list[0]!.id);
-      })
-      .catch(() => undefined);
-    return () => {
-      alive = false;
-    };
-  }, [loadMethods]);
+  const { data: methods = [] } = useQuery({
+    queryKey: ["public_payment_methods"],
+    queryFn: () => loadMethodsFn({}),
+    staleTime: 5 * 60_000,
+  });
 
-  const keysSig = items.map((i) => i.product_id).join("|");
+  const keysSig = useMemo(() => items.map((i) => i.product_id).sort().join("|"), [items]);
+  const { data: rules = {} } = useQuery({
+    queryKey: ["cart_payment_rules", keysSig],
+    queryFn: async () => {
+      if (!keysSig) return {};
+      return await loadRulesFn({ data: { keys: keysSig.split("|") } });
+    },
+    enabled: Boolean(keysSig),
+    staleTime: 60_000,
+  });
+
   useEffect(() => {
-    if (!keysSig) return;
-    let alive = true;
-    void loadRules({ data: { keys: keysSig.split("|") } })
-      .then((r) => alive && setRules(r))
-      .catch(() => undefined);
-    return () => {
-      alive = false;
-    };
-  }, [keysSig, loadRules]);
+    if (methods.length > 0 && !methodId) {
+      setMethodId(methods[0]!.id);
+    }
+  }, [methods, methodId]);
 
   const activeIds = useMemo(() => methods.map((m) => m.id), [methods]);
   const lineIds = (key: string) => methodsForLine(rules[key] ?? null, activeIds);
