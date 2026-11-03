@@ -11,6 +11,67 @@ export type WhatsAppPayload = {
   formattedText: string;
 };
 
+export function toAbsoluteUrl(url?: string | null): string {
+  if (!url) return "";
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  const origin =
+    typeof window !== "undefined" && window.location?.origin
+      ? window.location.origin
+      : "https://will-design-3d.lovable.app";
+  return `${origin}${trimmed.startsWith("/") ? trimmed : `/${trimmed}`}`;
+}
+
+/**
+ * Reemplaza etiquetas simples ({clave}) y dobles ({{clave}}) de forma flexible y segura.
+ */
+export function replaceTemplatePlaceholders(
+  template: string,
+  data: {
+    producto?: string | null;
+    precio?: string | null;
+    variante?: string | null;
+    media?: string | null;
+  }
+): string {
+  let result = template;
+
+  if (data.producto !== undefined && data.producto !== null) {
+    result = result
+      .replaceAll("{{producto}}", data.producto)
+      .replaceAll("{producto}", data.producto)
+      .replaceAll("{{product}}", data.producto)
+      .replaceAll("{product}", data.producto);
+  }
+
+  if (data.precio !== undefined && data.precio !== null) {
+    result = result
+      .replaceAll("{{precio}}", data.precio)
+      .replaceAll("{precio}", data.precio)
+      .replaceAll("{{price}}", data.precio)
+      .replaceAll("{price}", data.precio);
+  }
+
+  if (data.variante !== undefined && data.variante !== null) {
+    result = result
+      .replaceAll("{{variante}}", data.variante)
+      .replaceAll("{variante}", data.variante)
+      .replaceAll("{{variant}}", data.variante)
+      .replaceAll("{variant}", data.variante);
+  }
+
+  if (data.media !== undefined && data.media !== null) {
+    result = result
+      .replaceAll("{{media_link}}", data.media)
+      .replaceAll("{media_link}", data.media)
+      .replaceAll("{{media}}", data.media)
+      .replaceAll("{media}", data.media);
+  }
+
+  return result;
+}
+
 export function getWhatsAppPayloadForButton(
   buttonConfig: ButtonWhatsAppConfig,
   currentSectionMedia?: string | null,
@@ -48,19 +109,18 @@ export function getWhatsAppPayloadForButton(
     }
   }
 
+  // Asegurar que la URL sea absoluta para previsualización correcta en WhatsApp
+  mediaToSend = toAbsoluteUrl(mediaToSend);
+
   const rawMessage =
     buttonConfig.whatsapp_message?.trim() ||
     globalDefaultMessage?.trim() ||
     defaultMessage?.trim() ||
     "";
 
-  let formattedText = rawMessage;
-  if (formattedText.includes("{media}")) {
-    formattedText = formattedText.replaceAll("{media}", mediaToSend);
-  }
-  if (formattedText.includes("{media_link}")) {
-    formattedText = formattedText.replaceAll("{media_link}", mediaToSend);
-  }
+  const formattedText = replaceTemplatePlaceholders(rawMessage, {
+    media: mediaToSend,
+  });
 
   return {
     mediaToSend,

@@ -117,7 +117,10 @@ export function UnifiedButton({
     e.preventDefault();
     e.stopPropagation();
 
-    if (onClick) onClick();
+    if (onClick) {
+      onClick();
+      return;
+    }
 
     switch (button.action_type) {
       case "link": {
@@ -131,13 +134,11 @@ export function UnifiedButton({
         return;
       }
       case "whatsapp": {
-        const number = button.action_value.trim() || fallbackWhatsapp;
-        const msg = (button.whatsapp_message || globalDefaultMessage || "").replaceAll(
-          "{{variante}}",
-          variantName ?? "",
-        );
+        const hasValidDigits =
+          Boolean(button.action_value && button.action_value.replace(/\D/g, "").length >= 7);
+        const number = hasValidDigits ? button.action_value.trim() : fallbackWhatsapp;
         const text = buildButtonWhatsappText(
-          { ...button, whatsapp_message: msg },
+          button,
           {
             name: product?.name ?? (button.text || ""),
             slug: product?.slug ?? "",
@@ -145,6 +146,7 @@ export function UnifiedButton({
             images: product?.images ?? [],
             price: product ? formatCOP(product.price_cop) : "",
             variant_id: variantId ?? null,
+            variant_name: variantName ?? null,
           },
           extraWhatsappNote ?? "",
           globalDefaultMessage

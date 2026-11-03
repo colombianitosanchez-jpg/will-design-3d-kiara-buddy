@@ -1,4 +1,5 @@
 /** Botones personalizables por producto, configurados desde /panel/productos. */
+import { replaceTemplatePlaceholders, toAbsoluteUrl } from "./whatsapp-buttons";
 
 export const BUTTON_VARIANTS = ["default", "secondary", "destructive", "outline", "ghost"] as const;
 export type ButtonVariant = (typeof BUTTON_VARIANTS)[number];
@@ -207,26 +208,35 @@ export function buildButtonWhatsappText(
     images?: string[] | null;
     price?: string | null;
     variant_id?: string | null;
+    variant_name?: string | null;
   },
   extraNote = "",
   globalDefaultMessage = "",
 ): string {
   const custom = (button.whatsapp_message ?? "").trim() || globalDefaultMessage.trim();
+  const resolvedMedia =
+    (button.whatsapp_image_url ? shortenStorageUrl(button.whatsapp_image_url) : "") ||
+    productPageUrl(product.slug, product.variant_id) ||
+    shortenStorageUrl(product.image_url || product.images?.[0] || "");
+  const absoluteMedia = resolvedMedia ? toAbsoluteUrl(resolvedMedia) : "";
+
   const base = custom
-    ? custom
-        .replaceAll("{{producto}}", product.name)
-        .replaceAll("{{product}}", product.name)
-        .replaceAll("{{precio}}", product.price ?? "")
+    ? replaceTemplatePlaceholders(custom, {
+        producto: product.name,
+        precio: product.price ?? "",
+        variante: product.variant_name ?? "",
+        media: absoluteMedia,
+      })
     : `Hola, me interesa el producto: ${product.name}.`;
+
   const parts = [base.trim()];
   if (extraNote.trim()) parts.push(extraNote.trim());
   let text = parts.join(" ");
-  if (button.include_image_link) {
-    const preview =
-      (button.whatsapp_image_url ? shortenStorageUrl(button.whatsapp_image_url) : "") ||
-      productPageUrl(product.slug, product.variant_id) ||
-      shortenStorageUrl(product.image_url || product.images?.[0] || "");
-    if (preview) text = `${text}\n\n${preview}`;
+
+  if (button.include_image_link && absoluteMedia) {
+    if (!custom.includes("{media") && !custom.includes("{{media")) {
+      text = `${text}\n\n${absoluteMedia}`;
+    }
   }
   return text;
 }
