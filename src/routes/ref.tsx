@@ -4,6 +4,7 @@ import { ArrowRight, Calculator, ExternalLink, Image as ImageIcon, Box } from "l
 import { useSiteContent } from "@/hooks/use-site-content";
 
 const refSearchSchema = z.object({
+  k: z.string().optional().default(""),
   img: z.string().optional().default(""),
   title: z.string().optional().default("Referencia de Cotización - Will Design 3D"),
   desc: z.string().optional().default("Pieza de impresión 3D para cotización"),
@@ -12,13 +13,25 @@ const refSearchSchema = z.object({
 export const Route = createFileRoute("/ref")({
   validateSearch: refSearchSchema,
   loaderDeps: ({ search }) => ({
+    k: search.k,
     img: search.img,
     title: search.title,
     desc: search.desc,
   }),
-  loader: ({ deps }) => {
+  loader: async ({ deps }) => {
+    let img = deps.img || "";
+    // Enlace corto: la imagen se busca en el contenido del sitio por su clave.
+    if (deps.k && /^[a-z0-9_]+_image_url$/i.test(deps.k)) {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data } = await supabase
+        .from("site_content")
+        .select("value")
+        .eq("key", deps.k)
+        .maybeSingle();
+      if (data?.value) img = String(data.value);
+    }
     return {
-      img: deps.img || "",
+      img,
       title: deps.title || "Referencia de Cotización - Will Design 3D",
       desc: deps.desc || "Pieza de impresión 3D para cotización",
     };

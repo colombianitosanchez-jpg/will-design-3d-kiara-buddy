@@ -179,7 +179,8 @@ function Hero() {
     whatsappLogic: string,
     mediaUrl: string,
     defaultFallbackText: string,
-    whatsappImageUrl?: string
+    whatsappImageUrl?: string,
+    whatsappImageKey?: string
   ) {
     if (actionType === "whatsapp") {
       // Si ya existe un mensaje configurado en site_content, evitamos pasar el fallback predeterminado
@@ -189,6 +190,7 @@ function Hero() {
           whatsapp_message: whatsappMsg,
           whatsapp_image_logic: whatsappLogic,
           whatsapp_image_url: whatsappImageUrl,
+          whatsapp_image_key: whatsappImageKey,
         },
         mediaUrl,
         content?.site_logo_url,
@@ -311,7 +313,8 @@ function Hero() {
                     heroCtaWhatsappLogic,
                     heroCtaMedia,
                     "Hola Will, me interesa cotizar del Hero",
-                    heroCtaWhatsappImg
+                    heroCtaWhatsappImg,
+                    "hero_cta_whatsapp_image_url"
                   )
                 }
               />
@@ -343,7 +346,8 @@ function Hero() {
                     heroSecCtaWhatsappLogic,
                     heroSecCtaMedia,
                     "Hola Will, quisiera ver la tienda",
-                    heroSecCtaWhatsappImg
+                    heroSecCtaWhatsappImg,
+                    "hero_secondary_cta_whatsapp_image_url"
                   )
                 }
               />
@@ -613,6 +617,7 @@ function AboutPreview() {
           whatsapp_message: ctaWhatsappMsg || globalDefaultMessage,
           whatsapp_image_logic: ctaWhatsappLogic,
           whatsapp_image_url: ctaWhatsappImg,
+          whatsapp_image_key: "about_cta_whatsapp_image_url",
         },
         ctaMediaUrl,
         content?.site_logo_url,
