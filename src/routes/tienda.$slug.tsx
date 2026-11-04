@@ -16,6 +16,7 @@ import {
   siteContentQuery,
   getContactInfo,
   waLink,
+  applyGlobalWaTemplate,
   type Product,
 } from "@/lib/catalog";
 import { openExternalUrl } from "@/lib/whatsapp";
@@ -240,7 +241,11 @@ function ProductPage() {
   const shownButtons = effectiveButtons(product.custom_buttons, selectedVariant);
   const waHref = waLink(
     contact.whatsapp,
-    `Hola Will Design 3D, me interesa el producto: ${variantProduct.name} (${formatCOP(shownPrice)}). ¿Está disponible?`,
+    applyGlobalWaTemplate(
+      content?.whatsapp_default_message,
+      { producto: product.name, precio: formatCOP(shownPrice), variante: selectedVariant?.name ?? "" },
+      `Hola Will Design 3D, me interesa el producto: ${variantProduct.name} (${formatCOP(shownPrice)}). ¿Está disponible?`,
+    ),
   );
   const [orderOpen, setOrderOpen] = useState(false);
   const [file3dName, setFile3dName] = useState<string | null>(null);

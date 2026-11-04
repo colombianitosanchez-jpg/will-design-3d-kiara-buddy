@@ -9,6 +9,7 @@ import {
   getContactInfo,
   gradientKeyFor,
   waLink,
+  applyGlobalWaTemplate,
   type Product,
 } from "@/lib/catalog";
 import { openExternalUrl } from "@/lib/whatsapp";
@@ -35,7 +36,11 @@ export const ProductCard = memo(function ProductCard({ product, variant }: { pro
   const { content } = useSiteContent();
   const whatsappUrl = waLink(
     getContactInfo(content).whatsapp,
-    `Hola, me interesa el producto: ${product.name}`,
+    applyGlobalWaTemplate(
+      content?.whatsapp_default_message,
+      { producto: product.name, precio: formatCOP(variant?.price_cop ?? product.price_cop), variante: variant?.name ?? "" },
+      `Hola, me interesa el producto: ${product.name}`,
+    ),
   );
   const actionText = product.btn_text?.trim() || "Ver más";
   const [quickOpen, setQuickOpen] = useState(false);

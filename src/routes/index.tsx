@@ -12,7 +12,7 @@ import { Quoter } from "@/components/Quoter";
 import { InstagramFeed } from "@/components/InstagramFeed";
 import { ProductCard } from "@/components/ProductCard";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
-import { categoriesQuery, productsQuery, siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
+import { categoriesQuery, productsQuery, siteContentQuery, getContactInfo, waLink, pickWhatsapp } from "@/lib/catalog";
 import { openExternalUrl } from "@/lib/whatsapp";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { heroCarouselQuery } from "@/lib/hero-carousel";
@@ -195,7 +195,7 @@ function Hero() {
         effectiveFallback,
         globalDefaultMessage
       );
-      const waUrl = waLink(fallbackWhatsapp, payload.formattedText);
+      const waUrl = waLink(pickWhatsapp(url, fallbackWhatsapp), payload.formattedText);
       if (!waUrl) {
         toast.error("Configura WhatsApp en /panel/marca");
         return;
@@ -228,7 +228,7 @@ function Hero() {
         router.navigate({ to: val.startsWith("/") ? (val as any) : (`/${val}` as any) });
       }
     } else if (stat.action_type === "whatsapp") {
-      const num = stat.action_value?.trim() || fallbackWhatsapp;
+      const num = pickWhatsapp(stat.action_value, fallbackWhatsapp);
       const defaultMsg = `Hola Will Design 3D, me interesa la consulta sobre: ${stat.k} (${stat.v}).`;
       const payload = getWhatsAppPayloadForButton(
         {

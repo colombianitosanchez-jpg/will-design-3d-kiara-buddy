@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Target, Eye, Heart, MapPin, Wrench, ArrowRight, MessageCircle } from "lucide-react";
 import kiaraAsset from "@/assets/kiara.asset.json";
-import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
+import { siteContentQuery, getContactInfo, waLink, pickWhatsapp } from "@/lib/catalog";
 import { openExternalUrl } from "@/lib/whatsapp";
 import { getWhatsAppPayloadForButton } from "@/lib/whatsapp-buttons";
 import { useSiteContent } from "@/hooks/use-site-content";
@@ -149,18 +149,18 @@ function NosotrosPage() {
   const workshopItemsRaw = content?.about_workshop_items || "";
   const workshopItemsParsed = parseHeroStats({ hero_stats: workshopItemsRaw }).filter((s) => s.k || s.v);
 
-  function handleSectionWaClick(itemTitle: string, itemBody: string, customMsg?: string, customMedia?: string) {
+  function handleSectionWaClick(itemTitle: string, itemBody: string, customMsg?: string, customMedia?: string, logic?: string, phone?: string) {
     const payload = getWhatsAppPayloadForButton(
       {
         whatsapp_message: customMsg || globalDefaultMessage,
-        whatsapp_image_logic: content?.about_cta_whatsapp_image_logic,
+        whatsapp_image_logic: logic || content?.about_cta_whatsapp_image_logic,
       },
       customMedia || imageUrl,
       content?.site_logo_url,
       `Hola Will Design 3D, me interesa saber más sobre ${itemTitle}: ${itemBody}`,
       globalDefaultMessage
     );
-    const url = waLink(fallbackWhatsapp, payload.formattedText);
+    const url = waLink(pickWhatsapp(phone, fallbackWhatsapp), payload.formattedText);
     if (!url) {
       toast.error("Configura WhatsApp en /panel/marca");
       return;
@@ -233,7 +233,7 @@ function NosotrosPage() {
                 }}
                 onClick={
                   missionActionType === "whatsapp"
-                    ? () => handleSectionWaClick(missionTitle, missionText, missionWaMsg, missionWaImg || missionCtaMedia)
+                    ? () => handleSectionWaClick(missionTitle, missionText, missionWaMsg, missionWaImg || missionCtaMedia, content?.about_mission_cta_whatsapp_image_logic, missionCtaUrl)
                     : undefined
                 }
               />
@@ -286,7 +286,7 @@ function NosotrosPage() {
                 }}
                 onClick={
                   visionActionType === "whatsapp"
-                    ? () => handleSectionWaClick(visionTitle, visionText, visionWaMsg, visionWaImg || visionCtaMedia)
+                    ? () => handleSectionWaClick(visionTitle, visionText, visionWaMsg, visionWaImg || visionCtaMedia, content?.about_vision_cta_whatsapp_image_logic, visionCtaUrl)
                     : undefined
                 }
               />
