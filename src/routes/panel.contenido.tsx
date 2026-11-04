@@ -20,6 +20,19 @@ import {
   Save,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+const CONTENT_TABS = [
+  { value: "inicio", label: "Inicio" },
+  { value: "nosotros", label: "Nosotros" },
+  { value: "tienda", label: "Tienda y WhatsApp" },
+] as const;
+
+function tabOfGroup(group: string): (typeof CONTENT_TABS)[number]["value"] {
+  if (group.includes("Nosotros")) return "nosotros";
+  if (group.includes("Tienda") || group.includes("WhatsApp")) return "tienda";
+  return "inicio";
+}
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";

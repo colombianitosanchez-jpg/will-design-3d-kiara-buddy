@@ -258,12 +258,16 @@ function TiendaPage() {
     <>
       <section className="border-b border-border bg-muted/30">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20">
-          <span className="chip-teal">Tienda</span>
+          <span className="chip-teal">{content?.store_chip?.trim() || "Tienda"}</span>
           <h1 className="mt-3 text-4xl font-black sm:text-5xl md:text-6xl">
-            Todo para tu <span style={{ color: "var(--brand-orange)" }}>taller 3D</span>
+            {content?.store_title?.trim() || (
+              <>
+                Todo para tu <span style={{ color: "var(--brand-orange)" }}>taller 3D</span>
+              </>
+            )}
           </h1>
           <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-            Marcas líderes con soporte y asesoría en Bogotá. ¿No encuentras algo?{" "}
+            {content?.store_subtitle?.trim() || "Marcas líderes con soporte y asesoría en Bogotá. ¿No encuentras algo?"}{" "}
             <Link to="/contacto" className="font-semibold text-foreground underline">
               Escríbenos
             </Link>
