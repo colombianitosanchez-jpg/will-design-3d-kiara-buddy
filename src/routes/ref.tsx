@@ -45,6 +45,7 @@ export const Route = createFileRoute("/ref")({
     }
 
     return {
+      title,
       meta: metaTags,
     };
   },
@@ -97,15 +98,17 @@ function RefPreviewPage() {
                 className="w-full h-full object-contain p-2 transition-transform duration-300 group-hover:scale-105"
                 loading="eager"
               />
-              <a
-                href={img}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="absolute top-3 right-3 rounded-full bg-black/60 p-2 text-white hover:bg-black/80 transition shadow-md"
-                title="Abrir imagen original"
-              >
-                <ExternalLink className="h-4 w-4" />
-              </a>
+              {/^https?:\/\//i.test(img) && (
+                <a
+                  href={img}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="absolute top-3 right-3 rounded-full bg-black/60 p-2 text-white hover:bg-black/80 transition shadow-md"
+                  title="Abrir imagen original"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              )}
             </>
           ) : (
             <div className="flex flex-col items-center justify-center p-8 text-muted-foreground space-y-2">
