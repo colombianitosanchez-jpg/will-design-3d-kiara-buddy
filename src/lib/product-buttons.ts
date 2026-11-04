@@ -233,7 +233,8 @@ export function buildButtonWhatsappText(
   if (extraNote.trim()) parts.push(extraNote.trim());
   let text = parts.join(" ");
 
-  if (button.include_image_link && absoluteMedia) {
+  const shouldIncludeImage = button.include_image_link || Boolean(button.whatsapp_image_url);
+  if (shouldIncludeImage && absoluteMedia) {
     if (!custom.includes("{media") && !custom.includes("{{media")) {
       text = `${text}\n\n${absoluteMedia}`;
     }

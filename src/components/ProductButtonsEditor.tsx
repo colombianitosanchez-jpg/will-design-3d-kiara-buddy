@@ -619,11 +619,11 @@ function SortableButtonCard({
               <span className="text-xs font-semibold">
                 Adjuntar automáticamente enlace con vista previa de imagen en WhatsApp
                 <span className="mt-0.5 block font-normal text-muted-foreground text-[11px]">
-                  WhatsApp muestra la imagen y el título en la vista previa del chat.
+                  Al subir una imagen o activar esta opción, la foto se adjunta automáticamente sin escribir comandos.
                 </span>
               </span>
               <Switch
-                checked={b.include_image_link}
+                checked={b.include_image_link || Boolean(b.whatsapp_image_url)}
                 onCheckedChange={(v) => onUpdate({ include_image_link: v })}
               />
             </label>

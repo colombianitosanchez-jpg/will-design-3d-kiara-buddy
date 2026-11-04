@@ -160,6 +160,19 @@ describe("Storage Media and /ref Open Graph link generation", () => {
 
     expect(payload.formattedText).toBe("Hola Will, mira esto: https://example.com/simple.jpg");
   });
+
+  test("automatically appends image url when user did not type {media} and message is custom", () => {
+    const payload = getWhatsAppPayloadForButton(
+      {
+        whatsapp_message: "Hola Will, me gustaría una cotización de esta figura",
+        whatsapp_image_url: "https://example.com/figura.jpg",
+      },
+      "",
+      "/logo.png"
+    );
+
+    expect(payload.formattedText).toBe("Hola Will, me gustaría una cotización de esta figura\n\nhttps://example.com/figura.jpg");
+  });
 });
 
 describe("replaceTemplatePlaceholders and toAbsoluteUrl", () => {

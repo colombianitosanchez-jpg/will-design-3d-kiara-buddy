@@ -141,16 +141,17 @@ export function getWhatsAppPayloadForButton(
     media: shareableMediaUrl,
   });
 
-  // Si es una imagen de Supabase Storage / con tokens y la plantilla no incluye {media} o {media_link},
-  // se añade el enlace amigable al final en una línea separada.
-  if (isStorageMedia) {
-    const hasMediaTag =
-      /\{\{media(_link)?\}\}/i.test(rawMessage) ||
-      /\{media(_link)?\}/i.test(rawMessage);
+  // Si existe una imagen/media para enviar y la plantilla no incluye {media} o {media_link},
+  // se adjunta automáticamente la URL al final del mensaje en una línea separada.
+  // De esta manera el usuario no necesita escribir manualmente "{media}".
+  const hasMediaTag =
+    /\{\{media(_link)?\}\}/i.test(rawMessage) ||
+    /\{media(_link)?\}/i.test(rawMessage);
 
-    if (!hasMediaTag) {
-      formattedText = formattedText ? `${formattedText}\n\n${shareableMediaUrl}` : shareableMediaUrl;
-    }
+  if (!hasMediaTag && shareableMediaUrl) {
+    formattedText = formattedText
+      ? `${formattedText}\n\n${shareableMediaUrl}`
+      : shareableMediaUrl;
   }
 
   return {
