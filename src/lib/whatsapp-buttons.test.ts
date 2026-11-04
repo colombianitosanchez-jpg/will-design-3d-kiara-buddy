@@ -196,3 +196,20 @@ describe("replaceTemplatePlaceholders and toAbsoluteUrl", () => {
     expect(toAbsoluteUrl("")).toBe("");
   });
 });
+
+describe("enlace corto /ref?k=", () => {
+  test("usa la clave de la imagen en vez del enlace largo de almacenamiento", () => {
+    const p = getWhatsAppPayloadForButton(
+      {
+        whatsapp_message: "Hola Will, me interesa cotizar esta pieza:",
+        whatsapp_image_url: "https://x.supabase.co/storage/v1/object/sign/site-media/a.webp?token=abc",
+        whatsapp_image_key: "hero_cta_whatsapp_image_url",
+      },
+      "",
+      "/logo.png"
+    );
+    expect(p.formattedText).toBe(
+      "Hola Will, me interesa cotizar esta pieza:\n\nhttps://will-design-3d.lovable.app/ref?k=hero_cta_whatsapp_image_url"
+    );
+  });
+});
