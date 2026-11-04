@@ -568,7 +568,12 @@ const FIELDS: FieldDef[] = [
   { key: "about_workshop_image_url", label: "Foto / GIF / Video del Taller", type: "media", help: "Reemplaza el degradado por multimedia del taller o logo", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_workshop_address", label: "Ubicación / Dirección del Taller", type: "text", help: "Default: Bogotá, Colombia · Atención por cita previa.", section: "Inicio", group: "Nosotros Página Misión Visión" },
 
-  { key: "whatsapp_default_message", label: "Mensaje WhatsApp Global Por Defecto", type: "textarea", help: "Mensaje enviado si un botón de WhatsApp no especifica mensaje personalizado.", section: "Inicio", group: "Configuración Mensajes WhatsApp" },
+  { key: "whatsapp_default_message", label: "Mensaje WhatsApp Global Por Defecto", type: "textarea", help: "Mensaje enviado si un botón de WhatsApp no especifica mensaje personalizado.", section: "Tienda", group: "Configuración Mensajes WhatsApp" },
+
+  // Cabecera de la Tienda (/tienda)
+  { key: "store_chip", label: "Etiqueta / Chip de la Tienda", type: "text", help: "Ej: Tienda", section: "Tienda", group: "Cabecera de la Tienda" },
+  { key: "store_title", label: "Título de la Tienda", type: "text", help: "Ej: Todo para tu taller 3D", section: "Tienda", group: "Cabecera de la Tienda" },
+  { key: "store_subtitle", label: "Descripción de la Tienda", type: "textarea", help: "Ej: Marcas líderes con soporte y asesoría en Bogotá.", section: "Tienda", group: "Cabecera de la Tienda" },
 ];
 
 function LottiePreview({ url }: { url: string }) {
