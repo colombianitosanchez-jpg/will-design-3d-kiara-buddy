@@ -2,7 +2,11 @@ export type ButtonWhatsAppConfig = {
   whatsapp_message?: string;
   whatsapp_image_logic?: "auto" | "logo" | "product_image" | "custom" | string;
   whatsapp_image_url?: string;
+  /** Clave de site_content donde vive la imagen: genera un enlace corto /ref?k=clave */
+  whatsapp_image_key?: string;
 };
+
+export const PUBLIC_SITE_ORIGIN = "https://will-design-3d.lovable.app";
 
 export type WhatsAppPayload = {
   mediaToSend: string;
@@ -121,14 +125,15 @@ export function getWhatsAppPayloadForButton(
   // Asegurar que la URL sea absoluta para previsualización correcta en WhatsApp
   mediaToSend = toAbsoluteUrl(mediaToSend);
 
-  const origin =
-    typeof window !== "undefined" && window.location?.origin
-      ? window.location.origin
-      : "https://will-design-3d.lovable.app";
+  // Siempre el dominio publicado: el robot de WhatsApp no puede entrar a la vista previa.
+  const origin = PUBLIC_SITE_ORIGIN;
 
   const isStorageMedia = isStorageMediaUrl(mediaToSend);
+  const imageKey = (buttonConfig.whatsapp_image_key || "").trim();
   const shareableMediaUrl = isStorageMedia
-    ? `${origin}/ref?img=${encodeURIComponent(mediaToSend)}`
+    ? explicitImage && imageKey
+      ? `${origin}/ref?k=${encodeURIComponent(imageKey)}`
+      : `${origin}/ref?img=${encodeURIComponent(mediaToSend)}`
     : mediaToSend;
 
   const rawMessage =
