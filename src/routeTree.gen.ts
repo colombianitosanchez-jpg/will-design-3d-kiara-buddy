@@ -20,6 +20,7 @@ import { Route as GaleriaRouteImport } from './routes/galeria'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as NosotrosRouteImport } from './routes/nosotros'
 import { Route as PanelRouteImport } from './routes/panel'
+import { Route as RefRouteImport } from './routes/ref'
 import { Route as ServiciosRouteImport } from './routes/servicios'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TiendaRouteImport } from './routes/tienda'
@@ -108,6 +109,11 @@ const NosotrosRoute = NosotrosRouteImport.update({
 const PanelRoute = PanelRouteImport.update({
   id: '/panel',
   path: '/panel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefRoute = RefRouteImport.update({
+  id: '/ref',
+  path: '/ref',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ServiciosRoute = ServiciosRouteImport.update({
@@ -295,6 +301,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/nosotros': typeof NosotrosRoute
   '/panel': typeof PanelRouteWithChildren
+  '/ref': typeof RefRoute
   '/servicios': typeof ServiciosRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tienda': typeof TiendaRouteWithChildren
@@ -340,6 +347,7 @@ export interface FileRoutesByTo {
   '/galeria': typeof GaleriaRoute
   '/login': typeof LoginRoute
   '/nosotros': typeof NosotrosRoute
+  '/ref': typeof RefRoute
   '/servicios': typeof ServiciosRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/clientes': typeof AdminClientesRoute
@@ -387,6 +395,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/nosotros': typeof NosotrosRoute
   '/panel': typeof PanelRouteWithChildren
+  '/ref': typeof RefRoute
   '/servicios': typeof ServiciosRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tienda': typeof TiendaRouteWithChildren
@@ -436,6 +445,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/nosotros'
     | '/panel'
+    | '/ref'
     | '/servicios'
     | '/sitemap.xml'
     | '/tienda'
@@ -481,6 +491,7 @@ export interface FileRouteTypes {
     | '/galeria'
     | '/login'
     | '/nosotros'
+    | '/ref'
     | '/servicios'
     | '/sitemap.xml'
     | '/admin/clientes'
@@ -527,6 +538,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/nosotros'
     | '/panel'
+    | '/ref'
     | '/servicios'
     | '/sitemap.xml'
     | '/tienda'
@@ -575,6 +587,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   NosotrosRoute: typeof NosotrosRoute
   PanelRoute: typeof PanelRouteWithChildren
+  RefRoute: typeof RefRoute
   ServiciosRoute: typeof ServiciosRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TiendaRoute: typeof TiendaRouteWithChildren
@@ -663,6 +676,13 @@ declare module '@tanstack/react-router' {
       path: '/panel'
       fullPath: '/panel'
       preLoaderRoute: typeof PanelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ref': {
+      id: '/ref'
+      path: '/ref'
+      fullPath: '/ref'
+      preLoaderRoute: typeof RefRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/servicios': {
@@ -993,6 +1013,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   NosotrosRoute: NosotrosRoute,
   PanelRoute: PanelRouteWithChildren,
+  RefRoute: RefRoute,
   ServiciosRoute: ServiciosRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TiendaRoute: TiendaRouteWithChildren,
