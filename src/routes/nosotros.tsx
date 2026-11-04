@@ -212,7 +212,12 @@ function NosotrosPage() {
                   id: "mission_btn",
                   text: missionCtaText,
                   action_type: missionActionType === "cotizador" ? "link" : (missionActionType as any),
-                  action_value: missionCtaUrl || "/cotizador",
+                  action_value:
+                    missionActionType === "whatsapp"
+                      ? missionCtaUrl || ""
+                      : missionActionType === "cotizador"
+                      ? "/cotizador"
+                      : missionCtaUrl || "/cotizador",
                   whatsapp_message: missionWaMsg,
                   whatsapp_image_url: missionWaImg,
                   text_color: missionCtaTextColor || undefined,
@@ -226,6 +231,11 @@ function NosotrosPage() {
                   position: "left",
                   include_image_link: true,
                 }}
+                onClick={
+                  missionActionType === "whatsapp"
+                    ? () => handleSectionWaClick(missionTitle, missionText, missionWaMsg, missionWaImg || missionCtaMedia)
+                    : undefined
+                }
               />
             ) : (
               <button
@@ -255,7 +265,12 @@ function NosotrosPage() {
                   id: "vision_btn",
                   text: visionCtaText,
                   action_type: visionActionType === "cotizador" ? "link" : (visionActionType as any),
-                  action_value: visionCtaUrl || "/cotizador",
+                  action_value:
+                    visionActionType === "whatsapp"
+                      ? visionCtaUrl || ""
+                      : visionActionType === "cotizador"
+                      ? "/cotizador"
+                      : visionCtaUrl || "/cotizador",
                   whatsapp_message: visionWaMsg,
                   whatsapp_image_url: visionWaImg,
                   text_color: visionCtaTextColor || undefined,
@@ -269,6 +284,11 @@ function NosotrosPage() {
                   position: "left",
                   include_image_link: true,
                 }}
+                onClick={
+                  visionActionType === "whatsapp"
+                    ? () => handleSectionWaClick(visionTitle, visionText, visionWaMsg, visionWaImg || visionCtaMedia)
+                    : undefined
+                }
               />
             ) : (
               <button
