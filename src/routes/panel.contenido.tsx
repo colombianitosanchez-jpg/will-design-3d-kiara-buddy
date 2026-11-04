@@ -311,7 +311,7 @@ const FIELDS: FieldDef[] = [
     key: "hero_cta_whatsapp_message",
     label: "Mensaje WhatsApp Botón Principal",
     type: "textarea",
-    help: "Si dejas vacío, se usa mensaje por defecto. Puedes usar {media} para incluir el enlace al logo/imagen.",
+    help: "Si dejas vacío, se usa el mensaje por defecto. La imagen subida se adjunta automáticamente sin necesidad de escribir comandos.",
     section: "Inicio",
     group: "Hero Principal",
   },
@@ -367,7 +367,7 @@ const FIELDS: FieldDef[] = [
     key: "hero_secondary_cta_whatsapp_message",
     label: "Mensaje WhatsApp Botón Secundario",
     type: "textarea",
-    help: "Si dejas vacío, se usa mensaje por defecto. Puedes usar {media} para incluir el enlace al logo/imagen.",
+    help: "Si dejas vacío, se usa el mensaje por defecto. La imagen subida se adjunta automáticamente sin necesidad de escribir comandos.",
     section: "Inicio",
     group: "Hero Principal",
   },
@@ -451,7 +451,7 @@ const FIELDS: FieldDef[] = [
     key: "about_cta_whatsapp_message",
     label: "Mensaje WhatsApp Botón 'Nosotros'",
     type: "textarea",
-    help: "Si dejas vacío, se usa mensaje por defecto. Puedes usar {media} para incluir el enlace al logo/imagen.",
+    help: "Si dejas vacío, se usa el mensaje por defecto. La imagen subida se adjunta automáticamente sin necesidad de escribir comandos.",
     section: "Inicio",
     group: "Sección Nosotros",
   },
@@ -499,7 +499,7 @@ const FIELDS: FieldDef[] = [
       { value: "cotizador", label: "Abrir Cotizador Interactivo" },
     ],
   },
-  { key: "about_mission_cta_whatsapp_message", label: "Mensaje WhatsApp Botón Misión", type: "textarea", help: "Usa {media} para incluir enlace al logo o imagen.", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_mission_cta_whatsapp_message", label: "Mensaje WhatsApp Botón Misión", type: "textarea", help: "La imagen subida se adjunta automáticamente sin necesidad de escribir comandos.", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_mission_cta_whatsapp_image_url", label: "Imagen Específica WhatsApp Botón Misión", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
   {
     key: "about_mission_cta_whatsapp_image_logic",
@@ -791,7 +791,7 @@ function SortableHeroStatCard({
                     placeholder={`Hola Will Design 3D, me interesa la consulta sobre: ${item.k || ""} (${item.v || ""}).`}
                     className="text-xs resize-y"
                   />
-                  <p className="text-[11px] text-muted-foreground">Usa {"{media}"} para insertar imagen. Ej: Hola Will, vi {"{media}"}</p>
+                  <p className="text-[11px] text-muted-foreground">La imagen subida se adjunta automáticamente al final del mensaje.</p>
                 </div>
 
                 <div>
@@ -1707,7 +1707,7 @@ function CTAButtonGroup({
                   className="text-xs resize-y"
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  Usa <code className="text-xs font-bold font-mono">{"{media}"}</code> o <code className="text-xs font-bold font-mono">{"{media_link}"}</code> para incrustar el enlace a la imagen adjunta. Ej: <em>Hola Will, vi esta pieza {"{media}"}</em>
+                  Al subir una imagen abajo, se adjunta automáticamente al mensaje de WhatsApp sin tener que escribir comandos.
                 </p>
               </div>
 

@@ -1,5 +1,10 @@
 import { describe, expect, test } from "vitest";
-import { getWhatsAppPayloadForButton, replaceTemplatePlaceholders, toAbsoluteUrl } from "./whatsapp-buttons";
+import {
+  getWhatsAppPayloadForButton,
+  replaceTemplatePlaceholders,
+  toAbsoluteUrl,
+  isStorageMediaUrl,
+} from "./whatsapp-buttons";
 import { waLink } from "./catalog";
 
 describe("getWhatsAppPayloadForButton & waLink CEO Rules", () => {
@@ -86,6 +91,87 @@ describe("getWhatsAppPayloadForButton & waLink CEO Rules", () => {
     );
 
     expect(payload.formattedText).toBe("Mensaje configurado en panel como whatsapp_default_message https://example.com/item.jpg");
+  });
+});
+
+describe("Storage Media and /ref Open Graph link generation", () => {
+  const supabaseStorageUrl =
+    "https://pizulwniobctfiedefiu.supabase.co/storage/v1/object/sign/site-media/stats/test-img.webp?token=xyz123";
+
+  test("detects Supabase Storage URLs correctly", () => {
+    expect(isStorageMediaUrl(supabaseStorageUrl)).toBe(true);
+    expect(isStorageMediaUrl("https://example.com/photo.jpg")).toBe(false);
+    expect(isStorageMediaUrl("/logo.png")).toBe(false);
+    expect(isStorageMediaUrl("https://other.com/image.png?token=secret")).toBe(true);
+  });
+
+  test("generates friendly /ref URL replacing {media} when media is from Supabase Storage", () => {
+    const payload = getWhatsAppPayloadForButton(
+      {
+        whatsapp_message: "Hola Will, me interesa esta pieza: {media}",
+        whatsapp_image_url: supabaseStorageUrl,
+      },
+      "",
+      "/logo.png"
+    );
+
+    const expectedRef = `https://will-design-3d.lovable.app/ref?img=${encodeURIComponent(supabaseStorageUrl)}`;
+    expect(payload.mediaToSend).toBe(supabaseStorageUrl);
+    expect(payload.formattedText).toBe(`Hola Will, me interesa esta pieza: ${expectedRef}`);
+  });
+
+  test("generates friendly /ref URL replacing {{media_link}} when media is from Supabase Storage", () => {
+    const payload = getWhatsAppPayloadForButton(
+      {
+        whatsapp_message: "Consulta: {{media_link}}",
+        whatsapp_image_url: supabaseStorageUrl,
+      },
+      "",
+      "/logo.png"
+    );
+
+    const expectedRef = `https://will-design-3d.lovable.app/ref?img=${encodeURIComponent(supabaseStorageUrl)}`;
+    expect(payload.formattedText).toBe(`Consulta: ${expectedRef}`);
+  });
+
+  test("appends friendly /ref URL on a new line when template has no {media} placeholder and media is from Storage", () => {
+    const payload = getWhatsAppPayloadForButton(
+      {
+        whatsapp_message: "Hola Will, me interesa cotizar una pieza",
+        whatsapp_image_url: supabaseStorageUrl,
+      },
+      "",
+      "/logo.png"
+    );
+
+    const expectedRef = `https://will-design-3d.lovable.app/ref?img=${encodeURIComponent(supabaseStorageUrl)}`;
+    expect(payload.formattedText).toBe(`Hola Will, me interesa cotizar una pieza\n\n${expectedRef}`);
+  });
+
+  test("does not convert regular URLs to /ref", () => {
+    const payload = getWhatsAppPayloadForButton(
+      {
+        whatsapp_message: "Hola Will, mira esto: {media}",
+        whatsapp_image_url: "https://example.com/simple.jpg",
+      },
+      "",
+      "/logo.png"
+    );
+
+    expect(payload.formattedText).toBe("Hola Will, mira esto: https://example.com/simple.jpg");
+  });
+
+  test("automatically appends image url when user did not type {media} and message is custom", () => {
+    const payload = getWhatsAppPayloadForButton(
+      {
+        whatsapp_message: "Hola Will, me gustaría una cotización de esta figura",
+        whatsapp_image_url: "https://example.com/figura.jpg",
+      },
+      "",
+      "/logo.png"
+    );
+
+    expect(payload.formattedText).toBe("Hola Will, me gustaría una cotización de esta figura\n\nhttps://example.com/figura.jpg");
   });
 });
 

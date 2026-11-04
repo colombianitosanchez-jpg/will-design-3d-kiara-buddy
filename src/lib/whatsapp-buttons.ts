@@ -23,6 +23,15 @@ export function toAbsoluteUrl(url?: string | null): string {
   return `${origin}${trimmed.startsWith("/") ? trimmed : `/${trimmed}`}`;
 }
 
+export function isStorageMediaUrl(url?: string | null): boolean {
+  if (!url) return false;
+  return (
+    url.includes("supabase.co") ||
+    url.includes("/storage/v1/object/") ||
+    url.includes("token=")
+  );
+}
+
 /**
  * Reemplaza etiquetas simples ({clave}) y dobles ({{clave}}) de forma flexible y segura.
  */
@@ -112,15 +121,38 @@ export function getWhatsAppPayloadForButton(
   // Asegurar que la URL sea absoluta para previsualización correcta en WhatsApp
   mediaToSend = toAbsoluteUrl(mediaToSend);
 
+  const origin =
+    typeof window !== "undefined" && window.location?.origin
+      ? window.location.origin
+      : "https://will-design-3d.lovable.app";
+
+  const isStorageMedia = isStorageMediaUrl(mediaToSend);
+  const shareableMediaUrl = isStorageMedia
+    ? `${origin}/ref?img=${encodeURIComponent(mediaToSend)}`
+    : mediaToSend;
+
   const rawMessage =
     buttonConfig.whatsapp_message?.trim() ||
     globalDefaultMessage?.trim() ||
     defaultMessage?.trim() ||
     "";
 
-  const formattedText = replaceTemplatePlaceholders(rawMessage, {
-    media: mediaToSend,
+  let formattedText = replaceTemplatePlaceholders(rawMessage, {
+    media: shareableMediaUrl,
   });
+
+  // Si existe una imagen/media para enviar y la plantilla no incluye {media} o {media_link},
+  // se adjunta automáticamente la URL al final del mensaje en una línea separada.
+  // De esta manera el usuario no necesita escribir manualmente "{media}".
+  const hasMediaTag =
+    /\{\{media(_link)?\}\}/i.test(rawMessage) ||
+    /\{media(_link)?\}/i.test(rawMessage);
+
+  if (!hasMediaTag && shareableMediaUrl) {
+    formattedText = formattedText
+      ? `${formattedText}\n\n${shareableMediaUrl}`
+      : shareableMediaUrl;
+  }
 
   return {
     mediaToSend,

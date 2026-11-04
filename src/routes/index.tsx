@@ -182,6 +182,8 @@ function Hero() {
     whatsappImageUrl?: string
   ) {
     if (actionType === "whatsapp") {
+      // Si ya existe un mensaje configurado en site_content, evitamos pasar el fallback predeterminado
+      const effectiveFallback = whatsappMsg?.trim() ? undefined : defaultFallbackText;
       const payload = getWhatsAppPayloadForButton(
         {
           whatsapp_message: whatsappMsg,
@@ -190,7 +192,7 @@ function Hero() {
         },
         mediaUrl,
         content?.site_logo_url,
-        defaultFallbackText,
+        effectiveFallback,
         globalDefaultMessage
       );
       const waUrl = waLink(fallbackWhatsapp, payload.formattedText);
