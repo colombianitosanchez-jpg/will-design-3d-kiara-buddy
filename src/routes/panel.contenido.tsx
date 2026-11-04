@@ -19,7 +19,20 @@ import {
   SlidersHorizontal,
   Save,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+const CONTENT_TABS = [
+  { value: "inicio", label: "Inicio" },
+  { value: "nosotros", label: "Nosotros" },
+  { value: "tienda", label: "Tienda y WhatsApp" },
+] as const;
+
+function tabOfGroup(group: string): (typeof CONTENT_TABS)[number]["value"] {
+  if (group.includes("Nosotros")) return "nosotros";
+  if (group.includes("Tienda") || group.includes("WhatsApp")) return "tienda";
+  return "inicio";
+}
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -568,7 +581,12 @@ const FIELDS: FieldDef[] = [
   { key: "about_workshop_image_url", label: "Foto / GIF / Video del Taller", type: "media", help: "Reemplaza el degradado por multimedia del taller o logo", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_workshop_address", label: "Ubicación / Dirección del Taller", type: "text", help: "Default: Bogotá, Colombia · Atención por cita previa.", section: "Inicio", group: "Nosotros Página Misión Visión" },
 
-  { key: "whatsapp_default_message", label: "Mensaje WhatsApp Global Por Defecto", type: "textarea", help: "Mensaje enviado si un botón de WhatsApp no especifica mensaje personalizado.", section: "Inicio", group: "Configuración Mensajes WhatsApp" },
+  { key: "whatsapp_default_message", label: "Mensaje WhatsApp Global Por Defecto", type: "textarea", help: "Mensaje enviado si un botón de WhatsApp no especifica mensaje personalizado.", section: "Tienda", group: "Configuración Mensajes WhatsApp" },
+
+  // Cabecera de la Tienda (/tienda)
+  { key: "store_chip", label: "Etiqueta / Chip de la Tienda", type: "text", help: "Ej: Tienda", section: "Tienda", group: "Cabecera de la Tienda" },
+  { key: "store_title", label: "Título de la Tienda", type: "text", help: "Ej: Todo para tu taller 3D", section: "Tienda", group: "Cabecera de la Tienda" },
+  { key: "store_subtitle", label: "Descripción de la Tienda", type: "textarea", help: "Ej: Marcas líderes con soporte y asesoría en Bogotá.", section: "Tienda", group: "Cabecera de la Tienda" },
 ];
 
 function LottiePreview({ url }: { url: string }) {
@@ -2212,27 +2230,32 @@ function ContenidoAdmin() {
         </div>
       </div>
 
-      {/* Lista de Grupos de Configuración */}
-      <div className="space-y-6">
-        {groups.map((group) => (
-          <Card key={group} className="border-border shadow-xs">
-            <CardHeader className="pb-3 border-b border-border/60">
-              <CardTitle className="text-base font-bold flex items-center justify-between">
-                <span>{group}</span>
-                <span className="text-xs font-normal text-muted-foreground">
-                  {FIELDS.filter((f) => f.group === group).length} campos
-                </span>
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Modifica los textos, imágenes y configuraciones de esta sección.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6 pt-6">
-              {FIELDS.filter((f) => f.group === group).map(renderField)}
-            </CardContent>
-          </Card>
+      <Tabs defaultValue="inicio">
+        <TabsList className="flex h-auto w-full flex-wrap justify-start">
+          {CONTENT_TABS.map((t) => (
+            <TabsTrigger key={t.value} value={t.value} className="py-2">
+              {t.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        {CONTENT_TABS.map((t) => (
+          <TabsContent key={t.value} value={t.value} className="space-y-6 mt-6">
+            {groups
+              .filter((group) => tabOfGroup(group) === t.value)
+              .map((group) => {
+                const groupFields = FIELDS.filter((f) => f.group === group);
+                return (
+                  <Card key={group} className="border-border shadow-xs">
+                    <CardHeader className="pb-3 border-b border-border/60">
+                      <CardTitle className="text-base font-bold">{group}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6 pt-6">{groupFields.map(renderField)}</CardContent>
+                  </Card>
+                );
+              })}
+          </TabsContent>
         ))}
-      </div>
+      </Tabs>
     </div>
   );
 }
