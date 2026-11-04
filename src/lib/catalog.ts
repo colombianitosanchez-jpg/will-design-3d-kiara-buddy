@@ -249,7 +249,33 @@ export const categoryAttributesQuery = () =>
     staleTime: 10 * 60_000,
   });
 export const siteContentQuery = () =>
-  queryOptions({ queryKey: ["site_content"], queryFn: fetchSiteContent, staleTime: 5 * 60_000 });
+  queryOptions({
+    queryKey: ["site_content"],
+    queryFn: fetchSiteContent,
+    staleTime: 15_000,
+    refetchOnWindowFocus: true,
+  });
+
+/** Número válido (≥7 dígitos) o el de respaldo. */
+export function pickWhatsapp(candidate: string | null | undefined, fallback: string): string {
+  const c = (candidate ?? "").trim();
+  return c.replace(/\D/g, "").length >= 7 ? c : fallback;
+}
+
+/** Aplica la plantilla global de WhatsApp de Contenido del Sitio. */
+export function applyGlobalWaTemplate(
+  template: string | null | undefined,
+  data: { producto: string; precio?: string; variante?: string; media?: string },
+  fallback: string,
+): string {
+  const t = (template ?? "").trim();
+  if (!t) return fallback;
+  return t
+    .replace(/\{\{?(producto|product)\}?\}/g, data.producto)
+    .replace(/\{\{?(precio|price)\}?\}/g, data.precio ?? "")
+    .replace(/\{\{?(variante|variant)\}?\}/g, data.variante ?? "")
+    .replace(/\{\{?media(_link)?\}?\}/g, data.media ?? "");
+}
 
 export const DEFAULT_CONTACT = {
   whatsapp: "",
