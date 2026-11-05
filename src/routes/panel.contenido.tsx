@@ -2237,18 +2237,8 @@ function ContenidoAdmin() {
         </div>
       </div>
 
-      <Tabs defaultValue="inicio">
-        <TabsList className="flex h-auto w-full flex-wrap justify-start">
-          {CONTENT_TABS.map((t) => (
-            <TabsTrigger key={t.value} value={t.value} className="py-2">
-              {t.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        {CONTENT_TABS.map((t) => (
-          <TabsContent key={t.value} value={t.value} className="space-y-6 mt-6">
+      <div className="space-y-6">
             {groups
-              .filter((group) => tabOfGroup(group) === t.value)
               .map((group) => {
                 const groupFields = FIELDS.filter((f) => f.group === group);
                 return (
@@ -2260,9 +2250,7 @@ function ContenidoAdmin() {
                   </Card>
                 );
               })}
-          </TabsContent>
-        ))}
-      </Tabs>
+      </div>
     </div>
   );
 }
