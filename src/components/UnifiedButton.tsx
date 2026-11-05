@@ -202,11 +202,16 @@ export function UnifiedButton({
     : "rounded-xl";
 
   const widthClass = button.width === "full" ? "w-full" : "w-auto";
+  const buttonOpacity =
+    typeof button.opacity === "number" && !isNaN(button.opacity)
+      ? Math.max(0.1, Math.min(1, button.opacity / 100))
+      : undefined;
 
   return (
     <motion.div
       whileTap={{ scale: 0.96 }}
       className={`${widthClass} inline-block`}
+      style={buttonOpacity !== undefined ? { opacity: buttonOpacity } : undefined}
     >
       <button
         type="button"

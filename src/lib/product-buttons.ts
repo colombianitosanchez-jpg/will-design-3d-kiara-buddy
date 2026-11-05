@@ -51,6 +51,8 @@ export type ProductButton = {
   animation_type?: ButtonAnimationType;
   /** Estilo de animación dinámica (Neón, Pulso Cyber, Shimmer) */
   animation_style?: string;
+  /** Opacidad del botón entero (10 a 100) */
+  opacity?: number;
 };
 
 export const VARIANT_LABELS: Record<ButtonVariant, string> = {

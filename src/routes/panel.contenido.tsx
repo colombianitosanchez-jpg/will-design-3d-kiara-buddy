@@ -17,6 +17,7 @@ import {
   GripVertical,
   Sparkles,
   SlidersHorizontal,
+  Layers,
   Save,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -287,6 +288,7 @@ const FIELDS: FieldDef[] = [
   { key: "hero_badge_title", label: "Etiqueta Flotante (Pieza destacada)", type: "text", help: "Ej: Escultura 1.8 m — PLA reforzado", section: "Inicio", group: "Hero Principal" },
 
   // Botón Principal Hero
+  { key: "hero_buttons_order", label: "Orden de Botones del Hero", type: "text", help: "Orden de renderizado: primary,secondary o secondary,primary", section: "Inicio", group: "Hero Principal" },
   { key: "hero_cta_text", label: "Texto Botón Principal Hero", type: "text", help: "Ej: Cotizar Proyecto", section: "Inicio", group: "Hero Principal" },
   { key: "hero_cta_url", label: "Enlace/Ruta Botón Principal Hero", type: "text", help: "Ej: /cotizador o https://...", section: "Inicio", group: "Hero Principal" },
   { key: "hero_cta_media_url", label: "Multimedia/Imagen Botón Principal Hero", type: "media", section: "Inicio", group: "Hero Principal" },
@@ -295,6 +297,8 @@ const FIELDS: FieldDef[] = [
   { key: "hero_cta_icon_position", label: "Posición Ícono Botón Principal Hero", type: "text", section: "Inicio", group: "Hero Principal" },
   { key: "hero_cta_text_color", label: "Color Texto Botón Principal Hero", type: "text", section: "Inicio", group: "Hero Principal" },
   { key: "hero_cta_custom_hex", label: "Color Personalizado HEX Botón Principal Hero", type: "text", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_cta_opacity", label: "Opacidad Botón Principal Hero", type: "text", help: "Valor porcentual entre 10 y 100", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_cta_width", label: "Cobertura / Ancho Botón Principal Hero", type: "text", help: "'auto' o 'full'", section: "Inicio", group: "Hero Principal" },
   {
     key: "hero_cta_action_type",
     label: "Acción Botón Principal Hero",
@@ -345,6 +349,8 @@ const FIELDS: FieldDef[] = [
   { key: "hero_secondary_cta_icon_position", label: "Posición Ícono Botón Secundario Hero", type: "text", section: "Inicio", group: "Hero Principal" },
   { key: "hero_secondary_cta_text_color", label: "Color Texto Botón Secundario Hero", type: "text", section: "Inicio", group: "Hero Principal" },
   { key: "hero_secondary_cta_custom_hex", label: "Color Personalizado HEX Botón Secundario Hero", type: "text", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_secondary_cta_opacity", label: "Opacidad Botón Secundario Hero", type: "text", help: "Valor porcentual entre 10 y 100", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_secondary_cta_width", label: "Cobertura / Ancho Botón Secundario Hero", type: "text", help: "'auto' o 'full'", section: "Inicio", group: "Hero Principal" },
   {
     key: "hero_secondary_cta_action_type",
     label: "Acción Botón Secundario Hero",
@@ -1385,6 +1391,9 @@ function CTAButtonGroup({
   const iconPos = (values[iconPosKey] as any) || "none";
   const textColor = values[textColorKey] || "";
   const customHex = values[customHexKey] || "";
+  const opacityVal = values[`${prefix}opacity`] ? parseInt(values[`${prefix}opacity`], 10) : 100;
+  const opacityNum = isNaN(opacityVal) ? 100 : Math.max(10, Math.min(100, opacityVal));
+  const buttonWidth = (values[`${prefix}width`] as "auto" | "full") || "auto";
 
   const globalDefaultMsg = values["whatsapp_default_message"] || "";
 
@@ -1422,6 +1431,8 @@ function CTAButtonGroup({
         hero_secondary_cta_icon_position: v.hero_cta_icon_position || "none",
         hero_secondary_cta_text_color: v.hero_cta_text_color || "",
         hero_secondary_cta_custom_hex: v.hero_cta_custom_hex || "",
+        hero_secondary_cta_opacity: v.hero_cta_opacity || "100",
+        hero_secondary_cta_width: v.hero_cta_width || "auto",
         hero_secondary_cta_whatsapp_message: v.hero_cta_whatsapp_message || "",
         hero_secondary_cta_whatsapp_image_url: v.hero_cta_whatsapp_image_url || "",
         hero_secondary_cta_whatsapp_image_logic: v.hero_cta_whatsapp_image_logic || "auto",
@@ -1447,6 +1458,8 @@ function CTAButtonGroup({
       delete copy[iconPosKey];
       delete copy[textColorKey];
       delete copy[customHexKey];
+      delete copy[`${prefix}opacity`];
+      delete copy[`${prefix}width`];
       delete copy[actionTypeKey];
       delete copy[messageKey];
       delete copy[logicKey];
@@ -1515,8 +1528,9 @@ function CTAButtonGroup({
                 icon_position: iconPos !== "none" ? iconPos : (mediaMode === "icon" ? "left" : "none"),
                 animation_type: animType as any,
                 variant: "default",
-                width: "auto",
+                width: buttonWidth,
                 position: "left",
+                opacity: opacityNum,
                 include_image_link: true,
               }}
             />
@@ -1571,6 +1585,55 @@ function CTAButtonGroup({
               />
             </div>
             <p className="text-[10px] text-muted-foreground mt-0.5">Escribe el código HEX (#ffffff) o elígelo en la paleta.</p>
+          </div>
+
+          {/* Opacidad del Botón */}
+          <div>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold">Opacidad del Botón</Label>
+              <span className="text-xs font-mono font-bold text-primary">{opacityNum}%</span>
+            </div>
+            <div className="flex items-center gap-3 mt-1.5">
+              <input
+                type="range"
+                min="10"
+                max="100"
+                step="5"
+                value={opacityNum}
+                onChange={(e) => setValues((v) => ({ ...v, [`${prefix}opacity`]: e.target.value }))}
+                className="w-full accent-primary cursor-pointer"
+              />
+              <Input
+                type="number"
+                min="10"
+                max="100"
+                value={opacityNum}
+                onChange={(e) => {
+                  const val = Math.max(10, Math.min(100, Number(e.target.value) || 10));
+                  setValues((v) => ({ ...v, [`${prefix}opacity`]: String(val) }));
+                }}
+                className="w-16 text-xs text-center font-bold"
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Define la transparencia global del botón (10% a 100%).</p>
+          </div>
+
+          {/* Cobertura / Ancho */}
+          <div>
+            <Label className="text-xs font-semibold">Cobertura / Ancho</Label>
+            <Select
+              value={buttonWidth}
+              onValueChange={(val) => setValues((v) => ({ ...v, [`${prefix}width`]: val }))}
+            >
+              <SelectTrigger className="mt-1 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">Ancho automático (ajustado al texto)</SelectItem>
+                <SelectItem value="full">Ancho completo 100% (bloque total)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Controla si el botón se expande a todo lo ancho o según su texto.</p>
           </div>
 
           {/* Personalización visual 1: Relleno / Fondo Animado (Fill) con Drag & Drop */}
@@ -1740,22 +1803,66 @@ function CTAButtonGroup({
                 />
               </div>
 
-              <div className="sm:col-span-2">
-                <Label className="text-xs font-semibold">Lógica de Respaldo de Imagen (si no subes imagen propia)</Label>
-                <Select
-                  value={whatsappLogic}
-                  onValueChange={(val) => setValues((v) => ({ ...v, [logicKey]: val }))}
-                >
-                  <SelectTrigger className="mt-1 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="auto">Automático (Reglas CEO: Logo si es video, Imagen si existe)</SelectItem>
-                    <SelectItem value="none">Solo texto (mensaje limpio, sin enlace ni imagen)</SelectItem>
-                      <SelectItem value="logo">Forzar Enviar Logo de la Empresa</SelectItem>
-                    <SelectItem value="product_image">Enviar Imagen de la Sección / Producto</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="sm:col-span-2 space-y-1.5">
+                <Label className="text-xs font-semibold">Modo de Mensaje de WhatsApp</Label>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div
+                    onClick={() => setValues((v) => ({ ...v, [logicKey]: "none" }))}
+                    className={`cursor-pointer rounded-xl border p-3 transition ${
+                      whatsappLogic === "none"
+                        ? "border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500"
+                        : "border-border hover:border-border/80 bg-background/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className={`h-2.5 w-2.5 rounded-full ${whatsappLogic === "none" ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
+                      <span className="text-xs font-bold text-foreground">a) Solo texto limpio</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Envía únicamente el texto plano del mensaje, sin ningún enlace, tarjeta ni código.
+                    </p>
+                  </div>
+
+                  <div
+                    onClick={() => {
+                      if (whatsappLogic === "none") {
+                        setValues((v) => ({ ...v, [logicKey]: "auto" }));
+                      }
+                    }}
+                    className={`cursor-pointer rounded-xl border p-3 transition ${
+                      whatsappLogic !== "none"
+                        ? "border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500"
+                        : "border-border hover:border-border/80 bg-background/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className={`h-2.5 w-2.5 rounded-full ${whatsappLogic !== "none" ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
+                      <span className="text-xs font-bold text-foreground">b) Con previsualización de imagen</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Adjunta el enlace corto de tarjeta Open Graph <code className="text-[10px] font-mono font-bold">/ref?k=...</code> para vista rica.
+                    </p>
+                  </div>
+                </div>
+
+                {whatsappLogic !== "none" && (
+                  <div className="pt-2">
+                    <Label className="text-xs font-semibold">Fuente de la imagen para la tarjeta Open Graph:</Label>
+                    <Select
+                      value={whatsappLogic}
+                      onValueChange={(val) => setValues((v) => ({ ...v, [logicKey]: val }))}
+                    >
+                      <SelectTrigger className="mt-1 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="auto">Automático (Reglas: Logo si el botón usa video, Imagen si existe)</SelectItem>
+                        <SelectItem value="logo">Forzar Logo oficial de la Empresa (/ref?k=logo)</SelectItem>
+                        <SelectItem value="product_image">Usar Imagen Principal de la Sección</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
 
               {/* Live WhatsApp Message Preview Box */}
@@ -1783,6 +1890,208 @@ function CTAButtonGroup({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+
+function HeroButtonsOrderEditor({
+  values,
+  setValues,
+  uploadingKey,
+  uploadImage,
+}: {
+  values: Record<string, string>;
+  setValues: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  uploadingKey: string | null;
+  uploadImage: (key: string, file: File) => Promise<void>;
+}) {
+  const rawOrder = values["hero_buttons_order"] || "primary,secondary";
+  const orderList = rawOrder === "secondary,primary" ? (["secondary", "primary"] as const) : (["primary", "secondary"] as const);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const newOrder = active.id === "primary" ? "secondary,primary" : "primary,secondary";
+    setValues((v) => ({ ...v, hero_buttons_order: newOrder }));
+  }
+
+  function handleToggleOrder() {
+    const nextOrder = rawOrder === "secondary,primary" ? "primary,secondary" : "secondary,primary";
+    setValues((v) => ({ ...v, hero_buttons_order: nextOrder }));
+  }
+
+  const hasSecondary = Boolean(values.hero_secondary_cta_text || values.hero_secondary_cta_url);
+
+  function renderButtonItem(key: "primary" | "secondary") {
+    if (key === "primary") {
+      return (
+        <SortableHeroButtonRow
+          key="primary"
+          id="primary"
+          title="Botón Principal de Hero"
+          badge="1"
+        >
+          <CTAButtonGroup
+            prefix="hero_cta_"
+            values={values}
+            setValues={setValues}
+            uploadingKey={uploadingKey}
+            uploadImage={uploadImage}
+          />
+        </SortableHeroButtonRow>
+      );
+    }
+
+    return (
+      <SortableHeroButtonRow
+        key="secondary"
+        id="secondary"
+        title="Botón Secundario de Hero"
+        badge="2"
+      >
+        {!hasSecondary ? (
+          <div className="rounded-xl border border-dashed border-border p-4 bg-muted/10 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-foreground">Segundo Botón de Hero (Opcional)</p>
+              <p className="text-[11px] text-muted-foreground">Actualmente desactivado o sin texto. Puedes añadir un segundo botón para la cabecera.</p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setValues((v) => ({
+                  ...v,
+                  hero_secondary_cta_text: "Ver Tienda",
+                  hero_secondary_cta_url: "/tienda",
+                  hero_secondary_cta_action_type: "link",
+                }));
+              }}
+              className="text-xs font-semibold gap-1.5"
+            >
+              <Plus className="h-3.5 w-3.5 text-primary" />
+              + Añadir 2do Botón en Hero
+            </Button>
+          </div>
+        ) : (
+          <CTAButtonGroup
+            prefix="hero_secondary_cta_"
+            values={values}
+            setValues={setValues}
+            uploadingKey={uploadingKey}
+            uploadImage={uploadImage}
+            onDelete={() => {
+              setValues((v) => {
+                const copy = { ...v };
+                delete copy.hero_secondary_cta_text;
+                delete copy.hero_secondary_cta_url;
+                delete copy.hero_secondary_cta_media_url;
+                delete copy.hero_secondary_cta_media_mode;
+                delete copy.hero_secondary_cta_icon_url;
+                delete copy.hero_secondary_cta_icon_position;
+                delete copy.hero_secondary_cta_text_color;
+                delete copy.hero_secondary_cta_custom_hex;
+                delete copy.hero_secondary_cta_opacity;
+                delete copy.hero_secondary_cta_width;
+                delete copy.hero_secondary_cta_action_type;
+                delete copy.hero_secondary_cta_whatsapp_message;
+                delete copy.hero_secondary_cta_whatsapp_image_url;
+                delete copy.hero_secondary_cta_whatsapp_image_logic;
+                return copy;
+              });
+              toast.success("Segundo botón de Hero eliminado");
+            }}
+          />
+        )}
+      </SortableHeroButtonRow>
+    );
+  }
+
+  return (
+    <div className="space-y-4 rounded-2xl border border-primary/20 bg-primary/[0.02] p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
+        <div>
+          <Label className="text-sm font-bold flex items-center gap-2">
+            <Layers className="h-4 w-4 text-primary" />
+            Configuración y Orden de Botones del Hero (Drag & Drop)
+          </Label>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Arrastra con el ícono para alternar qué botón se muestra primero en la portada, o pulsa "Alternar orden".
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleToggleOrder}
+          className="text-xs font-semibold gap-1.5"
+        >
+          <GripVertical className="h-3.5 w-3.5 text-primary" />
+          Alternar orden ({orderList[0] === "primary" ? "Principal primero" : "Secundario primero"})
+        </Button>
+      </div>
+
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={[...orderList]} strategy={verticalListSortingStrategy}>
+          <div className="space-y-4">
+            {orderList.map((key) => renderButtonItem(key))}
+          </div>
+        </SortableContext>
+      </DndContext>
+    </div>
+  );
+}
+
+function SortableHeroButtonRow({
+  id,
+  title,
+  badge,
+  children,
+}: {
+  id: string;
+  title: string;
+  badge: string;
+  children: React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
+      className={`rounded-2xl border transition ${
+        isDragging ? "z-20 border-primary bg-primary/10 shadow-xl ring-2 ring-primary" : "border-border/80 bg-card"
+      } p-3 space-y-3`}
+    >
+      <div className="flex items-center justify-between border-b border-border/50 pb-2.5">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            className="cursor-grab touch-none rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing"
+            title="Arrastrar para reordenar"
+          >
+            <GripVertical className="h-4 w-4 text-primary" />
+          </button>
+          <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-primary/15 text-[11px] font-bold text-primary">
+            #{badge}
+          </span>
+          <span className="text-xs font-bold text-foreground">{title}</span>
+        </div>
+        <span className="text-[11px] text-muted-foreground font-medium">Arrastra para cambiar orden</span>
+      </div>
+      <div>{children}</div>
     </div>
   );
 }
@@ -1928,82 +2237,24 @@ function ContenidoAdmin() {
   }
 
   function renderField(f: FieldDef) {
-    if (f.key === "hero_cta_text") {
-      return (
-        <CTAButtonGroup
-          key="hero_cta_group"
-          prefix="hero_cta_"
-          values={values}
-          setValues={setValues}
-          uploadingKey={uploadingKey}
-          uploadImage={uploadImage}
-        />
-      );
-    }
-    if (f.key.startsWith("hero_cta_") && f.key !== "hero_cta_text") {
-      return null;
-    }
-
-    if (f.key === "hero_secondary_cta_text") {
-      const hasSecondary = Boolean(values.hero_secondary_cta_text || values.hero_secondary_cta_url);
-      if (!hasSecondary) {
-        return (
-          <div key="hero_secondary_cta_add" className="rounded-xl border border-dashed border-border p-4 bg-muted/10 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-foreground">Segundo Botón de Hero (Opcional)</p>
-              <p className="text-[11px] text-muted-foreground">Actualmente desactivado o sin texto. Puedes añadir un segundo botón para la cabecera.</p>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setValues((v) => ({
-                  ...v,
-                  hero_secondary_cta_text: "Ver Tienda",
-                  hero_secondary_cta_url: "/tienda",
-                  hero_secondary_cta_action_type: "link",
-                }));
-              }}
-              className="text-xs font-semibold gap-1.5"
-            >
-              <Plus className="h-3.5 w-3.5 text-primary" />
-              + Añadir 2do Botón en Hero
-            </Button>
-          </div>
-        );
+    if (f.key === "hero_buttons_order" || f.key === "hero_cta_text") {
+      if (f.key === "hero_cta_text" && FIELDS.some((field) => field.key === "hero_buttons_order")) {
+        return null;
       }
       return (
-        <CTAButtonGroup
-          key="hero_secondary_cta_group"
-          prefix="hero_secondary_cta_"
+        <HeroButtonsOrderEditor
+          key="hero_buttons_order_editor"
           values={values}
           setValues={setValues}
           uploadingKey={uploadingKey}
           uploadImage={uploadImage}
-          onDelete={() => {
-            setValues((v) => {
-              const copy = { ...v };
-              delete copy.hero_secondary_cta_text;
-              delete copy.hero_secondary_cta_url;
-              delete copy.hero_secondary_cta_media_url;
-              delete copy.hero_secondary_cta_media_mode;
-              delete copy.hero_secondary_cta_icon_url;
-              delete copy.hero_secondary_cta_icon_position;
-              delete copy.hero_secondary_cta_text_color;
-              delete copy.hero_secondary_cta_custom_hex;
-              delete copy.hero_secondary_cta_action_type;
-              delete copy.hero_secondary_cta_whatsapp_message;
-              delete copy.hero_secondary_cta_whatsapp_image_url;
-              delete copy.hero_secondary_cta_whatsapp_image_logic;
-              return copy;
-            });
-            toast.success("Segundo botón de Hero eliminado");
-          }}
         />
       );
     }
-    if (f.key.startsWith("hero_secondary_cta_") && f.key !== "hero_secondary_cta_text") {
+    if (f.key.startsWith("hero_cta_")) {
+      return null;
+    }
+    if (f.key.startsWith("hero_secondary_cta_")) {
       return null;
     }
 
