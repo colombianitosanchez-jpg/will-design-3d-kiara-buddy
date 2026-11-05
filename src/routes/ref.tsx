@@ -67,7 +67,7 @@ export const Route = createFileRoute("/ref")({
 });
 
 function RefPreviewPage() {
-  const { img, title, desc } = Route.useSearch();
+  const { img, title, desc } = Route.useLoaderData();
   const { content } = useSiteContent();
   const logoUrl = content?.site_logo_url?.trim();
   const businessName = content?.site_business_name?.trim() || "Will Design 3D";
