@@ -92,7 +92,7 @@ export type HeroStatItem = {
   action_type?: "none" | "link" | "whatsapp" | "cotizador";
   action_value?: string;
   whatsapp_message?: string;
-  whatsapp_image_logic?: "auto" | "logo" | "product_image";
+  whatsapp_image_logic?: "auto" | "none" | "logo" | "product_image";
   color_id?: string;
   custom_hex?: string;
   media_url?: string;
@@ -343,6 +343,7 @@ const FIELDS: FieldDef[] = [
     group: "Hero Principal",
     options: [
       { value: "auto", label: "Automático (Reglas CEO: Logo si es video, Imagen si existe)" },
+      { value: "none", label: "Solo texto (mensaje limpio, sin enlace ni imagen)" },
       { value: "logo", label: "Forzar Enviar Logo de la Empresa" },
       { value: "product_image", label: "Enviar Imagen de la Sección / Producto" },
     ],
@@ -392,6 +393,7 @@ const FIELDS: FieldDef[] = [
     group: "Hero Principal",
     options: [
       { value: "auto", label: "Automático (Reglas CEO: Logo si es video, Imagen si existe)" },
+      { value: "none", label: "Solo texto (mensaje limpio, sin enlace ni imagen)" },
       { value: "logo", label: "Forzar Enviar Logo de la Empresa" },
       { value: "product_image", label: "Enviar Imagen de la Sección / Producto" },
     ],
@@ -483,6 +485,7 @@ const FIELDS: FieldDef[] = [
     group: "Sección Nosotros",
     options: [
       { value: "auto", label: "Automático (Reglas CEO: Logo si es video, Imagen si existe)" },
+      { value: "none", label: "Solo texto (mensaje limpio, sin enlace ni imagen)" },
       { value: "logo", label: "Forzar Enviar Logo de la Empresa" },
       { value: "product_image", label: "Enviar Imagen de la Sección / Producto" },
     ],
@@ -522,6 +525,7 @@ const FIELDS: FieldDef[] = [
     group: "Nosotros Página Misión Visión",
     options: [
       { value: "auto", label: "Automático (Reglas CEO: Logo si es video, Imagen si existe)" },
+      { value: "none", label: "Solo texto (mensaje limpio, sin enlace ni imagen)" },
       { value: "logo", label: "Forzar Enviar Logo de la Empresa" },
       { value: "product_image", label: "Enviar Imagen de la Sección / Producto" },
     ],
@@ -560,6 +564,7 @@ const FIELDS: FieldDef[] = [
     group: "Nosotros Página Misión Visión",
     options: [
       { value: "auto", label: "Automático (Reglas CEO: Logo si es video, Imagen si existe)" },
+      { value: "none", label: "Solo texto (mensaje limpio, sin enlace ni imagen)" },
       { value: "logo", label: "Forzar Enviar Logo de la Empresa" },
       { value: "product_image", label: "Enviar Imagen de la Sección / Producto" },
     ],
@@ -823,6 +828,7 @@ function SortableHeroStatCard({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="auto">Automático (Reglas CEO: Logo si es video, Imagen si existe)</SelectItem>
+                      <SelectItem value="none">Solo texto (mensaje limpio, sin enlace ni imagen)</SelectItem>
                       <SelectItem value="logo">Forzar Enviar Logo de la Empresa</SelectItem>
                       <SelectItem value="product_image">Enviar Imagen de la Sección / Producto</SelectItem>
                     </SelectContent>
@@ -1758,7 +1764,8 @@ function CTAButtonGroup({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="auto">Automático (Reglas CEO: Logo si es video, Imagen si existe)</SelectItem>
-                    <SelectItem value="logo">Forzar Enviar Logo de la Empresa</SelectItem>
+                    <SelectItem value="none">Solo texto (mensaje limpio, sin enlace ni imagen)</SelectItem>
+                      <SelectItem value="logo">Forzar Enviar Logo de la Empresa</SelectItem>
                     <SelectItem value="product_image">Enviar Imagen de la Sección / Producto</SelectItem>
                   </SelectContent>
                 </Select>
