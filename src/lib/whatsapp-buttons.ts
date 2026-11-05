@@ -150,7 +150,7 @@ export function getWhatsAppPayloadForButton(
     ? ""
     : explicitImage && imageKey
       ? `${origin}/ref?k=${encodeURIComponent(imageKey)}`
-      : usingLogo
+      : usingLogo && isStorageMedia
         ? `${origin}/ref?k=logo`
         : isStorageMedia
           ? `${origin}/ref?img=${encodeURIComponent(mediaToSend)}`
