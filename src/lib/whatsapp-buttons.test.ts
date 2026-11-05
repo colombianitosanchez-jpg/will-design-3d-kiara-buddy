@@ -215,14 +215,14 @@ describe("enlace corto /ref?k=", () => {
 });
 
 describe("mensaje limpio (solo texto)", () => {
-  it("no incluye ningún enlace cuando la lógica es none", () => {
+  test("no incluye ningún enlace cuando la lógica es none", () => {
     const p = getWhatsAppPayloadForButton(
       { whatsapp_message: "Hola Will {media}", whatsapp_image_logic: "none", whatsapp_image_url: "https://x.supabase.co/storage/v1/object/a.png?token=1" },
       "https://x.supabase.co/a.png", null
     );
     expect(p.formattedText).toBe("Hola Will");
   });
-  it("el logo usa enlace corto /ref?k=logo", () => {
+  test("el logo usa enlace corto /ref?k=logo", () => {
     const p = getWhatsAppPayloadForButton(
       { whatsapp_message: "Hola", whatsapp_image_logic: "logo" },
       null, "https://x.supabase.co/storage/v1/object/logo.png?token=abc"
