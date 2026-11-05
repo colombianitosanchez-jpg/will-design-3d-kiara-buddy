@@ -20,19 +20,6 @@ import {
   Save,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-const CONTENT_TABS = [
-  { value: "inicio", label: "Inicio" },
-  { value: "nosotros", label: "Nosotros" },
-  { value: "tienda", label: "Tienda y WhatsApp" },
-] as const;
-
-function tabOfGroup(group: string): (typeof CONTENT_TABS)[number]["value"] {
-  if (group.includes("Nosotros")) return "nosotros";
-  if (group.includes("Tienda") || group.includes("WhatsApp")) return "tienda";
-  return "inicio";
-}
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -2237,18 +2224,8 @@ function ContenidoAdmin() {
         </div>
       </div>
 
-      <Tabs defaultValue="inicio">
-        <TabsList className="flex h-auto w-full flex-wrap justify-start">
-          {CONTENT_TABS.map((t) => (
-            <TabsTrigger key={t.value} value={t.value} className="py-2">
-              {t.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        {CONTENT_TABS.map((t) => (
-          <TabsContent key={t.value} value={t.value} className="space-y-6 mt-6">
+      <div className="space-y-6">
             {groups
-              .filter((group) => tabOfGroup(group) === t.value)
               .map((group) => {
                 const groupFields = FIELDS.filter((f) => f.group === group);
                 return (
@@ -2260,9 +2237,7 @@ function ContenidoAdmin() {
                   </Card>
                 );
               })}
-          </TabsContent>
-        ))}
-      </Tabs>
+      </div>
     </div>
   );
 }
