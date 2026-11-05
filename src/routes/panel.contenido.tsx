@@ -1939,7 +1939,7 @@ function HeroButtonsOrderEditor({
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const newOrder = active.id === "primary" ? "secondary,primary" : "primary,secondary";
+    const newOrder = rawOrder === "secondary,primary" ? "primary,secondary" : "secondary,primary";
     setValues((v) => ({ ...v, hero_buttons_order: newOrder }));
   }
 
