@@ -1587,6 +1587,27 @@ function CTAButtonGroup({
             <p className="text-[10px] text-muted-foreground mt-0.5">Escribe el código HEX (#ffffff) o elígelo en la paleta.</p>
           </div>
 
+          {/* Color de fondo del Botón */}
+          <div>
+            <Label className="text-xs font-semibold">Color de fondo del Botón</Label>
+            <div className="flex items-center gap-2 mt-1">
+              <input
+                type="color"
+                value={customHex && /^#[0-9A-Fa-f]{6}$/.test(customHex) ? customHex : "#f97316"}
+                onChange={(e) => setValues((v) => ({ ...v, [customHexKey]: e.target.value }))}
+                className="h-8 w-8 cursor-pointer rounded-lg border border-border bg-transparent p-0.5 shrink-0"
+                title="Elegir color de fondo"
+              />
+              <Input
+                value={customHex}
+                onChange={(e) => setValues((v) => ({ ...v, [customHexKey]: e.target.value }))}
+                placeholder="Ej: #f97316 (vacío = color de marca)"
+                className="text-xs font-mono uppercase"
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Se usa cuando no hay fondo vivo (imagen/animación).</p>
+          </div>
+
           {/* Opacidad del Botón */}
           <div>
             <div className="flex items-center justify-between">
@@ -1918,26 +1939,17 @@ function HeroButtonsOrderEditor({
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const newOrder = active.id === "primary" ? "secondary,primary" : "primary,secondary";
+    const newOrder = rawOrder === "secondary,primary" ? "primary,secondary" : "secondary,primary";
     setValues((v) => ({ ...v, hero_buttons_order: newOrder }));
   }
 
-  function handleToggleOrder() {
-    const nextOrder = rawOrder === "secondary,primary" ? "primary,secondary" : "secondary,primary";
-    setValues((v) => ({ ...v, hero_buttons_order: nextOrder }));
-  }
 
   const hasSecondary = Boolean(values.hero_secondary_cta_text || values.hero_secondary_cta_url);
 
   function renderButtonItem(key: "primary" | "secondary") {
     if (key === "primary") {
       return (
-        <SortableHeroButtonRow
-          key="primary"
-          id="primary"
-          title="Botón Principal de Hero"
-          badge="1"
-        >
+        <ButtonCard key="primary" title="Botón Principal de Hero">
           <CTAButtonGroup
             prefix="hero_cta_"
             values={values}
@@ -1945,17 +1957,12 @@ function HeroButtonsOrderEditor({
             uploadingKey={uploadingKey}
             uploadImage={uploadImage}
           />
-        </SortableHeroButtonRow>
+        </ButtonCard>
       );
     }
 
     return (
-      <SortableHeroButtonRow
-        key="secondary"
-        id="secondary"
-        title="Botón Secundario de Hero"
-        badge="2"
-      >
+      <ButtonCard key="secondary" title="Botón Secundario de Hero">
         {!hasSecondary ? (
           <div className="rounded-xl border border-dashed border-border p-4 bg-muted/10 flex items-center justify-between">
             <div>
@@ -2010,7 +2017,7 @@ function HeroButtonsOrderEditor({
             }}
           />
         )}
-      </SortableHeroButtonRow>
+      </ButtonCard>
     );
   }
 
@@ -2023,75 +2030,63 @@ function HeroButtonsOrderEditor({
             Configuración y Orden de Botones del Hero (Drag & Drop)
           </Label>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Arrastra con el ícono para alternar qué botón se muestra primero en la portada, o pulsa "Alternar orden".
+            Mantén presionado el ícono ⋮⋮ de la lista de abajo y arrástralo para cambiar qué botón sale primero en la portada.
           </p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleToggleOrder}
-          className="text-xs font-semibold gap-1.5"
-        >
-          <GripVertical className="h-3.5 w-3.5 text-primary" />
-          Alternar orden ({orderList[0] === "primary" ? "Principal primero" : "Secundario primero"})
-        </Button>
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={[...orderList]} strategy={verticalListSortingStrategy}>
-          <div className="space-y-4">
-            {orderList.map((key) => renderButtonItem(key))}
+          <div className="space-y-2">
+            {orderList.map((key, i) => (
+              <SortableHeroButtonRow
+                key={key}
+                id={key}
+                badge={String(i + 1)}
+                title={
+                  key === "primary"
+                    ? `Principal: ${values.hero_cta_text || "Sin texto"}`
+                    : `Secundario: ${values.hero_secondary_cta_text || "(vacío, no se muestra)"}`
+                }
+              />
+            ))}
           </div>
         </SortableContext>
       </DndContext>
+      <div className="space-y-4">
+        {orderList.map((key) => renderButtonItem(key))}
+      </div>
     </div>
   );
 }
 
-function SortableHeroButtonRow({
-  id,
-  title,
-  badge,
-  children,
-}: {
-  id: string;
-  title: string;
-  badge: string;
-  children: React.ReactNode;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+function ButtonCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-border/80 bg-card p-3 space-y-3">
+      <p className="text-xs font-bold text-foreground border-b border-border/50 pb-2">{title}</p>
+      <div>{children}</div>
+    </div>
+  );
+}
 
+function SortableHeroButtonRow({ id, title, badge }: { id: string; title: string; badge: string }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   return (
     <div
       ref={setNodeRef}
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-      }}
-      className={`rounded-2xl border transition ${
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      {...attributes}
+      {...listeners}
+      className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 cursor-grab touch-none select-none active:cursor-grabbing ${
         isDragging ? "z-20 border-primary bg-primary/10 shadow-xl ring-2 ring-primary" : "border-border/80 bg-card"
-      } p-3 space-y-3`}
+      }`}
+      title="Mantén presionado y arrastra para reordenar"
     >
-      <div className="flex items-center justify-between border-b border-border/50 pb-2.5">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            {...attributes}
-            {...listeners}
-            className="cursor-grab touch-none rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing"
-            title="Arrastrar para reordenar"
-          >
-            <GripVertical className="h-4 w-4 text-primary" />
-          </button>
-          <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-primary/15 text-[11px] font-bold text-primary">
-            #{badge}
-          </span>
-          <span className="text-xs font-bold text-foreground">{title}</span>
-        </div>
-        <span className="text-[11px] text-muted-foreground font-medium">Arrastra para cambiar orden</span>
-      </div>
-      <div>{children}</div>
+      <GripVertical className="h-4 w-4 text-primary shrink-0" />
+      <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-primary/15 text-[11px] font-bold text-primary">
+        {badge}
+      </span>
+      <span className="text-xs font-bold text-foreground truncate">{title}</span>
     </div>
   );
 }

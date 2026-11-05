@@ -101,7 +101,11 @@ export function getBestAccessibility(
   if (isFill) {
     textColor = "#ffffff";
     textShadowClass = "drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)] font-bold tracking-wide";
-  } else if (!textColor) {
+  } else {
+    // Sombreado sutil entre texto y fondo para legibilidad siempre
+    textShadowClass = "drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)] font-semibold";
+  }
+  if (!isFill && !textColor) {
     if (style.background) {
       const lum = getHexLuminance(style.background);
       textColor = lum > 0.4 ? "#0f172a" : "#ffffff";

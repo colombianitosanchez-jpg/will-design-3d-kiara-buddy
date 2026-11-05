@@ -211,18 +211,25 @@ export function UnifiedButton({
     <motion.div
       whileTap={{ scale: 0.96 }}
       className={`${widthClass} inline-block`}
-      style={buttonOpacity !== undefined ? { opacity: buttonOpacity } : undefined}
     >
       <button
         type="button"
         aria-label={a11y.ariaLabel || button.text}
         onClick={handleAction}
-        style={{ ...bgStyle, color: a11y.textColor }}
+        style={{ color: a11y.textColor }}
         className={`relative overflow-hidden cursor-pointer select-none border border-black/10 shadow-md transition-all ${widthClass} ${roundedClass} ${a11y.tapTargetClass} ${a11y.focusClass} ${animClass} ${className}`}
       >
+        {/* CAPA DE COLOR DE FONDO: la opacidad solo afecta al fondo, nunca al texto */}
+        {!isFillMedia && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 z-0"
+            style={{ ...bgStyle, opacity: buttonOpacity ?? 1 }}
+          />
+        )}
         {/* CAPA DE FONDO VIVO (VIDEO, GIF O IMAGEN DE FONDO COMPLETO) */}
         {isFillMedia && unifiedStyle.bgImageUrl && (
-          <>
+          <span aria-hidden className="pointer-events-none absolute inset-0 z-0" style={{ opacity: buttonOpacity ?? 1 }}>
             {unifiedStyle.type === "videoFill" || button.animation_type === "video" ? (
               <video
                 src={unifiedStyle.bgImageUrl}
@@ -251,7 +258,7 @@ export function UnifiedButton({
               className="pointer-events-none absolute inset-0 z-0 bg-black transition-opacity"
               style={{ opacity: a11y.overlayOpacity / 100 }}
             />
-          </>
+          </span>
         )}
 
         {/* CAPA DE CONTENIDO: TEXTO CON DROP-SHADOW + ÍCONO OPCIONAL */}
