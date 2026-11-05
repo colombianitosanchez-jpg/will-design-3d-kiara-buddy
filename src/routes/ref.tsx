@@ -21,12 +21,13 @@ export const Route = createFileRoute("/ref")({
   loader: async ({ deps }) => {
     let img = deps.img || "";
     // Enlace corto: la imagen se busca en el contenido del sitio por su clave.
-    if (deps.k && /^[a-z0-9_]+_image_url$/i.test(deps.k)) {
+    const key = deps.k === "logo" ? "site_logo_url" : deps.k;
+    if (key && (key === "site_logo_url" || /^[a-z0-9_]+_image_url$/i.test(key))) {
       const { supabase } = await import("@/integrations/supabase/client");
       const { data } = await supabase
         .from("site_content")
         .select("value")
-        .eq("key", deps.k)
+        .eq("key", key)
         .maybeSingle();
       if (data?.value) img = String(data.value);
     }
@@ -66,7 +67,7 @@ export const Route = createFileRoute("/ref")({
 });
 
 function RefPreviewPage() {
-  const { img, title, desc } = Route.useSearch();
+  const { img, title, desc } = Route.useLoaderData();
   const { content } = useSiteContent();
   const logoUrl = content?.site_logo_url?.trim();
   const businessName = content?.site_business_name?.trim() || "Will Design 3D";

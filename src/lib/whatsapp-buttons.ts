@@ -1,6 +1,6 @@
 export type ButtonWhatsAppConfig = {
   whatsapp_message?: string;
-  whatsapp_image_logic?: "auto" | "logo" | "product_image" | "custom" | string;
+  whatsapp_image_logic?: "auto" | "none" | "logo" | "product_image" | "custom" | string;
   whatsapp_image_url?: string;
   /** Clave de site_content donde vive la imagen: genera un enlace corto /ref?k=clave */
   whatsapp_image_key?: string;
@@ -103,6 +103,20 @@ export function getWhatsAppPayloadForButton(
   let mediaToSend = fallbackLogo;
   const explicitImage = (buttonConfig.whatsapp_image_url || "").trim();
 
+  if (logic === "none") {
+    // Mensaje limpio: solo el texto, sin enlaces.
+    const raw =
+      buttonConfig.whatsapp_message?.trim() ||
+      globalDefaultMessage?.trim() ||
+      defaultMessage?.trim() ||
+      "";
+    const clean = replaceTemplatePlaceholders(raw, { media: "" })
+      .replace(/[ \t]+\n/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+    return { mediaToSend: "", mainMedia, text: raw, formattedText: clean };
+  }
+
   if (explicitImage) {
     mediaToSend = explicitImage;
   } else if (logic === "logo") {
@@ -130,11 +144,17 @@ export function getWhatsAppPayloadForButton(
 
   const isStorageMedia = isStorageMediaUrl(mediaToSend);
   const imageKey = (buttonConfig.whatsapp_image_key || "").trim();
-  const shareableMediaUrl = isStorageMedia
-    ? explicitImage && imageKey
+  const usingLogo = mediaToSend === toAbsoluteUrl(fallbackLogo);
+  // Enlaces siempre cortos y limpios bajo el dominio propio.
+  const shareableMediaUrl = !mediaToSend
+    ? ""
+    : explicitImage && imageKey
       ? `${origin}/ref?k=${encodeURIComponent(imageKey)}`
-      : `${origin}/ref?img=${encodeURIComponent(mediaToSend)}`
-    : mediaToSend;
+      : usingLogo && isStorageMedia
+        ? `${origin}/ref?k=logo`
+        : isStorageMedia
+          ? `${origin}/ref?img=${encodeURIComponent(mediaToSend)}`
+          : mediaToSend;
 
   const rawMessage =
     buttonConfig.whatsapp_message?.trim() ||
