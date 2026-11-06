@@ -63,3 +63,14 @@ describe("unifiedButton accessibility engine", () => {
     expect(copy.media_url).toBe("https://example.com/video.mp4");
   });
 });
+
+describe("color y sombreado elegidos en el panel", () => {
+  it("respeta el color de texto configurado aunque haya fondo animado", () => {
+    const res = getBestAccessibility({ type: "videoFill", bgImageUrl: "https://e.com/v.mp4", textColor: "#fbbf24" });
+    expect(res.textColor).toBe("#fbbf24");
+  });
+  it("usa el sombreado exacto del panel, incluido 0%", () => {
+    expect(getBestAccessibility({ type: "videoFill", bgImageUrl: "https://e.com/v.mp4", shade: 0 }).overlayOpacity).toBe(0);
+    expect(getBestAccessibility({ type: "solid", shade: 30 }).overlayOpacity).toBe(30);
+  });
+});

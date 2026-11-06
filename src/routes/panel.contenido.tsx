@@ -298,6 +298,9 @@ const FIELDS: FieldDef[] = [
   { key: "hero_cta_text_color", label: "Color Texto Botón Principal Hero", type: "text", section: "Inicio", group: "Hero Principal" },
   { key: "hero_cta_custom_hex", label: "Color Personalizado HEX Botón Principal Hero", type: "text", section: "Inicio", group: "Hero Principal" },
   { key: "hero_cta_opacity", label: "Opacidad Botón Principal Hero", type: "text", help: "Valor porcentual entre 10 y 100", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_cta_shade", label: "Sombreado Botón Principal Hero", type: "text", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_cta_media_fit", label: "Ajuste fondo animado Botón Principal Hero", type: "text", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_cta_icon_shape", label: "Forma ícono Botón Principal Hero", type: "text", section: "Inicio", group: "Hero Principal" },
   { key: "hero_cta_width", label: "Cobertura / Ancho Botón Principal Hero", type: "text", help: "'auto' o 'full'", section: "Inicio", group: "Hero Principal" },
   {
     key: "hero_cta_action_type",
@@ -350,6 +353,9 @@ const FIELDS: FieldDef[] = [
   { key: "hero_secondary_cta_text_color", label: "Color Texto Botón Secundario Hero", type: "text", section: "Inicio", group: "Hero Principal" },
   { key: "hero_secondary_cta_custom_hex", label: "Color Personalizado HEX Botón Secundario Hero", type: "text", section: "Inicio", group: "Hero Principal" },
   { key: "hero_secondary_cta_opacity", label: "Opacidad Botón Secundario Hero", type: "text", help: "Valor porcentual entre 10 y 100", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_secondary_cta_shade", label: "Sombreado Botón Secundario Hero", type: "text", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_secondary_cta_media_fit", label: "Ajuste fondo animado Botón Secundario Hero", type: "text", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_secondary_cta_icon_shape", label: "Forma ícono Botón Secundario Hero", type: "text", section: "Inicio", group: "Hero Principal" },
   { key: "hero_secondary_cta_width", label: "Cobertura / Ancho Botón Secundario Hero", type: "text", help: "'auto' o 'full'", section: "Inicio", group: "Hero Principal" },
   {
     key: "hero_secondary_cta_action_type",
