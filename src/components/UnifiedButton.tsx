@@ -86,6 +86,7 @@ export function UnifiedButton({
   const unifiedStyle: UnifiedButtonStyle = {
     ...baseUnified,
     ...styleOverride,
+    ...(typeof button.shade === "number" ? { shade: button.shade } : {}),
   };
 
   const a11y = getBestAccessibility(
@@ -202,10 +203,11 @@ export function UnifiedButton({
     : "rounded-xl";
 
   const widthClass = button.width === "full" ? "w-full" : "w-auto";
-  const buttonOpacity =
-    typeof button.opacity === "number" && !isNaN(button.opacity)
-      ? Math.max(0.1, Math.min(1, button.opacity / 100))
-      : undefined;
+  const fitClass =
+    button.media_fit === "contain" ? "object-contain" : button.media_fit === "fill" ? "object-fill" : "object-cover";
+  const iconShapeClass =
+    button.icon_shape === "original" ? "object-contain" : button.icon_shape === "rounded" ? "rounded-md object-cover" : "rounded-full object-cover";
+  const solidShade = !isFillMedia ? a11y.overlayOpacity : 0;
 
   return (
     <motion.div
@@ -224,12 +226,19 @@ export function UnifiedButton({
           <span
             aria-hidden
             className="pointer-events-none absolute inset-0 z-0"
-            style={{ ...bgStyle, opacity: buttonOpacity ?? 1 }}
+            style={bgStyle}
+          />
+        )}
+        {!isFillMedia && solidShade > 0 && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 z-0 bg-black"
+            style={{ opacity: solidShade / 100 }}
           />
         )}
         {/* CAPA DE FONDO VIVO (VIDEO, GIF O IMAGEN DE FONDO COMPLETO) */}
         {isFillMedia && unifiedStyle.bgImageUrl && (
-          <span aria-hidden className="pointer-events-none absolute inset-0 z-0" style={{ opacity: buttonOpacity ?? 1 }}>
+          <span aria-hidden className="pointer-events-none absolute inset-0 z-0">
             {unifiedStyle.type === "videoFill" || button.animation_type === "video" ? (
               <video
                 src={unifiedStyle.bgImageUrl}
@@ -238,7 +247,7 @@ export function UnifiedButton({
                 muted
                 playsInline
                 onError={() => setMediaFailed(true)}
-                className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover"
+                className={`pointer-events-none absolute inset-0 z-0 h-full w-full ${fitClass}`}
               />
             ) : unifiedStyle.type === "lottieFill" || button.animation_type === "lottie" ? (
               <div className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover opacity-80">
@@ -249,7 +258,7 @@ export function UnifiedButton({
                 src={unifiedStyle.bgImageUrl}
                 alt=""
                 onError={() => setMediaFailed(true)}
-                className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover"
+                className={`pointer-events-none absolute inset-0 z-0 h-full w-full ${fitClass}`}
               />
             )}
 
@@ -269,7 +278,7 @@ export function UnifiedButton({
             <img
               src={unifiedStyle.iconUrl}
               alt=""
-              className="h-5 w-5 rounded-full object-cover shrink-0"
+              className={`h-5 w-5 shrink-0 ${iconShapeClass}`}
             />
           )}
 
@@ -279,7 +288,7 @@ export function UnifiedButton({
             <img
               src={unifiedStyle.iconUrl}
               alt=""
-              className="h-5 w-5 rounded-full object-cover shrink-0"
+              className={`h-5 w-5 shrink-0 ${iconShapeClass}`}
             />
           )}
         </span>

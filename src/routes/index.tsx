@@ -161,6 +161,10 @@ function Hero() {
   const heroCtaCustomHex = getText("hero_cta_custom_hex", "");
   const heroCtaOpacityStr = getText("hero_cta_opacity", "100");
   const heroCtaOpacity = Math.max(10, Math.min(100, parseInt(heroCtaOpacityStr, 10) || 100));
+  const heroCtaShadeStr = getText("hero_cta_shade", "");
+  const heroCtaShade = heroCtaShadeStr === "" || isNaN(Number(heroCtaShadeStr)) ? undefined : Number(heroCtaShadeStr);
+  const heroCtaFit = (getText("hero_cta_media_fit", "cover") || "cover") as "cover" | "contain" | "fill";
+  const heroCtaIconShape = (getText("hero_cta_icon_shape", "circle") || "circle") as "circle" | "rounded" | "original";
   const heroCtaWidth = (getText("hero_cta_width", "auto") as "auto" | "full") || "auto";
 
   const heroSecCtaText = getText("hero_secondary_cta_text", "");
@@ -177,6 +181,10 @@ function Hero() {
   const heroSecCtaCustomHex = getText("hero_secondary_cta_custom_hex", "");
   const heroSecCtaOpacityStr = getText("hero_secondary_cta_opacity", "100");
   const heroSecCtaOpacity = Math.max(10, Math.min(100, parseInt(heroSecCtaOpacityStr, 10) || 100));
+  const heroSecCtaShadeStr = getText("hero_secondary_cta_shade", "");
+  const heroSecCtaShade = heroSecCtaShadeStr === "" || isNaN(Number(heroSecCtaShadeStr)) ? undefined : Number(heroSecCtaShadeStr);
+  const heroSecCtaFit = (getText("hero_secondary_cta_media_fit", "cover") || "cover") as "cover" | "contain" | "fill";
+  const heroSecCtaIconShape = (getText("hero_secondary_cta_icon_shape", "circle") || "circle") as "circle" | "rounded" | "original";
   const heroSecCtaWidth = (getText("hero_secondary_cta_width", "auto") as "auto" | "full") || "auto";
 
   function handleButtonClick(
@@ -313,6 +321,9 @@ function Hero() {
                     width: heroCtaWidth,
                     position: "left",
                     opacity: heroCtaOpacity,
+                    shade: heroCtaShade,
+                    media_fit: heroCtaFit,
+                    icon_shape: heroCtaIconShape,
                     include_image_link: true,
                   }}
                   onClick={() =>
@@ -349,6 +360,9 @@ function Hero() {
                     width: heroSecCtaWidth,
                     position: "left",
                     opacity: heroSecCtaOpacity,
+                    shade: heroSecCtaShade,
+                    media_fit: heroSecCtaFit,
+                    icon_shape: heroSecCtaIconShape,
                     include_image_link: true,
                   }}
                   onClick={() =>

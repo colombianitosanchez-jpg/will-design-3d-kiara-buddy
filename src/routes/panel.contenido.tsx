@@ -298,6 +298,9 @@ const FIELDS: FieldDef[] = [
   { key: "hero_cta_text_color", label: "Color Texto Botón Principal Hero", type: "text", section: "Inicio", group: "Hero Principal" },
   { key: "hero_cta_custom_hex", label: "Color Personalizado HEX Botón Principal Hero", type: "text", section: "Inicio", group: "Hero Principal" },
   { key: "hero_cta_opacity", label: "Opacidad Botón Principal Hero", type: "text", help: "Valor porcentual entre 10 y 100", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_cta_shade", label: "Sombreado Botón Principal Hero", type: "text", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_cta_media_fit", label: "Ajuste fondo animado Botón Principal Hero", type: "text", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_cta_icon_shape", label: "Forma ícono Botón Principal Hero", type: "text", section: "Inicio", group: "Hero Principal" },
   { key: "hero_cta_width", label: "Cobertura / Ancho Botón Principal Hero", type: "text", help: "'auto' o 'full'", section: "Inicio", group: "Hero Principal" },
   {
     key: "hero_cta_action_type",
@@ -350,6 +353,9 @@ const FIELDS: FieldDef[] = [
   { key: "hero_secondary_cta_text_color", label: "Color Texto Botón Secundario Hero", type: "text", section: "Inicio", group: "Hero Principal" },
   { key: "hero_secondary_cta_custom_hex", label: "Color Personalizado HEX Botón Secundario Hero", type: "text", section: "Inicio", group: "Hero Principal" },
   { key: "hero_secondary_cta_opacity", label: "Opacidad Botón Secundario Hero", type: "text", help: "Valor porcentual entre 10 y 100", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_secondary_cta_shade", label: "Sombreado Botón Secundario Hero", type: "text", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_secondary_cta_media_fit", label: "Ajuste fondo animado Botón Secundario Hero", type: "text", section: "Inicio", group: "Hero Principal" },
+  { key: "hero_secondary_cta_icon_shape", label: "Forma ícono Botón Secundario Hero", type: "text", section: "Inicio", group: "Hero Principal" },
   { key: "hero_secondary_cta_width", label: "Cobertura / Ancho Botón Secundario Hero", type: "text", help: "'auto' o 'full'", section: "Inicio", group: "Hero Principal" },
   {
     key: "hero_secondary_cta_action_type",
@@ -1394,6 +1400,10 @@ function CTAButtonGroup({
   const opacityVal = values[`${prefix}opacity`] ? parseInt(values[`${prefix}opacity`], 10) : 100;
   const opacityNum = isNaN(opacityVal) ? 100 : Math.max(10, Math.min(100, opacityVal));
   const buttonWidth = (values[`${prefix}width`] as "auto" | "full") || "auto";
+  const shadeRaw = values[`${prefix}shade`] ?? "";
+  const shadeNum = shadeRaw === "" || isNaN(Number(shadeRaw)) ? undefined : Math.max(0, Math.min(100, Number(shadeRaw)));
+  const mediaFit = (values[`${prefix}media_fit`] as "cover" | "contain" | "fill") || "cover";
+  const iconShape = (values[`${prefix}icon_shape`] as "circle" | "rounded" | "original") || "circle";
 
   const globalDefaultMsg = values["whatsapp_default_message"] || "";
 
@@ -1432,6 +1442,9 @@ function CTAButtonGroup({
         hero_secondary_cta_text_color: v.hero_cta_text_color || "",
         hero_secondary_cta_custom_hex: v.hero_cta_custom_hex || "",
         hero_secondary_cta_opacity: v.hero_cta_opacity || "100",
+        hero_secondary_cta_shade: v.hero_cta_shade || "",
+        hero_secondary_cta_media_fit: v.hero_cta_media_fit || "cover",
+        hero_secondary_cta_icon_shape: v.hero_cta_icon_shape || "circle",
         hero_secondary_cta_width: v.hero_cta_width || "auto",
         hero_secondary_cta_whatsapp_message: v.hero_cta_whatsapp_message || "",
         hero_secondary_cta_whatsapp_image_url: v.hero_cta_whatsapp_image_url || "",
@@ -1459,6 +1472,9 @@ function CTAButtonGroup({
       delete copy[textColorKey];
       delete copy[customHexKey];
       delete copy[`${prefix}opacity`];
+      delete copy[`${prefix}shade`];
+      delete copy[`${prefix}media_fit`];
+      delete copy[`${prefix}icon_shape`];
       delete copy[`${prefix}width`];
       delete copy[actionTypeKey];
       delete copy[messageKey];
@@ -1531,6 +1547,9 @@ function CTAButtonGroup({
                 width: buttonWidth,
                 position: "left",
                 opacity: opacityNum,
+                shade: shadeNum,
+                media_fit: mediaFit,
+                icon_shape: iconShape,
                 include_image_link: true,
               }}
             />
@@ -1608,35 +1627,27 @@ function CTAButtonGroup({
             <p className="text-[10px] text-muted-foreground mt-0.5">Se usa cuando no hay fondo vivo (imagen/animación).</p>
           </div>
 
-          {/* Opacidad del Botón */}
+          {/* Sombreado / Contraste */}
           <div>
             <div className="flex items-center justify-between">
-              <Label className="text-xs font-semibold">Opacidad del Botón</Label>
-              <span className="text-xs font-mono font-bold text-primary">{opacityNum}%</span>
+              <Label className="text-xs font-semibold">Sombreado / Contraste</Label>
+              <span className="text-xs font-mono font-bold text-primary">{shadeNum === undefined ? "Auto" : `${shadeNum}%`}</span>
             </div>
             <div className="flex items-center gap-3 mt-1.5">
               <input
                 type="range"
-                min="10"
+                min="0"
                 max="100"
                 step="5"
-                value={opacityNum}
-                onChange={(e) => setValues((v) => ({ ...v, [`${prefix}opacity`]: e.target.value }))}
+                value={shadeNum ?? (mediaUrl && mediaMode === "fill" ? 50 : 0)}
+                onChange={(e) => setValues((v) => ({ ...v, [`${prefix}shade`]: e.target.value }))}
                 className="w-full accent-primary cursor-pointer"
               />
-              <Input
-                type="number"
-                min="10"
-                max="100"
-                value={opacityNum}
-                onChange={(e) => {
-                  const val = Math.max(10, Math.min(100, Number(e.target.value) || 10));
-                  setValues((v) => ({ ...v, [`${prefix}opacity`]: String(val) }));
-                }}
-                className="w-16 text-xs text-center font-bold"
-              />
+              <Button type="button" variant="ghost" size="sm" className="h-7 text-[11px]" onClick={() => setValues((v) => ({ ...v, [`${prefix}shade`]: "" }))}>
+                Auto
+              </Button>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Define la transparencia global del botón (10% a 100%).</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Capa oscura entre el fondo y el texto. 0% = sin sombreado. Funciona con color sólido y con fondo animado.</p>
           </div>
 
           {/* Cobertura / Ancho */}
@@ -1681,10 +1692,23 @@ function CTAButtonGroup({
               Soporta video MP4/WebM en bucle, GIF o imagen para cubrir el fondo completo del botón con contraste garantizado.
             </p>
             {mediaMode === "fill" && (
-              <MediaDropZone
-                value={mediaUrl}
-                onChange={(url) => setValues((v) => ({ ...v, [mediaKey]: url }))}
-              />
+              <>
+                <MediaDropZone
+                  value={mediaUrl}
+                  onChange={(url) => setValues((v) => ({ ...v, [mediaKey]: url }))}
+                />
+                <div>
+                  <Label className="text-xs font-semibold">Espacio que cubre el fondo animado</Label>
+                  <Select value={mediaFit} onValueChange={(val) => setValues((v) => ({ ...v, [`${prefix}media_fit`]: val }))}>
+                    <SelectTrigger className="mt-1 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cover">Cubrir todo el botón (recorta bordes)</SelectItem>
+                      <SelectItem value="contain">Ajustar al centro (se ve completa)</SelectItem>
+                      <SelectItem value="fill">Estirar para llenar</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
             )}
           </div>
 
@@ -1713,10 +1737,23 @@ function CTAButtonGroup({
               Muestra un circulito / logo / ícono junto al texto del botón. Puedes usarlo solo o combinado con el fondo animado.
             </p>
             {iconPos !== "none" && (
-              <MediaDropZone
-                value={iconUrl}
-                onChange={(url) => setValues((v) => ({ ...v, [iconUrlKey]: url }))}
-              />
+              <>
+                <MediaDropZone
+                  value={iconUrl}
+                  onChange={(url) => setValues((v) => ({ ...v, [iconUrlKey]: url }))}
+                />
+                <div>
+                  <Label className="text-xs font-semibold">Forma del ícono</Label>
+                  <Select value={iconShape} onValueChange={(val) => setValues((v) => ({ ...v, [`${prefix}icon_shape`]: val }))}>
+                    <SelectTrigger className="mt-1 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="circle">Circular</SelectItem>
+                      <SelectItem value="rounded">Cuadrado redondeado</SelectItem>
+                      <SelectItem value="original">Silueta original (sin recortar)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
             )}
           </div>
         </div>
