@@ -27,6 +27,8 @@ export interface UnifiedButtonStyle {
   bgImageUrl?: string;
   /** Opacidad del overlay oscuro en porcentaje (30 a 80) */
   overlayOpacity?: number;
+  /** Sombreado elegido en el panel (0..100). Si existe, se respeta exacto */
+  shade?: number;
   /** Efecto de animación o resplandor */
   animation?: ButtonAnimation;
   /** Color del texto */
@@ -93,13 +95,17 @@ export function getBestAccessibility(
   if (isFill && overlayOpacity < 45) {
     overlayOpacity = 45;
   }
+  if (typeof style.shade === "number" && !isNaN(style.shade)) {
+    overlayOpacity = Math.max(0, Math.min(100, style.shade));
+  }
 
   // 2. Color de texto y sombra de alto contraste
   let textColor = style.textColor || "";
   let textShadowClass = "";
 
   if (isFill) {
-    textColor = "#ffffff";
+    // El color elegido en el panel siempre manda; blanco solo si no hay uno
+    if (!textColor) textColor = "#ffffff";
     textShadowClass = "drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)] font-bold tracking-wide";
   } else {
     // Sombreado sutil entre texto y fondo para legibilidad siempre

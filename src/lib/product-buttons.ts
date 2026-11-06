@@ -53,6 +53,12 @@ export type ProductButton = {
   animation_style?: string;
   /** Opacidad del botón entero (10 a 100) */
   opacity?: number;
+  /** Sombreado/contraste entre fondo y texto (0 a 100). Vacío = automático */
+  shade?: number;
+  /** Ajuste del fondo animado dentro del botón */
+  media_fit?: "cover" | "contain" | "fill";
+  /** Forma del ícono o logo */
+  icon_shape?: "circle" | "rounded" | "original";
 };
 
 export const VARIANT_LABELS: Record<ButtonVariant, string> = {
