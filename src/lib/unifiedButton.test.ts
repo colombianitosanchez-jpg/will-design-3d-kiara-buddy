@@ -74,3 +74,14 @@ describe("color y sombreado elegidos en el panel", () => {
     expect(getBestAccessibility({ type: "solid", shade: 30 }).overlayOpacity).toBe(30);
   });
 });
+
+import { getBestAccessibility as gba2 } from "./unifiedButton";
+import { describe as d2, it as i2, expect as e2 } from "vitest";
+d2("texto sobre color de marca", () => {
+  i2("usa blanco cuando el fondo es var(--brand-*)", () => {
+    e2(gba2({ background: "var(--brand-wine)" }).textColor).toBe("#ffffff");
+  });
+  i2("respeta color del panel aunque haya fondo vivo", () => {
+    e2(gba2({ bgImageUrl: "x.mp4", textColor: "#ff0000" }).textColor).toBe("#ff0000");
+  });
+});

@@ -184,7 +184,7 @@ export function UnifiedButton({
 
   // Construcción de estilos dinámicos de fondo
   let bgStyle: React.CSSProperties = {};
-  if (!isFillMedia) {
+  {
     if (unifiedStyle.type === "gradient" && unifiedStyle.gradientFrom) {
       const angle = unifiedStyle.gradientAngle ?? 135;
       const toCol = unifiedStyle.gradientTo || "#f97316";
@@ -222,7 +222,8 @@ export function UnifiedButton({
         className={`relative overflow-hidden cursor-pointer select-none border border-black/10 shadow-md transition-all ${widthClass} ${roundedClass} ${a11y.tapTargetClass} ${a11y.focusClass} ${animClass} ${className}`}
       >
         {/* CAPA DE COLOR DE FONDO: la opacidad solo afecta al fondo, nunca al texto */}
-        {!isFillMedia && (
+        {/* Siempre presente: respaldo bajo el fondo vivo (se ve en modo 'contain' o si el video falla) */}
+        {(
           <span
             aria-hidden
             className="pointer-events-none absolute inset-0 z-0"
