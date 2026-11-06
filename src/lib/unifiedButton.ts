@@ -112,11 +112,12 @@ export function getBestAccessibility(
     textShadowClass = "drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)] font-semibold";
   }
   if (!isFill && !textColor) {
-    if (style.background) {
+    if (style.background && /^#?[0-9a-f]{3}([0-9a-f]{3})?$/i.test(style.background.trim())) {
       const lum = getHexLuminance(style.background);
       textColor = lum > 0.4 ? "#0f172a" : "#ffffff";
     } else {
-      textColor = "inherit";
+      // Colores de marca (var(--...)) o sin color: texto blanco legible
+      textColor = "#ffffff";
     }
   }
 

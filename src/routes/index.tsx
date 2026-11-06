@@ -300,6 +300,7 @@ function Hero() {
           <p className="mt-5 max-w-xl text-base text-muted-foreground sm:text-lg">
             {subtitle}
           </p>
+          {(heroCtaText || heroSecCtaText) && (
           <div className="mt-7 flex flex-wrap items-center gap-3">
             {(() => {
               const primaryNode = heroCtaText ? (
@@ -313,8 +314,8 @@ function Hero() {
                     whatsapp_message: heroCtaWhatsappMsg,
                     text_color: heroCtaTextColor || undefined,
                     custom_hex: heroCtaCustomHex || "var(--brand-orange)",
-                    media_url: heroCtaMediaMode === "fill" ? heroCtaMedia : undefined,
-                    media_mode: heroCtaMediaMode as any,
+                    media_url: (heroCtaMediaMode || "fill") === "fill" ? heroCtaMedia : undefined,
+                    media_mode: (heroCtaMediaMode || "fill") as any,
                     icon_url: heroCtaIconUrl || (heroCtaMediaMode === "icon" ? heroCtaMedia : undefined),
                     icon_position: heroCtaIconPos !== "none" ? (heroCtaIconPos as any) : (heroCtaMediaMode === "icon" ? "left" : "none"),
                     variant: "default",
@@ -352,8 +353,8 @@ function Hero() {
                     whatsapp_message: heroSecCtaWhatsappMsg,
                     text_color: heroSecCtaTextColor || undefined,
                     custom_hex: heroSecCtaCustomHex || "var(--brand-wine)",
-                    media_url: heroSecCtaMediaMode === "fill" ? heroSecCtaMedia : undefined,
-                    media_mode: heroSecCtaMediaMode as any,
+                    media_url: (heroSecCtaMediaMode || "fill") === "fill" ? heroSecCtaMedia : undefined,
+                    media_mode: (heroSecCtaMediaMode || "fill") as any,
                     icon_url: heroSecCtaIconUrl || (heroSecCtaMediaMode === "icon" ? heroSecCtaMedia : undefined),
                     icon_position: heroSecCtaIconPos !== "none" ? (heroSecCtaIconPos as any) : (heroSecCtaMediaMode === "icon" ? "left" : "none"),
                     variant: "secondary",
@@ -393,6 +394,7 @@ function Hero() {
               );
             })()}
           </div>
+          )}
 
           {stats.length > 0 && (
             <dl className="mt-10 grid max-w-lg grid-cols-2 sm:grid-cols-3 gap-4">
@@ -745,8 +747,8 @@ function AboutPreview() {
                 whatsapp_message: ctaWhatsappMsg,
                 text_color: ctaTextColor || undefined,
                 custom_hex: ctaCustomHex || undefined,
-                media_url: ctaMediaMode === "fill" ? ctaMediaUrl : undefined,
-                media_mode: ctaMediaMode as any,
+                media_url: (ctaMediaMode || "fill") === "fill" ? ctaMediaUrl : undefined,
+                media_mode: (ctaMediaMode || "fill") as any,
                 icon_url: ctaIconUrl || (ctaMediaMode === "icon" ? ctaMediaUrl : undefined),
                 icon_position: ctaIconPos !== "none" ? (ctaIconPos as any) : (ctaMediaMode === "icon" ? "left" : "none"),
                 variant: "default",

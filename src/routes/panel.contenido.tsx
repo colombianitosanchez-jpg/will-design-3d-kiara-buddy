@@ -1650,24 +1650,6 @@ function CTAButtonGroup({
             <p className="text-[10px] text-muted-foreground mt-0.5">Capa oscura entre el fondo y el texto. 0% = sin sombreado. Funciona con color sólido y con fondo animado.</p>
           </div>
 
-          {/* Cobertura / Ancho */}
-          <div>
-            <Label className="text-xs font-semibold">Cobertura / Ancho</Label>
-            <Select
-              value={buttonWidth}
-              onValueChange={(val) => setValues((v) => ({ ...v, [`${prefix}width`]: val }))}
-            >
-              <SelectTrigger className="mt-1 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="auto">Ancho automático (ajustado al texto)</SelectItem>
-                <SelectItem value="full">Ancho completo 100% (bloque total)</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Controla si el botón se expande a todo lo ancho o según su texto.</p>
-          </div>
-
           {/* Personalización visual 1: Relleno / Fondo Animado (Fill) con Drag & Drop */}
           <div className="sm:col-span-2 rounded-lg border border-border/60 bg-muted/20 p-3.5 space-y-2">
             <div className="flex items-center justify-between">
@@ -1710,6 +1692,24 @@ function CTAButtonGroup({
                 </div>
               </>
             )}
+          </div>
+
+          {/* Cobertura / Ancho */}
+          <div className="sm:col-span-2">
+            <Label className="text-xs font-semibold">Cobertura / Ancho del botón</Label>
+            <Select
+              value={buttonWidth}
+              onValueChange={(val) => setValues((v) => ({ ...v, [`${prefix}width`]: val }))}
+            >
+              <SelectTrigger className="mt-1 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">Ancho automático (ajustado al texto)</SelectItem>
+                <SelectItem value="full">Ancho completo 100% (bloque total)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Controla si el botón se expande a todo lo ancho o según su texto.</p>
           </div>
 
           {/* Personalización visual 2: Ícono / Logo Circular con Drag & Drop */}
