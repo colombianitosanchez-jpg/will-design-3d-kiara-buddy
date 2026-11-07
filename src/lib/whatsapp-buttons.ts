@@ -93,68 +93,8 @@ export function getWhatsAppPayloadForButton(
   globalDefaultMessage?: string
 ): WhatsAppPayload {
   const mainMedia = (currentSectionMedia || "").trim();
-  const fallbackLogo = (logoUrl || "").trim() || "/logo.png";
-
-  const isVideo = /\.(mp4|webm|quicktime)($|\?)/i.test(mainMedia);
-  const isImage = /\.(jpg|jpeg|png|gif|webp)($|\?)/i.test(mainMedia);
-
   const logic = buttonConfig.whatsapp_image_logic || "auto";
-
-  let mediaToSend = fallbackLogo;
   const explicitImage = (buttonConfig.whatsapp_image_url || "").trim();
-
-  if (logic === "none") {
-    // Mensaje limpio: solo el texto, sin enlaces.
-    const raw =
-      buttonConfig.whatsapp_message?.trim() ||
-      globalDefaultMessage?.trim() ||
-      defaultMessage?.trim() ||
-      "";
-    const clean = replaceTemplatePlaceholders(raw, { media: "" })
-      .replace(/[ \t]+\n/g, "\n")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
-    return { mediaToSend: "", mainMedia, text: raw, formattedText: clean };
-  }
-
-  if (explicitImage) {
-    mediaToSend = explicitImage;
-  } else if (logic === "logo") {
-    mediaToSend = fallbackLogo;
-  } else if (logic === "product_image") {
-    mediaToSend = isImage ? mainMedia : fallbackLogo;
-  } else {
-    // Reglas CEO (auto)
-    if (isVideo && !isImage) {
-      mediaToSend = fallbackLogo;
-    } else if (isVideo && isImage) {
-      mediaToSend = mainMedia;
-    } else if (isImage) {
-      mediaToSend = mainMedia;
-    } else {
-      mediaToSend = fallbackLogo;
-    }
-  }
-
-  // Asegurar que la URL sea absoluta para previsualización correcta en WhatsApp
-  mediaToSend = toAbsoluteUrl(mediaToSend);
-
-  // Siempre el dominio publicado: el robot de WhatsApp no puede entrar a la vista previa.
-  const origin = PUBLIC_SITE_ORIGIN;
-
-  const isStorageMedia = isStorageMediaUrl(mediaToSend);
-  const imageKey = (buttonConfig.whatsapp_image_key || "").trim();
-  const usingLogo = mediaToSend === toAbsoluteUrl(fallbackLogo);
-  // Enlaces siempre cortos y limpios bajo el dominio propio.
-  const shareableMediaUrl = !mediaToSend
-    ? ""
-    : explicitImage && imageKey
-      ? `${origin}/ref?k=${encodeURIComponent(imageKey)}`
-      : usingLogo && isStorageMedia
-        ? `${origin}/ref?k=logo`
-        : isStorageMedia
-          ? `${origin}/ref?img=${encodeURIComponent(mediaToSend)}`
-          : mediaToSend;
 
   const rawMessage =
     buttonConfig.whatsapp_message?.trim() ||
@@ -162,13 +102,45 @@ export function getWhatsAppPayloadForButton(
     defaultMessage?.trim() ||
     "";
 
+  // REGLA: Si NO hay imagen explícita configurada (whatsapp_image_url vacía) o logic === "none",
+  // retornar mediaToSend = "" y formattedText estrictamente texto plano sin enlaces ni saltos de línea vacíos.
+  if (logic === "none" || !explicitImage) {
+    const clean = replaceTemplatePlaceholders(rawMessage, { media: "" })
+      .replace(/[ \t]+\n/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+    return {
+      mediaToSend: "",
+      mainMedia,
+      text: rawMessage,
+      formattedText: clean,
+    };
+  }
+
+  // Hay imagen explícita configurada
+  const mediaToSend = toAbsoluteUrl(explicitImage);
+
+  // Siempre el dominio publicado: el robot de WhatsApp no puede entrar a la vista previa.
+  const origin = PUBLIC_SITE_ORIGIN;
+  const imageKey = (buttonConfig.whatsapp_image_key || "").trim();
+  const isStorageMedia = isStorageMediaUrl(mediaToSend);
+
+  // NUNCA caer en la URL larga de storage: shareableMediaUrl debe construirse exclusivamente
+  // como `${origin}/ref?k=${encodeURIComponent(imageKey)}` si existe imageKey y whatsapp_image_url.
+  // Si no hay imageKey pero hay imagen de almacenamiento, usar el endpoint corto /ref?img=...;
+  // jamás exponer tokens de Supabase ni URLs crudas.
+  const shareableMediaUrl = imageKey
+    ? `${origin}/ref?k=${encodeURIComponent(imageKey)}`
+    : isStorageMedia
+      ? `${origin}/ref?img=${encodeURIComponent(mediaToSend)}`
+      : mediaToSend;
+
   let formattedText = replaceTemplatePlaceholders(rawMessage, {
     media: shareableMediaUrl,
   });
 
-  // Si existe una imagen/media para enviar y la plantilla no incluye {media} o {media_link},
+  // Si existe una imagen para enviar y la plantilla no incluye {media} o {media_link},
   // se adjunta automáticamente la URL al final del mensaje en una línea separada.
-  // De esta manera el usuario no necesita escribir manualmente "{media}".
   const hasMediaTag =
     /\{\{media(_link)?\}\}/i.test(rawMessage) ||
     /\{media(_link)?\}/i.test(rawMessage);

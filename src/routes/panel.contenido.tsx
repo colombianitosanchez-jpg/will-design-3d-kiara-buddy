@@ -1417,6 +1417,7 @@ function CTAButtonGroup({
       whatsapp_message: whatsappMsg,
       whatsapp_image_logic: whatsappLogic,
       whatsapp_image_url: whatsappImageUrl,
+      whatsapp_image_key: waImageKey,
     },
     mediaUrl || values["hero_image_url"] || "",
     values["site_logo_url"],
@@ -1860,7 +1861,7 @@ function CTAButtonGroup({
                   </span>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Esta es la foto que recibirá el asesor en el chat de WhatsApp. Es completamente independiente del video o GIF decorativo del botón de la tienda.
+                  Formatos admitidos para WhatsApp: JPG, PNG o WEBP (máx. 1 MB). Los videos y GIFs no generan tarjeta en WhatsApp. Si dejas este campo vacío, el cliente enviará solo texto limpio.
                 </p>
                 <MediaDropZone
                   value={values[waImageKey] || ""}
@@ -1868,64 +1869,31 @@ function CTAButtonGroup({
                 />
               </div>
 
-              <div className="sm:col-span-2 space-y-1.5">
-                <Label className="text-xs font-semibold">Modo de Mensaje de WhatsApp</Label>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <div
-                    onClick={() => setValues((v) => ({ ...v, [logicKey]: "none" }))}
-                    className={`cursor-pointer rounded-xl border p-3 transition ${
-                      whatsappLogic === "none"
-                        ? "border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500"
-                        : "border-border hover:border-border/80 bg-background/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className={`h-2.5 w-2.5 rounded-full ${whatsappLogic === "none" ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
-                      <span className="text-xs font-bold text-foreground">a) Solo texto limpio</span>
+              {/* Estado del Modo de Mensaje según si hay o no imagen configurada */}
+              <div className="sm:col-span-2">
+                {values[waImageKey] ? (
+                  <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 flex items-start gap-2.5">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                        Previsualización activa: Se incluirá enlace corto con tu foto
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Al enviar el mensaje por WhatsApp, se adjuntará el enlace corto Open Graph <code className="text-[10px] font-mono font-bold">/ref?k={waImageKey}</code> para mostrar la tarjeta con la foto.
+                      </p>
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-1">
-                      Envía únicamente el texto plano del mensaje, sin ningún enlace, tarjeta ni código.
-                    </p>
                   </div>
-
-                  <div
-                    onClick={() => {
-                      if (whatsappLogic === "none") {
-                        setValues((v) => ({ ...v, [logicKey]: "auto" }));
-                      }
-                    }}
-                    className={`cursor-pointer rounded-xl border p-3 transition ${
-                      whatsappLogic !== "none"
-                        ? "border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500"
-                        : "border-border hover:border-border/80 bg-background/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className={`h-2.5 w-2.5 rounded-full ${whatsappLogic !== "none" ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
-                      <span className="text-xs font-bold text-foreground">b) Con previsualización de imagen</span>
+                ) : (
+                  <div className="rounded-xl border border-border bg-muted/30 p-3 flex items-start gap-2.5">
+                    <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/50 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-foreground">
+                        Mensaje limpio: Se enviará solo texto plano
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Como no has configurado ninguna foto arriba, WhatsApp enviará exclusivamente el texto del mensaje sin enlaces ni tarjetas.
+                      </p>
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-1">
-                      Adjunta el enlace corto de tarjeta Open Graph <code className="text-[10px] font-mono font-bold">/ref?k=...</code> para vista rica.
-                    </p>
-                  </div>
-                </div>
-
-                {whatsappLogic !== "none" && (
-                  <div className="pt-2">
-                    <Label className="text-xs font-semibold">Fuente de la imagen para la tarjeta Open Graph:</Label>
-                    <Select
-                      value={whatsappLogic}
-                      onValueChange={(val) => setValues((v) => ({ ...v, [logicKey]: val }))}
-                    >
-                      <SelectTrigger className="mt-1 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="auto">Automático (Reglas: Logo si el botón usa video, Imagen si existe)</SelectItem>
-                        <SelectItem value="logo">Forzar Logo oficial de la Empresa (/ref?k=logo)</SelectItem>
-                        <SelectItem value="product_image">Usar Imagen Principal de la Sección</SelectItem>
-                      </SelectContent>
-                    </Select>
                   </div>
                 )}
               </div>
@@ -1939,16 +1907,18 @@ function CTAButtonGroup({
                   {payload.formattedText || "Hola Will, me interesa cotizar..."}
                 </p>
                 <p className="text-[10px] text-emerald-700/90 dark:text-emerald-300/90 font-semibold mt-1 flex items-center gap-1.5 flex-wrap">
-                  <span>📎 Adjunto a enviar: <strong>{shortMediaName(payload.mediaToSend)}</strong></span>
-                  {values[waImageKey] ? (
-                    <span className="inline-flex items-center rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] font-bold text-white">
-                      Imagen específica configurada ✓
+                  {payload.mediaToSend ? (
+                    <>
+                      <span>📎 Adjunto a enviar: <strong>{shortMediaName(payload.mediaToSend)}</strong></span>
+                      <span className="inline-flex items-center rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] font-bold text-white">
+                        Enlace corto /ref activo ✓
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">
+                      📄 Solo texto plano (sin adjunto ni enlace)
                     </span>
-                  ) : payload.mediaToSend.includes("logo") || payload.mediaToSend.startsWith("/") ? (
-                    <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-bold text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
-                      Logo de la marca
-                    </span>
-                  ) : null}
+                  )}
                 </p>
               </div>
             </div>

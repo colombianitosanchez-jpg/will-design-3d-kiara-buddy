@@ -7,48 +7,39 @@ import {
 } from "./whatsapp-buttons";
 import { waLink } from "./catalog";
 
-describe("getWhatsAppPayloadForButton & waLink CEO Rules", () => {
-  test("Rule 1: Video only -> mediaToSend is logo.png (converted to absolute URL)", () => {
+describe("getWhatsAppPayloadForButton Simplified Logic", () => {
+  test("Sin imagen configurada: genera texto plano limpio sin ningún enlace ni logo", () => {
     const payload = getWhatsAppPayloadForButton(
-      { whatsapp_message: "Hola Will, cotizar {media}" },
+      { whatsapp_message: "Hola Will, cotizar pieza" },
       "https://example.com/demo.mp4",
       "/custom-logo.png"
     );
 
-    expect(payload.mediaToSend).toBe("https://will-design-3d.lovable.app/custom-logo.png");
-    expect(payload.formattedText).toBe("Hola Will, cotizar https://will-design-3d.lovable.app/custom-logo.png");
+    expect(payload.mediaToSend).toBe("");
+    expect(payload.formattedText).toBe("Hola Will, cotizar pieza");
   });
 
-  test("Rule 2: Video and Image -> mediaToSend is image", () => {
+  test("Sin imagen configurada con placeholder {media}: limpia el marcador sin dejar enlaces vacíos", () => {
     const payload = getWhatsAppPayloadForButton(
       { whatsapp_message: "Hola, me interesa {media}", whatsapp_image_logic: "auto" },
-      "https://example.com/photo.jpg",
+      "",
       "/custom-logo.png"
     );
 
-    expect(payload.mediaToSend).toBe("https://example.com/photo.jpg");
-    expect(payload.formattedText).toBe("Hola, me interesa https://example.com/photo.jpg");
+    expect(payload.mediaToSend).toBe("");
+    expect(payload.formattedText).toBe("Hola, me interesa");
   });
 
-  test("Rule 3: No video and no image -> mediaToSend is logo.png (absolute URL)", () => {
+  test("Sin imagen explícita configurada en whatsapp_image_url: siempre retorna texto limpio", () => {
     const payload = getWhatsAppPayloadForButton(
       { whatsapp_message: "Mensaje sin media" },
       "",
       "/site-logo.png"
     );
 
-    expect(payload.mediaToSend).toBe("https://will-design-3d.lovable.app/site-logo.png");
+    expect(payload.mediaToSend).toBe("");
     expect(payload.text).toBe("Mensaje sin media");
-  });
-
-  test("Logic Override: 'logo' forces logo even if image exists (absolute URL)", () => {
-    const payload = getWhatsAppPayloadForButton(
-      { whatsapp_message: "Forzando logo", whatsapp_image_logic: "logo" },
-      "https://example.com/photo.png",
-      "/logo-brand.png"
-    );
-
-    expect(payload.mediaToSend).toBe("https://will-design-3d.lovable.app/logo-brand.png");
+    expect(payload.formattedText).toBe("Mensaje sin media");
   });
 
   test("waLink fallback message and placeholder replacement", () => {
@@ -67,7 +58,7 @@ describe("getWhatsAppPayloadForButton & waLink CEO Rules", () => {
     expect(link).toBe("https://wa.me/573156724474?text=Hola%20Will%20Design%203D");
   });
 
-  test("Rule 4: Explicit whatsapp_image_url takes priority over background media or video", () => {
+  test("Imagen explícita whatsapp_image_url: genera enlace para WhatsApp", () => {
     const payload = getWhatsAppPayloadForButton(
       {
         whatsapp_message: "Cotización con imagen {media}",
@@ -81,10 +72,10 @@ describe("getWhatsAppPayloadForButton & waLink CEO Rules", () => {
     expect(payload.formattedText).toBe("Cotización con imagen https://example.com/wa-attached.jpg");
   });
 
-  test("Global default message: applies when button has no message defined", () => {
+  test("Global default message: applies when button has no message defined and includes image", () => {
     const payload = getWhatsAppPayloadForButton(
-      { whatsapp_message: "" },
-      "https://example.com/item.jpg",
+      { whatsapp_message: "", whatsapp_image_url: "https://example.com/item.jpg" },
+      "",
       "/logo.png",
       "Fallback local",
       "Mensaje configurado en panel como whatsapp_default_message {media}"
@@ -105,7 +96,7 @@ describe("Storage Media and /ref Open Graph link generation", () => {
     expect(isStorageMediaUrl("https://other.com/image.png?token=secret")).toBe(true);
   });
 
-  test("generates friendly /ref URL replacing {media} when media is from Supabase Storage", () => {
+  test("generates friendly /ref URL replacing {media} when media is from Supabase Storage and no key exists", () => {
     const payload = getWhatsAppPayloadForButton(
       {
         whatsapp_message: "Hola Will, me interesa esta pieza: {media}",
@@ -120,7 +111,7 @@ describe("Storage Media and /ref Open Graph link generation", () => {
     expect(payload.formattedText).toBe(`Hola Will, me interesa esta pieza: ${expectedRef}`);
   });
 
-  test("generates friendly /ref URL replacing {{media_link}} when media is from Supabase Storage", () => {
+  test("generates friendly /ref URL replacing {{media_link}} when media is from Supabase Storage and no key exists", () => {
     const payload = getWhatsAppPayloadForButton(
       {
         whatsapp_message: "Consulta: {{media_link}}",
@@ -212,21 +203,45 @@ describe("enlace corto /ref?k=", () => {
       "Hola Will, me interesa cotizar esta pieza:\n\nhttps://will-design-3d.lovable.app/ref?k=hero_cta_whatsapp_image_url"
     );
   });
+
+  test("hero_secondary_cta_whatsapp_image_url genera /ref?k=hero_secondary_cta_whatsapp_image_url", () => {
+    const p = getWhatsAppPayloadForButton(
+      {
+        whatsapp_message: "Hola Will, quisiera ver la tienda",
+        whatsapp_image_url: "https://x.supabase.co/storage/v1/object/sign/site-media/b.webp?token=xyz",
+        whatsapp_image_key: "hero_secondary_cta_whatsapp_image_url",
+      },
+      "",
+      "/logo.png"
+    );
+    expect(p.formattedText).toBe(
+      "Hola Will, quisiera ver la tienda\n\nhttps://will-design-3d.lovable.app/ref?k=hero_secondary_cta_whatsapp_image_url"
+    );
+  });
 });
 
 describe("mensaje limpio (solo texto)", () => {
   test("no incluye ningún enlace cuando la lógica es none", () => {
     const p = getWhatsAppPayloadForButton(
-      { whatsapp_message: "Hola Will {media}", whatsapp_image_logic: "none", whatsapp_image_url: "https://x.supabase.co/storage/v1/object/a.png?token=1" },
-      "https://x.supabase.co/a.png", null
+      {
+        whatsapp_message: "Hola Will {media}",
+        whatsapp_image_logic: "none",
+        whatsapp_image_url: "https://x.supabase.co/storage/v1/object/a.png?token=1",
+      },
+      "https://x.supabase.co/a.png",
+      null
     );
     expect(p.formattedText).toBe("Hola Will");
+    expect(p.mediaToSend).toBe("");
   });
-  test("el logo usa enlace corto /ref?k=logo", () => {
+
+  test("cuando no hay whatsapp_image_url retorna texto limpio sin enlaces aunque haya logo o media de sección", () => {
     const p = getWhatsAppPayloadForButton(
-      { whatsapp_message: "Hola", whatsapp_image_logic: "logo" },
-      null, "https://x.supabase.co/storage/v1/object/logo.png?token=abc"
+      { whatsapp_message: "Hola Will" },
+      "https://x.supabase.co/storage/v1/object/hero.jpg",
+      "https://x.supabase.co/storage/v1/object/logo.png?token=abc"
     );
-    expect(p.formattedText).toBe("Hola\n\nhttps://will-design-3d.lovable.app/ref?k=logo");
+    expect(p.formattedText).toBe("Hola Will");
+    expect(p.mediaToSend).toBe("");
   });
 });
