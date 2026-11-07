@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { getBestAccessibility, getHexLuminance, productButtonToUnified } from "./unifiedButton";
-import { newProductButton, duplicateProductButton, parseProductButtons, BUTTON_ICON_SHAPES } from "./product-buttons";
+import {
+  newProductButton,
+  duplicateProductButton,
+  parseProductButtons,
+  BUTTON_ICON_SHAPES,
+  ICON_SHAPE_CLIP_PATHS,
+} from "./product-buttons";
 import { getIconShapeStyle } from "@/components/UnifiedButton";
 
 describe("unifiedButton accessibility engine", () => {
@@ -122,10 +128,19 @@ describe("getIconShapeStyle geometric shapes catalog", () => {
     expect(res.style?.clipPath).toContain("98% 35%");
   });
 
+  it("exporta ICON_SHAPE_CLIP_PATHS con las definiciones exactas", () => {
+    expect(ICON_SHAPE_CLIP_PATHS.hexagon).toBe("polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)");
+    expect(ICON_SHAPE_CLIP_PATHS.diamond).toBe("polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)");
+    expect(ICON_SHAPE_CLIP_PATHS.star).toBe("polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)");
+    expect(ICON_SHAPE_CLIP_PATHS.shield).toBe("polygon(0% 0%, 100% 0%, 100% 75%, 50% 100%, 0% 75%)");
+    expect(ICON_SHAPE_CLIP_PATHS.octagon).toBe("polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)");
+  });
+
   it("recorta shield con clip-path nítido y object-cover", () => {
     const res = getIconShapeStyle("shield");
     expect(res.className).toContain("object-cover");
-    expect(res.style?.clipPath).toContain("100% 15%");
+    expect(res.style?.clipPath).toBe("polygon(0% 0%, 100% 0%, 100% 75%, 50% 100%, 0% 75%)");
+    expect(res.style?.WebkitClipPath).toBe("polygon(0% 0%, 100% 0%, 100% 75%, 50% 100%, 0% 75%)");
   });
 
   it("recorta octagon con clip-path nítido y object-cover", () => {
