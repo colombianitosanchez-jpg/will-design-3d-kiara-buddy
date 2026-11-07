@@ -158,15 +158,26 @@ export function parseHeroStats(values: Record<string, string>): HeroStatItem[] {
 export function MediaDropZone({
   value,
   onChange,
+  forWhatsapp = false,
 }: {
   value?: string;
   onChange: (url: string, detectedType?: "imageFill" | "videoFill") => void;
+  forWhatsapp?: boolean;
 }) {
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   async function handleFile(file: File) {
     if (!file) return;
+    if (forWhatsapp) {
+      try {
+        const { compressForWhatsapp } = await import("@/lib/whatsapp-image");
+        file = await compressForWhatsapp(file);
+      } catch (e) {
+        toast.error("Foto no válida para WhatsApp", { description: (e as Error).message });
+        return;
+      }
+    }
     if (file.size > 50 * 1024 * 1024) {
       toast.error("El archivo supera el límite máximo de 50MB");
       return;
@@ -1861,9 +1872,10 @@ function CTAButtonGroup({
                   </span>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Formatos admitidos para WhatsApp: JPG, PNG o WEBP (máx. 1 MB). Los videos y GIFs no generan tarjeta en WhatsApp. Si dejas este campo vacío, el cliente enviará solo texto limpio.
+                  Sube una foto JPG, PNG o WEBP de cualquier tamaño: se reduce sola para que WhatsApp la muestre. Para verla grande en celular usa una foto horizontal. Videos y GIFs no sirven. Si dejas este campo vacío, el cliente enviará solo texto limpio.
                 </p>
                 <MediaDropZone
+                  forWhatsapp
                   value={values[waImageKey] || ""}
                   onChange={(url) => setValues((v) => ({ ...v, [waImageKey]: url }))}
                 />
