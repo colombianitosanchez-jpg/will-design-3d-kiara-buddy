@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getBestAccessibility, getHexLuminance, productButtonToUnified } from "./unifiedButton";
-import { newProductButton, duplicateProductButton } from "./product-buttons";
+import { newProductButton, duplicateProductButton, parseProductButtons, BUTTON_ICON_SHAPES } from "./product-buttons";
+import { getIconShapeStyle } from "@/components/UnifiedButton";
 
 describe("unifiedButton accessibility engine", () => {
   it("calculates luminance correctly for hex colors", () => {
@@ -83,5 +84,69 @@ d2("texto sobre color de marca", () => {
   });
   i2("respeta color del panel aunque haya fondo vivo", () => {
     e2(gba2({ bgImageUrl: "x.mp4", textColor: "#ff0000" }).textColor).toBe("#ff0000");
+  });
+});
+
+describe("getIconShapeStyle geometric shapes catalog", () => {
+  it("contiene las 9 figuras geométricas requeridas", () => {
+    expect(BUTTON_ICON_SHAPES).toEqual([
+      "circle",
+      "square",
+      "rounded",
+      "hexagon",
+      "diamond",
+      "star",
+      "shield",
+      "octagon",
+      "original",
+    ]);
+  });
+
+  it("recorta hexagon con clip-path nítido y object-cover", () => {
+    const res = getIconShapeStyle("hexagon");
+    expect(res.className).toContain("object-cover");
+    expect(res.style?.clipPath).toContain("polygon");
+    expect(res.style?.clipPath).toContain("100% 25%");
+  });
+
+  it("recorta diamond con clip-path nítido y object-cover", () => {
+    const res = getIconShapeStyle("diamond");
+    expect(res.className).toContain("object-cover");
+    expect(res.style?.clipPath).toContain("50% 0%");
+    expect(res.style?.clipPath).toContain("100% 50%");
+  });
+
+  it("recorta star con clip-path nítido y object-cover", () => {
+    const res = getIconShapeStyle("star");
+    expect(res.className).toContain("object-cover");
+    expect(res.style?.clipPath).toContain("98% 35%");
+  });
+
+  it("recorta shield con clip-path nítido y object-cover", () => {
+    const res = getIconShapeStyle("shield");
+    expect(res.className).toContain("object-cover");
+    expect(res.style?.clipPath).toContain("100% 15%");
+  });
+
+  it("recorta octagon con clip-path nítido y object-cover", () => {
+    const res = getIconShapeStyle("octagon");
+    expect(res.className).toContain("object-cover");
+    expect(res.style?.clipPath).toContain("30% 0%");
+  });
+
+  it("aplica clases estándar para square, rounded, circle y original", () => {
+    expect(getIconShapeStyle("circle").className).toBe("rounded-full object-cover");
+    expect(getIconShapeStyle("square").className).toBe("rounded-none object-cover");
+    expect(getIconShapeStyle("rounded").className).toBe("rounded-md object-cover");
+    expect(getIconShapeStyle("original").className).toBe("object-contain");
+  });
+
+  it("parseProductButtons preserva icon_shape geométrico", () => {
+    const parsed = parseProductButtons([
+      { text: "Hex Button", icon_shape: "hexagon" },
+      { text: "Star Button", icon_shape: "star" },
+    ]);
+    expect(parsed[0].icon_shape).toBe("hexagon");
+    expect(parsed[1].icon_shape).toBe("star");
   });
 });

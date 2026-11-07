@@ -19,6 +19,31 @@ export type ButtonAnimationType = (typeof ANIMATION_TYPES)[number];
 export type ButtonMediaMode = "fill" | "icon" | "none";
 export type ButtonIconPosition = "left" | "right" | "none";
 
+export const BUTTON_ICON_SHAPES = [
+  "circle",
+  "square",
+  "rounded",
+  "hexagon",
+  "diamond",
+  "star",
+  "shield",
+  "octagon",
+  "original",
+] as const;
+export type ButtonIconShape = (typeof BUTTON_ICON_SHAPES)[number];
+
+export const ICON_SHAPE_LABELS: Record<ButtonIconShape, string> = {
+  circle: "Circular (Círculo)",
+  square: "Cuadrado",
+  rounded: "Cuadrado redondeado",
+  hexagon: "Hexágono",
+  diamond: "Diamante / Rombo",
+  star: "Estrella",
+  shield: "Escudo",
+  octagon: "Octágono",
+  original: "Silueta original (sin recortar)",
+};
+
 export type ProductButton = {
   id: string;
   text: string;
@@ -58,7 +83,7 @@ export type ProductButton = {
   /** Ajuste del fondo animado dentro del botón */
   media_fit?: "cover" | "contain" | "fill";
   /** Forma del ícono o logo */
-  icon_shape?: "circle" | "rounded" | "original";
+  icon_shape?: ButtonIconShape;
 };
 
 export const VARIANT_LABELS: Record<ButtonVariant, string> = {
@@ -171,6 +196,10 @@ export function parseProductButtons(raw: unknown): ProductButton[] {
       icon_position: (b.icon_position === "left" || b.icon_position === "right" || b.icon_position === "none" ? b.icon_position : "none") as ButtonIconPosition,
       animation_type: pick(b.animation_type || (b.media_type as string), ANIMATION_TYPES, "none"),
       animation_style: typeof b.animation_style === "string" ? b.animation_style : "none",
+      icon_shape: pick(b.icon_shape, BUTTON_ICON_SHAPES, "circle"),
+      opacity: typeof b.opacity === "number" ? b.opacity : undefined,
+      shade: typeof b.shade === "number" ? b.shade : undefined,
+      media_fit: (b.media_fit === "contain" || b.media_fit === "fill" || b.media_fit === "cover" ? b.media_fit : "cover") as "cover" | "contain" | "fill",
     }))
     .filter((b) => !!b.text);
 }
