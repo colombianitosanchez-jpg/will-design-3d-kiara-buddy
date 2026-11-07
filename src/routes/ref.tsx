@@ -6,8 +6,8 @@ import { useSiteContent } from "@/hooks/use-site-content";
 const refSearchSchema = z.object({
   k: z.string().optional().default(""),
   img: z.string().optional().default(""),
-  title: z.string().optional().default("Referencia de Cotización - Will Design 3D"),
-  desc: z.string().optional().default("Pieza de impresión 3D para cotización"),
+  title: z.string().optional().default("Will Design 3D"),
+  desc: z.string().optional().default(""),
 });
 
 export const Route = createFileRoute("/ref")({
@@ -33,27 +33,36 @@ export const Route = createFileRoute("/ref")({
     }
     return {
       img,
-      title: deps.title || "Referencia de Cotización - Will Design 3D",
-      desc: deps.desc || "Pieza de impresión 3D para cotización",
+      title: deps.title || "Will Design 3D",
+      desc: deps.desc || "",
     };
   },
   head: ({ loaderData }: any) => {
-    const title = loaderData?.title || "Referencia de Cotización - Will Design 3D";
-    const desc = loaderData?.desc || "Pieza de impresión 3D para cotización";
+    const title = loaderData?.title || "Will Design 3D";
+    const desc = loaderData?.desc?.trim() || "";
     const img = loaderData?.img || "";
 
     const metaTags: Array<Record<string, string>> = [
       { title },
-      { name: "description", content: desc },
       { property: "og:title", content: title },
-      { property: "og:description", content: desc },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ];
 
+    if (desc) {
+      metaTags.push(
+        { name: "description", content: desc },
+        { property: "og:description", content: desc }
+      );
+    }
+
     if (img) {
       metaTags.push(
         { property: "og:image", content: img },
+        { property: "og:image:width", content: "1200" },
+        { property: "og:image:height", content: "630" },
+        { property: "og:image:alt", content: title },
+        { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:image", content: img }
       );
     }
@@ -91,15 +100,14 @@ function RefPreviewPage() {
               </div>
             )}
           </Link>
-          <span className="chip-teal text-xs">Referencia de Cotización</span>
           <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
             {title}
           </h1>
-          {desc && (
+          {desc?.trim() ? (
             <p className="text-sm text-muted-foreground max-w-lg mx-auto">
-              {desc}
+              {desc.trim()}
             </p>
-          )}
+          ) : null}
         </div>
 
         {/* Contenedor de la Imagen */}
