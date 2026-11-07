@@ -35,6 +35,11 @@ import { useSiteContent } from "@/hooks/use-site-content";
 import { getActiveTheme } from "@/lib/theme";
 import { getWhatsAppPayloadForButton } from "@/lib/whatsapp-buttons";
 import { UnifiedButton } from "@/components/UnifiedButton";
+import {
+  type ButtonIconShape,
+  BUTTON_ICON_SHAPES,
+  ICON_SHAPE_LABELS,
+} from "@/lib/product-buttons";
 import { Lottie } from "lottie-react";
 import { motion } from "framer-motion";
 import {
@@ -1403,7 +1408,7 @@ function CTAButtonGroup({
   const shadeRaw = values[`${prefix}shade`] ?? "";
   const shadeNum = shadeRaw === "" || isNaN(Number(shadeRaw)) ? undefined : Math.max(0, Math.min(100, Number(shadeRaw)));
   const mediaFit = (values[`${prefix}media_fit`] as "cover" | "contain" | "fill") || "cover";
-  const iconShape = (values[`${prefix}icon_shape`] as "circle" | "rounded" | "original") || "circle";
+  const iconShape = (values[`${prefix}icon_shape`] as ButtonIconShape) || "circle";
 
   const globalDefaultMsg = values["whatsapp_default_message"] || "";
 
@@ -1747,9 +1752,11 @@ function CTAButtonGroup({
                   <Select value={iconShape} onValueChange={(val) => setValues((v) => ({ ...v, [`${prefix}icon_shape`]: val }))}>
                     <SelectTrigger className="mt-1 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="circle">Circular</SelectItem>
-                      <SelectItem value="rounded">Cuadrado redondeado</SelectItem>
-                      <SelectItem value="original">Silueta original (sin recortar)</SelectItem>
+                      {BUTTON_ICON_SHAPES.map((shape) => (
+                        <SelectItem key={shape} value={shape}>
+                          {ICON_SHAPE_LABELS[shape]}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

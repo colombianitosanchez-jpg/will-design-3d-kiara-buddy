@@ -25,6 +25,7 @@ import { parseHeroStats, type HeroStatItem } from "@/routes/panel.contenido";
 import { getActiveTheme } from "@/lib/theme";
 import { getWhatsAppPayloadForButton } from "@/lib/whatsapp-buttons";
 import { getSeo } from "@/lib/seo";
+import type { ButtonIconShape } from "@/lib/product-buttons";
 import { motion } from "framer-motion";
 
 function LottiePlayer({ url, className }: { url: string; className?: string }) {
@@ -164,7 +165,7 @@ function Hero() {
   const heroCtaShadeStr = getText("hero_cta_shade", "");
   const heroCtaShade = heroCtaShadeStr === "" || isNaN(Number(heroCtaShadeStr)) ? undefined : Number(heroCtaShadeStr);
   const heroCtaFit = (getText("hero_cta_media_fit", "cover") || "cover") as "cover" | "contain" | "fill";
-  const heroCtaIconShape = (getText("hero_cta_icon_shape", "circle") || "circle") as "circle" | "rounded" | "original";
+  const heroCtaIconShape = (getText("hero_cta_icon_shape", "circle") || "circle") as ButtonIconShape;
   const heroCtaWidth = (getText("hero_cta_width", "auto") as "auto" | "full") || "auto";
 
   const heroSecCtaText = getText("hero_secondary_cta_text", "");
@@ -184,7 +185,7 @@ function Hero() {
   const heroSecCtaShadeStr = getText("hero_secondary_cta_shade", "");
   const heroSecCtaShade = heroSecCtaShadeStr === "" || isNaN(Number(heroSecCtaShadeStr)) ? undefined : Number(heroSecCtaShadeStr);
   const heroSecCtaFit = (getText("hero_secondary_cta_media_fit", "cover") || "cover") as "cover" | "contain" | "fill";
-  const heroSecCtaIconShape = (getText("hero_secondary_cta_icon_shape", "circle") || "circle") as "circle" | "rounded" | "original";
+  const heroSecCtaIconShape = (getText("hero_secondary_cta_icon_shape", "circle") || "circle") as ButtonIconShape;
   const heroSecCtaWidth = (getText("hero_secondary_cta_width", "auto") as "auto" | "full") || "auto";
 
   function handleButtonClick(
