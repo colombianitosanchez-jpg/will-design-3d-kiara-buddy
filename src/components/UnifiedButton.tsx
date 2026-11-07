@@ -9,6 +9,7 @@ import { openExternalUrl } from "@/lib/whatsapp";
 import { cartLineKey } from "@/lib/payment-rules";
 import {
   buildButtonWhatsappText,
+  ICON_SHAPE_CLIP_PATHS,
   type ProductButton,
   type ButtonIconShape,
 } from "@/lib/product-buttons";
@@ -27,45 +28,21 @@ export function getIconShapeStyle(shape?: ButtonIconShape): { className: string;
     case "original":
       return { className: "object-contain" };
     case "hexagon":
-      return {
-        className: "object-cover",
-        style: {
-          clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)",
-          WebkitClipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)",
-        },
-      };
     case "diamond":
-      return {
-        className: "object-cover",
-        style: {
-          clipPath: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)",
-          WebkitClipPath: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)",
-        },
-      };
     case "star":
-      return {
-        className: "object-cover",
-        style: {
-          clipPath: "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)",
-          WebkitClipPath: "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)",
-        },
-      };
     case "shield":
+    case "octagon": {
+      const clip = ICON_SHAPE_CLIP_PATHS[shape];
       return {
         className: "object-cover",
-        style: {
-          clipPath: "polygon(50% 0%, 100% 15%, 100% 60%, 50% 100%, 0% 60%, 0% 15%)",
-          WebkitClipPath: "polygon(50% 0%, 100% 15%, 100% 60%, 50% 100%, 0% 60%, 0% 15%)",
-        },
+        style: clip
+          ? {
+              clipPath: clip,
+              WebkitClipPath: clip,
+            }
+          : undefined,
       };
-    case "octagon":
-      return {
-        className: "object-cover",
-        style: {
-          clipPath: "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)",
-          WebkitClipPath: "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)",
-        },
-      };
+    }
     case "circle":
     default:
       return { className: "rounded-full object-cover" };
