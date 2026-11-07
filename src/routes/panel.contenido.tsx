@@ -66,6 +66,17 @@ export const Route = createFileRoute("/panel/contenido")({
   component: ContenidoAdmin,
 });
 
+export const SITE_INTERNAL_PAGES = [
+  { label: "📐 Cotizador 3D Interactivo", path: "/cotizador" },
+  { label: "🛍️ Tienda y Catálogo de Productos", path: "/tienda" },
+  { label: "⚙️ Servicios de Impresión y Diseño", path: "/servicios" },
+  { label: "🖼️ Portafolio y Galería de Trabajos", path: "/galeria" },
+  { label: "👥 Sobre Nosotros (Historia y Equipo)", path: "/nosotros" },
+  { label: "📞 Contacto Directo", path: "/contacto" },
+  { label: "🛒 Carrito de Compras", path: "/carrito" },
+  { label: "🏠 Página de Inicio", path: "/" },
+] as const;
+
 function shortMediaName(url?: string): string {
   if (!url) return "logo Will (/logo.png)";
   if (url.startsWith("/")) return url;
@@ -1791,40 +1802,94 @@ function CTAButtonGroup({
           <div className="sm:col-span-2">
             <Label className="text-xs font-semibold">¿Qué acción debe ejecutar este botón?</Label>
             <Select
-              value={actionType}
-              onValueChange={(val) => setValues((v) => ({ ...v, [actionTypeKey]: val }))}
+              value={(() => {
+                if (actionType === "whatsapp") return "whatsapp";
+                const currentUrl = values[urlKey] ?? "";
+                if (actionType === "cotizador" || currentUrl === "/cotizador") return "/cotizador";
+                const matchedInternal = SITE_INTERNAL_PAGES.find((p) => p.path === currentUrl);
+                if (matchedInternal) return matchedInternal.path;
+                return "custom_link";
+              })()}
+              onValueChange={(val) => {
+                if (val === "whatsapp") {
+                  setValues((v) => ({
+                    ...v,
+                    [actionTypeKey]: "whatsapp",
+                  }));
+                } else if (val === "custom_link") {
+                  setValues((v) => {
+                    const currentUrl = v[urlKey] ?? "";
+                    const isKnownInternal = SITE_INTERNAL_PAGES.some((p) => p.path === currentUrl);
+                    return {
+                      ...v,
+                      [actionTypeKey]: "link",
+                      [urlKey]: isKnownInternal ? "" : currentUrl,
+                    };
+                  });
+                } else {
+                  // Es una de las páginas internas de SITE_INTERNAL_PAGES
+                  setValues((v) => ({
+                    ...v,
+                    [actionTypeKey]: val === "/cotizador" ? "cotizador" : "link",
+                    [urlKey]: val,
+                  }));
+                }
+              }}
             >
               <SelectTrigger className="mt-1 text-xs">
-                <SelectValue />
+                <SelectValue placeholder="Selecciona una acción o página de destino" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="link">Abrir Enlace Personalizado o Ruta Interna (/tienda, /servicios, https://...)</SelectItem>
-                <SelectItem value="whatsapp">Abrir Chat de WhatsApp con Mensaje Personalizado</SelectItem>
-                <SelectItem value="cotizador">Abrir Cotizador Interactivo (/cotizador)</SelectItem>
+                <div className="px-2 py-1 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Páginas Oficiales del Sitio
+                </div>
+                {SITE_INTERNAL_PAGES.map((page) => (
+                  <SelectItem key={page.path} value={page.path}>
+                    {page.label} ({page.path})
+                  </SelectItem>
+                ))}
+                <div className="px-2 py-1 mt-1 text-[11px] font-bold text-muted-foreground uppercase tracking-wider border-t border-border/50">
+                  Otras Acciones
+                </div>
+                <SelectItem value="whatsapp">💬 Abrir Chat de WhatsApp con Mensaje Personalizado</SelectItem>
+                <SelectItem value="custom_link">🔗 Enlace Personalizado o URL Externa (https://...)</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {actionType === "link" && (
-            <div className="sm:col-span-2">
-              <Label className="text-xs font-semibold">Enlace o Ruta de Destino</Label>
-              <Input
-                value={values[urlKey] ?? ""}
-                onChange={(e) => setValues((v) => ({ ...v, [urlKey]: e.target.value }))}
-                placeholder="Ej: /tienda, /servicios, o https://..."
-                className="mt-1 text-xs"
-              />
-              <p className="text-[11px] text-muted-foreground mt-1">
-                Usa una ruta interna que empiece por <code className="text-xs font-mono">/</code> o una URL externa completa con <code className="text-xs font-mono">https://</code>.
-              </p>
-            </div>
-          )}
+          {actionType !== "whatsapp" && (() => {
+            const currentUrl = values[urlKey] ?? "";
+            const matchedPage = SITE_INTERNAL_PAGES.find(
+              (p) => p.path === currentUrl || (actionType === "cotizador" && p.path === "/cotizador")
+            );
 
-          {actionType === "cotizador" && (
-            <div className="sm:col-span-2 rounded-lg bg-background/50 border border-border/60 p-3 text-xs text-muted-foreground">
-              Este botón redirige a los clientes directamente a la experiencia interactiva del Cotizador 3D en <code className="font-mono text-primary font-bold">/cotizador</code>.
-            </div>
-          )}
+            if (matchedPage) {
+              return (
+                <div className="sm:col-span-2 rounded-lg bg-background/50 border border-border/60 p-3 text-xs text-muted-foreground flex items-center justify-between gap-2">
+                  <div>
+                    <span>Redirección interna configurada a: </span>
+                    <span className="font-semibold text-foreground">{matchedPage.label}</span>{" "}
+                    <code className="font-mono text-primary font-bold">({matchedPage.path})</code>
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <div className="sm:col-span-2">
+                <Label className="text-xs font-semibold">Enlace o URL de Destino Personalizada</Label>
+                <Input
+                  value={values[urlKey] ?? ""}
+                  onChange={(e) => setValues((v) => ({ ...v, [urlKey]: e.target.value, [actionTypeKey]: "link" }))}
+                  placeholder="Ej: https://instagram.com/willdesign3d o /promociones"
+                  className="mt-1 text-xs"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Ingresa una URL externa completa con <code className="text-xs font-mono">https://</code> o una ruta interna personalizada.
+                </p>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Sub-configuración condicional de WhatsApp */}
