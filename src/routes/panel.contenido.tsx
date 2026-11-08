@@ -774,7 +774,7 @@ function SortableHeroStatCard({
                 className={`relative z-10 flex items-center justify-center gap-1.5 font-black text-sm ${
                   isFillMedia ? "drop-shadow-md" : ""
                 }`}
-                style={{ color: previewText }}
+                style={{ color: textColor || previewText }}
               >
                 {iconPos === "left" && iconMedia}
                 <span>{item.k || "50×50"}</span>
@@ -786,7 +786,7 @@ function SortableHeroStatCard({
                 className={`relative z-10 text-[10px] truncate max-w-[120px] ${
                   isFillMedia ? "drop-shadow-xs" : ""
                 }`}
-                style={{ color: previewText, opacity: 0.85 }}
+                style={{ color: textColor || previewText, opacity: 0.85 }}
               >
                 {item.v || "cm mínimo"}
               </div>
@@ -872,13 +872,31 @@ function SortableHeroStatCard({
               <input
                 type="color"
                 value={customHex && /^#[0-9A-Fa-f]{6}$/.test(customHex) ? customHex : "#f97316"}
-                onChange={(e) => onUpdate({ custom_hex: e.target.value, color_id: "custom", type: "solid" })}
+                onChange={(e) =>
+                  onUpdate({
+                    custom_hex: e.target.value,
+                    color_id: "custom",
+                    type: "solid",
+                    animation_style: "none",
+                    gradientFrom: undefined,
+                    gradientTo: undefined,
+                  })
+                }
                 className="h-8 w-8 cursor-pointer rounded-lg border border-border bg-transparent p-0.5 shrink-0"
                 title="Elegir color de fondo"
               />
               <Input
                 value={customHex}
-                onChange={(e) => onUpdate({ custom_hex: e.target.value, color_id: "custom", type: "solid" })}
+                onChange={(e) =>
+                  onUpdate({
+                    custom_hex: e.target.value,
+                    color_id: "custom",
+                    type: "solid",
+                    animation_style: "none",
+                    gradientFrom: undefined,
+                    gradientTo: undefined,
+                  })
+                }
                 placeholder="Ej: #f97316 (vacío = paleta del tema)"
                 className="text-xs font-mono uppercase"
               />
@@ -891,7 +909,16 @@ function SortableHeroStatCard({
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => onUpdate({ custom_hex: p.hex, color_id: p.id, type: "solid" })}
+                    onClick={() =>
+                      onUpdate({
+                        custom_hex: p.hex,
+                        color_id: p.id,
+                        type: "solid",
+                        animation_style: "none",
+                        gradientFrom: undefined,
+                        gradientTo: undefined,
+                      })
+                    }
                     className="h-5 px-1.5 rounded text-[10px] font-bold border border-border flex items-center gap-1 hover:opacity-80 transition"
                     style={{ backgroundColor: `${p.hex}25`, color: p.hex }}
                     title={p.name}

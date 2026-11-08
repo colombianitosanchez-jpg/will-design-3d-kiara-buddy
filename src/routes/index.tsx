@@ -517,7 +517,7 @@ function Hero() {
                       className={`relative z-10 text-xl font-black flex items-center justify-center gap-1.5 ${
                         hasFillMedia ? "drop-shadow-md" : ""
                       }`}
-                      style={{ color: textCol || "var(--brand-wine)" }}
+                      style={{ color: s.text_color ? s.text_color : (textCol || "var(--brand-wine)") }}
                     >
                       {iconPos === "left" && iconMedia}
                       {s.k}
@@ -526,8 +526,14 @@ function Hero() {
                     <dd
                       className={`relative z-10 text-[11px] mt-0.5 ${
                         hasFillMedia ? "drop-shadow-xs font-medium" : ""
-                      } ${!textCol ? "text-muted-foreground" : ""}`}
-                      style={textCol ? { color: textCol, opacity: 0.85 } : undefined}
+                      } ${!textCol && !s.text_color ? "text-muted-foreground" : ""}`}
+                      style={
+                        s.text_color
+                          ? { color: s.text_color, opacity: 0.85 }
+                          : textCol
+                          ? { color: textCol, opacity: 0.85 }
+                          : undefined
+                      }
                     >
                       {s.v}
                     </dd>

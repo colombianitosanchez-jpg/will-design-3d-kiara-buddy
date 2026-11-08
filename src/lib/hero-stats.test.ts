@@ -25,4 +25,37 @@ describe("estadísticas del hero", () => {
     );
     expect(p.formattedText).toBe("Me interesa PLA\n\nhttps://will-design-3d.lovable.app/ref?k=stat_123");
   });
+
+  test("parseHeroStats normaliza animation_style cuando type es solid o tiene custom_hex", () => {
+    const rawData = {
+      hero_stats: JSON.stringify([
+        {
+          id: "stat_1",
+          k: "50×50",
+          v: "cm",
+          custom_hex: "#15F95A",
+          text_color: "#1E2BDC",
+          type: "solid",
+          animation_style: "shimmer",
+        },
+        {
+          id: "stat_2",
+          k: "1.8 m",
+          v: "pieza",
+          type: "imageFill",
+          media_url: "https://example.com/video.mp4",
+          animation_style: "shimmer",
+        },
+      ]),
+    };
+
+    const stats = import("./hero-stats").then((m) => {
+      const parsed = m.parseHeroStats(rawData);
+      expect(parsed[0].animation_style).toBe("none");
+      expect(parsed[0].custom_hex).toBe("#15F95A");
+      expect(parsed[0].text_color).toBe("#1E2BDC");
+      expect(parsed[1].animation_style).toBe("shimmer");
+    });
+    return stats;
+  });
 });
