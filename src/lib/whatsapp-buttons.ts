@@ -152,8 +152,8 @@ export function getWhatsAppPayloadForButton(
   // como `${origin}/ref?k=${encodeURIComponent(shortKey)}` si existe imageKey y whatsapp_image_url.
   // Si no hay imageKey pero hay imagen de almacenamiento, usar el endpoint corto /ref?img=...;
   // jamás exponer tokens de Supabase ni URLs crudas.
-  const shortKey = imageKey ? WHATSAPP_REF_ALIASES[imageKey] || imageKey : "";
-  const shareableMediaUrl = shortKey
+  const shortKey = WHATSAPP_REF_ALIASES[imageKey] || imageKey;
+  const shareableMediaUrl = imageKey
     ? `${origin}/ref?k=${encodeURIComponent(shortKey)}`
     : isStorageMedia
       ? `${origin}/ref?img=${encodeURIComponent(mediaToSend)}`
