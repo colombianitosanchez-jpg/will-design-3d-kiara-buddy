@@ -4,6 +4,8 @@ import {
   replaceTemplatePlaceholders,
   toAbsoluteUrl,
   isStorageMediaUrl,
+  WHATSAPP_REF_ALIASES,
+  REVERSE_REF_ALIASES,
 } from "./whatsapp-buttons";
 import { waLink } from "./catalog";
 
@@ -188,8 +190,8 @@ describe("replaceTemplatePlaceholders and toAbsoluteUrl", () => {
   });
 });
 
-describe("enlace corto /ref?k=", () => {
-  test("usa la clave de la imagen en vez del enlace largo de almacenamiento", () => {
+describe("enlace corto /ref?k= con alias ultra cortos", () => {
+  test("hero_cta_whatsapp_image_url genera alias corto /ref?k=hero", () => {
     const p = getWhatsAppPayloadForButton(
       {
         whatsapp_message: "Hola Will, me interesa cotizar esta pieza:",
@@ -200,11 +202,11 @@ describe("enlace corto /ref?k=", () => {
       "/logo.png"
     );
     expect(p.formattedText).toBe(
-      "Hola Will, me interesa cotizar esta pieza:\n\nhttps://will-design-3d.lovable.app/ref?k=hero_cta_whatsapp_image_url"
+      "Hola Will, me interesa cotizar esta pieza:\n\nhttps://will-design-3d.lovable.app/ref?k=hero"
     );
   });
 
-  test("hero_secondary_cta_whatsapp_image_url genera /ref?k=hero_secondary_cta_whatsapp_image_url", () => {
+  test("hero_secondary_cta_whatsapp_image_url genera alias corto /ref?k=hero2", () => {
     const p = getWhatsAppPayloadForButton(
       {
         whatsapp_message: "Hola Will, quisiera ver la tienda",
@@ -215,8 +217,92 @@ describe("enlace corto /ref?k=", () => {
       "/logo.png"
     );
     expect(p.formattedText).toBe(
-      "Hola Will, quisiera ver la tienda\n\nhttps://will-design-3d.lovable.app/ref?k=hero_secondary_cta_whatsapp_image_url"
+      "Hola Will, quisiera ver la tienda\n\nhttps://will-design-3d.lovable.app/ref?k=hero2"
     );
+  });
+
+  test("nosotros / about_cta_whatsapp_image_url genera alias /ref?k=nosotros", () => {
+    const p = getWhatsAppPayloadForButton(
+      {
+        whatsapp_message: "Nosotros:",
+        whatsapp_image_url: "https://x.supabase.co/storage/v1/object/about.jpg",
+        whatsapp_image_key: "about_cta_whatsapp_image_url",
+      },
+      "",
+      "/logo.png"
+    );
+    expect(p.formattedText).toBe(
+      "Nosotros:\n\nhttps://will-design-3d.lovable.app/ref?k=nosotros"
+    );
+  });
+
+  test("mision y vision generan alias /ref?k=mision y /ref?k=vision", () => {
+    const pMision = getWhatsAppPayloadForButton(
+      {
+        whatsapp_message: "Mision:",
+        whatsapp_image_url: "https://x.supabase.co/storage/v1/object/mision.jpg",
+        whatsapp_image_key: "about_mission_cta_whatsapp_image_url",
+      },
+      "",
+      "/logo.png"
+    );
+    expect(pMision.formattedText).toBe(
+      "Mision:\n\nhttps://will-design-3d.lovable.app/ref?k=mision"
+    );
+
+    const pVision = getWhatsAppPayloadForButton(
+      {
+        whatsapp_message: "Vision:",
+        whatsapp_image_url: "https://x.supabase.co/storage/v1/object/vision.jpg",
+        whatsapp_image_key: "about_vision_cta_whatsapp_image_url",
+      },
+      "",
+      "/logo.png"
+    );
+    expect(pVision.formattedText).toBe(
+      "Vision:\n\nhttps://will-design-3d.lovable.app/ref?k=vision"
+    );
+  });
+
+  test("site_logo_url genera alias /ref?k=logo", () => {
+    const p = getWhatsAppPayloadForButton(
+      {
+        whatsapp_message: "Logo:",
+        whatsapp_image_url: "https://x.supabase.co/storage/v1/object/logo.png",
+        whatsapp_image_key: "site_logo_url",
+      },
+      "",
+      "/logo.png"
+    );
+    expect(p.formattedText).toBe(
+      "Logo:\n\nhttps://will-design-3d.lovable.app/ref?k=logo"
+    );
+  });
+
+  test("clave no mapeada mantiene la clave original como fallback", () => {
+    const p = getWhatsAppPayloadForButton(
+      {
+        whatsapp_message: "Custom key:",
+        whatsapp_image_url: "https://x.supabase.co/storage/v1/object/other.jpg",
+        whatsapp_image_key: "custom_unmapped_image_url",
+      },
+      "",
+      "/logo.png"
+    );
+    expect(p.formattedText).toBe(
+      "Custom key:\n\nhttps://will-design-3d.lovable.app/ref?k=custom_unmapped_image_url"
+    );
+  });
+
+  test("REVERSE_REF_ALIASES mapea correctamente alias directos y alternativos", () => {
+    expect(REVERSE_REF_ALIASES["hero"]).toBe("hero_cta_whatsapp_image_url");
+    expect(REVERSE_REF_ALIASES["h1"]).toBe("hero_cta_whatsapp_image_url");
+    expect(REVERSE_REF_ALIASES["hero2"]).toBe("hero_secondary_cta_whatsapp_image_url");
+    expect(REVERSE_REF_ALIASES["h2"]).toBe("hero_secondary_cta_whatsapp_image_url");
+    expect(REVERSE_REF_ALIASES["nosotros"]).toBe("nosotros_whatsapp_image_url");
+    expect(REVERSE_REF_ALIASES["mision"]).toBe("mision_whatsapp_image_url");
+    expect(REVERSE_REF_ALIASES["vision"]).toBe("vision_whatsapp_image_url");
+    expect(REVERSE_REF_ALIASES["logo"]).toBe("site_logo_url");
   });
 });
 

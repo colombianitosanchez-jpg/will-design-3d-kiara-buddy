@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { z } from "zod";
 import { ArrowRight, Calculator, ExternalLink, Image as ImageIcon, Box } from "lucide-react";
 import { useSiteContent } from "@/hooks/use-site-content";
+import { REVERSE_REF_ALIASES } from "@/lib/whatsapp-buttons";
 
 const refSearchSchema = z.object({
   k: z.string().optional().default(""),
@@ -20,16 +21,32 @@ export const Route = createFileRoute("/ref")({
   }),
   loader: async ({ deps }) => {
     let img = deps.img || "";
-    // Enlace corto: la imagen se busca en el contenido del sitio por su clave.
-    const key = deps.k === "logo" ? "site_logo_url" : deps.k;
+    // Enlace corto: la imagen se busca en el contenido del sitio por su clave o alias.
+    const rawKey = deps.k?.trim() || "";
+    const key = REVERSE_REF_ALIASES[rawKey] || rawKey;
+
     if (key && (key === "site_logo_url" || /^[a-z0-9_]+_image_url$/i.test(key))) {
       const { supabase } = await import("@/integrations/supabase/client");
-      const { data } = await supabase
-        .from("site_content")
-        .select("value")
-        .eq("key", key)
-        .maybeSingle();
-      if (data?.value) img = String(data.value);
+      // Posibles claves equivalentes en site_content para garantizar retrocompatibilidad
+      const candidateKeys = [key];
+      if (key === "nosotros_whatsapp_image_url") candidateKeys.push("about_cta_whatsapp_image_url");
+      if (key === "about_cta_whatsapp_image_url") candidateKeys.push("nosotros_whatsapp_image_url");
+      if (key === "mision_whatsapp_image_url") candidateKeys.push("about_mission_cta_whatsapp_image_url");
+      if (key === "about_mission_cta_whatsapp_image_url") candidateKeys.push("mision_whatsapp_image_url");
+      if (key === "vision_whatsapp_image_url") candidateKeys.push("about_vision_cta_whatsapp_image_url");
+      if (key === "about_vision_cta_whatsapp_image_url") candidateKeys.push("vision_whatsapp_image_url");
+
+      for (const candidate of candidateKeys) {
+        const { data } = await supabase
+          .from("site_content")
+          .select("value")
+          .eq("key", candidate)
+          .maybeSingle();
+        if (data?.value) {
+          img = String(data.value);
+          break;
+        }
+      }
     }
     return {
       img,
