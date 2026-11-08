@@ -33,6 +33,21 @@ export type HeroStatItem = {
   rounded?: "rounded-xl" | "rounded-2xl" | "rounded-3xl" | "rounded-full";
 };
 
+/** Texto legible automático sobre un fondo: negro en fondos claros, blanco en oscuros o no HEX. */
+export function contrastText(bg: string): string {
+  const m = /^#([0-9a-f]{6})$/i.exec((bg || "").trim());
+  if (!m) return "#ffffff";
+  const n = parseInt(m[1], 16);
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return lum > 0.6 ? "#111111" : "#ffffff";
+}
+
+/** Colores rápidos de la paleta aptos para tarjetas/botones (sin el fondo de página). */
+export function accentPalette<T extends { id: string }>(palette: T[]): T[] {
+  return palette.filter((p) => p.id !== "background");
+}
+
 export function parseHeroStats(values: Record<string, string>): HeroStatItem[] {
   if (values.hero_stats) {
     try {

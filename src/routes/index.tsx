@@ -21,7 +21,7 @@ import { ProductMedia } from "@/components/ProductMedia";
 import { parseHomeOrder, type HomeSectionKey } from "@/lib/home-sections";
 import { siteServicesQuery } from "./servicios";
 import { menuItemsQuery } from "@/lib/menu";
-import { parseHeroStats, type HeroStatItem } from "@/lib/hero-stats";
+import { parseHeroStats, contrastText, type HeroStatItem } from "@/lib/hero-stats";
 import { getActiveTheme } from "@/lib/theme";
 import { getWhatsAppPayloadForButton } from "@/lib/whatsapp-buttons";
 import { getSeo } from "@/lib/seo";
@@ -419,7 +419,7 @@ function Hero() {
                 const hasFillMedia = mediaMode === "fill" && Boolean(bgUrl);
                 const mediaFitClass = s.media_fit === "contain" ? "object-contain" : s.media_fit === "fill" ? "object-fill" : "object-cover";
                 const roundedClass = s.rounded || "rounded-2xl";
-                const effectiveShade = s.shade !== undefined ? s.shade : (s.overlayOpacity !== undefined ? s.overlayOpacity : (hasFillMedia ? 45 : 0));
+                const effectiveShade = s.shade !== undefined ? s.shade : (hasFillMedia ? 45 : 0);
                 const overlayOp = effectiveShade / 100;
 
                 const iconPos = s.icon_position || s.iconPosition || "none";
