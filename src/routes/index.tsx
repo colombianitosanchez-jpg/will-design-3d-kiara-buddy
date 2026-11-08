@@ -428,19 +428,15 @@ function Hero() {
                 const isIconLottie = /\.json($|\?)/i.test(iconUrl);
                 const iconShapeConfig = getIconShapeStyle(s.icon_shape || "circle");
 
-                let containerStyle: React.CSSProperties = {};
-                if (s.type === "gradient") {
-                  containerStyle.background = `linear-gradient(${
-                    s.gradientAngle ?? 135
-                  }deg, ${s.gradientFrom || "#f97316"}, ${
-                    s.gradientTo || "#db2777"
-                  })`;
-                } else if (!hasFillMedia) {
-                  if (statColor) {
-                    containerStyle.borderColor = `${statColor}40`;
-                    containerStyle.backgroundColor = `${statColor}15`;
-                  }
+                // Fondo: color sólido elegido (también respaldo bajo el fondo vivo). Sin degradados heredados.
+                const containerStyle: React.CSSProperties = {};
+                if (statColor) {
+                  containerStyle.backgroundColor = statColor;
+                  containerStyle.borderColor = statColor;
                 }
+                // Texto: color propio; si está vacío, contraste automático según el fondo.
+                const autoText = hasFillMedia ? "#ffffff" : statColor ? contrastText(statColor) : undefined;
+                const textCol = s.text_color || autoText;
 
                 const iconMedia = iconUrl && iconPos !== "none" && (
                   <span
@@ -510,7 +506,7 @@ function Hero() {
                     )}
 
                     {/* Overlay Oscuro para Legibilidad WCAG AA */}
-                    {(hasFillMedia || s.type === "gradient" || overlayOp > 0) && (
+                    {overlayOp > 0 && (
                       <div
                         className="absolute inset-0 bg-black -z-10"
                         style={{ opacity: overlayOp }}
@@ -519,15 +515,9 @@ function Hero() {
 
                     <dt
                       className={`relative z-10 text-xl font-black flex items-center justify-center gap-1.5 ${
-                        !s.text_color && hasFillMedia ? "text-white drop-shadow-md" : ""
+                        hasFillMedia ? "drop-shadow-md" : ""
                       }`}
-                      style={
-                        s.text_color
-                          ? { color: s.text_color }
-                          : !hasFillMedia
-                          ? { color: statColor || "var(--brand-wine)" }
-                          : undefined
-                      }
+                      style={{ color: textCol || "var(--brand-wine)" }}
                     >
                       {iconPos === "left" && iconMedia}
                       {s.k}
@@ -535,13 +525,9 @@ function Hero() {
                     </dt>
                     <dd
                       className={`relative z-10 text-[11px] mt-0.5 ${
-                        !s.text_color && hasFillMedia
-                          ? "text-white/90 drop-shadow-xs font-medium"
-                          : !s.text_color
-                          ? "text-muted-foreground"
-                          : ""
-                      }`}
-                      style={s.text_color ? { color: s.text_color, opacity: 0.85 } : undefined}
+                        hasFillMedia ? "drop-shadow-xs font-medium" : ""
+                      } ${!textCol ? "text-muted-foreground" : ""}`}
+                      style={textCol ? { color: textCol, opacity: 0.85 } : undefined}
                     >
                       {s.v}
                     </dd>
