@@ -4,11 +4,14 @@ import { ArrowRight, Calculator, ExternalLink, Image as ImageIcon, Box } from "l
 import { useSiteContent } from "@/hooks/use-site-content";
 import { REVERSE_REF_ALIASES } from "@/lib/whatsapp-buttons";
 
+// Sin valores por defecto: un default obliga al router a "canonizar" la URL
+// con una redirección 307 que añade &img=&title=...&desc=, y el robot de
+// WhatsApp puede fallar al seguir ese salto. Los opcionales responden 200 directo.
 const refSearchSchema = z.object({
-  k: z.string().optional().default(""),
-  img: z.string().optional().default(""),
-  title: z.string().optional().default("Will Design 3D"),
-  desc: z.string().optional().default(""),
+  k: z.string().optional(),
+  img: z.string().optional(),
+  title: z.string().optional(),
+  desc: z.string().optional(),
 });
 
 export const Route = createFileRoute("/ref")({
