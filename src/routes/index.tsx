@@ -21,7 +21,7 @@ import { ProductMedia } from "@/components/ProductMedia";
 import { parseHomeOrder, type HomeSectionKey } from "@/lib/home-sections";
 import { siteServicesQuery } from "./servicios";
 import { menuItemsQuery } from "@/lib/menu";
-import { parseHeroStats, type HeroStatItem } from "@/routes/panel.contenido";
+import { parseHeroStats, type HeroStatItem } from "@/lib/hero-stats";
 import { getActiveTheme } from "@/lib/theme";
 import { getWhatsAppPayloadForButton } from "@/lib/whatsapp-buttons";
 import { getSeo } from "@/lib/seo";

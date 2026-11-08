@@ -5,7 +5,7 @@ import { siteContentQuery, getContactInfo, waLink, pickWhatsapp } from "@/lib/ca
 import { openExternalUrl } from "@/lib/whatsapp";
 import { getWhatsAppPayloadForButton } from "@/lib/whatsapp-buttons";
 import { useSiteContent } from "@/hooks/use-site-content";
-import { parseHeroStats } from "@/routes/panel.contenido";
+import { parseHeroStats } from "@/lib/hero-stats";
 import { ProductMedia } from "@/components/ProductMedia";
 import { UnifiedButton } from "@/components/UnifiedButton";
 import { getSeo } from "@/lib/seo";

@@ -27,7 +27,7 @@ import { ProductButtons } from "@/components/ProductButtons";
 import { effectiveButtons, variantGallery } from "@/lib/product-variants";
 import { productPageUrl } from "@/lib/product-buttons";
 import { lazy, Suspense } from "react";
-import { file3dWaNote, type Dims3D } from "@/components/FileDropzone3D";
+import { file3dWaNote, type Dims3D } from "@/lib/file3d-types";
 import { getSeo } from "@/lib/seo";
 
 const FileDropzone3D = lazy(() =>
