@@ -43,7 +43,7 @@ const schema = z.object({
 
 /** Guarda una cotización del Cotizador 3D para que el equipo la vea en el Panel → Pedidos. */
 export const createQuoteRequest = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => schema.parse(data))
+  .validator((data: unknown) => schema.parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 

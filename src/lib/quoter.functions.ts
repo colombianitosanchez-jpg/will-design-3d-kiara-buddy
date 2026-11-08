@@ -10,7 +10,7 @@ const schema = z.object({
 
 /** Calcula el precio en el servidor: las variables globales internas nunca llegan al navegador. */
 export const computePublicQuote = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => schema.parse(data))
+  .validator((data: unknown) => schema.parse(data))
   .handler(async ({ data }): Promise<QuoterResult | null> => {
     const { getQuoterServices, getQuotingVars } = await import("@/lib/quoter.server");
     const [services, vars] = await Promise.all([getQuoterServices(), getQuotingVars()]);

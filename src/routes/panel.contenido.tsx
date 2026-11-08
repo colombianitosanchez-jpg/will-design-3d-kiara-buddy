@@ -40,7 +40,6 @@ import {
   BUTTON_ICON_SHAPES,
   ICON_SHAPE_LABELS,
 } from "@/lib/product-buttons";
-import { Lottie } from "lottie-react";
 import { motion } from "framer-motion";
 import {
   DndContext,
@@ -548,25 +547,35 @@ const FIELDS: FieldDef[] = [
 
 function LottiePreview({ url }: { url: string }) {
   const [data, setData] = useState<any>(null);
+  const [LottieComp, setLottieComp] = useState<any>(null);
 
   useEffect(() => {
     if (!url) return;
     let isMounted = true;
-    fetch(url)
-      .then((res) => res.json())
-      .then((json) => {
-        if (isMounted) setData(json);
+    Promise.all([
+      fetch(url).then((res) => res.json()),
+      import("lottie-react").then((m: any) => m.Lottie || m.default),
+    ])
+      .then(([json, Comp]) => {
+        if (isMounted) {
+          setData(json);
+          setLottieComp(() => Comp);
+        }
       })
       .catch(() => {
-        if (isMounted) setData(null);
+        if (isMounted) {
+          setData(null);
+          setLottieComp(null);
+        }
       });
     return () => {
       isMounted = false;
     };
   }, [url]);
 
-  if (!data) return null;
-  return <Lottie src={data} autoplay loop className="h-5 w-5" />;
+  if (!data || !LottieComp) return null;
+  const Component = LottieComp;
+  return <Component animationData={data} loop={true} className="h-5 w-5" />;
 }
 
 function SortableHeroStatCard({

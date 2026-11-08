@@ -25,7 +25,7 @@ const schema = z.object({
 
 /** Crea un pedido público con varios productos (carrito) en las tablas orders / order_items. */
 export const createCartOrder = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => schema.parse(data))
+  .validator((data: unknown) => schema.parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -170,7 +170,7 @@ export const createCartOrder = createServerFn({ method: "POST" })
 
 /** Métodos de pago permitidos por línea del carrito (null = todos los activos). */
 export const cartPaymentRules = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) =>
+  .validator((data: unknown) =>
     z.object({ keys: z.array(z.string().min(1).max(200)).max(40) }).parse(data),
   )
   .handler(async ({ data }) => {

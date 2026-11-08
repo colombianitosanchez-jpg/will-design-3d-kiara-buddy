@@ -26,7 +26,7 @@ async function assertTeam(context: { supabase: unknown; userId: string }) {
 /** Confirma el pago: el pedido queda pagado y pasa automáticamente a empacando. */
 export const confirmPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ order_id: z.string().uuid() }).parse(data))
+  .validator((data: unknown) => z.object({ order_id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     await assertTeam(context as never);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -45,7 +45,7 @@ export const confirmPayment = createServerFn({ method: "POST" })
 /** Rechaza el comprobante y deja una nota visible para el cliente. */
 export const rejectPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) =>
+  .validator((data: unknown) =>
     z
       .object({
         order_id: z.string().uuid(),

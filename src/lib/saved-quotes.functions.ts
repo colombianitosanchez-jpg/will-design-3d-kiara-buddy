@@ -28,7 +28,7 @@ const saveSchema = z.object({ items: z.array(itemSchema).min(1).max(40) });
 
 /** Guarda la cotización y devuelve su id (el enlace público). */
 export const saveQuote = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => saveSchema.parse(data))
+  .validator((data: unknown) => saveSchema.parse(data))
   .handler(async ({ data }) => {
     // La inserción solo ocurre aquí, tras validar cada línea con zod.
     const { supabaseAdmin: sb } = await import("@/integrations/supabase/client.server");
@@ -45,7 +45,7 @@ export const saveQuote = createServerFn({ method: "POST" })
 
 /** Lee una cotización guardada por su id (enlace público). */
 export const getSavedQuote = createServerFn({ method: "GET" })
-  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .validator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data }): Promise<SavedQuote | null> => {
     // La lectura ocurre solo en el servidor y exige el id exacto del enlace:
     // el navegador no puede listar ni recorrer las cotizaciones guardadas.

@@ -23,7 +23,7 @@ const schema = z.object({
  * reglas del cotizador configuradas en el panel.
  */
 export const confirmQuoteOrder = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => schema.parse(data))
+  .validator((data: unknown) => schema.parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { getQuoterServices } = await import("@/lib/quoter.server");
