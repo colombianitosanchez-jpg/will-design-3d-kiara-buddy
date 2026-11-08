@@ -33,7 +33,7 @@ import { parseHomeOrder } from "@/lib/home-sections";
 import { ProductMedia, isVideoUrl } from "@/components/ProductMedia";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { getActiveTheme } from "@/lib/theme";
-import { getWhatsAppPayloadForButton } from "@/lib/whatsapp-buttons";
+import { getWhatsAppPayloadForButton, WHATSAPP_REF_ALIASES } from "@/lib/whatsapp-buttons";
 import { UnifiedButton } from "@/components/UnifiedButton";
 import {
   type ButtonIconShape,
@@ -1956,7 +1956,7 @@ function CTAButtonGroup({
                         Previsualización activa: Se incluirá enlace corto con tu foto
                       </p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Al enviar el mensaje por WhatsApp, se adjuntará el enlace corto Open Graph <code className="text-[10px] font-mono font-bold">/ref?k={waImageKey}</code> para mostrar la tarjeta con la foto.
+                        Al enviar el mensaje por WhatsApp, se adjuntará el enlace corto Open Graph <code className="text-[10px] font-mono font-bold">/ref?k={WHATSAPP_REF_ALIASES[waImageKey] || waImageKey}</code> para mostrar la tarjeta con la foto.
                       </p>
                     </div>
                   </div>

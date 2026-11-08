@@ -8,6 +8,29 @@ export type ButtonWhatsAppConfig = {
 
 export const PUBLIC_SITE_ORIGIN = "https://will-design-3d.lovable.app";
 
+export const WHATSAPP_REF_ALIASES: Record<string, string> = {
+  hero_cta_whatsapp_image_url: "hero",
+  hero_secondary_cta_whatsapp_image_url: "hero2",
+  nosotros_whatsapp_image_url: "nosotros",
+  about_cta_whatsapp_image_url: "nosotros",
+  mision_whatsapp_image_url: "mision",
+  about_mission_cta_whatsapp_image_url: "mision",
+  vision_whatsapp_image_url: "vision",
+  about_vision_cta_whatsapp_image_url: "vision",
+  site_logo_url: "logo",
+};
+
+export const REVERSE_REF_ALIASES: Record<string, string> = {
+  hero: "hero_cta_whatsapp_image_url",
+  h1: "hero_cta_whatsapp_image_url",
+  hero2: "hero_secondary_cta_whatsapp_image_url",
+  h2: "hero_secondary_cta_whatsapp_image_url",
+  nosotros: "nosotros_whatsapp_image_url",
+  mision: "mision_whatsapp_image_url",
+  vision: "vision_whatsapp_image_url",
+  logo: "site_logo_url",
+};
+
 export type WhatsAppPayload = {
   mediaToSend: string;
   mainMedia: string;
@@ -126,11 +149,12 @@ export function getWhatsAppPayloadForButton(
   const isStorageMedia = isStorageMediaUrl(mediaToSend);
 
   // NUNCA caer en la URL larga de storage: shareableMediaUrl debe construirse exclusivamente
-  // como `${origin}/ref?k=${encodeURIComponent(imageKey)}` si existe imageKey y whatsapp_image_url.
+  // como `${origin}/ref?k=${encodeURIComponent(shortKey)}` si existe imageKey y whatsapp_image_url.
   // Si no hay imageKey pero hay imagen de almacenamiento, usar el endpoint corto /ref?img=...;
   // jamás exponer tokens de Supabase ni URLs crudas.
-  const shareableMediaUrl = imageKey
-    ? `${origin}/ref?k=${encodeURIComponent(imageKey)}`
+  const shortKey = imageKey ? WHATSAPP_REF_ALIASES[imageKey] || imageKey : "";
+  const shareableMediaUrl = shortKey
+    ? `${origin}/ref?k=${encodeURIComponent(shortKey)}`
     : isStorageMedia
       ? `${origin}/ref?img=${encodeURIComponent(mediaToSend)}`
       : mediaToSend;
