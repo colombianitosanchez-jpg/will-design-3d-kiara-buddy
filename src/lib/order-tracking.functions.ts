@@ -23,7 +23,7 @@ const tokenSchema = z.object({ token: z.string().uuid() });
 
 /** Devuelve solo datos seguros del pedido a partir del enlace único de seguimiento. */
 export const getOrderByToken = createServerFn({ method: "GET" })
-  .inputValidator((data: unknown) => tokenSchema.parse(data))
+  .validator((data: unknown) => tokenSchema.parse(data))
   .handler(async ({ data }): Promise<TrackedOrder | null> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -79,7 +79,7 @@ export const getOrderByToken = createServerFn({ method: "GET" })
 
 /** El cliente reporta que ya pagó, indicando la referencia del comprobante. */
 export const reportPayment = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) =>
+  .validator((data: unknown) =>
     z
       .object({
         token: z.string().uuid(),

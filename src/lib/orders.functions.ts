@@ -16,7 +16,7 @@ const schema = z.object({
 
 /** Crea una solicitud de pedido pública en las mismas tablas orders / order_items del Panel. */
 export const createOrderRequest = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => schema.parse(data))
+  .validator((data: unknown) => schema.parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 

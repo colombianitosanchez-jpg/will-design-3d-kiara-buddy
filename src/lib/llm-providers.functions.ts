@@ -79,7 +79,7 @@ export const listLlmProviders = createServerFn({ method: "GET" })
 
 export const saveLlmProvider = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => upsertSchema.parse(data))
+  .validator((data: unknown) => upsertSchema.parse(data))
   .handler(async ({ data, context }) => {
     await assertAdmin(context as never);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -114,7 +114,7 @@ export const saveLlmProvider = createServerFn({ method: "POST" })
 
 export const deleteLlmProvider = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .validator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     await assertAdmin(context as never);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -125,7 +125,7 @@ export const deleteLlmProvider = createServerFn({ method: "POST" })
 
 export const setLlmProviderActive = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ id: z.string().uuid(), is_active: z.boolean() }).parse(data))
+  .validator((data: unknown) => z.object({ id: z.string().uuid(), is_active: z.boolean() }).parse(data))
   .handler(async ({ data, context }) => {
     await assertAdmin(context as never);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -139,7 +139,7 @@ export const setLlmProviderActive = createServerFn({ method: "POST" })
 
 export const reorderLlmProviders = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ ids: z.array(z.string().uuid()) }).parse(data))
+  .validator((data: unknown) => z.object({ ids: z.array(z.string().uuid()) }).parse(data))
   .handler(async ({ data, context }) => {
     await assertAdmin(context as never);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -151,7 +151,7 @@ export const reorderLlmProviders = createServerFn({ method: "POST" })
 
 export const testLlmProvider = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .validator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     await assertAdmin(context as never);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

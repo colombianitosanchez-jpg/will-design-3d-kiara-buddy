@@ -153,7 +153,7 @@ export const listAdminPaymentMethods = createServerFn({ method: "GET" })
 /** Crea o actualiza un método de pago (solo Super Admin). */
 export const savePaymentMethod = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => upsertSchema.parse(data))
+  .validator((data: unknown) => upsertSchema.parse(data))
   .handler(async ({ data, context }) => {
     await assertSuperAdmin(context as never);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -196,7 +196,7 @@ export const savePaymentMethod = createServerFn({ method: "POST" })
 
 export const togglePaymentMethod = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) =>
+  .validator((data: unknown) =>
     z.object({ id: z.string().uuid(), is_active: z.boolean() }).parse(data),
   )
   .handler(async ({ data, context }) => {
@@ -212,7 +212,7 @@ export const togglePaymentMethod = createServerFn({ method: "POST" })
 
 export const deletePaymentMethod = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .validator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     await assertSuperAdmin(context as never);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
