@@ -252,7 +252,7 @@ function Hero() {
         {
           whatsapp_message: stat.whatsapp_message,
           whatsapp_image_url: stat.whatsapp_image_url,
-          whatsapp_image_logic: stat.whatsapp_image_logic,
+          whatsapp_image_key: stat.id,
         },
         stat.whatsapp_image_url || stat.media_url || stat.bgImageUrl || image,
         content?.site_logo_url,
