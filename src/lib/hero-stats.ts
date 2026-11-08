@@ -60,6 +60,12 @@ export function parseHeroStats(values: Record<string, string>): HeroStatItem[] {
           const legacyShade = typeof item.shade === "number" ? item.shade : (typeof item.overlayOpacity === "number" ? item.overlayOpacity : undefined);
           const iconPos = item.icon_position || item.iconPosition || "none";
           const mediaMode = item.media_mode || (bgUrl && item.type !== "solid" ? "fill" : (bgUrl ? "fill" : "none"));
+          const resolvedType = item.type || (bgUrl ? (isVid ? "videoFill" : "imageFill") : "solid");
+
+          let animStyle = item.animation_style || "none";
+          if (resolvedType === "solid" || Boolean(item.custom_hex)) {
+            animStyle = animStyle === "shimmer" ? "none" : animStyle;
+          }
 
           return {
             ...item,
@@ -74,7 +80,8 @@ export function parseHeroStats(values: Record<string, string>): HeroStatItem[] {
             media_url: bgUrl,
             bgImageUrl: bgUrl,
             icon_url: iconUrl,
-            type: item.type || (bgUrl ? (isVid ? "videoFill" : "imageFill") : "solid"),
+            type: resolvedType,
+            animation_style: animStyle,
             gradientFrom: item.gradientFrom || "#f97316",
             gradientTo: item.gradientTo || "#db2777",
             gradientAngle: item.gradientAngle ?? 135,
