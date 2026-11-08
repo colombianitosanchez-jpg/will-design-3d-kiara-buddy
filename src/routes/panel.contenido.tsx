@@ -89,7 +89,7 @@ function shortMediaName(url?: string): string {
 }
 
 export { parseHeroStats, type HeroStatItem } from "@/lib/hero-stats";
-import { parseHeroStats, type HeroStatItem } from "@/lib/hero-stats";
+import { parseHeroStats, contrastText, accentPalette, type HeroStatItem } from "@/lib/hero-stats";
 
 export function MediaDropZone({
   value,
@@ -652,15 +652,16 @@ function SortableHeroStatCard({
 
   const isFillMedia = mediaMode === "fill" && Boolean(mediaUrl);
 
-  let previewContainerStyle: React.CSSProperties = {
-    backgroundColor: !isFillMedia ? (effectiveBgColor.startsWith("#") ? `${effectiveBgColor}15` : undefined) : undefined,
-    borderColor: effectiveBgColor.startsWith("#") ? `${effectiveBgColor}40` : "var(--border)",
-  };
+  const previewContainerStyle: React.CSSProperties = resolvedBg
+    ? { backgroundColor: resolvedBg, borderColor: resolvedBg }
+    : { borderColor: "var(--border)" };
+  const previewText = textColor || (isFillMedia ? "#ffffff" : resolvedBg ? contrastText(resolvedBg) : effectiveBgColor);
 
   const payload = getWhatsAppPayloadForButton(
     {
       whatsapp_message: item.whatsapp_message,
       whatsapp_image_url: item.whatsapp_image_url,
+      whatsapp_image_key: item.id,
     },
     mediaUrl || content?.hero_image_url || "",
     content?.site_logo_url,
@@ -771,9 +772,9 @@ function SortableHeroStatCard({
               {/* Texto / Valor Destacado */}
               <div
                 className={`relative z-10 flex items-center justify-center gap-1.5 font-black text-sm ${
-                  !textColor && isFillMedia ? "text-white drop-shadow-md" : ""
+                  isFillMedia ? "drop-shadow-md" : ""
                 }`}
-                style={textColor ? { color: textColor } : !isFillMedia ? { color: effectiveBgColor } : undefined}
+                style={{ color: previewText }}
               >
                 {iconPos === "left" && iconMedia}
                 <span>{item.k || "50×50"}</span>
@@ -783,9 +784,9 @@ function SortableHeroStatCard({
               {/* Descripción Corta */}
               <div
                 className={`relative z-10 text-[10px] truncate max-w-[120px] ${
-                  !textColor && isFillMedia ? "text-white/90 drop-shadow-xs" : !textColor ? "text-muted-foreground" : ""
+                  isFillMedia ? "drop-shadow-xs" : ""
                 }`}
-                style={textColor ? { color: textColor, opacity: 0.85 } : undefined}
+                style={{ color: previewText, opacity: 0.85 }}
               >
                 {item.v || "cm mínimo"}
               </div>
@@ -871,13 +872,13 @@ function SortableHeroStatCard({
               <input
                 type="color"
                 value={customHex && /^#[0-9A-Fa-f]{6}$/.test(customHex) ? customHex : "#f97316"}
-                onChange={(e) => onUpdate({ custom_hex: e.target.value, color_id: "custom" })}
+                onChange={(e) => onUpdate({ custom_hex: e.target.value, color_id: "custom", type: "solid" })}
                 className="h-8 w-8 cursor-pointer rounded-lg border border-border bg-transparent p-0.5 shrink-0"
                 title="Elegir color de fondo"
               />
               <Input
                 value={customHex}
-                onChange={(e) => onUpdate({ custom_hex: e.target.value, color_id: "custom" })}
+                onChange={(e) => onUpdate({ custom_hex: e.target.value, color_id: "custom", type: "solid" })}
                 placeholder="Ej: #f97316 (vacío = paleta del tema)"
                 className="text-xs font-mono uppercase"
               />
@@ -886,11 +887,11 @@ function SortableHeroStatCard({
             {palette.length > 0 && (
               <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                 <span className="text-[10px] text-muted-foreground font-semibold">Paleta del tema:</span>
-                {palette.map((p) => (
+                {accentPalette(palette).map((p) => (
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => onUpdate({ custom_hex: p.hex, color_id: p.id })}
+                    onClick={() => onUpdate({ custom_hex: p.hex, color_id: p.id, type: "solid" })}
                     className="h-5 px-1.5 rounded text-[10px] font-bold border border-border flex items-center gap-1 hover:opacity-80 transition"
                     style={{ backgroundColor: `${p.hex}25`, color: p.hex }}
                     title={p.name}

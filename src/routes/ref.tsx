@@ -28,7 +28,26 @@ export const Route = createFileRoute("/ref")({
     const rawKey = deps.k?.trim() || "";
     const key = REVERSE_REF_ALIASES[rawKey] || rawKey;
 
-    if (key && (key === "site_logo_url" || /^[a-z0-9_]+_image_url$/i.test(key))) {
+    // Estadísticas: k = id de la estadística (stat_...); la foto vive dentro del JSON.
+    if (/^stat_[a-z0-9_]+$/i.test(rawKey)) {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data } = await supabase
+        .from("site_content")
+        .select("key, value")
+        .in("key", ["hero_stats", "about_stats"]);
+      for (const row of data || []) {
+        try {
+          const arr = JSON.parse(String(row.value || "[]"));
+          const found = Array.isArray(arr) ? arr.find((s: any) => s?.id === rawKey) : null;
+          if (found?.whatsapp_image_url) {
+            img = String(found.whatsapp_image_url);
+            break;
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+    } else if (key && (key === "site_logo_url" || /^[a-z0-9_]+_image_url$/i.test(key))) {
       const { supabase } = await import("@/integrations/supabase/client");
       // Posibles claves equivalentes en site_content para garantizar retrocompatibilidad
       const candidateKeys = [key];
