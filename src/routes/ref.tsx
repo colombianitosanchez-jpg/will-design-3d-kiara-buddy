@@ -23,7 +23,7 @@ export const Route = createFileRoute("/ref")({
     desc: search.desc,
   }),
   loader: async ({ deps }) => {
-    let img = deps.img || "";
+    let img = (deps.img || "").trim();
     // Enlace corto: la imagen se busca en el contenido del sitio por su clave o alias.
     const rawKey = deps.k?.trim() || "";
     const key = REVERSE_REF_ALIASES[rawKey] || rawKey;
