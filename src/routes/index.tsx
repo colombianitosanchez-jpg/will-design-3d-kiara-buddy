@@ -1,4 +1,4 @@
-import { UnifiedButton } from "@/components/UnifiedButton";
+import { UnifiedButton, getIconShapeStyle } from "@/components/UnifiedButton";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
@@ -251,9 +251,10 @@ function Hero() {
       const payload = getWhatsAppPayloadForButton(
         {
           whatsapp_message: stat.whatsapp_message,
+          whatsapp_image_url: stat.whatsapp_image_url,
           whatsapp_image_logic: stat.whatsapp_image_logic,
         },
-        stat.bgImageUrl || stat.media_url || image,
+        stat.whatsapp_image_url || stat.media_url || stat.bgImageUrl || image,
         content?.site_logo_url,
         defaultMsg,
         globalDefaultMessage
@@ -268,10 +269,13 @@ function Hero() {
   }
 
   function resolveStatColor(stat: HeroStatItem): string | undefined {
+    if (stat.custom_hex) {
+      return stat.custom_hex;
+    }
     if (stat.color_id === "custom") {
       return stat.custom_hex || undefined;
     }
-    if (stat.color_id) {
+    if (stat.color_id && stat.color_id !== "default") {
       const found = palette.find((p) => p.id === stat.color_id);
       if (found) return found.hex;
       return `var(--theme-color-${stat.color_id})`;
@@ -407,51 +411,64 @@ function Hero() {
                     ? `theme-anim-${s.animation_style}`
                     : "";
 
-                const bgUrl = s.bgImageUrl || s.media_url || "";
+                const bgUrl = s.media_url || s.bgImageUrl || "";
                 const isVid = /\.(mp4|webm|quicktime)($|\?)/i.test(bgUrl);
-                const type =
-                  s.type ||
-                  (bgUrl ? (isVid ? "videoFill" : "imageFill") : "solid");
+                const isGif = /\.gif($|\?)/i.test(bgUrl);
+                const isLottie = /\.json($|\?)/i.test(bgUrl);
+                const mediaMode = s.media_mode || (bgUrl && s.type !== "solid" ? "fill" : (bgUrl ? "fill" : "none"));
+                const hasFillMedia = mediaMode === "fill" && Boolean(bgUrl);
+                const mediaFitClass = s.media_fit === "contain" ? "object-contain" : s.media_fit === "fill" ? "object-fill" : "object-cover";
                 const roundedClass = s.rounded || "rounded-2xl";
-                const overlayOp = (s.overlayOpacity ?? 45) / 100;
-                const iconPos = s.iconPosition || "none";
+                const effectiveShade = s.shade !== undefined ? s.shade : (s.overlayOpacity !== undefined ? s.overlayOpacity : (hasFillMedia ? 45 : 0));
+                const overlayOp = effectiveShade / 100;
+
+                const iconPos = s.icon_position || s.iconPosition || "none";
+                const iconUrl = s.icon_url || (iconPos !== "none" && s.bgImageUrl && !s.media_url ? s.bgImageUrl : "");
+                const isIconVid = /\.(mp4|webm|quicktime)($|\?)/i.test(iconUrl);
+                const isIconLottie = /\.json($|\?)/i.test(iconUrl);
+                const iconShapeConfig = getIconShapeStyle(s.icon_shape || "circle");
 
                 let containerStyle: React.CSSProperties = {};
-                if (type === "gradient") {
+                if (s.type === "gradient") {
                   containerStyle.background = `linear-gradient(${
                     s.gradientAngle ?? 135
                   }deg, ${s.gradientFrom || "#f97316"}, ${
                     s.gradientTo || "#db2777"
                   })`;
-                } else if (type === "solid") {
+                } else if (!hasFillMedia) {
                   if (statColor) {
                     containerStyle.borderColor = `${statColor}40`;
                     containerStyle.backgroundColor = `${statColor}15`;
                   }
                 }
 
-                const iconMedia = bgUrl && iconPos !== "none" && (
-                  <span className="shrink-0 inline-flex items-center justify-center">
-                    {s.animation_type === "lottie" ? (
-                      <LottiePlayer url={bgUrl} className="h-5 w-5" />
-                    ) : s.animation_type === "video" || isVid ? (
+                const iconMedia = iconUrl && iconPos !== "none" && (
+                  <span
+                    className={`relative inline-flex items-center justify-center shrink-0 h-5 w-5 overflow-hidden ${iconShapeConfig.className}`}
+                    style={iconShapeConfig.style}
+                  >
+                    {isIconLottie || s.animation_type === "lottie" ? (
+                      <LottiePlayer url={iconUrl} className="h-5 w-5" />
+                    ) : isIconVid || s.animation_type === "video" ? (
                       <video
-                        src={bgUrl}
+                        src={iconUrl}
                         autoPlay
                         loop
                         muted
                         playsInline
-                        className="h-5 w-5 rounded-full object-cover"
+                        className="h-full w-full object-cover"
                       />
                     ) : (
                       <img
-                        src={bgUrl}
+                        src={iconUrl}
                         alt=""
-                        className="h-5 w-5 rounded-full object-cover"
+                        className="h-full w-full object-cover"
                       />
                     )}
                   </span>
                 );
+
+                const widthClass = s.width === "full" ? "col-span-full" : "";
 
                 return (
                   <motion.div
@@ -460,33 +477,40 @@ function Hero() {
                     whileTap={{ scale: 0.95 }}
                     onClick={() => handleStatClick(s)}
                     style={containerStyle}
-                    className={`relative overflow-hidden isolate border border-border p-3.5 text-center transition-all shadow-2xs min-h-[80px] flex flex-col items-center justify-center ${roundedClass} ${
+                    className={`relative overflow-hidden isolate border border-border p-3.5 text-center transition-all shadow-2xs min-h-[80px] flex flex-col items-center justify-center ${roundedClass} ${widthClass} ${
                       isClickable ? "cursor-pointer hover:border-primary hover:shadow-md" : ""
                     } ${animClass}`}
                   >
                     {/* Fondo Vivo - Video Loop */}
-                    {type === "videoFill" && bgUrl && (
+                    {hasFillMedia && isVid && (
                       <video
                         src={bgUrl}
                         autoPlay
                         loop
                         muted
                         playsInline
-                        className="absolute inset-0 h-full w-full object-cover -z-20"
+                        className={`absolute inset-0 h-full w-full -z-20 ${mediaFitClass}`}
                       />
                     )}
 
+                    {/* Fondo Vivo - Lottie */}
+                    {hasFillMedia && isLottie && (
+                      <div className="absolute inset-0 -z-20 flex items-center justify-center overflow-hidden">
+                        <LottiePlayer url={bgUrl} className="h-full w-full object-cover" />
+                      </div>
+                    )}
+
                     {/* Fondo Vivo - Imagen/GIF Completo */}
-                    {type === "imageFill" && bgUrl && (
+                    {hasFillMedia && !isVid && !isLottie && (
                       <img
                         src={bgUrl}
                         alt=""
-                        className="absolute inset-0 h-full w-full object-cover -z-20"
+                        className={`absolute inset-0 h-full w-full -z-20 ${mediaFitClass}`}
                       />
                     )}
 
                     {/* Overlay Oscuro para Legibilidad WCAG AA */}
-                    {(type === "videoFill" || type === "imageFill" || type === "gradient") && (
+                    {(hasFillMedia || s.type === "gradient" || overlayOp > 0) && (
                       <div
                         className="absolute inset-0 bg-black -z-10"
                         style={{ opacity: overlayOp }}
@@ -495,9 +519,15 @@ function Hero() {
 
                     <dt
                       className={`relative z-10 text-xl font-black flex items-center justify-center gap-1.5 ${
-                        type !== "solid" ? "text-white drop-shadow-md" : ""
+                        !s.text_color && hasFillMedia ? "text-white drop-shadow-md" : ""
                       }`}
-                      style={type === "solid" ? { color: statColor || "var(--brand-wine)" } : undefined}
+                      style={
+                        s.text_color
+                          ? { color: s.text_color }
+                          : !hasFillMedia
+                          ? { color: statColor || "var(--brand-wine)" }
+                          : undefined
+                      }
                     >
                       {iconPos === "left" && iconMedia}
                       {s.k}
@@ -505,10 +535,13 @@ function Hero() {
                     </dt>
                     <dd
                       className={`relative z-10 text-[11px] mt-0.5 ${
-                        type !== "solid"
+                        !s.text_color && hasFillMedia
                           ? "text-white/90 drop-shadow-xs font-medium"
-                          : "text-muted-foreground"
+                          : !s.text_color
+                          ? "text-muted-foreground"
+                          : ""
                       }`}
+                      style={s.text_color ? { color: s.text_color, opacity: 0.85 } : undefined}
                     >
                       {s.v}
                     </dd>

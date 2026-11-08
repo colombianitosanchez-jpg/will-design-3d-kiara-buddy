@@ -34,7 +34,7 @@ import { ProductMedia, isVideoUrl } from "@/components/ProductMedia";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { getActiveTheme } from "@/lib/theme";
 import { getWhatsAppPayloadForButton, WHATSAPP_REF_ALIASES } from "@/lib/whatsapp-buttons";
-import { UnifiedButton } from "@/components/UnifiedButton";
+import { UnifiedButton, getIconShapeStyle } from "@/components/UnifiedButton";
 import {
   type ButtonIconShape,
   BUTTON_ICON_SHAPES,
@@ -93,12 +93,22 @@ export type HeroStatItem = {
   id: string;
   k: string;
   v: string;
+  text_color?: string;
+  custom_hex?: string;
+  shade?: number;
+  media_mode?: "fill" | "none";
+  media_fit?: "cover" | "contain" | "fill";
+  icon_url?: string;
+  icon_shape?: ButtonIconShape;
+  icon_position?: "none" | "left" | "right";
+  width?: "auto" | "full";
   action_type?: "none" | "link" | "whatsapp" | "cotizador";
   action_value?: string;
   whatsapp_message?: string;
+  whatsapp_image_url?: string;
+  // Propiedades heredadas para compatibilidad con datos previos
   whatsapp_image_logic?: "auto" | "none" | "logo" | "product_image";
   color_id?: string;
-  custom_hex?: string;
   media_url?: string;
   animation_type?: "none" | "image" | "video" | "gif" | "lottie";
   animation_style?: string;
@@ -118,18 +128,30 @@ export function parseHeroStats(values: Record<string, string>): HeroStatItem[] {
       const parsed = JSON.parse(values.hero_stats);
       if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed.map((item: any) => {
-          const bgUrl = item.bgImageUrl || item.media_url || "";
+          const bgUrl = item.media_url || item.bgImageUrl || "";
+          const iconUrl = item.icon_url || (item.iconPosition && item.iconPosition !== "none" ? item.bgImageUrl : undefined) || "";
           const isVid = /\.(mp4|webm|quicktime)($|\?)/i.test(bgUrl);
+          const legacyShade = typeof item.shade === "number" ? item.shade : (typeof item.overlayOpacity === "number" ? item.overlayOpacity : undefined);
+          const iconPos = item.icon_position || item.iconPosition || "none";
+          const mediaMode = item.media_mode || (bgUrl && item.type !== "solid" ? "fill" : (bgUrl ? "fill" : "none"));
+
           return {
             ...item,
-            type: item.type || (bgUrl ? (isVid ? "videoFill" : "imageFill") : "solid"),
-            bgImageUrl: bgUrl,
+            media_mode: mediaMode,
+            media_fit: item.media_fit || "cover",
+            icon_position: iconPos,
+            iconPosition: iconPos,
+            icon_shape: item.icon_shape || "circle",
+            width: item.width || "auto",
+            shade: legacyShade,
+            overlayOpacity: legacyShade ?? 45,
             media_url: bgUrl,
+            bgImageUrl: bgUrl,
+            icon_url: iconUrl,
+            type: item.type || (bgUrl ? (isVid ? "videoFill" : "imageFill") : "solid"),
             gradientFrom: item.gradientFrom || "#f97316",
             gradientTo: item.gradientTo || "#db2777",
             gradientAngle: item.gradientAngle ?? 135,
-            overlayOpacity: item.overlayOpacity ?? 45,
-            iconPosition: item.iconPosition || "none",
             rounded: item.rounded || "rounded-2xl",
           };
         });
@@ -152,7 +174,12 @@ export function parseHeroStats(values: Record<string, string>): HeroStatItem[] {
         action_value: "",
         animation_type: "none",
         type: "solid",
+        media_mode: "none",
+        media_fit: "cover",
+        icon_position: "none",
         iconPosition: "none",
+        icon_shape: "circle",
+        width: "auto",
         rounded: "rounded-2xl",
       });
     }
@@ -160,9 +187,9 @@ export function parseHeroStats(values: Record<string, string>): HeroStatItem[] {
   return legacy.length > 0
     ? legacy
     : [
-        { id: "stat_1", k: "50×50", v: "cm mínimo", action_type: "none", type: "solid", iconPosition: "none", rounded: "rounded-2xl" },
-        { id: "stat_2", k: "1.8 m", v: "en una sola pieza", action_type: "none", type: "solid", iconPosition: "none", rounded: "rounded-2xl" },
-        { id: "stat_3", k: "24/7", v: "atención y cotización", action_type: "none", type: "solid", iconPosition: "none", rounded: "rounded-2xl" },
+        { id: "stat_1", k: "50×50", v: "cm mínimo", action_type: "none", type: "solid", media_mode: "none", media_fit: "cover", icon_position: "none", iconPosition: "none", icon_shape: "circle", width: "auto", rounded: "rounded-2xl" },
+        { id: "stat_2", k: "1.8 m", v: "en una sola pieza", action_type: "none", type: "solid", media_mode: "none", media_fit: "cover", icon_position: "none", iconPosition: "none", icon_shape: "circle", width: "auto", rounded: "rounded-2xl" },
+        { id: "stat_3", k: "24/7", v: "atención y cotización", action_type: "none", type: "solid", media_mode: "none", media_fit: "cover", icon_position: "none", iconPosition: "none", icon_shape: "circle", width: "auto", rounded: "rounded-2xl" },
       ];
 }
 
@@ -648,12 +675,14 @@ function SortableHeroStatCard({
   index,
   palette,
   onUpdate,
+  onDuplicate,
   onRemove,
 }: {
   item: HeroStatItem;
   index: number;
   palette: Array<{ id: string; name: string; hex: string }>;
   onUpdate: (patch: Partial<HeroStatItem>) => void;
+  onDuplicate: () => void;
   onRemove: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -666,112 +695,203 @@ function SortableHeroStatCard({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  let resolvedBg = "";
-  if (item.color_id === "custom") {
-    resolvedBg = item.custom_hex || "";
-  } else if (item.color_id) {
+  const { content } = useSiteContent();
+
+  const textColor = item.text_color || "";
+  const customHex = item.custom_hex || "";
+  const mediaMode = item.media_mode || (item.media_url || item.bgImageUrl ? "fill" : "none");
+  const mediaUrl = item.media_url || item.bgImageUrl || "";
+  const mediaFit = item.media_fit || "cover";
+  const iconPos = item.icon_position || item.iconPosition || "none";
+  const iconUrl = item.icon_url || "";
+  const iconShape = item.icon_shape || "circle";
+  const statWidth = item.width || "auto";
+  const shadeNum = item.shade !== undefined ? Math.max(0, Math.min(100, item.shade)) : undefined;
+
+  let resolvedBg = customHex;
+  if (!resolvedBg && item.color_id && item.color_id !== "custom" && item.color_id !== "default") {
     const found = palette.find((p) => p.id === item.color_id);
     if (found) resolvedBg = found.hex;
   }
 
-  const type = item.type || (item.bgImageUrl || item.media_url ? (/\.(mp4|webm|quicktime)($|\?)/i.test(item.bgImageUrl || item.media_url || "") ? "videoFill" : "imageFill") : "solid");
-  const bgUrl = item.bgImageUrl || item.media_url || "";
-  const roundedClass = item.rounded || "rounded-2xl";
-  const overlayOp = (item.overlayOpacity ?? 45) / 100;
-  const iconPos = item.iconPosition || "none";
+  const effectiveBgColor = resolvedBg || "var(--brand-wine)";
 
-  let previewStyle: React.CSSProperties = {};
-  if (type === "gradient") {
-    previewStyle.background = `linear-gradient(${item.gradientAngle ?? 135}deg, ${item.gradientFrom || "#f97316"}, ${item.gradientTo || "#db2777"})`;
-  } else if (type === "solid") {
-    if (resolvedBg) {
-      previewStyle.borderColor = `${resolvedBg}40`;
-      previewStyle.backgroundColor = `${resolvedBg}15`;
-    }
-  }
+  const isVid = /\.(mp4|webm|quicktime)($|\?)/i.test(mediaUrl);
+  const isGif = /\.gif($|\?)/i.test(mediaUrl);
+  const isLottie = /\.json($|\?)/i.test(mediaUrl);
 
-  const iconMedia = bgUrl && iconPos !== "none" && (
-    <span className="shrink-0 inline-flex items-center justify-center">
-      {item.animation_type === "lottie" ? (
-        <LottiePreview url={bgUrl} />
-      ) : item.animation_type === "video" || /\.(mp4|webm|quicktime)($|\?)/i.test(bgUrl) ? (
-        <video src={bgUrl} autoPlay loop muted playsInline className="h-4 w-4 rounded-full object-cover" />
+  const isIconVid = /\.(mp4|webm|quicktime)($|\?)/i.test(iconUrl);
+  const isIconLottie = /\.json($|\?)/i.test(iconUrl);
+
+  const iconShapeConfig = getIconShapeStyle(iconShape);
+
+  const effectiveShade = shadeNum ?? (mediaMode === "fill" && mediaUrl ? 45 : 0);
+
+  const iconMedia = iconUrl && iconPos !== "none" && (
+    <span
+      className={`relative inline-flex items-center justify-center shrink-0 h-4 w-4 overflow-hidden ${iconShapeConfig.className}`}
+      style={iconShapeConfig.style}
+    >
+      {isIconLottie ? (
+        <LottiePreview url={iconUrl} />
+      ) : isIconVid ? (
+        <video src={iconUrl} autoPlay loop muted playsInline className="h-full w-full object-cover" />
       ) : (
-        <img src={bgUrl} alt="" className="h-4 w-4 rounded-full object-cover" />
+        <img src={iconUrl} alt="" className="h-full w-full object-cover" />
       )}
     </span>
   );
+
+  const isFillMedia = mediaMode === "fill" && Boolean(mediaUrl);
+
+  let previewContainerStyle: React.CSSProperties = {
+    backgroundColor: !isFillMedia ? (effectiveBgColor.startsWith("#") ? `${effectiveBgColor}15` : undefined) : undefined,
+    borderColor: effectiveBgColor.startsWith("#") ? `${effectiveBgColor}40` : "var(--border)",
+  };
+
+  const payload = getWhatsAppPayloadForButton(
+    {
+      whatsapp_message: item.whatsapp_message,
+      whatsapp_image_url: item.whatsapp_image_url,
+    },
+    mediaUrl || content?.hero_image_url || "",
+    content?.site_logo_url,
+    `Hola Will Design 3D, me interesa la consulta sobre: ${item.k || ""} (${item.v || ""}).`,
+    content?.whatsapp_default_message || ""
+  );
+
+  const actionType = item.action_type || "none";
+  const actionValue = item.action_value || "";
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="rounded-2xl border border-border bg-card p-4 shadow-xs space-y-4"
+      className="rounded-2xl border border-dashed border-border p-5 space-y-6 bg-muted/20"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2">
+      {/* A. Encabezado de la tarjeta */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
         <div className="flex items-center gap-2">
           <button
             type="button"
             {...attributes}
             {...listeners}
             className="cursor-grab touch-none text-muted-foreground hover:text-foreground p-1"
-            title="Arrastrar para reordenar"
+            title="Arrastrar para reordenar estadística"
           >
             <GripVertical className="h-4 w-4" />
           </button>
-          <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">
-            Elemento {index + 1}
+          <span className="text-sm font-black uppercase tracking-wider text-muted-foreground">
+            #{index + 1} - {item.k || "Sin título"}
           </span>
         </div>
 
-        {/* Live Preview Card */}
-        <div className="flex items-center gap-3">
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            style={previewStyle}
-            className={`relative overflow-hidden isolate border border-border px-4 py-2 text-center shadow-2xs min-w-[120px] min-h-[50px] flex flex-col items-center justify-center ${roundedClass} ${
-              item.animation_style && item.animation_style !== "none" ? `theme-anim-${item.animation_style}` : ""
-            }`}
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onDuplicate}
+            className="h-8 text-xs font-semibold gap-1.5"
+            title="Duplicar esta estadística"
           >
-            {type === "videoFill" && bgUrl && (
-              <video src={bgUrl} autoPlay loop muted playsInline className="absolute inset-0 h-full w-full object-cover -z-20" />
-            )}
-            {type === "imageFill" && bgUrl && (
-              <img src={bgUrl} alt="" className="absolute inset-0 h-full w-full object-cover -z-20" />
-            )}
-            {(type === "videoFill" || type === "imageFill" || type === "gradient") && (
-              <div className="absolute inset-0 bg-black -z-10" style={{ opacity: overlayOp }} />
-            )}
-
-            <div className={`relative z-10 flex items-center justify-center gap-1.5 font-black text-sm ${type !== "solid" ? "text-white drop-shadow-md" : ""}`} style={type === "solid" ? { color: resolvedBg || "var(--brand-wine)" } : undefined}>
-              {iconPos === "left" && iconMedia}
-              {item.k || "50×50"}
-              {iconPos === "right" && iconMedia}
-            </div>
-            <div className={`relative z-10 text-[10px] truncate max-w-[120px] ${type !== "solid" ? "text-white/90 drop-shadow-xs" : "text-muted-foreground"}`}>
-              {item.v || "cm mínimo"}
-            </div>
-          </motion.div>
+            <Copy className="h-3.5 w-3.5 text-primary" />
+            Duplicar
+          </Button>
 
           <Button
             type="button"
             variant="ghost"
-            size="icon"
+            size="sm"
             onClick={onRemove}
-            className="text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
-            title="Eliminar elemento"
+            className="h-8 text-xs font-semibold text-destructive hover:bg-destructive/10 gap-1.5"
+            title="Eliminar esta estadística"
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-3.5 w-3.5" />
+            Eliminar
           </Button>
+
+          {/* Vista previa en vivo idéntica a la web */}
+          <div className="shrink-0 flex items-center gap-2 border-l border-border pl-3 ml-1">
+            <span className="text-[11px] font-semibold text-muted-foreground">Vista previa:</span>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              style={previewContainerStyle}
+              className={`relative overflow-hidden isolate border px-3.5 py-2 text-center shadow-2xs min-w-[120px] min-h-[50px] flex flex-col items-center justify-center rounded-2xl ${
+                item.animation_style && item.animation_style !== "none" ? `theme-anim-${item.animation_style}` : ""
+              } ${statWidth === "full" ? "w-full" : ""}`}
+            >
+              {/* Fondo animado / relleno vivo */}
+              {isFillMedia && (
+                <>
+                  {isLottie ? (
+                    <div className="absolute inset-0 -z-20 flex items-center justify-center overflow-hidden">
+                      <LottiePreview url={mediaUrl} />
+                    </div>
+                  ) : isVid ? (
+                    <video
+                      src={mediaUrl}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className={`absolute inset-0 h-full w-full -z-20 ${
+                        mediaFit === "contain" ? "object-contain" : mediaFit === "fill" ? "object-fill" : "object-cover"
+                      }`}
+                    />
+                  ) : (
+                    <img
+                      src={mediaUrl}
+                      alt=""
+                      className={`absolute inset-0 h-full w-full -z-20 ${
+                        mediaFit === "contain" ? "object-contain" : mediaFit === "fill" ? "object-fill" : "object-cover"
+                      }`}
+                    />
+                  )}
+                </>
+              )}
+
+              {/* Sombreado / Contraste Overlay */}
+              {effectiveShade > 0 && (
+                <div
+                  className="absolute inset-0 bg-black -z-10"
+                  style={{ opacity: effectiveShade / 100 }}
+                />
+              )}
+
+              {/* Texto / Valor Destacado */}
+              <div
+                className={`relative z-10 flex items-center justify-center gap-1.5 font-black text-sm ${
+                  !textColor && isFillMedia ? "text-white drop-shadow-md" : ""
+                }`}
+                style={textColor ? { color: textColor } : !isFillMedia ? { color: effectiveBgColor } : undefined}
+              >
+                {iconPos === "left" && iconMedia}
+                <span>{item.k || "50×50"}</span>
+                {iconPos === "right" && iconMedia}
+              </div>
+
+              {/* Descripción Corta */}
+              <div
+                className={`relative z-10 text-[10px] truncate max-w-[120px] ${
+                  !textColor && isFillMedia ? "text-white/90 drop-shadow-xs" : !textColor ? "text-muted-foreground" : ""
+                }`}
+                style={textColor ? { color: textColor, opacity: 0.85 } : undefined}
+              >
+                {item.v || "cm mínimo"}
+              </div>
+            </motion.div>
+          </div>
         </div>
       </div>
 
+      {/* B. Textos Principales */}
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <Label className="text-xs font-semibold">Valor / Título Destacado (k)</Label>
           <Input
-            value={item.k}
+            value={item.k || ""}
             onChange={(e) => onUpdate({ k: e.target.value })}
             placeholder="Ej: 50×50"
             className="mt-1 text-xs"
@@ -781,346 +901,463 @@ function SortableHeroStatCard({
         <div>
           <Label className="text-xs font-semibold">Descripción Corta (v)</Label>
           <Input
-            value={item.v}
+            value={item.v || ""}
             onChange={(e) => onUpdate({ v: e.target.value })}
             placeholder="Ej: cm mínimo"
             className="mt-1 text-xs"
           />
         </div>
+      </div>
 
-        <div className="sm:col-span-2 rounded-xl border border-dashed p-4 space-y-3 bg-muted/30">
-          <p className="text-xs font-bold uppercase tracking-wider mb-2">🎯 Acción Clickeable: {item.k || 'Sin texto'}</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <Label className="text-xs font-semibold">Acción</Label>
-              <Select
-                value={item.action_type || "none"}
-                onValueChange={(val: any) => onUpdate({ action_type: val })}
+      {/* C. Sección A: Diseño y Animación */}
+      <div className="rounded-xl border border-border/80 bg-background/60 p-4 space-y-4 shadow-xs">
+        <div className="flex items-center gap-2 border-b border-border/50 pb-2">
+          <div className="h-2 w-2 rounded-full bg-primary" />
+          <h4 className="text-xs font-black uppercase tracking-wider text-foreground">
+            Sección A: Diseño y Animación
+          </h4>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          {/* Color del Texto */}
+          <div>
+            <Label className="text-xs font-semibold flex items-center justify-between">
+              <span>Color del Texto (Código HEX)</span>
+              {textColor && (
+                <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <span className="inline-block h-2.5 w-2.5 rounded-full border border-border" style={{ backgroundColor: textColor }} />
+                  {textColor}
+                </span>
+              )}
+            </Label>
+            <div className="flex items-center gap-2 mt-1">
+              <input
+                type="color"
+                value={textColor && /^#[0-9A-Fa-f]{6}$/.test(textColor) ? textColor : "#ffffff"}
+                onChange={(e) => onUpdate({ text_color: e.target.value })}
+                className="h-8 w-8 cursor-pointer rounded-lg border border-border bg-transparent p-0.5 shrink-0"
+                title="Elegir color visualmente"
+              />
+              <Input
+                value={textColor}
+                onChange={(e) => onUpdate({ text_color: e.target.value })}
+                placeholder="Ej: #ffffff, #000000, #fbbf24"
+                className="text-xs font-mono uppercase"
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Vacío = texto blanco con sombra sobre fondos vivos o color de marca sobre sólidos.</p>
+          </div>
+
+          {/* Color de fondo */}
+          <div>
+            <Label className="text-xs font-semibold flex items-center justify-between">
+              <span>Color de fondo del Botón / Estadística</span>
+              {customHex && (
+                <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <span className="inline-block h-2.5 w-2.5 rounded-full border border-border" style={{ backgroundColor: customHex }} />
+                  {customHex}
+                </span>
+              )}
+            </Label>
+            <div className="flex items-center gap-2 mt-1">
+              <input
+                type="color"
+                value={customHex && /^#[0-9A-Fa-f]{6}$/.test(customHex) ? customHex : "#f97316"}
+                onChange={(e) => onUpdate({ custom_hex: e.target.value, color_id: "custom" })}
+                className="h-8 w-8 cursor-pointer rounded-lg border border-border bg-transparent p-0.5 shrink-0"
+                title="Elegir color de fondo"
+              />
+              <Input
+                value={customHex}
+                onChange={(e) => onUpdate({ custom_hex: e.target.value, color_id: "custom" })}
+                placeholder="Ej: #f97316 (vacío = paleta del tema)"
+                className="text-xs font-mono uppercase"
+              />
+            </div>
+            {/* Paleta del tema rápida */}
+            {palette.length > 0 && (
+              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                <span className="text-[10px] text-muted-foreground font-semibold">Paleta del tema:</span>
+                {palette.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => onUpdate({ custom_hex: p.hex, color_id: p.id })}
+                    className="h-5 px-1.5 rounded text-[10px] font-bold border border-border flex items-center gap-1 hover:opacity-80 transition"
+                    style={{ backgroundColor: `${p.hex}25`, color: p.hex }}
+                    title={p.name}
+                  >
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: p.hex }} />
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Sombreado / Contraste */}
+          <div>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold">Sombreado / Contraste (shade)</Label>
+              <span className="text-xs font-mono font-bold text-primary">{shadeNum === undefined ? "Auto" : `${shadeNum}%`}</span>
+            </div>
+            <div className="flex items-center gap-3 mt-1.5">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="5"
+                value={shadeNum ?? (mediaUrl && mediaMode === "fill" ? 45 : 0)}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  onUpdate({ shade: val, overlayOpacity: val });
+                }}
+                className="w-full accent-primary cursor-pointer"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 text-[11px]"
+                onClick={() => onUpdate({ shade: undefined, overlayOpacity: undefined })}
               >
-                <SelectTrigger className="mt-1 text-xs">
+                Auto
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Capa oscura entre el fondo y el texto. 0% = sin sombreado.</p>
+          </div>
+
+          {/* Cobertura / Ancho */}
+          <div>
+            <Label className="text-xs font-semibold">Cobertura / Ancho</Label>
+            <Select
+              value={statWidth}
+              onValueChange={(val: "auto" | "full") => onUpdate({ width: val })}
+            >
+              <SelectTrigger className="mt-1 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">Ancho automático (ajustado al contenido)</SelectItem>
+                <SelectItem value="full">Ancho completo 100% (bloque total)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Controla si la estadística se expande a todo lo ancho o según su texto.</p>
+          </div>
+
+          {/* Fondo Animado / Relleno Vivo */}
+          <div className="sm:col-span-2 rounded-lg border border-border/60 bg-muted/20 p-3.5 space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                Fondo Animado / Relleno Vivo
+              </Label>
+              <Select
+                value={mediaMode}
+                onValueChange={(val: "fill" | "none") => onUpdate({ media_mode: val })}
+              >
+                <SelectTrigger className="h-7 text-[11px] w-[140px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Sin Acción (Texto Estático)</SelectItem>
-                  <SelectItem value="link">Abrir Enlace / URL</SelectItem>
-                  <SelectItem value="whatsapp">Abrir Chat de WhatsApp</SelectItem>
-                  <SelectItem value="cotizador">Abrir Cotizador Interactivo (/cotizador)</SelectItem>
+                  <SelectItem value="fill">Llenar botón</SelectItem>
+                  <SelectItem value="none">Sin fondo animado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
-            {item.action_type === "cotizador" && (
-              <div className="sm:col-span-2 rounded-lg bg-background/50 border border-border/60 p-2.5 text-xs text-muted-foreground">
-                Esta estadística redirige directamente a la experiencia del Cotizador 3D en <code className="font-mono text-primary font-bold">/cotizador</code>.
-              </div>
-            )}
-
-            {item.action_type && item.action_type !== "none" && item.action_type !== "cotizador" && (
-              <div>
-                <Label className="text-xs font-semibold">
-                  {item.action_type === "link" ? "URL o Ruta de Destino" : "Número de WhatsApp (Opcional)"}
-                </Label>
-                <Input
-                  value={item.action_value || ""}
-                  onChange={(e) => onUpdate({ action_value: e.target.value })}
-                  placeholder={item.action_type === "link" ? "/servicios o https://..." : "573156724474"}
-                  className="mt-1 text-xs"
-                />
-              </div>
-            )}
-
-            {item.action_type === "whatsapp" && (
+            <p className="text-[11px] text-muted-foreground">
+              Soporta video MP4/WebM en bucle, GIF o imagen para cubrir el fondo completo con contraste garantizado.
+            </p>
+            {mediaMode === "fill" && (
               <>
-                <div className="sm:col-span-2 space-y-1">
-                  <Label className="text-xs font-semibold">Mensaje WhatsApp Personalizado</Label>
-                  <Textarea
-                    rows={2}
-                    value={item.whatsapp_message || ""}
-                    onChange={(e) => onUpdate({ whatsapp_message: e.target.value })}
-                    placeholder={`Hola Will Design 3D, me interesa la consulta sobre: ${item.k || ""} (${item.v || ""}).`}
-                    className="text-xs resize-y"
-                  />
-                  <p className="text-[11px] text-muted-foreground">La imagen subida se adjunta automáticamente al final del mensaje.</p>
-                </div>
-
+                <MediaDropZone
+                  value={mediaUrl}
+                  onChange={(url, detectedType) => {
+                    const nextType = detectedType || (url ? (/\.(mp4|webm|quicktime)($|\?)/i.test(url) ? "videoFill" : "imageFill") : "solid");
+                    onUpdate({ media_url: url, bgImageUrl: url, type: nextType });
+                  }}
+                />
                 <div>
-                  <Label className="text-xs font-semibold">Lógica de Logo / Imagen / Video</Label>
+                  <Label className="text-xs font-semibold">Espacio que cubre el fondo animado</Label>
                   <Select
-                    value={item.whatsapp_image_logic || "auto"}
-                    onValueChange={(val: any) => onUpdate({ whatsapp_image_logic: val })}
+                    value={mediaFit}
+                    onValueChange={(val: "cover" | "contain" | "fill") => onUpdate({ media_fit: val })}
                   >
-                    <SelectTrigger className="mt-1 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger className="mt-1 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="auto">Automático (Reglas CEO: Logo si es video, Imagen si existe)</SelectItem>
-                      <SelectItem value="none">Solo texto (mensaje limpio, sin enlace ni imagen)</SelectItem>
-                      <SelectItem value="logo">Forzar Enviar Logo de la Empresa</SelectItem>
-                      <SelectItem value="product_image">Enviar Imagen de la Sección / Producto</SelectItem>
+                      <SelectItem value="cover">Cubrir todo el botón (recorta bordes)</SelectItem>
+                      <SelectItem value="contain">Ajustar al centro (se ve completa)</SelectItem>
+                      <SelectItem value="fill">Estirar para llenar</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+              </>
+            )}
+          </div>
 
-                {/* Live WhatsApp Message Preview Box */}
-                <div className="sm:col-span-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-1 text-xs">
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                    💬 Así se verá en WhatsApp:
-                  </span>
-                  <p className="text-muted-foreground whitespace-pre-wrap font-mono text-[11px]">
-                    {getWhatsAppPayloadForButton(
-                      { whatsapp_message: item.whatsapp_message, whatsapp_image_logic: item.whatsapp_image_logic },
-                      bgUrl,
-                      null,
-                      `Hola Will Design 3D, me interesa la consulta sobre: ${item.k || ""} (${item.v || ""}).`
-                    ).formattedText || `Hola Will Design 3D, me interesa la consulta sobre: ${item.k || ""} (${item.v || ""}).`}
-                  </p>
-                  <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 font-semibold mt-1 flex items-center gap-1.5 flex-wrap">
-                    <span>📎 Adjunto: {shortMediaName(
-                      getWhatsAppPayloadForButton(
-                        { whatsapp_message: item.whatsapp_message, whatsapp_image_logic: item.whatsapp_image_logic },
-                        bgUrl
-                      ).mediaToSend
-                    )}</span>
-                    {getWhatsAppPayloadForButton(
-                      { whatsapp_message: item.whatsapp_message, whatsapp_image_logic: item.whatsapp_image_logic },
-                      bgUrl
-                    ).mediaToSend.includes("logo") || getWhatsAppPayloadForButton(
-                      { whatsapp_message: item.whatsapp_message, whatsapp_image_logic: item.whatsapp_image_logic },
-                      bgUrl
-                    ).mediaToSend.startsWith("/") ? (
-                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-bold text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
-                        logo
-                      </span>
-                    ) : null}
-                  </p>
+          {/* Ícono / Miniatura dentro de la tarjeta */}
+          <div className="sm:col-span-2 rounded-lg border border-border/60 bg-muted/20 p-3.5 space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-secondary" />
+                Ícono o Miniatura dentro de la Tarjeta
+              </Label>
+              <Select
+                value={iconPos}
+                onValueChange={(val: "none" | "left" | "right") => onUpdate({ icon_position: val, iconPosition: val })}
+              >
+                <SelectTrigger className="h-7 text-[11px] w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin ícono</SelectItem>
+                  <SelectItem value="left">A la izquierda</SelectItem>
+                  <SelectItem value="right">A la derecha</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Muestra una figura geométrica con imagen/ícono junto al texto. Puedes usarlo solo o combinado con el fondo animado.
+            </p>
+            {iconPos !== "none" && (
+              <>
+                <MediaDropZone
+                  value={iconUrl}
+                  onChange={(url) => onUpdate({ icon_url: url })}
+                />
+                <div>
+                  <Label className="text-xs font-semibold">Forma del ícono</Label>
+                  <Select
+                    value={iconShape}
+                    onValueChange={(val: ButtonIconShape) => onUpdate({ icon_shape: val })}
+                  >
+                    <SelectTrigger className="mt-1 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {BUTTON_ICON_SHAPES.map((shape) => (
+                        <SelectItem key={shape} value={shape}>
+                          {ICON_SHAPE_LABELS[shape]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </>
             )}
           </div>
         </div>
-
-        <div>
-          <Label className="text-xs font-semibold">Tipo de Fondo / Estilo Visual</Label>
-          <Select
-            value={type}
-            onValueChange={(val: any) => onUpdate({ type: val })}
-          >
-            <SelectTrigger className="mt-1 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="solid">Fondo Sólido / Paleta del Tema</SelectItem>
-              <SelectItem value="gradient">Degradé / Gradiente Personalizado</SelectItem>
-              <SelectItem value="imageFill">Imagen Completa (Fondo Vivo)</SelectItem>
-              <SelectItem value="videoFill">Video Loop Completo (Fondo Vivo)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label className="text-xs font-semibold">Bordes Redondeados</Label>
-          <Select
-            value={roundedClass}
-            onValueChange={(val: any) => onUpdate({ rounded: val })}
-          >
-            <SelectTrigger className="mt-1 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="rounded-xl">Redondeado XL (rounded-xl)</SelectItem>
-              <SelectItem value="rounded-2xl">Redondeado 2XL (rounded-2xl)</SelectItem>
-              <SelectItem value="rounded-3xl">Redondeado 3XL (rounded-3xl)</SelectItem>
-              <SelectItem value="rounded-full">Píldora Completa (rounded-full)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {type === "solid" && (
-          <div>
-            <Label className="text-xs font-semibold">Color Acento (Paleta del Tema / HEX)</Label>
-            <Select
-              value={item.color_id || ""}
-              onValueChange={(val) => onUpdate({ color_id: val })}
-            >
-              <SelectTrigger className="mt-1 text-xs">
-                <SelectValue placeholder="Color del Tema" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="default">Por Defecto (Burgundy)</SelectItem>
-                {palette.map((col) => (
-                  <SelectItem key={col.id} value={col.id}>
-                    {col.name} ({col.hex})
-                  </SelectItem>
-                ))}
-                <SelectItem value="custom">Color Personalizado (HEX Libre)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        {type === "solid" && item.color_id === "custom" && (
-          <div>
-            <Label className="text-xs font-semibold">HEX Libre</Label>
-            <div className="flex items-center gap-2 mt-1">
-              <input
-                type="color"
-                value={item.custom_hex?.startsWith("#") ? item.custom_hex : "#f97316"}
-                onChange={(e) => onUpdate({ custom_hex: e.target.value })}
-                className="h-9 w-10 cursor-pointer rounded-lg border border-input p-0"
-              />
-              <Input
-                type="text"
-                value={item.custom_hex || ""}
-                onChange={(e) => onUpdate({ custom_hex: e.target.value })}
-                placeholder="#FF0000"
-                className="h-9 text-xs font-mono"
-              />
-            </div>
-          </div>
-        )}
-
-        {type === "gradient" && (
-          <>
-            <div>
-              <Label className="text-xs font-semibold">Color Inicial (Gradient From)</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <input
-                  type="color"
-                  value={item.gradientFrom?.startsWith("#") ? item.gradientFrom : "#f97316"}
-                  onChange={(e) => onUpdate({ gradientFrom: e.target.value })}
-                  className="h-9 w-10 cursor-pointer rounded-lg border border-input p-0"
-                />
-                <Input
-                  type="text"
-                  value={item.gradientFrom || "#f97316"}
-                  onChange={(e) => onUpdate({ gradientFrom: e.target.value })}
-                  placeholder="#f97316"
-                  className="h-9 text-xs font-mono"
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-xs font-semibold">Color Final (Gradient To)</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <input
-                  type="color"
-                  value={item.gradientTo?.startsWith("#") ? item.gradientTo : "#db2777"}
-                  onChange={(e) => onUpdate({ gradientTo: e.target.value })}
-                  className="h-9 w-10 cursor-pointer rounded-lg border border-input p-0"
-                />
-                <Input
-                  type="text"
-                  value={item.gradientTo || "#db2777"}
-                  onChange={(e) => onUpdate({ gradientTo: e.target.value })}
-                  placeholder="#db2777"
-                  className="h-9 text-xs font-mono"
-                />
-              </div>
-            </div>
-
-            <div className="sm:col-span-2">
-              <Label className="text-xs font-semibold">Ángulo del Gradiente: {item.gradientAngle ?? 135}°</Label>
-              <input
-                type="range"
-                min={0}
-                max={360}
-                value={item.gradientAngle ?? 135}
-                onChange={(e) => onUpdate({ gradientAngle: Number(e.target.value) })}
-                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary mt-2"
-              />
-            </div>
-          </>
-        )}
       </div>
 
-      {/* Media Drag & Drop Zone for ImageFill / VideoFill / Icon Media */}
-      {(type === "imageFill" || type === "videoFill" || item.iconPosition !== "none") && (
-        <div className="space-y-2 rounded-xl border border-border/80 bg-muted/20 p-3">
-          <Label className="text-xs font-bold flex items-center gap-1.5">
-            <Upload className="h-3.5 w-3.5 text-primary" />
-            Multimedia / Fondo Vivo ({type === "videoFill" ? "Video MP4/WebM" : "Imagen/GIF"})
-          </Label>
-          <MediaDropZone
-            value={bgUrl}
-            onChange={(url, detectedType) =>
-              onUpdate({
-                bgImageUrl: url,
-                media_url: url,
-                type: detectedType || type,
-              })
-            }
-          />
-        </div>
-      )}
-
-      {/* Overlay & Icon Position Settings */}
-      <div className="rounded-xl border border-border/80 bg-muted/20 p-3 space-y-3">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Accesibilidad & Posición de Ícono
-          </span>
+      {/* D. Sección B: Acción al Pulsar (Comportamiento) */}
+      <div className="rounded-xl border border-primary/30 bg-primary/[0.03] p-4 space-y-4 shadow-xs">
+        <div className="flex items-center gap-2 border-b border-primary/20 pb-2">
+          <div className="h-2 w-2 rounded-full bg-primary" />
+          <h4 className="text-xs font-black uppercase tracking-wider text-primary">
+            Sección B: Acción al Pulsar (Comportamiento)
+          </h4>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <Label className="text-xs font-semibold">Posición del Ícono / Miniatura</Label>
+          <div className="sm:col-span-2">
+            <Label className="text-xs font-semibold">¿Qué acción debe ejecutar este elemento?</Label>
             <Select
-              value={iconPos}
-              onValueChange={(val: any) => onUpdate({ iconPosition: val })}
+              value={(() => {
+                if (actionType === "none") return "none";
+                if (actionType === "whatsapp") return "whatsapp";
+                if (actionType === "cotizador" || actionValue === "/cotizador") return "/cotizador";
+                const matchedInternal = SITE_INTERNAL_PAGES.find((p) => p.path === actionValue);
+                if (matchedInternal) return matchedInternal.path;
+                return "custom_link";
+              })()}
+              onValueChange={(val) => {
+                if (val === "none") {
+                  onUpdate({ action_type: "none", action_value: "" });
+                } else if (val === "whatsapp") {
+                  onUpdate({ action_type: "whatsapp" });
+                } else if (val === "custom_link") {
+                  const isKnownInternal = SITE_INTERNAL_PAGES.some((p) => p.path === actionValue);
+                  onUpdate({
+                    action_type: "link",
+                    action_value: isKnownInternal ? "" : actionValue,
+                  });
+                } else {
+                  // Es una de las páginas oficiales internas
+                  onUpdate({
+                    action_type: val === "/cotizador" ? "cotizador" : "link",
+                    action_value: val,
+                  });
+                }
+              }}
             >
               <SelectTrigger className="mt-1 text-xs">
-                <SelectValue />
+                <SelectValue placeholder="Selecciona una acción o página de destino" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Sin Ícono (Solo Fondo 100% Vivo)</SelectItem>
-                <SelectItem value="left">A la Izquierda del Texto</SelectItem>
-                <SelectItem value="right">A la Derecha del Texto</SelectItem>
+                <div className="px-2 py-1 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Páginas Oficiales del Sitio
+                </div>
+                {SITE_INTERNAL_PAGES.map((page) => (
+                  <SelectItem key={page.path} value={page.path}>
+                    {page.label} ({page.path})
+                  </SelectItem>
+                ))}
+                <div className="px-2 py-1 mt-1 text-[11px] font-bold text-muted-foreground uppercase tracking-wider border-t border-border/50">
+                  Otras Acciones
+                </div>
+                <SelectItem value="none">Sin Acción (Texto Estático / Informativo)</SelectItem>
+                <SelectItem value="whatsapp">💬 Abrir Chat de WhatsApp con Mensaje Personalizado</SelectItem>
+                <SelectItem value="custom_link">🔗 Enlace Personalizado o URL Externa (https://...)</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div>
-            <Label className="text-xs font-semibold">Efecto Resplandor / Glow</Label>
-            <Select
-              value={item.animation_style || "none"}
-              onValueChange={(val) => onUpdate({ animation_style: val })}
-            >
-              <SelectTrigger className="mt-1 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Sin Resplandor</SelectItem>
-                <SelectItem value="neon_glow">Neón Cyberpunk ⚡</SelectItem>
-                <SelectItem value="cyber_pulse">Pulso Dinámico 💫</SelectItem>
-                <SelectItem value="shimmer">Brillo Shimmer ✨</SelectItem>
-                <SelectItem value="festive_sparkle">Destello Festivo 🌟</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {actionType !== "none" && actionType !== "whatsapp" && (() => {
+            const matchedPage = SITE_INTERNAL_PAGES.find(
+              (p) => p.path === actionValue || (actionType === "cotizador" && p.path === "/cotizador")
+            );
+
+            if (matchedPage) {
+              return (
+                <div className="sm:col-span-2 rounded-lg bg-background/50 border border-border/60 p-3 text-xs text-muted-foreground flex items-center justify-between gap-2">
+                  <div>
+                    <span>Redirección interna configurada a: </span>
+                    <span className="font-semibold text-foreground">{matchedPage.label}</span>{" "}
+                    <code className="font-mono text-primary font-bold">({matchedPage.path})</code>
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <div className="sm:col-span-2">
+                <Label className="text-xs font-semibold">Enlace o URL de Destino Personalizada</Label>
+                <Input
+                  value={actionValue}
+                  onChange={(e) => onUpdate({ action_value: e.target.value, action_type: "link" })}
+                  placeholder="Ej: https://instagram.com/willdesign3d o /promociones"
+                  className="mt-1 text-xs"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Ingresa una URL externa completa con <code className="text-xs font-mono">https://</code> o una ruta interna personalizada.
+                </p>
+              </div>
+            );
+          })()}
         </div>
 
-        {(type === "imageFill" || type === "videoFill" || type === "gradient") && (
-          <div className="space-y-1 pt-1">
-            <div className="flex items-center justify-between text-xs font-semibold">
-              <Label className="text-xs font-semibold">Oscurecimiento Overlay (Legibilidad WCAG):</Label>
-              <span className="font-mono text-primary font-bold">{item.overlayOpacity ?? 45}%</span>
+        {/* Sub-configuración condicional de WhatsApp */}
+        {actionType === "whatsapp" && (
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.04] p-4 space-y-4 mt-3">
+            <div className="flex items-center gap-2 border-b border-emerald-500/20 pb-2">
+              <div className="h-2 w-2 rounded-full bg-emerald-500" />
+              <h5 className="text-xs font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                Parámetros de WhatsApp
+              </h5>
             </div>
-            <input
-              type="range"
-              min={30}
-              max={75}
-              value={item.overlayOpacity ?? 45}
-              onChange={(e) => onUpdate({ overlayOpacity: Number(e.target.value) })}
-              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-            />
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <Label className="text-xs font-semibold">Número de WhatsApp (Opcional, vacío = WhatsApp de la marca)</Label>
+                <Input
+                  value={actionValue}
+                  onChange={(e) => onUpdate({ action_value: e.target.value })}
+                  placeholder="573156724474 (solo números con código de país)"
+                  className="mt-1 text-xs"
+                />
+              </div>
+
+              <div className="sm:col-span-2 space-y-1">
+                <Label className="text-xs font-semibold">Texto o Plantilla del Mensaje de WhatsApp</Label>
+                <Textarea
+                  rows={2}
+                  value={item.whatsapp_message || ""}
+                  onChange={(e) => onUpdate({ whatsapp_message: e.target.value })}
+                  placeholder={`Hola Will Design 3D, me interesa la consulta sobre: ${item.k || ""} (${item.v || ""}).`}
+                  className="text-xs resize-y"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Al subir una imagen abajo, se adjunta automáticamente al mensaje de WhatsApp sin tener que escribir comandos.
+                </p>
+              </div>
+
+              <div className="sm:col-span-2 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                    Imagen Específica que Acompaña el Enlace en WhatsApp
+                  </Label>
+                  <span className="text-[10px] text-muted-foreground font-semibold">
+                    Drag & Drop o Explorar Dispositivo
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Sube una foto JPG, PNG o WEBP de cualquier tamaño: se comprime automáticamente a &lt;280KB.
+                </p>
+                <MediaDropZone
+                  forWhatsapp
+                  value={item.whatsapp_image_url || ""}
+                  onChange={(url) => onUpdate({ whatsapp_image_url: url })}
+                />
+              </div>
+
+              {/* Estado del Modo de Mensaje según si hay o no imagen configurada */}
+              <div className="sm:col-span-2">
+                {item.whatsapp_image_url ? (
+                  <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 flex items-start gap-2.5">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                        Previsualización activa: Se incluirá enlace corto con tu foto
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Al enviar el mensaje por WhatsApp, se adjuntará el enlace corto para mostrar la tarjeta con la foto.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-border bg-muted/30 p-3 flex items-start gap-2.5">
+                    <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/50 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-foreground">
+                        Mensaje limpio: Se enviará solo texto plano
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Como no has configurado ninguna foto arriba, WhatsApp enviará exclusivamente el texto del mensaje sin enlaces ni tarjetas.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Live WhatsApp Message Preview Box */}
+              <div className="sm:col-span-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 space-y-1 text-xs">
+                <span className="font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+                  💬 Así se verá en WhatsApp:
+                </span>
+                <p className="text-muted-foreground whitespace-pre-wrap font-mono text-[11px] bg-background/50 p-2 rounded-lg border border-emerald-500/20">
+                  {payload.formattedText || `Hola Will Design 3D, me interesa la consulta sobre: ${item.k || ""} (${item.v || ""}).`}
+                </p>
+                <p className="text-[10px] text-emerald-700/90 dark:text-emerald-300/90 font-semibold mt-1 flex items-center gap-1.5 flex-wrap">
+                  {payload.mediaToSend ? (
+                    <>
+                      <span>📎 Adjunto a enviar: <strong>{shortMediaName(payload.mediaToSend)}</strong></span>
+                      <span className="inline-flex items-center rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] font-bold text-white">
+                        Enlace corto /ref activo ✓
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">
+                      📄 Solo texto plano (sin adjunto ni enlace)
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </div>
     </div>
   );
 }
+
 
 function SortablePortfolioCard({
   photo,
@@ -1336,6 +1573,21 @@ function HeroStatsEditor({
     onChange(JSON.stringify(updated));
   }
 
+  function handleDuplicateItem(id: string) {
+    const itemIndex = items.findIndex((it) => it.id === id);
+    if (itemIndex === -1) return;
+    const target = items[itemIndex];
+    const cloned: HeroStatItem = {
+      ...target,
+      id: `stat_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      k: target.k ? `${target.k} (Copia)` : "Nuevo Valor",
+    };
+    const next = [...items];
+    next.splice(itemIndex + 1, 0, cloned);
+    onChange(JSON.stringify(next));
+    toast.success("Estadística duplicada con éxito");
+  }
+
   function handleAddItem() {
     const newItem: HeroStatItem = {
       id: `stat_${Date.now()}`,
@@ -1369,6 +1621,7 @@ function HeroStatsEditor({
                 index={idx}
                 palette={palette}
                 onUpdate={(patch) => handleUpdateItem(it.id, patch)}
+                onDuplicate={() => handleDuplicateItem(it.id)}
                 onRemove={() => handleRemoveItem(it.id)}
               />
             ))}
