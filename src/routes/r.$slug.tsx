@@ -19,22 +19,18 @@ export const Route = createFileRoute("/r/$slug")({
       const { data } = await supabase
         .from("site_content")
         .select("key, value")
-        .in("key", ["hero_stats", "about_stats"]);
+        .eq("key", "hero_stats")
+        .maybeSingle();
 
-      for (const row of data || []) {
-        try {
-          const arr = JSON.parse(String(row.value || "[]"));
-          if (Array.isArray(arr)) {
-            // Buscar elementos que tengan whatsapp_image_url
-            const itemsWithImg = arr.filter((s: any) => Boolean(s?.whatsapp_image_url));
-            if (targetIndex >= 0 && targetIndex < itemsWithImg.length) {
-              img = String(itemsWithImg[targetIndex].whatsapp_image_url || "");
-              if (img) break;
-            }
-          }
-        } catch {
-          /* ignore */
+      // sN = posición N en la portada (misma numeración que genera index.tsx),
+      // sin filtrar: así cada botón abre SU propia foto aunque otros no tengan.
+      try {
+        const arr = JSON.parse(String(data?.value || "[]"));
+        if (Array.isArray(arr) && targetIndex >= 0 && targetIndex < arr.length) {
+          img = String(arr[targetIndex]?.whatsapp_image_url || "");
         }
+      } catch {
+        /* ignore */
       }
     } else if (/^stat_[a-z0-9_]+$/i.test(rawSlug)) {
       // Coincidencia por ID exacto de la estadística (ej: stat_1792688101861)
