@@ -1244,7 +1244,7 @@ function SortableHeroStatCard({
                         Previsualización activa: Se incluirá enlace corto con tu foto
                       </p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Al enviar el mensaje por WhatsApp, se adjuntará el enlace corto para mostrar la tarjeta con la foto.
+                        Al enviar el mensaje por WhatsApp, se adjuntará el enlace corto Open Graph <code className="text-[10px] font-mono font-bold">/r/{`s${index + 1}`}</code> para mostrar la tarjeta con la foto.
                       </p>
                     </div>
                   </div>
@@ -1276,7 +1276,7 @@ function SortableHeroStatCard({
                     <>
                       <span>📎 Adjunto a enviar: <strong>{shortMediaName(payload.mediaToSend)}</strong></span>
                       <span className="inline-flex items-center rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] font-bold text-white">
-                        Enlace corto /ref activo ✓
+                        Enlace ultra corto /r activo ✓
                       </span>
                     </>
                   ) : (
@@ -2145,7 +2145,7 @@ function CTAButtonGroup({
                         Previsualización activa: Se incluirá enlace corto con tu foto
                       </p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Al enviar el mensaje por WhatsApp, se adjuntará el enlace corto Open Graph <code className="text-[10px] font-mono font-bold">/ref?k={WHATSAPP_REF_ALIASES[waImageKey] || waImageKey}</code> para mostrar la tarjeta con la foto.
+                        Al enviar el mensaje por WhatsApp, se adjuntará el enlace corto Open Graph <code className="text-[10px] font-mono font-bold">/r/{WHATSAPP_REF_ALIASES[waImageKey] || waImageKey}</code> para mostrar la tarjeta con la foto.
                       </p>
                     </div>
                   </div>
@@ -2177,7 +2177,7 @@ function CTAButtonGroup({
                     <>
                       <span>📎 Adjunto a enviar: <strong>{shortMediaName(payload.mediaToSend)}</strong></span>
                       <span className="inline-flex items-center rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] font-bold text-white">
-                        Enlace corto /ref activo ✓
+                        Enlace ultra corto /r activo ✓
                       </span>
                     </>
                   ) : (
