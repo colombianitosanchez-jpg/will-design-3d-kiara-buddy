@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { contrastText, accentPalette } from "./hero-stats";
+import { contrastText, accentPalette, parseHeroStats } from "./hero-stats";
 import { getWhatsAppPayloadForButton } from "./whatsapp-buttons";
 
 describe("estadísticas del hero", () => {
@@ -70,5 +70,25 @@ describe("estadísticas del hero", () => {
       expect(parsed[1].animation_style).toBe("shimmer");
     });
     return stats;
+  });
+
+  test("eliminar media_url o icon_url respeta string vacío y no revive bgImageUrl residual", async () => {
+    const rawData = {
+      hero_stats: JSON.stringify([
+        {
+          id: "stat_1",
+          k: "50×50",
+          v: "cm",
+          media_url: "",
+          bgImageUrl: "https://example.com/old-bg.jpg",
+          icon_url: "",
+          icon_position: "left",
+        },
+      ]),
+    };
+
+    const parsed = parseHeroStats(rawData);
+    expect(parsed[0].media_url).toBe("");
+    expect(parsed[0].icon_url).toBe("");
   });
 });

@@ -103,6 +103,7 @@ export function MediaDropZone({
 }) {
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function handleFile(file: File) {
     if (!file) return;
@@ -179,11 +180,16 @@ export function MediaDropZone({
               variant="destructive"
               size="icon"
               onClick={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
+                if (fileInputRef.current) {
+                  fileInputRef.current.value = "";
+                }
                 onChange("");
               }}
-              className="absolute top-2 right-2 h-7 w-7 rounded-full shadow-md"
-              title="Eliminar multimedia"
+              className="absolute top-2 right-2 h-7 w-7 rounded-full shadow-md bg-destructive hover:bg-destructive/90 text-destructive-foreground cursor-pointer z-10 transition-transform hover:scale-110 active:scale-95"
+              title="Eliminar archivo multimedia"
+              aria-label="Eliminar archivo multimedia"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
@@ -198,6 +204,7 @@ export function MediaDropZone({
               Soporta: PNG, JPG, WEBP, GIF, MP4, WebM (Máx 50MB)
             </span>
             <input
+              ref={fileInputRef}
               type="file"
               accept="image/*,video/*,.gif,.webp"
               className="hidden"
@@ -1012,7 +1019,12 @@ function SortableHeroStatCard({
                   value={mediaUrl}
                   onChange={(url, detectedType) => {
                     const nextType = detectedType || (url ? (/\.(mp4|webm|quicktime)($|\?)/i.test(url) ? "videoFill" : "imageFill") : "solid");
-                    onUpdate({ media_url: url, bgImageUrl: url, type: nextType });
+                    onUpdate({
+                      media_url: url,
+                      bgImageUrl: url,
+                      type: nextType,
+                      ...(url ? {} : { shade: undefined }),
+                    });
                   }}
                 />
                 <div>
@@ -1061,7 +1073,7 @@ function SortableHeroStatCard({
               <>
                 <MediaDropZone
                   value={iconUrl}
-                  onChange={(url) => onUpdate({ icon_url: url })}
+                  onChange={(url) => onUpdate({ icon_url: url, ...(url ? {} : { bgImageUrl: item.media_url ? item.media_url : "" }) })}
                 />
                 <div>
                   <Label className="text-xs font-semibold">Forma del ícono</Label>
