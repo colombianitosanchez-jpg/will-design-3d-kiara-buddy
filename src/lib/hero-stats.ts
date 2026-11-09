@@ -54,8 +54,8 @@ export function parseHeroStats(values: Record<string, string>): HeroStatItem[] {
       const parsed = JSON.parse(values.hero_stats);
       if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed.map((item: any) => {
-          const bgUrl = item.media_url || item.bgImageUrl || "";
-          const iconUrl = item.icon_url || (item.iconPosition && item.iconPosition !== "none" ? item.bgImageUrl : undefined) || "";
+          const bgUrl = item.media_url !== undefined ? item.media_url : (item.bgImageUrl || "");
+          const iconUrl = item.icon_url !== undefined ? item.icon_url : (item.iconPosition && item.iconPosition !== "none" ? (item.bgImageUrl || "") : "");
           const isVid = /\.(mp4|webm|quicktime)($|\?)/i.test(bgUrl);
           const legacyShade = typeof item.shade === "number" ? item.shade : (typeof item.overlayOpacity === "number" ? item.overlayOpacity : undefined);
           const iconPos = item.icon_position || item.iconPosition || "none";
