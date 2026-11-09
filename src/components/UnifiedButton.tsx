@@ -293,6 +293,8 @@ export function UnifiedButton({
               <img
                 src={unifiedStyle.bgImageUrl}
                 alt=""
+                loading="lazy"
+                decoding="async"
                 onError={() => setMediaFailed(true)}
                 className={`pointer-events-none absolute inset-0 z-0 h-full w-full object-center ${fitClass}`}
               />
@@ -314,6 +316,10 @@ export function UnifiedButton({
             <img
               src={unifiedStyle.iconUrl}
               alt=""
+              width={20}
+              height={20}
+              loading="lazy"
+              decoding="async"
               style={iconShapeConfig.style}
               className={`h-5 w-5 shrink-0 ${iconShapeConfig.className}`}
             />
@@ -325,6 +331,10 @@ export function UnifiedButton({
             <img
               src={unifiedStyle.iconUrl}
               alt=""
+              width={20}
+              height={20}
+              loading="lazy"
+              decoding="async"
               style={iconShapeConfig.style}
               className={`h-5 w-5 shrink-0 ${iconShapeConfig.className}`}
             />

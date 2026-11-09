@@ -294,6 +294,7 @@ function ServiciosPage() {
                         src={s.image_url}
                         alt={s.title}
                         loading="lazy"
+                        decoding="async"
                         className="h-full w-full object-cover"
                       />
                     )}

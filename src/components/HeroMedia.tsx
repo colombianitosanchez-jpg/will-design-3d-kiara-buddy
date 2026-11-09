@@ -78,6 +78,9 @@ export function HeroMedia({ fallbackImage }: { fallbackImage?: string }) {
         alt="Will Design 3D"
         width={1600}
         height={1000}
+        loading="eager"
+        {...({ fetchPriority: "high" as const })}
+        decoding="async"
         className={MEDIA_CLASS}
       />
     );

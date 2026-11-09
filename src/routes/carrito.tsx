@@ -436,7 +436,15 @@ function CarritoPage() {
               {items.map((i) => (
                 <li key={i.product_id} className="flex flex-wrap items-center gap-4 py-4">
                   {i.image_url ? (
-                    <img src={i.image_url} alt={i.name} className="h-16 w-16 rounded-xl object-cover" />
+                    <img
+                      src={i.image_url}
+                      alt={i.name}
+                      width={64}
+                      height={64}
+                      loading="lazy"
+                      decoding="async"
+                      className="h-16 w-16 rounded-xl object-cover"
+                    />
                   ) : (
                     <div className="h-16 w-16 rounded-xl bg-muted" />
                   )}

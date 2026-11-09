@@ -435,6 +435,10 @@ function NosotrosPage() {
                 <img
                   src="/logo.png"
                   alt={businessName}
+                  width={128}
+                  height={128}
+                  loading="lazy"
+                  decoding="async"
                   className="h-32 w-auto object-contain opacity-80"
                 />
                 <span className="text-xs font-semibold text-muted-foreground">
