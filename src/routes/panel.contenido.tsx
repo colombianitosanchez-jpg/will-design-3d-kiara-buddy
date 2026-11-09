@@ -2213,15 +2213,19 @@ function CTAButtonGroup({
 function SortableHeroButtonItemCard({
   button,
   index,
+  total,
   palette,
   onUpdate,
+  onPositionChange,
   onDuplicate,
   onRemove,
 }: {
   button: HeroButtonItem;
   index: number;
+  total: number;
   palette: Array<{ id: string; name: string; hex: string }>;
   onUpdate: (patch: Partial<HeroButtonItem>) => void;
+  onPositionChange: (from: number, to: number) => void;
   onDuplicate: () => void;
   onRemove: () => void;
 }) {
@@ -2279,24 +2283,47 @@ function SortableHeroButtonItemCard({
       style={style}
       className="rounded-2xl border border-dashed border-border p-5 space-y-6 bg-muted/20"
     >
-      {/* Encabezado con Drag handle, #Index, Duplicar, Eliminar y Vista Previa */}
+      {/* Encabezado con Drag handle, #Index, Posición rápida, Duplicar, Eliminar y Vista Previa */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
         <div className="flex items-center gap-2">
           <button
             type="button"
             {...attributes}
             {...listeners}
-            className="cursor-grab touch-none text-muted-foreground hover:text-foreground p-1"
+            aria-label={`Arrastrar botón #${index + 1}`}
+            className="cursor-grab touch-none rounded-xl p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing transition"
             title="Arrastrar para reordenar botón del Hero"
           >
-            <GripVertical className="h-4 w-4" />
+            <GripVertical className="h-5 w-5 text-primary" />
           </button>
-          <span className="text-sm font-black uppercase tracking-wider text-muted-foreground">
-            #{index + 1} - {button.text || "Sin texto"}
+          <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-xs font-black text-primary shrink-0">
+            #{index + 1}
+          </span>
+          <span className="text-sm font-bold text-foreground">
+            {button.text || "Sin texto"}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0 mr-1">
+            <label className="text-[11px] text-muted-foreground font-semibold">Pos:</label>
+            <input
+              type="number"
+              min={1}
+              max={total}
+              value={index + 1}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                if (!isNaN(val)) {
+                  const targetIdx = Math.max(0, Math.min(total - 1, val - 1));
+                  if (targetIdx !== index) {
+                    onPositionChange(index, targetIdx);
+                  }
+                }
+              }}
+              className="w-12 rounded-lg border border-input bg-background px-2 py-1 text-xs font-bold text-center outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
           <Button
             type="button"
             variant="outline"
@@ -2929,15 +2956,19 @@ function HeroButtonsEditor({
     toast.success("Nuevo botón añadido al Hero");
   }
 
+  function handlePositionChange(from: number, to: number) {
+    const moved = arrayMove(buttons, from, to);
+    const sync = syncLegacyKeys(moved);
+    setValues((v) => ({ ...v, ...sync }));
+  }
+
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const oldIndex = buttons.findIndex((b) => b.id === active.id);
     const newIndex = buttons.findIndex((b) => b.id === over.id);
     if (oldIndex !== -1 && newIndex !== -1) {
-      const moved = arrayMove(buttons, oldIndex, newIndex);
-      const sync = syncLegacyKeys(moved);
-      setValues((v) => ({ ...v, ...sync }));
+      handlePositionChange(oldIndex, newIndex);
     }
   }
 
@@ -2972,8 +3003,10 @@ function HeroButtonsEditor({
                 key={b.id}
                 button={b}
                 index={idx}
+                total={buttons.length}
                 palette={palette}
                 onUpdate={(patch) => handleUpdateButton(b.id, patch)}
+                onPositionChange={handlePositionChange}
                 onDuplicate={() => handleDuplicateButton(b.id)}
                 onRemove={() => handleRemoveButton(b.id)}
               />
