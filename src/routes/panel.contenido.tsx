@@ -587,6 +587,75 @@ function LottiePreview({ url }: { url: string }) {
   return <Component animationData={data} loop={true} className="h-5 w-5" />;
 }
 
+function HeroStatOrderRow({
+  item,
+  index,
+  total,
+  onPositionChange,
+}: {
+  item: HeroStatItem;
+  index: number;
+  total: number;
+  onPositionChange: (from: number, to: number) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: `stat_order_${item.id}`,
+  });
+  const label = [item.k, item.v].filter(Boolean).join(" — ") || `Elemento #${index + 1}`;
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`flex items-center gap-3 rounded-2xl border bg-card p-3 transition shadow-2xs ${
+        isDragging
+          ? "z-20 border-primary bg-primary/10 shadow-xl ring-2 ring-primary"
+          : "border-border hover:border-border/80"
+      }`}
+    >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        aria-label={`Arrastrar ${label}`}
+        className="cursor-grab touch-none rounded-xl p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing transition"
+        title="Arrastrar para reordenar"
+      >
+        <GripVertical className="h-5 w-5 text-primary" />
+      </button>
+
+      <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-xs font-black text-primary shrink-0">
+        #{index + 1}
+      </span>
+
+      <span className="text-sm font-bold flex-1 text-foreground flex items-center gap-2 truncate">
+        <Layers className="h-4 w-4 text-muted-foreground shrink-0" />
+        <span className="truncate">{label}</span>
+      </span>
+
+      <div className="flex items-center gap-1.5 shrink-0">
+        <label className="text-[11px] text-muted-foreground font-semibold">Pos:</label>
+        <input
+          type="number"
+          min={1}
+          max={total}
+          value={index + 1}
+          onChange={(e) => {
+            const val = parseInt(e.target.value, 10);
+            if (!isNaN(val)) {
+              const targetIdx = Math.max(0, Math.min(total - 1, val - 1));
+              if (targetIdx !== index) {
+                onPositionChange(index, targetIdx);
+              }
+            }
+          }}
+          className="w-12 rounded-lg border border-input bg-background px-2 py-1 text-xs font-bold text-center outline-none focus:ring-2 focus:ring-primary"
+        />
+      </div>
+    </li>
+  );
+}
+
 function SortableHeroStatCard({
   item,
   index,
@@ -1549,39 +1618,92 @@ function HeroStatsEditor({
     toast.success("Nuevo elemento añadido");
   }
 
+  function handlePositionChange(from: number, to: number) {
+    onChange(JSON.stringify(arrayMove(items, from, to)));
+  }
+
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const oldIndex = items.findIndex((it) => it.id === active.id);
-    const newIndex = items.findIndex((it) => it.id === over.id);
+    const activeId = String(active.id).replace(/^stat_order_/, "");
+    const overId = String(over.id).replace(/^stat_order_/, "");
+    const oldIndex = items.findIndex((it) => it.id === activeId);
+    const newIndex = items.findIndex((it) => it.id === overId);
     if (oldIndex !== -1 && newIndex !== -1) {
-      onChange(JSON.stringify(arrayMove(items, oldIndex, newIndex)));
+      handlePositionChange(oldIndex, newIndex);
     }
   }
 
   return (
-    <div className="space-y-3">
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={items.map((it) => it.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-3">
-            {items.map((it, idx) => (
-              <SortableHeroStatCard
-                key={it.id}
-                item={it}
-                index={idx}
-                palette={palette}
-                onUpdate={(patch) => handleUpdateItem(it.id, patch)}
-                onDuplicate={() => handleDuplicateItem(it.id)}
-                onRemove={() => handleRemoveItem(it.id)}
-              />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
+    <div className="space-y-6">
+      {/* Sistema de Orden de Estadísticas y Botones de Acción (Idéntico a Orden de Secciones) */}
+      <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+        <div>
+          <Label className="text-sm font-bold flex items-center gap-2">
+            <Layers className="h-4 w-4 text-primary" />
+            Orden de Estadísticas y Botones de Acción
+          </Label>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Arrastra las estadísticas y botones para decidir qué aparece primero en el Hero.
+          </p>
+        </div>
 
-      <Button type="button" variant="outline" size="sm" onClick={handleAddItem} className="mt-2 text-xs font-bold">
-        <Plus className="mr-1.5 h-3.5 w-3.5" /> + Añadir elemento
-      </Button>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext
+            items={items.map((it) => `stat_order_${it.id}`)}
+            strategy={verticalListSortingStrategy}
+          >
+            <ul className="space-y-2.5">
+              {items.map((it, idx) => (
+                <HeroStatOrderRow
+                  key={`stat_order_${it.id}`}
+                  item={it}
+                  index={idx}
+                  total={items.length}
+                  onPositionChange={handlePositionChange}
+                />
+              ))}
+            </ul>
+          </SortableContext>
+        </DndContext>
+      </div>
+
+      {/* Editor Detallado de Estadísticas del Hero y Botones de Acción */}
+      <div className="space-y-4 rounded-2xl border border-primary/20 bg-primary/[0.02] p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
+          <div>
+            <Label className="text-sm font-bold flex items-center gap-2">
+              <Layers className="h-4 w-4 text-primary" />
+              Estadísticas del Hero y Botones de Acción
+            </Label>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Edita métricas, añade enlaces clickeables, íconos y personaliza el aspecto visual.
+            </p>
+          </div>
+
+          <Button type="button" variant="outline" size="sm" onClick={handleAddItem} className="text-xs font-bold gap-1.5 shadow-sm">
+            <Plus className="h-4 w-4" /> + Añadir elemento
+          </Button>
+        </div>
+
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={items.map((it) => it.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-3">
+              {items.map((it, idx) => (
+                <SortableHeroStatCard
+                  key={it.id}
+                  item={it}
+                  index={idx}
+                  palette={palette}
+                  onUpdate={(patch) => handleUpdateItem(it.id, patch)}
+                  onDuplicate={() => handleDuplicateItem(it.id)}
+                  onRemove={() => handleRemoveItem(it.id)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      </div>
     </div>
   );
 }
