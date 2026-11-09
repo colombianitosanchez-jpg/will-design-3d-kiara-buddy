@@ -2210,22 +2210,87 @@ function CTAButtonGroup({
 }
 
 
-function SortableHeroButtonItemCard({
+function HeroButtonOrderRow({
   button,
   index,
   total,
+  onPositionChange,
+}: {
+  button: HeroButtonItem;
+  index: number;
+  total: number;
+  onPositionChange: (from: number, to: number) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: `order_${button.id}`,
+  });
+  const label = button.text?.trim() || `Botón #${index + 1}`;
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`flex items-center gap-3 rounded-2xl border bg-card p-3 transition shadow-2xs ${
+        isDragging
+          ? "z-20 border-primary bg-primary/10 shadow-xl ring-2 ring-primary"
+          : "border-border hover:border-border/80"
+      }`}
+    >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        aria-label={`Arrastrar ${label}`}
+        className="cursor-grab touch-none rounded-xl p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing transition"
+        title="Arrastrar para reordenar botón"
+      >
+        <GripVertical className="h-5 w-5 text-primary" />
+      </button>
+
+      <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-xs font-black text-primary shrink-0">
+        #{index + 1}
+      </span>
+
+      <span className="text-sm font-bold flex-1 text-foreground flex items-center gap-2 truncate">
+        <Layers className="h-4 w-4 text-muted-foreground shrink-0" />
+        <span className="truncate">{label}</span>
+      </span>
+
+      <div className="flex items-center gap-1.5 shrink-0">
+        <label className="text-[11px] text-muted-foreground font-semibold">Pos:</label>
+        <input
+          type="number"
+          min={1}
+          max={total}
+          value={index + 1}
+          onChange={(e) => {
+            const val = parseInt(e.target.value, 10);
+            if (!isNaN(val)) {
+              const targetIdx = Math.max(0, Math.min(total - 1, val - 1));
+              if (targetIdx !== index) {
+                onPositionChange(index, targetIdx);
+              }
+            }
+          }}
+          className="w-12 rounded-lg border border-input bg-background px-2 py-1 text-xs font-bold text-center outline-none focus:ring-2 focus:ring-primary"
+        />
+      </div>
+    </li>
+  );
+}
+
+function SortableHeroButtonItemCard({
+  button,
+  index,
   palette,
   onUpdate,
-  onPositionChange,
   onDuplicate,
   onRemove,
 }: {
   button: HeroButtonItem;
   index: number;
-  total: number;
   palette: Array<{ id: string; name: string; hex: string }>;
   onUpdate: (patch: Partial<HeroButtonItem>) => void;
-  onPositionChange: (from: number, to: number) => void;
   onDuplicate: () => void;
   onRemove: () => void;
 }) {
@@ -2283,7 +2348,7 @@ function SortableHeroButtonItemCard({
       style={style}
       className="rounded-2xl border border-dashed border-border p-5 space-y-6 bg-muted/20"
     >
-      {/* Encabezado con Drag handle, #Index, Posición rápida, Duplicar, Eliminar y Vista Previa */}
+      {/* Encabezado con Drag handle, #Index, Duplicar, Eliminar y Vista Previa */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
         <div className="flex items-center gap-2">
           <button
@@ -2305,25 +2370,6 @@ function SortableHeroButtonItemCard({
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 shrink-0 mr-1">
-            <label className="text-[11px] text-muted-foreground font-semibold">Pos:</label>
-            <input
-              type="number"
-              min={1}
-              max={total}
-              value={index + 1}
-              onChange={(e) => {
-                const val = parseInt(e.target.value, 10);
-                if (!isNaN(val)) {
-                  const targetIdx = Math.max(0, Math.min(total - 1, val - 1));
-                  if (targetIdx !== index) {
-                    onPositionChange(index, targetIdx);
-                  }
-                }
-              }}
-              className="w-12 rounded-lg border border-input bg-background px-2 py-1 text-xs font-bold text-center outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
           <Button
             type="button"
             variant="outline"
@@ -2965,55 +3011,90 @@ function HeroButtonsEditor({
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const oldIndex = buttons.findIndex((b) => b.id === active.id);
-    const newIndex = buttons.findIndex((b) => b.id === over.id);
+    const activeId = String(active.id).replace(/^order_/, "");
+    const overId = String(over.id).replace(/^order_/, "");
+    const oldIndex = buttons.findIndex((b) => b.id === activeId);
+    const newIndex = buttons.findIndex((b) => b.id === overId);
     if (oldIndex !== -1 && newIndex !== -1) {
       handlePositionChange(oldIndex, newIndex);
     }
   }
 
   return (
-    <div className="space-y-4 rounded-2xl border border-primary/20 bg-primary/[0.02] p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
+    <div className="space-y-6">
+      {/* Sistema de Orden de los Botones del Hero (Idéntico a Orden de Secciones) */}
+      <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
         <div>
           <Label className="text-sm font-bold flex items-center gap-2">
             <Layers className="h-4 w-4 text-primary" />
-            Botones de Acción del Hero (Ilimitados con Drag & Drop)
+            Orden de los Botones del Hero
           </Label>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Añade, reordena y personaliza todos los botones que desees mostrar en la cabecera principal.
+            Arrastra los botones para decidir qué aparece primero al entrar a la página.
           </p>
         </div>
 
-        <Button
-          type="button"
-          onClick={handleAddButton}
-          className="text-xs font-bold gap-1.5 shadow-sm"
-        >
-          <Plus className="h-4 w-4" />
-          + Añadir Botón al Hero
-        </Button>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext
+            items={buttons.map((b) => `order_${b.id}`)}
+            strategy={verticalListSortingStrategy}
+          >
+            <ul className="space-y-2.5">
+              {buttons.map((b, idx) => (
+                <HeroButtonOrderRow
+                  key={`order_${b.id}`}
+                  button={b}
+                  index={idx}
+                  total={buttons.length}
+                  onPositionChange={handlePositionChange}
+                />
+              ))}
+            </ul>
+          </SortableContext>
+        </DndContext>
       </div>
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={buttons.map((b) => b.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-4">
-            {buttons.map((b, idx) => (
-              <SortableHeroButtonItemCard
-                key={b.id}
-                button={b}
-                index={idx}
-                total={buttons.length}
-                palette={palette}
-                onUpdate={(patch) => handleUpdateButton(b.id, patch)}
-                onPositionChange={handlePositionChange}
-                onDuplicate={() => handleDuplicateButton(b.id)}
-                onRemove={() => handleRemoveButton(b.id)}
-              />
-            ))}
+      {/* Editor Completo y Detallado de Botones de Acción del Hero */}
+      <div className="space-y-4 rounded-2xl border border-primary/20 bg-primary/[0.02] p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
+          <div>
+            <Label className="text-sm font-bold flex items-center gap-2">
+              <Layers className="h-4 w-4 text-primary" />
+              Botones de Acción del Hero (Ilimitados con Drag & Drop)
+            </Label>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Añade, reordena y personaliza todos los botones que desees mostrar en la cabecera principal.
+            </p>
           </div>
-        </SortableContext>
-      </DndContext>
+
+          <Button
+            type="button"
+            onClick={handleAddButton}
+            className="text-xs font-bold gap-1.5 shadow-sm"
+          >
+            <Plus className="h-4 w-4" />
+            + Añadir Botón al Hero
+          </Button>
+        </div>
+
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={buttons.map((b) => b.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-4">
+              {buttons.map((b, idx) => (
+                <SortableHeroButtonItemCard
+                  key={b.id}
+                  button={b}
+                  index={idx}
+                  palette={palette}
+                  onUpdate={(patch) => handleUpdateButton(b.id, patch)}
+                  onDuplicate={() => handleDuplicateButton(b.id)}
+                  onRemove={() => handleRemoveButton(b.id)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      </div>
     </div>
   );
 }
