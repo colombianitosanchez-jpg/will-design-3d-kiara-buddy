@@ -379,7 +379,7 @@ function Hero() {
                         loop
                         muted
                         playsInline
-                        className={`absolute inset-0 h-full w-full -z-20 ${mediaFitClass}`}
+                        className={`absolute inset-0 h-full w-full object-center -z-20 ${mediaFitClass}`}
                       />
                     )}
 
@@ -395,7 +395,7 @@ function Hero() {
                       <img
                         src={bgUrl}
                         alt=""
-                        className={`absolute inset-0 h-full w-full -z-20 ${mediaFitClass}`}
+                        className={`absolute inset-0 h-full w-full object-center -z-20 ${mediaFitClass}`}
                       />
                     )}
 

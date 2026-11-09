@@ -236,7 +236,11 @@ export function UnifiedButton({
 
   const widthClass = button.width === "full" ? "w-full" : "w-auto";
   const fitClass =
-    button.media_fit === "contain" ? "object-contain" : button.media_fit === "fill" ? "object-fill" : "object-cover";
+    button.media_fit === "contain"
+      ? "object-contain"
+      : button.media_fit === "fill"
+      ? "object-fill"
+      : "object-cover";
   const iconShapeConfig = getIconShapeStyle(button.icon_shape);
   const solidShade = !isFillMedia ? a11y.overlayOpacity : 0;
 
@@ -270,7 +274,7 @@ export function UnifiedButton({
         )}
         {/* CAPA DE FONDO VIVO (VIDEO, GIF O IMAGEN DE FONDO COMPLETO) */}
         {isFillMedia && unifiedStyle.bgImageUrl && (
-          <span aria-hidden className="pointer-events-none absolute inset-0 z-0">
+          <span aria-hidden className="pointer-events-none absolute inset-0 z-0 block overflow-hidden rounded-[inherit]">
             {unifiedStyle.type === "videoFill" || button.animation_type === "video" ? (
               <video
                 src={unifiedStyle.bgImageUrl}
@@ -279,10 +283,10 @@ export function UnifiedButton({
                 muted
                 playsInline
                 onError={() => setMediaFailed(true)}
-                className={`pointer-events-none absolute inset-0 z-0 h-full w-full ${fitClass}`}
+                className={`pointer-events-none absolute inset-0 z-0 h-full w-full object-center ${fitClass}`}
               />
             ) : unifiedStyle.type === "lottieFill" || button.animation_type === "lottie" ? (
-              <div className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover opacity-80">
+              <div className="pointer-events-none absolute inset-0 z-0 h-full w-full flex items-center justify-center overflow-hidden opacity-80">
                 <LottiePlayer url={unifiedStyle.bgImageUrl} className="h-full w-full" />
               </div>
             ) : (
@@ -290,7 +294,7 @@ export function UnifiedButton({
                 src={unifiedStyle.bgImageUrl}
                 alt=""
                 onError={() => setMediaFailed(true)}
-                className={`pointer-events-none absolute inset-0 z-0 h-full w-full ${fitClass}`}
+                className={`pointer-events-none absolute inset-0 z-0 h-full w-full object-center ${fitClass}`}
               />
             )}
 

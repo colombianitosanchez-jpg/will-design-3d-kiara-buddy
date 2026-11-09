@@ -747,7 +747,7 @@ function SortableHeroStatCard({
                       loop
                       muted
                       playsInline
-                      className={`absolute inset-0 h-full w-full -z-20 ${
+                      className={`absolute inset-0 h-full w-full object-center -z-20 ${
                         mediaFit === "contain" ? "object-contain" : mediaFit === "fill" ? "object-fill" : "object-cover"
                       }`}
                     />
@@ -755,7 +755,7 @@ function SortableHeroStatCard({
                     <img
                       src={mediaUrl}
                       alt=""
-                      className={`absolute inset-0 h-full w-full -z-20 ${
+                      className={`absolute inset-0 h-full w-full object-center -z-20 ${
                         mediaFit === "contain" ? "object-contain" : mediaFit === "fill" ? "object-fill" : "object-cover"
                       }`}
                     />
@@ -2809,12 +2809,17 @@ function HeroButtonsEditor({
   );
 
   function syncLegacyKeys(updatedList: HeroButtonItem[]): Record<string, string> {
+    const normalizedList = updatedList.map((b) => ({
+      ...b,
+      media_fit: b.media_fit || "cover",
+    }));
+
     const patch: Record<string, string> = {
-      hero_buttons: JSON.stringify(updatedList),
+      hero_buttons: JSON.stringify(normalizedList),
       hero_buttons_order: "primary,secondary",
     };
 
-    const b1 = updatedList[0];
+    const b1 = normalizedList[0];
     if (b1) {
       patch.hero_cta_text = b1.text || "";
       patch.hero_cta_url = b1.action_value || "";
@@ -2834,7 +2839,7 @@ function HeroButtonsEditor({
       patch.hero_cta_width = b1.width || "auto";
     }
 
-    const b2 = updatedList[1];
+    const b2 = normalizedList[1];
     if (b2) {
       patch.hero_secondary_cta_text = b2.text || "";
       patch.hero_secondary_cta_url = b2.action_value || "";
@@ -2903,6 +2908,7 @@ function HeroButtonsEditor({
       shade: 0,
       width: "auto",
       media_mode: "fill",
+      media_fit: "cover",
       icon_position: "none",
     };
     const updated = [...buttons, newBtn];

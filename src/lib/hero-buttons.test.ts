@@ -181,8 +181,20 @@ describe("Hero Buttons Parser and Normalizer", () => {
     expect(buttons[0].id).toBe("hero_btn_1"); // Genera ID seguro si está vacío
     expect(buttons[0].action_type).toBe("link"); // Fallback seguro a link
     expect(buttons[0].media_mode).toBeUndefined();
-    expect(buttons[0].media_fit).toBeUndefined();
+    expect(buttons[0].media_fit).toBe("cover"); // Fallback seguro a cover
     expect(buttons[0].icon_position).toBeUndefined();
     expect(buttons[0].width).toBeUndefined();
+  });
+
+  it("debe preservar correctamente media_fit cuando es contain, fill o cover", () => {
+    const rawButtons = [
+      { text: "B1", media_fit: "contain" },
+      { text: "B2", media_fit: "fill" },
+      { text: "B3", media_fit: "cover" },
+    ];
+    const buttons = parseHeroButtons({ hero_buttons: JSON.stringify(rawButtons) });
+    expect(buttons[0].media_fit).toBe("contain");
+    expect(buttons[1].media_fit).toBe("fill");
+    expect(buttons[2].media_fit).toBe("cover");
   });
 });
