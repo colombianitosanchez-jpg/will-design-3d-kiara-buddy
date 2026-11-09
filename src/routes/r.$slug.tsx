@@ -55,7 +55,56 @@ export const Route = createFileRoute("/r/$slug")({
       }
     }
 
-    // 2. Si no se resolvió como estadística, resolver por alias de botones o claves directas
+    // 2. Botones del Hero: formato heroN, hN (ej: hero1, hero2, hero3, h1, h2, h3, o "hero")
+    const heroBtnMatch = lowerSlug.match(/^(?:h|hero)(\d+)$/i);
+    const isHeroAlias = lowerSlug === "hero" || Boolean(heroBtnMatch);
+
+    if (!img && isHeroAlias) {
+      const targetIndex = heroBtnMatch ? parseInt(heroBtnMatch[1], 10) - 1 : 0;
+      if (targetIndex >= 0) {
+        const { data } = await supabase
+          .from("site_content")
+          .select("key, value")
+          .in("key", [
+            "hero_buttons",
+            "hero_cta_whatsapp_image_url",
+            "hero_secondary_cta_whatsapp_image_url",
+          ]);
+
+        const contentMap: Record<string, string> = {};
+        for (const row of data || []) {
+          if (row.key && row.value) {
+            contentMap[row.key] = String(row.value);
+          }
+        }
+
+        // Primero verificar si hero_buttons existe en JSON
+        if (contentMap.hero_buttons) {
+          try {
+            const arr = JSON.parse(contentMap.hero_buttons);
+            if (Array.isArray(arr) && targetIndex < arr.length) {
+              const btn = arr[targetIndex];
+              if (btn && typeof btn === "object" && btn.whatsapp_image_url) {
+                img = String(btn.whatsapp_image_url).trim();
+              }
+            }
+          } catch {
+            /* ignore */
+          }
+        }
+
+        // Si no se resolvió por hero_buttons, usar fallback a claves legadas
+        if (!img) {
+          if (targetIndex === 0 && contentMap.hero_cta_whatsapp_image_url) {
+            img = contentMap.hero_cta_whatsapp_image_url.trim();
+          } else if (targetIndex === 1 && contentMap.hero_secondary_cta_whatsapp_image_url) {
+            img = contentMap.hero_secondary_cta_whatsapp_image_url.trim();
+          }
+        }
+      }
+    }
+
+    // 3. Si no se resolvió como estadística ni botón Hero, resolver por alias de botones o claves directas
     if (!img) {
       const key = REVERSE_REF_ALIASES[lowerSlug] || lowerSlug;
       const candidateKeys = [key];
