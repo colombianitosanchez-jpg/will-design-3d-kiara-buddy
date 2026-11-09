@@ -22,6 +22,7 @@ import { parseHomeOrder, type HomeSectionKey } from "@/lib/home-sections";
 import { siteServicesQuery } from "./servicios";
 import { menuItemsQuery } from "@/lib/menu";
 import { parseHeroStats, contrastText, type HeroStatItem } from "@/lib/hero-stats";
+import { parseHeroButtons, type HeroButtonItem } from "@/lib/hero-buttons";
 import { getActiveTheme } from "@/lib/theme";
 import { getWhatsAppPayloadForButton } from "@/lib/whatsapp-buttons";
 import { getSeo } from "@/lib/seo";
@@ -146,83 +147,39 @@ function Hero() {
   const badge = getText("hero_badge_title", "");
   const stats = parseHeroStats(content).filter((s) => s.k || s.v);
 
-  // Hero CTAs Config
-  const heroButtonsOrder = getText("hero_buttons_order", "primary,secondary");
-  const heroCtaText = getText("hero_cta_text", "Cotizar Proyecto");
-  const heroCtaUrl = getText("hero_cta_url", "/cotizador");
-  const heroCtaActionType = getText("hero_cta_action_type", "cotizador");
-  const heroCtaWhatsappMsg = getText("hero_cta_whatsapp_message", "");
-  const heroCtaWhatsappLogic = getText("hero_cta_whatsapp_image_logic", "auto");
-  const heroCtaWhatsappImg = getText("hero_cta_whatsapp_image_url", "");
-  const heroCtaMedia = getText("hero_cta_media_url", "");
-  const heroCtaMediaMode = getText("hero_cta_media_mode", "fill");
-  const heroCtaIconUrl = getText("hero_cta_icon_url", "");
-  const heroCtaIconPos = getText("hero_cta_icon_position", "none");
-  const heroCtaTextColor = getText("hero_cta_text_color", "");
-  const heroCtaCustomHex = getText("hero_cta_custom_hex", "");
-  const heroCtaOpacityStr = getText("hero_cta_opacity", "100");
-  const heroCtaOpacity = Math.max(10, Math.min(100, parseInt(heroCtaOpacityStr, 10) || 100));
-  const heroCtaShadeStr = getText("hero_cta_shade", "");
-  const heroCtaShade = heroCtaShadeStr === "" || isNaN(Number(heroCtaShadeStr)) ? undefined : Number(heroCtaShadeStr);
-  const heroCtaFit = (getText("hero_cta_media_fit", "cover") || "cover") as "cover" | "contain" | "fill";
-  const heroCtaIconShape = (getText("hero_cta_icon_shape", "circle") || "circle") as ButtonIconShape;
-  const heroCtaWidth = (getText("hero_cta_width", "auto") as "auto" | "full") || "auto";
+  // Hero CTAs Config (Soporte ilimitado con parseHeroButtons)
+  const heroButtons = parseHeroButtons(content).filter((b) => b.text?.trim());
 
-  const heroSecCtaText = getText("hero_secondary_cta_text", "");
-  const heroSecCtaUrl = getText("hero_secondary_cta_url", "/tienda");
-  const heroSecCtaActionType = getText("hero_secondary_cta_action_type", "link");
-  const heroSecCtaWhatsappMsg = getText("hero_secondary_cta_whatsapp_message", "");
-  const heroSecCtaWhatsappLogic = getText("hero_secondary_cta_whatsapp_image_logic", "auto");
-  const heroSecCtaWhatsappImg = getText("hero_secondary_cta_whatsapp_image_url", "");
-  const heroSecCtaMedia = getText("hero_secondary_cta_media_url", "");
-  const heroSecCtaMediaMode = getText("hero_secondary_cta_media_mode", "fill");
-  const heroSecCtaIconUrl = getText("hero_secondary_cta_icon_url", "");
-  const heroSecCtaIconPos = getText("hero_secondary_cta_icon_position", "none");
-  const heroSecCtaTextColor = getText("hero_secondary_cta_text_color", "");
-  const heroSecCtaCustomHex = getText("hero_secondary_cta_custom_hex", "");
-  const heroSecCtaOpacityStr = getText("hero_secondary_cta_opacity", "100");
-  const heroSecCtaOpacity = Math.max(10, Math.min(100, parseInt(heroSecCtaOpacityStr, 10) || 100));
-  const heroSecCtaShadeStr = getText("hero_secondary_cta_shade", "");
-  const heroSecCtaShade = heroSecCtaShadeStr === "" || isNaN(Number(heroSecCtaShadeStr)) ? undefined : Number(heroSecCtaShadeStr);
-  const heroSecCtaFit = (getText("hero_secondary_cta_media_fit", "cover") || "cover") as "cover" | "contain" | "fill";
-  const heroSecCtaIconShape = (getText("hero_secondary_cta_icon_shape", "circle") || "circle") as ButtonIconShape;
-  const heroSecCtaWidth = (getText("hero_secondary_cta_width", "auto") as "auto" | "full") || "auto";
+  function handleHeroButtonClick(btn: HeroButtonItem, index: number) {
+    const actionType = btn.action_type || "link";
+    const actionVal = btn.action_value || "";
 
-  function handleButtonClick(
-    actionType: string,
-    url: string,
-    whatsappMsg: string,
-    whatsappLogic: string,
-    mediaUrl: string,
-    defaultFallbackText: string,
-    whatsappImageUrl?: string,
-    whatsappImageKey?: string
-  ) {
     if (actionType === "whatsapp") {
-      // Si ya existe un mensaje configurado en site_content, evitamos pasar el fallback predeterminado
-      const effectiveFallback = whatsappMsg?.trim() ? undefined : defaultFallbackText;
+      const effectiveFallback = btn.whatsapp_message?.trim() ? undefined : "Hola Will, me interesa cotizar del Hero";
+      const shortKey = index === 0 ? "hero" : `h${index + 1}`;
       const payload = getWhatsAppPayloadForButton(
         {
-          whatsapp_message: whatsappMsg,
-          whatsapp_image_logic: whatsappLogic,
-          whatsapp_image_url: whatsappImageUrl,
-          whatsapp_image_key: whatsappImageKey,
+          whatsapp_message: btn.whatsapp_message,
+          whatsapp_image_logic: btn.whatsapp_image_logic || "auto",
+          whatsapp_image_url: btn.whatsapp_image_url,
+          whatsapp_image_key: shortKey,
         },
-        mediaUrl,
+        btn.media_url || image,
         content?.site_logo_url,
         effectiveFallback,
         globalDefaultMessage
       );
-      const waUrl = waLink(pickWhatsapp(url, fallbackWhatsapp), payload.formattedText);
+      const targetPhone = pickWhatsapp(btn.whatsapp_number || actionVal, fallbackWhatsapp);
+      const waUrl = waLink(targetPhone, payload.formattedText);
       if (!waUrl) {
         toast.error("Configura WhatsApp en /panel/marca");
         return;
       }
       openExternalUrl(waUrl);
-    } else if (actionType === "cotizador") {
+    } else if (actionType === "cotizador" || actionVal === "/cotizador") {
       router.navigate({ to: "/cotizador" });
     } else {
-      const val = url.trim();
+      const val = actionVal.trim();
       if (!val) return;
       if (/^https?:\/\//i.test(val)) {
         window.open(val, "_blank", "noopener,noreferrer");
@@ -306,99 +263,35 @@ function Hero() {
           <p className="mt-5 max-w-xl text-base text-muted-foreground sm:text-lg">
             {subtitle}
           </p>
-          {(heroCtaText || heroSecCtaText) && (
+          {heroButtons.length > 0 && (
           <div className="mt-7 flex flex-wrap items-center gap-3">
-            {(() => {
-              const primaryNode = heroCtaText ? (
-                <UnifiedButton
-                  key="hero-primary"
-                  button={{
-                    id: "hero-cta-btn",
-                    text: heroCtaText,
-                    action_type: heroCtaActionType === "cotizador" ? "link" : (heroCtaActionType as any),
-                    action_value: heroCtaUrl,
-                    whatsapp_message: heroCtaWhatsappMsg,
-                    text_color: heroCtaTextColor || undefined,
-                    custom_hex: heroCtaCustomHex || "var(--brand-orange)",
-                    media_url: (heroCtaMediaMode || "fill") === "fill" ? heroCtaMedia : undefined,
-                    media_mode: (heroCtaMediaMode || "fill") as any,
-                    icon_url: heroCtaIconUrl || (heroCtaMediaMode === "icon" ? heroCtaMedia : undefined),
-                    icon_position: heroCtaIconPos !== "none" ? (heroCtaIconPos as any) : (heroCtaMediaMode === "icon" ? "left" : "none"),
-                    variant: "default",
-                    width: heroCtaWidth,
-                    position: "left",
-                    opacity: heroCtaOpacity,
-                    shade: heroCtaShade,
-                    media_fit: heroCtaFit,
-                    icon_shape: heroCtaIconShape,
-                    include_image_link: true,
-                  }}
-                  onClick={() =>
-                    handleButtonClick(
-                      heroCtaActionType,
-                      heroCtaUrl,
-                      heroCtaWhatsappMsg,
-                      heroCtaWhatsappLogic,
-                      heroCtaMedia,
-                      "Hola Will, me interesa cotizar del Hero",
-                      heroCtaWhatsappImg,
-                      "hero_cta_whatsapp_image_url"
-                    )
-                  }
-                />
-              ) : null;
-
-              const secondaryNode = heroSecCtaText ? (
-                <UnifiedButton
-                  key="hero-secondary"
-                  button={{
-                    id: "hero-secondary-cta-btn",
-                    text: heroSecCtaText,
-                    action_type: heroSecCtaActionType === "cotizador" ? "link" : (heroSecCtaActionType as any),
-                    action_value: heroSecCtaUrl,
-                    whatsapp_message: heroSecCtaWhatsappMsg,
-                    text_color: heroSecCtaTextColor || undefined,
-                    custom_hex: heroSecCtaCustomHex || "var(--brand-wine)",
-                    media_url: (heroSecCtaMediaMode || "fill") === "fill" ? heroSecCtaMedia : undefined,
-                    media_mode: (heroSecCtaMediaMode || "fill") as any,
-                    icon_url: heroSecCtaIconUrl || (heroSecCtaMediaMode === "icon" ? heroSecCtaMedia : undefined),
-                    icon_position: heroSecCtaIconPos !== "none" ? (heroSecCtaIconPos as any) : (heroSecCtaMediaMode === "icon" ? "left" : "none"),
-                    variant: "secondary",
-                    width: heroSecCtaWidth,
-                    position: "left",
-                    opacity: heroSecCtaOpacity,
-                    shade: heroSecCtaShade,
-                    media_fit: heroSecCtaFit,
-                    icon_shape: heroSecCtaIconShape,
-                    include_image_link: true,
-                  }}
-                  onClick={() =>
-                    handleButtonClick(
-                      heroSecCtaActionType,
-                      heroSecCtaUrl,
-                      heroSecCtaWhatsappMsg,
-                      heroSecCtaWhatsappLogic,
-                      heroSecCtaMedia,
-                      "Hola Will, quisiera ver la tienda",
-                      heroSecCtaWhatsappImg,
-                      "hero_secondary_cta_whatsapp_image_url"
-                    )
-                  }
-                />
-              ) : null;
-
-              return heroButtonsOrder === "secondary,primary" ? (
-                <>
-                  {secondaryNode}
-                  {primaryNode}
-                </>
-              ) : (
-                <>
-                  {primaryNode}
-                  {secondaryNode}
-                </>
-              );
-            })()}
+            {heroButtons.map((btn, idx) => (
+              <UnifiedButton
+                key={btn.id || `hero-btn-${idx}`}
+                button={{
+                  id: btn.id || `hero-btn-${idx}`,
+                  text: btn.text,
+                  action_type: btn.action_type === "cotizador" ? "link" : (btn.action_type as any),
+                  action_value: btn.action_value || (btn.action_type === "cotizador" ? "/cotizador" : ""),
+                  whatsapp_message: btn.whatsapp_message || "",
+                  text_color: btn.text_color || undefined,
+                  custom_hex: btn.custom_hex || (idx === 0 ? "var(--brand-orange)" : "var(--brand-wine)"),
+                  media_url: (btn.media_mode || "fill") === "fill" ? btn.media_url : undefined,
+                  media_mode: (btn.media_mode || "fill") as any,
+                  icon_url: btn.icon_url || (btn.media_mode === "icon" ? btn.media_url : undefined),
+                  icon_position: btn.icon_position !== "none" ? (btn.icon_position as any) : (btn.media_mode === "icon" ? "left" : "none"),
+                  variant: idx === 0 ? "default" : "secondary",
+                  width: btn.width || "auto",
+                  position: "left",
+                  opacity: 100,
+                  shade: btn.shade,
+                  media_fit: btn.media_fit || "cover",
+                  icon_shape: btn.icon_shape || "circle",
+                  include_image_link: true,
+                }}
+                onClick={() => handleHeroButtonClick(btn, idx)}
+              />
+            ))}
           </div>
           )}
 

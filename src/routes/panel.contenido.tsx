@@ -90,6 +90,7 @@ function shortMediaName(url?: string): string {
 
 export { parseHeroStats, type HeroStatItem } from "@/lib/hero-stats";
 import { parseHeroStats, contrastText, accentPalette, type HeroStatItem } from "@/lib/hero-stats";
+import { parseHeroButtons, type HeroButtonItem } from "@/lib/hero-buttons";
 
 export function MediaDropZone({
   value,
@@ -239,7 +240,8 @@ const FIELDS: FieldDef[] = [
   },
   { key: "hero_badge_title", label: "Etiqueta Flotante (Pieza destacada)", type: "text", help: "Ej: Escultura 1.8 m — PLA reforzado", section: "Inicio", group: "Hero Principal" },
 
-  // Botón Principal Hero
+  // Botón Principal Hero y Gestión de Botones Múltiples Ilimitados
+  { key: "hero_buttons", label: "Botones del Hero", type: "text", help: "JSON con la lista completa de botones ilimitados del Hero", section: "Inicio", group: "Hero Principal" },
   { key: "hero_buttons_order", label: "Orden de Botones del Hero", type: "text", help: "Orden de renderizado: primary,secondary o secondary,primary", section: "Inicio", group: "Hero Principal" },
   { key: "hero_cta_text", label: "Texto Botón Principal Hero", type: "text", help: "Ej: Cotizar Proyecto", section: "Inicio", group: "Hero Principal" },
   { key: "hero_cta_url", label: "Enlace/Ruta Botón Principal Hero", type: "text", help: "Ej: /cotizador o https://...", section: "Inicio", group: "Hero Principal" },
@@ -2196,19 +2198,609 @@ function CTAButtonGroup({
 }
 
 
-function HeroButtonsOrderEditor({
+function SortableHeroButtonItemCard({
+  button,
+  index,
+  palette,
+  onUpdate,
+  onDuplicate,
+  onRemove,
+}: {
+  button: HeroButtonItem;
+  index: number;
+  palette: Array<{ id: string; name: string; hex: string }>;
+  onUpdate: (patch: Partial<HeroButtonItem>) => void;
+  onDuplicate: () => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: button.id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const { content } = useSiteContent();
+
+  const textColor = button.text_color || "";
+  const customHex = button.custom_hex || "";
+  const shadeNum = button.shade !== undefined ? Math.max(0, Math.min(100, button.shade)) : undefined;
+  const buttonWidth = button.width || "auto";
+  const mediaMode = button.media_mode || "fill";
+  const mediaUrl = button.media_url || "";
+  const mediaFit = button.media_fit || "cover";
+  const iconPos = button.icon_position || "none";
+  const iconUrl = button.icon_url || "";
+  const iconShape = button.icon_shape || "circle";
+  const actionType = button.action_type || "link";
+  const actionValue = button.action_value || "";
+  const whatsappNumber = button.whatsapp_number || "";
+  const whatsappMsg = button.whatsapp_message || "";
+  const whatsappImageUrl = button.whatsapp_image_url || "";
+
+  const isVid = /\.(mp4|webm|quicktime)($|\?)/i.test(mediaUrl);
+  const isGif = /\.gif($|\?)/i.test(mediaUrl);
+  const isLottie = /\.json($|\?)/i.test(mediaUrl);
+  const animType = isVid ? "video" : isGif ? "gif" : isLottie ? "lottie" : mediaUrl ? "image" : "none";
+
+  const shortKey = index === 0 ? "hero" : `h${index + 1}`;
+
+  const payload = getWhatsAppPayloadForButton(
+    {
+      whatsapp_message: whatsappMsg,
+      whatsapp_image_logic: button.whatsapp_image_logic || "auto",
+      whatsapp_image_url: whatsappImageUrl,
+      whatsapp_image_key: shortKey,
+    },
+    mediaUrl || content?.hero_image_url || "",
+    content?.site_logo_url,
+    "Hola Will Design 3D, me interesa cotizar del Hero",
+    content?.whatsapp_default_message || ""
+  );
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="rounded-2xl border border-dashed border-border p-5 space-y-6 bg-muted/20"
+    >
+      {/* Encabezado con Drag handle, #Index, Duplicar, Eliminar y Vista Previa */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            className="cursor-grab touch-none text-muted-foreground hover:text-foreground p-1"
+            title="Arrastrar para reordenar botón del Hero"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+          <span className="text-sm font-black uppercase tracking-wider text-muted-foreground">
+            #{index + 1} - {button.text || "Sin texto"}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onDuplicate}
+            className="h-8 text-xs font-semibold gap-1.5"
+            title="Duplicar este botón"
+          >
+            <Copy className="h-3.5 w-3.5 text-primary" />
+            Duplicar
+          </Button>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onRemove}
+            className="h-8 text-xs font-semibold text-destructive hover:bg-destructive/10 gap-1.5"
+            title="Eliminar este botón"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Eliminar
+          </Button>
+
+          {/* Vista previa en vivo idéntica a la tienda */}
+          <div className="shrink-0 flex items-center gap-2 border-l border-border pl-3 ml-1">
+            <span className="text-[11px] font-semibold text-muted-foreground">Vista previa:</span>
+            <UnifiedButton
+              button={{
+                id: button.id,
+                text: button.text || "Vista Previa",
+                action_type: actionType === "cotizador" ? "link" : (actionType as any),
+                action_value: actionValue || "/cotizador",
+                whatsapp_message: whatsappMsg,
+                text_color: textColor || undefined,
+                custom_hex: customHex || (index === 0 ? "var(--brand-orange)" : "var(--brand-wine)"),
+                media_url: mediaMode === "fill" ? mediaUrl : undefined,
+                media_mode: mediaMode,
+                icon_url: iconUrl || (mediaMode === "icon" ? mediaUrl : undefined),
+                icon_position: iconPos !== "none" ? iconPos : (mediaMode === "icon" ? "left" : "none"),
+                animation_type: animType as any,
+                variant: index === 0 ? "default" : "secondary",
+                width: buttonWidth,
+                position: "left",
+                opacity: 100,
+                shade: shadeNum,
+                media_fit: mediaFit,
+                icon_shape: iconShape,
+                include_image_link: true,
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Texto visible del botón */}
+      <div>
+        <Label className="text-xs font-semibold">Texto visible del Botón</Label>
+        <Input
+          value={button.text || ""}
+          onChange={(e) => onUpdate({ text: e.target.value })}
+          placeholder="Ej: Cotizar Proyecto o Ver Tienda"
+          className="mt-1 text-xs"
+        />
+      </div>
+
+      {/* SECCIÓN A: DISEÑO Y ANIMACIÓN */}
+      <div className="rounded-xl border border-border/80 bg-background/60 p-4 space-y-4 shadow-xs">
+        <div className="flex items-center gap-2 border-b border-border/50 pb-2">
+          <div className="h-2 w-2 rounded-full bg-primary" />
+          <h4 className="text-xs font-black uppercase tracking-wider text-foreground">
+            Sección A: Diseño y Animación
+          </h4>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          {/* Color del texto */}
+          <div>
+            <Label className="text-xs font-semibold flex items-center justify-between">
+              <span>Color del Texto (Código HEX)</span>
+              {textColor && (
+                <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <span className="inline-block h-2.5 w-2.5 rounded-full border border-border" style={{ backgroundColor: textColor }} />
+                  {textColor}
+                </span>
+              )}
+            </Label>
+            <div className="flex items-center gap-2 mt-1">
+              <input
+                type="color"
+                value={textColor && /^#[0-9A-Fa-f]{6}$/.test(textColor) ? textColor : "#ffffff"}
+                onChange={(e) => onUpdate({ text_color: e.target.value })}
+                className="h-8 w-8 cursor-pointer rounded-lg border border-border bg-transparent p-0.5 shrink-0"
+                title="Elegir color visualmente"
+              />
+              <Input
+                value={textColor}
+                onChange={(e) => onUpdate({ text_color: e.target.value })}
+                placeholder="Ej: #ffffff, #000000, #fbbf24"
+                className="text-xs font-mono uppercase"
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Vacío = contraste automático según fondo o fondo vivo.</p>
+          </div>
+
+          {/* Color de fondo */}
+          <div>
+            <Label className="text-xs font-semibold flex items-center justify-between">
+              <span>Color de fondo del Botón</span>
+              {customHex && (
+                <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <span className="inline-block h-2.5 w-2.5 rounded-full border border-border" style={{ backgroundColor: customHex }} />
+                  {customHex}
+                </span>
+              )}
+            </Label>
+            <div className="flex items-center gap-2 mt-1">
+              <input
+                type="color"
+                value={customHex && /^#[0-9A-Fa-f]{6}$/.test(customHex) ? customHex : "#f97316"}
+                onChange={(e) => onUpdate({ custom_hex: e.target.value })}
+                className="h-8 w-8 cursor-pointer rounded-lg border border-border bg-transparent p-0.5 shrink-0"
+                title="Elegir color de fondo"
+              />
+              <Input
+                value={customHex}
+                onChange={(e) => onUpdate({ custom_hex: e.target.value })}
+                placeholder="Ej: #f97316 (vacío = color de marca)"
+                className="text-xs font-mono uppercase"
+              />
+            </div>
+            {/* Paleta del tema rápida */}
+            {palette.length > 0 && (
+              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                <span className="text-[10px] text-muted-foreground font-semibold">Paleta del tema:</span>
+                {accentPalette(palette).map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => onUpdate({ custom_hex: p.hex })}
+                    className="h-5 px-1.5 rounded text-[10px] font-bold border border-border flex items-center gap-1 hover:opacity-80 transition"
+                    style={{ backgroundColor: `${p.hex}25`, color: p.hex }}
+                    title={p.name}
+                  >
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: p.hex }} />
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Sombreado / Contraste */}
+          <div>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold">Sombreado / Contraste (shade)</Label>
+              <span className="text-xs font-mono font-bold text-primary">{shadeNum === undefined ? "Auto" : `${shadeNum}%`}</span>
+            </div>
+            <div className="flex items-center gap-3 mt-1.5">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="5"
+                value={shadeNum ?? (mediaUrl && mediaMode === "fill" ? 45 : 0)}
+                onChange={(e) => onUpdate({ shade: Number(e.target.value) })}
+                className="w-full accent-primary cursor-pointer"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 text-[11px]"
+                onClick={() => onUpdate({ shade: undefined })}
+              >
+                Auto
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Capa oscura entre el fondo y el texto. 0% = sin sombreado.</p>
+          </div>
+
+          {/* Cobertura / Ancho */}
+          <div>
+            <Label className="text-xs font-semibold">Cobertura / Ancho del botón</Label>
+            <Select
+              value={buttonWidth}
+              onValueChange={(val: "auto" | "full") => onUpdate({ width: val })}
+            >
+              <SelectTrigger className="mt-1 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">Ancho automático (ajustado al texto)</SelectItem>
+                <SelectItem value="full">Ancho completo 100% (bloque total)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Controla si el botón se expande a todo lo ancho o según su texto.</p>
+          </div>
+
+          {/* Fondo animado / relleno vivo */}
+          <div className="sm:col-span-2 rounded-lg border border-border/60 bg-muted/20 p-3.5 space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                Fondo Animado / Relleno Vivo (Llenar Botón Completo)
+              </Label>
+              <Select
+                value={mediaMode}
+                onValueChange={(val: "fill" | "none") => onUpdate({ media_mode: val })}
+              >
+                <SelectTrigger className="h-7 text-[11px] w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fill">Llenar botón</SelectItem>
+                  <SelectItem value="none">Sin fondo animado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Soporta video MP4/WebM en bucle, GIF o imagen para cubrir el fondo completo con contraste garantizado.
+            </p>
+            {mediaMode === "fill" && (
+              <>
+                <MediaDropZone
+                  value={mediaUrl}
+                  onChange={(url) => onUpdate({ media_url: url })}
+                />
+                <div>
+                  <Label className="text-xs font-semibold">Espacio que cubre el fondo animado</Label>
+                  <Select
+                    value={mediaFit}
+                    onValueChange={(val: "cover" | "contain" | "fill") => onUpdate({ media_fit: val })}
+                  >
+                    <SelectTrigger className="mt-1 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cover">Cubrir todo el botón (recorta bordes)</SelectItem>
+                      <SelectItem value="contain">Ajustar al centro (se ve completa)</SelectItem>
+                      <SelectItem value="fill">Estirar para llenar</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Ícono dentro del botón */}
+          <div className="sm:col-span-2 rounded-lg border border-border/60 bg-muted/20 p-3.5 space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-secondary" />
+                Ícono o Miniatura dentro del Botón
+              </Label>
+              <Select
+                value={iconPos}
+                onValueChange={(val: "none" | "left" | "right") => onUpdate({ icon_position: val })}
+              >
+                <SelectTrigger className="h-7 text-[11px] w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin ícono</SelectItem>
+                  <SelectItem value="left">A la izquierda</SelectItem>
+                  <SelectItem value="right">A la derecha</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Muestra una figura geométrica con imagen/ícono junto al texto.
+            </p>
+            {iconPos !== "none" && (
+              <>
+                <MediaDropZone
+                  value={iconUrl}
+                  onChange={(url) => onUpdate({ icon_url: url })}
+                />
+                <div>
+                  <Label className="text-xs font-semibold">Forma del ícono</Label>
+                  <Select
+                    value={iconShape}
+                    onValueChange={(val: ButtonIconShape) => onUpdate({ icon_shape: val })}
+                  >
+                    <SelectTrigger className="mt-1 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {BUTTON_ICON_SHAPES.map((shape) => (
+                        <SelectItem key={shape} value={shape}>
+                          {ICON_SHAPE_LABELS[shape]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* SECCIÓN B: ACCIÓN AL PULSAR */}
+      <div className="rounded-xl border border-primary/30 bg-primary/[0.03] p-4 space-y-4 shadow-xs">
+        <div className="flex items-center gap-2 border-b border-primary/20 pb-2">
+          <div className="h-2 w-2 rounded-full bg-primary" />
+          <h4 className="text-xs font-black uppercase tracking-wider text-primary">
+            Sección B: Acción al Pulsar (Comportamiento del Botón)
+          </h4>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <Label className="text-xs font-semibold">¿Qué acción debe ejecutar este botón?</Label>
+            <Select
+              value={(() => {
+                if (actionType === "whatsapp") return "whatsapp";
+                if (actionType === "cotizador" || actionValue === "/cotizador") return "/cotizador";
+                const matchedInternal = SITE_INTERNAL_PAGES.find((p) => p.path === actionValue);
+                if (matchedInternal) return matchedInternal.path;
+                return "custom_link";
+              })()}
+              onValueChange={(val) => {
+                if (val === "whatsapp") {
+                  onUpdate({ action_type: "whatsapp" });
+                } else if (val === "custom_link") {
+                  const isKnownInternal = SITE_INTERNAL_PAGES.some((p) => p.path === actionValue);
+                  onUpdate({
+                    action_type: "link",
+                    action_value: isKnownInternal ? "" : actionValue,
+                  });
+                } else {
+                  onUpdate({
+                    action_type: val === "/cotizador" ? "cotizador" : "link",
+                    action_value: val,
+                  });
+                }
+              }}
+            >
+              <SelectTrigger className="mt-1 text-xs">
+                <SelectValue placeholder="Selecciona una acción o página de destino" />
+              </SelectTrigger>
+              <SelectContent>
+                <div className="px-2 py-1 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Páginas Oficiales del Sitio
+                </div>
+                {SITE_INTERNAL_PAGES.map((page) => (
+                  <SelectItem key={page.path} value={page.path}>
+                    {page.label} ({page.path})
+                  </SelectItem>
+                ))}
+                <div className="px-2 py-1 mt-1 text-[11px] font-bold text-muted-foreground uppercase tracking-wider border-t border-border/50">
+                  Otras Acciones
+                </div>
+                <SelectItem value="whatsapp">💬 Abrir Chat de WhatsApp con Mensaje Personalizado</SelectItem>
+                <SelectItem value="custom_link">🔗 Enlace Personalizado o URL Externa (https://...)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {actionType !== "whatsapp" && (() => {
+            const matchedPage = SITE_INTERNAL_PAGES.find(
+              (p) => p.path === actionValue || (actionType === "cotizador" && p.path === "/cotizador")
+            );
+
+            if (matchedPage) {
+              return (
+                <div className="sm:col-span-2 rounded-lg bg-background/50 border border-border/60 p-3 text-xs text-muted-foreground flex items-center justify-between gap-2">
+                  <div>
+                    <span>Redirección interna configurada a: </span>
+                    <span className="font-semibold text-foreground">{matchedPage.label}</span>{" "}
+                    <code className="font-mono text-primary font-bold">({matchedPage.path})</code>
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <div className="sm:col-span-2">
+                <Label className="text-xs font-semibold">Enlace o URL de Destino Personalizada</Label>
+                <Input
+                  value={actionValue}
+                  onChange={(e) => onUpdate({ action_value: e.target.value, action_type: "link" })}
+                  placeholder="Ej: https://instagram.com/willdesign3d o /promociones"
+                  className="mt-1 text-xs"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Ingresa una URL externa completa con <code className="text-xs font-mono">https://</code> o una ruta interna personalizada.
+                </p>
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* Sub-configuración condicional de WhatsApp */}
+        {actionType === "whatsapp" && (
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.04] p-4 space-y-4 mt-3">
+            <div className="flex items-center gap-2 border-b border-emerald-500/20 pb-2">
+              <div className="h-2 w-2 rounded-full bg-emerald-500" />
+              <h5 className="text-xs font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                Parámetros de WhatsApp
+              </h5>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <Label className="text-xs font-semibold">Número de WhatsApp (Opcional, vacío = WhatsApp de la marca)</Label>
+                <Input
+                  value={whatsappNumber}
+                  onChange={(e) => onUpdate({ whatsapp_number: e.target.value })}
+                  placeholder="573156724474 (solo números con código de país)"
+                  className="mt-1 text-xs"
+                />
+              </div>
+
+              <div className="sm:col-span-2 space-y-1">
+                <Label className="text-xs font-semibold">Texto o Plantilla del Mensaje de WhatsApp</Label>
+                <Textarea
+                  rows={2}
+                  value={whatsappMsg}
+                  onChange={(e) => onUpdate({ whatsapp_message: e.target.value })}
+                  placeholder="Hola Will Design 3D, me interesa cotizar..."
+                  className="text-xs resize-y"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Al subir una imagen abajo, se adjunta automáticamente al mensaje de WhatsApp sin tener que escribir comandos.
+                </p>
+              </div>
+
+              <div className="sm:col-span-2 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                    Imagen Específica que Acompaña el Enlace en WhatsApp
+                  </Label>
+                  <span className="text-[10px] text-muted-foreground font-semibold">
+                    Drag & Drop o Explorar Dispositivo
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Sube una foto JPG, PNG o WEBP de cualquier tamaño: se comprime automáticamente a &lt;280KB.
+                </p>
+                <MediaDropZone
+                  forWhatsapp
+                  value={whatsappImageUrl}
+                  onChange={(url) => onUpdate({ whatsapp_image_url: url })}
+                />
+              </div>
+
+              {/* Estado del Modo de Mensaje según si hay o no imagen configurada */}
+              <div className="sm:col-span-2">
+                {whatsappImageUrl ? (
+                  <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 flex items-start gap-2.5">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                        Previsualización activa: Se incluirá enlace corto con tu foto
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Al enviar el mensaje por WhatsApp, se adjuntará el enlace corto Open Graph <code className="text-[10px] font-mono font-bold">/r/{shortKey}</code> para mostrar la tarjeta con la foto.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-border bg-muted/30 p-3 flex items-start gap-2.5">
+                    <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/50 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-foreground">
+                        Mensaje limpio: Se enviará solo texto plano
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Como no has configurado ninguna foto arriba, WhatsApp enviará exclusivamente el texto del mensaje sin enlaces ni tarjetas.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Live WhatsApp Message Preview Box */}
+              <div className="sm:col-span-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 space-y-1 text-xs">
+                <span className="font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+                  💬 Previsualización del enlace/mensaje que se enviará:
+                </span>
+                <p className="text-muted-foreground whitespace-pre-wrap font-mono text-[11px] bg-background/50 p-2 rounded-lg border border-emerald-500/20">
+                  {payload.formattedText || "Hola Will Design 3D, me interesa cotizar..."}
+                </p>
+                <p className="text-[10px] text-emerald-700/90 dark:text-emerald-300/90 font-semibold mt-1 flex items-center gap-1.5 flex-wrap">
+                  {payload.mediaToSend ? (
+                    <>
+                      <span>📎 Adjunto a enviar: <strong>{shortMediaName(payload.mediaToSend)}</strong></span>
+                      <span className="inline-flex items-center rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] font-bold text-white">
+                        Enlace ultra corto /r activo ✓
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">
+                      📄 Solo texto plano (sin adjunto ni enlace)
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function HeroButtonsEditor({
   values,
   setValues,
-  uploadingKey,
-  uploadImage,
 }: {
   values: Record<string, string>;
   setValues: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-  uploadingKey: string | null;
-  uploadImage: (key: string, file: File) => Promise<void>;
 }) {
-  const rawOrder = values["hero_buttons_order"] || "primary,secondary";
-  const orderList = rawOrder === "secondary,primary" ? (["secondary", "primary"] as const) : (["primary", "secondary"] as const);
+  const { content } = useSiteContent();
+  const activeTheme = getActiveTheme(content);
+  const palette = activeTheme.colors.palette || [];
+
+  const buttons = parseHeroButtons(values);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -2216,157 +2808,161 @@ function HeroButtonsOrderEditor({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  function syncLegacyKeys(updatedList: HeroButtonItem[]): Record<string, string> {
+    const patch: Record<string, string> = {
+      hero_buttons: JSON.stringify(updatedList),
+      hero_buttons_order: "primary,secondary",
+    };
+
+    const b1 = updatedList[0];
+    if (b1) {
+      patch.hero_cta_text = b1.text || "";
+      patch.hero_cta_url = b1.action_value || "";
+      patch.hero_cta_action_type = b1.action_type || "cotizador";
+      patch.hero_cta_whatsapp_message = b1.whatsapp_message || "";
+      patch.hero_cta_whatsapp_image_url = b1.whatsapp_image_url || "";
+      patch.hero_cta_whatsapp_image_logic = b1.whatsapp_image_logic || "auto";
+      patch.hero_cta_text_color = b1.text_color || "";
+      patch.hero_cta_custom_hex = b1.custom_hex || "";
+      patch.hero_cta_shade = b1.shade !== undefined ? String(b1.shade) : "";
+      patch.hero_cta_media_url = b1.media_url || "";
+      patch.hero_cta_media_mode = b1.media_mode || "fill";
+      patch.hero_cta_media_fit = b1.media_fit || "cover";
+      patch.hero_cta_icon_url = b1.icon_url || "";
+      patch.hero_cta_icon_position = b1.icon_position || "none";
+      patch.hero_cta_icon_shape = b1.icon_shape || "circle";
+      patch.hero_cta_width = b1.width || "auto";
+    }
+
+    const b2 = updatedList[1];
+    if (b2) {
+      patch.hero_secondary_cta_text = b2.text || "";
+      patch.hero_secondary_cta_url = b2.action_value || "";
+      patch.hero_secondary_cta_action_type = b2.action_type || "link";
+      patch.hero_secondary_cta_whatsapp_message = b2.whatsapp_message || "";
+      patch.hero_secondary_cta_whatsapp_image_url = b2.whatsapp_image_url || "";
+      patch.hero_secondary_cta_whatsapp_image_logic = b2.whatsapp_image_logic || "auto";
+      patch.hero_secondary_cta_text_color = b2.text_color || "";
+      patch.hero_secondary_cta_custom_hex = b2.custom_hex || "";
+      patch.hero_secondary_cta_shade = b2.shade !== undefined ? String(b2.shade) : "";
+      patch.hero_secondary_cta_media_url = b2.media_url || "";
+      patch.hero_secondary_cta_media_mode = b2.media_mode || "fill";
+      patch.hero_secondary_cta_media_fit = b2.media_fit || "cover";
+      patch.hero_secondary_cta_icon_url = b2.icon_url || "";
+      patch.hero_secondary_cta_icon_position = b2.icon_position || "none";
+      patch.hero_secondary_cta_icon_shape = b2.icon_shape || "circle";
+      patch.hero_secondary_cta_width = b2.width || "auto";
+    } else {
+      patch.hero_secondary_cta_text = "";
+      patch.hero_secondary_cta_url = "";
+    }
+
+    return patch;
+  }
+
+  function handleUpdateButton(id: string, patch: Partial<HeroButtonItem>) {
+    const updated = buttons.map((b) => (b.id === id ? { ...b, ...patch } : b));
+    const sync = syncLegacyKeys(updated);
+    setValues((v) => ({ ...v, ...sync }));
+  }
+
+  function handleDuplicateButton(id: string) {
+    const idx = buttons.findIndex((b) => b.id === id);
+    if (idx === -1) return;
+    const target = buttons[idx];
+    const cloned: HeroButtonItem = {
+      ...target,
+      id: `hero_btn_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      text: target.text ? `${target.text} (Copia)` : "Nuevo Botón",
+    };
+    const next = [...buttons];
+    next.splice(idx + 1, 0, cloned);
+    const sync = syncLegacyKeys(next);
+    setValues((v) => ({ ...v, ...sync }));
+    toast.success("Botón duplicado con éxito");
+  }
+
+  function handleRemoveButton(id: string) {
+    if (buttons.length <= 1) {
+      toast.error("Debe haber al menos un botón en el Hero");
+      return;
+    }
+    const updated = buttons.filter((b) => b.id !== id);
+    const sync = syncLegacyKeys(updated);
+    setValues((v) => ({ ...v, ...sync }));
+    toast.success("Botón eliminado del Hero");
+  }
+
+  function handleAddButton() {
+    const newBtn: HeroButtonItem = {
+      id: `hero_btn_${Date.now()}`,
+      text: "Nuevo Botón",
+      action_type: "link",
+      action_value: "/cotizador",
+      custom_hex: "var(--brand-orange)",
+      shade: 0,
+      width: "auto",
+      media_mode: "fill",
+      icon_position: "none",
+    };
+    const updated = [...buttons, newBtn];
+    const sync = syncLegacyKeys(updated);
+    setValues((v) => ({ ...v, ...sync }));
+    toast.success("Nuevo botón añadido al Hero");
+  }
+
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const newOrder = rawOrder === "secondary,primary" ? "primary,secondary" : "secondary,primary";
-    setValues((v) => ({ ...v, hero_buttons_order: newOrder }));
-  }
-
-
-  const hasSecondary = Boolean(values.hero_secondary_cta_text || values.hero_secondary_cta_url);
-
-  function renderButtonItem(key: "primary" | "secondary") {
-    if (key === "primary") {
-      return (
-        <ButtonCard key="primary" title="Botón Principal de Hero">
-          <CTAButtonGroup
-            prefix="hero_cta_"
-            values={values}
-            setValues={setValues}
-            uploadingKey={uploadingKey}
-            uploadImage={uploadImage}
-          />
-        </ButtonCard>
-      );
+    const oldIndex = buttons.findIndex((b) => b.id === active.id);
+    const newIndex = buttons.findIndex((b) => b.id === over.id);
+    if (oldIndex !== -1 && newIndex !== -1) {
+      const moved = arrayMove(buttons, oldIndex, newIndex);
+      const sync = syncLegacyKeys(moved);
+      setValues((v) => ({ ...v, ...sync }));
     }
-
-    return (
-      <ButtonCard key="secondary" title="Botón Secundario de Hero">
-        {!hasSecondary ? (
-          <div className="rounded-xl border border-dashed border-border p-4 bg-muted/10 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-foreground">Segundo Botón de Hero (Opcional)</p>
-              <p className="text-[11px] text-muted-foreground">Actualmente desactivado o sin texto. Puedes añadir un segundo botón para la cabecera.</p>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setValues((v) => ({
-                  ...v,
-                  hero_secondary_cta_text: "Ver Tienda",
-                  hero_secondary_cta_url: "/tienda",
-                  hero_secondary_cta_action_type: "link",
-                }));
-              }}
-              className="text-xs font-semibold gap-1.5"
-            >
-              <Plus className="h-3.5 w-3.5 text-primary" />
-              + Añadir 2do Botón en Hero
-            </Button>
-          </div>
-        ) : (
-          <CTAButtonGroup
-            prefix="hero_secondary_cta_"
-            values={values}
-            setValues={setValues}
-            uploadingKey={uploadingKey}
-            uploadImage={uploadImage}
-            onDelete={() => {
-              setValues((v) => {
-                const copy = { ...v };
-                delete copy.hero_secondary_cta_text;
-                delete copy.hero_secondary_cta_url;
-                delete copy.hero_secondary_cta_media_url;
-                delete copy.hero_secondary_cta_media_mode;
-                delete copy.hero_secondary_cta_icon_url;
-                delete copy.hero_secondary_cta_icon_position;
-                delete copy.hero_secondary_cta_text_color;
-                delete copy.hero_secondary_cta_custom_hex;
-                delete copy.hero_secondary_cta_opacity;
-                delete copy.hero_secondary_cta_width;
-                delete copy.hero_secondary_cta_action_type;
-                delete copy.hero_secondary_cta_whatsapp_message;
-                delete copy.hero_secondary_cta_whatsapp_image_url;
-                delete copy.hero_secondary_cta_whatsapp_image_logic;
-                return copy;
-              });
-              toast.success("Segundo botón de Hero eliminado");
-            }}
-          />
-        )}
-      </ButtonCard>
-    );
   }
 
   return (
     <div className="space-y-4 rounded-2xl border border-primary/20 bg-primary/[0.02] p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
         <div>
           <Label className="text-sm font-bold flex items-center gap-2">
             <Layers className="h-4 w-4 text-primary" />
-            Configuración y Orden de Botones del Hero (Drag & Drop)
+            Botones de Acción del Hero (Ilimitados con Drag & Drop)
           </Label>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Mantén presionado el ícono ⋮⋮ de la lista de abajo y arrástralo para cambiar qué botón sale primero en la portada.
+            Añade, reordena y personaliza todos los botones que desees mostrar en la cabecera principal.
           </p>
         </div>
+
+        <Button
+          type="button"
+          onClick={handleAddButton}
+          className="text-xs font-bold gap-1.5 shadow-sm"
+        >
+          <Plus className="h-4 w-4" />
+          + Añadir Botón al Hero
+        </Button>
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={[...orderList]} strategy={verticalListSortingStrategy}>
-          <div className="space-y-2">
-            {orderList.map((key, i) => (
-              <SortableHeroButtonRow
-                key={key}
-                id={key}
-                badge={String(i + 1)}
-                title={
-                  key === "primary"
-                    ? `Principal: ${values.hero_cta_text || "Sin texto"}`
-                    : `Secundario: ${values.hero_secondary_cta_text || "(vacío, no se muestra)"}`
-                }
+        <SortableContext items={buttons.map((b) => b.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-4">
+            {buttons.map((b, idx) => (
+              <SortableHeroButtonItemCard
+                key={b.id}
+                button={b}
+                index={idx}
+                palette={palette}
+                onUpdate={(patch) => handleUpdateButton(b.id, patch)}
+                onDuplicate={() => handleDuplicateButton(b.id)}
+                onRemove={() => handleRemoveButton(b.id)}
               />
             ))}
           </div>
         </SortableContext>
       </DndContext>
-      <div className="space-y-4">
-        {orderList.map((key) => renderButtonItem(key))}
-      </div>
-    </div>
-  );
-}
-
-function ButtonCard({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-2xl border border-border/80 bg-card p-3 space-y-3">
-      <p className="text-xs font-bold text-foreground border-b border-border/50 pb-2">{title}</p>
-      <div>{children}</div>
-    </div>
-  );
-}
-
-function SortableHeroButtonRow({ id, title, badge }: { id: string; title: string; badge: string }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-  return (
-    <div
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      {...attributes}
-      {...listeners}
-      className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 cursor-grab touch-none select-none active:cursor-grabbing ${
-        isDragging ? "z-20 border-primary bg-primary/10 shadow-xl ring-2 ring-primary" : "border-border/80 bg-card"
-      }`}
-      title="Mantén presionado y arrastra para reordenar"
-    >
-      <GripVertical className="h-4 w-4 text-primary shrink-0" />
-      <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-primary/15 text-[11px] font-bold text-primary">
-        {badge}
-      </span>
-      <span className="text-xs font-bold text-foreground truncate">{title}</span>
     </div>
   );
 }
@@ -2512,17 +3108,15 @@ function ContenidoAdmin() {
   }
 
   function renderField(f: FieldDef) {
-    if (f.key === "hero_buttons_order" || f.key === "hero_cta_text") {
-      if (f.key === "hero_cta_text" && FIELDS.some((field) => field.key === "hero_buttons_order")) {
+    if (f.key === "hero_buttons" || f.key === "hero_buttons_order" || f.key === "hero_cta_text") {
+      if (f.key !== "hero_buttons") {
         return null;
       }
       return (
-        <HeroButtonsOrderEditor
-          key="hero_buttons_order_editor"
+        <HeroButtonsEditor
+          key="hero_buttons_editor"
           values={values}
           setValues={setValues}
-          uploadingKey={uploadingKey}
-          uploadImage={uploadImage}
         />
       );
     }
