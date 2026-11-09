@@ -190,8 +190,8 @@ describe("replaceTemplatePlaceholders and toAbsoluteUrl", () => {
   });
 });
 
-describe("enlace corto /ref?k= con alias ultra cortos", () => {
-  test("hero_cta_whatsapp_image_url genera alias corto /ref?k=hero", () => {
+describe("enlace ultra corto /r/ con alias limpios", () => {
+  test("hero_cta_whatsapp_image_url genera ruta ultra corta /r/hero", () => {
     const p = getWhatsAppPayloadForButton(
       {
         whatsapp_message: "Hola Will, me interesa cotizar esta pieza:",
@@ -202,11 +202,11 @@ describe("enlace corto /ref?k= con alias ultra cortos", () => {
       "/logo.png"
     );
     expect(p.formattedText).toBe(
-      "Hola Will, me interesa cotizar esta pieza:\n\nhttps://will-design-3d.lovable.app/ref?k=hero"
+      "Hola Will, me interesa cotizar esta pieza:\n\nhttps://will-design-3d.lovable.app/r/hero"
     );
   });
 
-  test("hero_secondary_cta_whatsapp_image_url genera alias corto /ref?k=hero2", () => {
+  test("hero_secondary_cta_whatsapp_image_url genera ruta ultra corta /r/hero2", () => {
     const p = getWhatsAppPayloadForButton(
       {
         whatsapp_message: "Hola Will, quisiera ver la tienda",
@@ -217,11 +217,56 @@ describe("enlace corto /ref?k= con alias ultra cortos", () => {
       "/logo.png"
     );
     expect(p.formattedText).toBe(
-      "Hola Will, quisiera ver la tienda\n\nhttps://will-design-3d.lovable.app/ref?k=hero2"
+      "Hola Will, quisiera ver la tienda\n\nhttps://will-design-3d.lovable.app/r/hero2"
     );
   });
 
-  test("nosotros / about_cta_whatsapp_image_url genera alias /ref?k=nosotros", () => {
+  test("estadística con s1 genera ruta ultra corta /r/s1", () => {
+    const p = getWhatsAppPayloadForButton(
+      {
+        whatsapp_message: "Consulta PLA",
+        whatsapp_image_url: "https://x.supabase.co/storage/v1/object/stat.jpg",
+        whatsapp_image_key: "s1",
+      },
+      "",
+      "/logo.png"
+    );
+    expect(p.formattedText).toBe(
+      "Consulta PLA\n\nhttps://will-design-3d.lovable.app/r/s1"
+    );
+  });
+
+  test("estadística con s2 genera ruta ultra corta /r/s2", () => {
+    const p = getWhatsAppPayloadForButton(
+      {
+        whatsapp_message: "Consulta 1.8m",
+        whatsapp_image_url: "https://x.supabase.co/storage/v1/object/stat2.jpg",
+        whatsapp_image_key: "s2",
+      },
+      "",
+      "/logo.png"
+    );
+    expect(p.formattedText).toBe(
+      "Consulta 1.8m\n\nhttps://will-design-3d.lovable.app/r/s2"
+    );
+  });
+
+  test("estadística con stat_id genera ruta ultra corta /r/stat_id", () => {
+    const p = getWhatsAppPayloadForButton(
+      {
+        whatsapp_message: "Consulta stat",
+        whatsapp_image_url: "https://x.supabase.co/storage/v1/object/stat.jpg",
+        whatsapp_image_key: "stat_1792688101861",
+      },
+      "",
+      "/logo.png"
+    );
+    expect(p.formattedText).toBe(
+      "Consulta stat\n\nhttps://will-design-3d.lovable.app/r/stat_1792688101861"
+    );
+  });
+
+  test("nosotros / about_cta_whatsapp_image_url genera alias /r/nosotros", () => {
     const p = getWhatsAppPayloadForButton(
       {
         whatsapp_message: "Nosotros:",
@@ -232,11 +277,11 @@ describe("enlace corto /ref?k= con alias ultra cortos", () => {
       "/logo.png"
     );
     expect(p.formattedText).toBe(
-      "Nosotros:\n\nhttps://will-design-3d.lovable.app/ref?k=nosotros"
+      "Nosotros:\n\nhttps://will-design-3d.lovable.app/r/nosotros"
     );
   });
 
-  test("mision y vision generan alias /ref?k=mision y /ref?k=vision", () => {
+  test("mision y vision generan alias /r/mision y /r/vision", () => {
     const pMision = getWhatsAppPayloadForButton(
       {
         whatsapp_message: "Mision:",
@@ -247,7 +292,7 @@ describe("enlace corto /ref?k= con alias ultra cortos", () => {
       "/logo.png"
     );
     expect(pMision.formattedText).toBe(
-      "Mision:\n\nhttps://will-design-3d.lovable.app/ref?k=mision"
+      "Mision:\n\nhttps://will-design-3d.lovable.app/r/mision"
     );
 
     const pVision = getWhatsAppPayloadForButton(
@@ -260,11 +305,11 @@ describe("enlace corto /ref?k= con alias ultra cortos", () => {
       "/logo.png"
     );
     expect(pVision.formattedText).toBe(
-      "Vision:\n\nhttps://will-design-3d.lovable.app/ref?k=vision"
+      "Vision:\n\nhttps://will-design-3d.lovable.app/r/vision"
     );
   });
 
-  test("site_logo_url genera alias /ref?k=logo", () => {
+  test("site_logo_url genera alias /r/logo", () => {
     const p = getWhatsAppPayloadForButton(
       {
         whatsapp_message: "Logo:",
@@ -275,11 +320,11 @@ describe("enlace corto /ref?k= con alias ultra cortos", () => {
       "/logo.png"
     );
     expect(p.formattedText).toBe(
-      "Logo:\n\nhttps://will-design-3d.lovable.app/ref?k=logo"
+      "Logo:\n\nhttps://will-design-3d.lovable.app/r/logo"
     );
   });
 
-  test("clave no mapeada mantiene la clave original como fallback", () => {
+  test("clave no mapeada mantiene la clave original en /r/", () => {
     const p = getWhatsAppPayloadForButton(
       {
         whatsapp_message: "Custom key:",
@@ -290,7 +335,7 @@ describe("enlace corto /ref?k= con alias ultra cortos", () => {
       "/logo.png"
     );
     expect(p.formattedText).toBe(
-      "Custom key:\n\nhttps://will-design-3d.lovable.app/ref?k=custom_unmapped_image_url"
+      "Custom key:\n\nhttps://will-design-3d.lovable.app/r/custom_unmapped_image_url"
     );
   });
 

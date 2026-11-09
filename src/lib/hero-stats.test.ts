@@ -18,12 +18,25 @@ describe("estadísticas del hero", () => {
       {
         whatsapp_message: "Me interesa PLA",
         whatsapp_image_url: "https://x.supabase.co/storage/v1/object/sign/site-media/a.jpg?token=abc",
+        whatsapp_image_key: "s1",
+      },
+      "",
+      ""
+    );
+    expect(p.formattedText).toBe("Me interesa PLA\n\nhttps://will-design-3d.lovable.app/r/s1");
+  });
+
+  test("WhatsApp de una estadística con ID directo de estadística usa /r/stat_id", () => {
+    const p = getWhatsAppPayloadForButton(
+      {
+        whatsapp_message: "Me interesa PLA",
+        whatsapp_image_url: "https://x.supabase.co/storage/v1/object/sign/site-media/a.jpg?token=abc",
         whatsapp_image_key: "stat_123",
       },
       "",
       ""
     );
-    expect(p.formattedText).toBe("Me interesa PLA\n\nhttps://will-design-3d.lovable.app/ref?k=stat_123");
+    expect(p.formattedText).toBe("Me interesa PLA\n\nhttps://will-design-3d.lovable.app/r/stat_123");
   });
 
   test("parseHeroStats normaliza animation_style cuando type es solid o tiene custom_hex", () => {

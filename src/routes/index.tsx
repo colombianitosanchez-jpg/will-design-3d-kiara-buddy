@@ -232,7 +232,7 @@ function Hero() {
     }
   }
 
-  function handleStatClick(stat: HeroStatItem) {
+  function handleStatClick(stat: HeroStatItem, index?: number) {
     if (!stat.action_type || stat.action_type === "none") return;
 
     if (stat.action_type === "cotizador") {
@@ -248,11 +248,12 @@ function Hero() {
     } else if (stat.action_type === "whatsapp") {
       const num = pickWhatsapp(stat.action_value, fallbackWhatsapp);
       const defaultMsg = `Hola Will Design 3D, me interesa la consulta sobre: ${stat.k} (${stat.v}).`;
+      const shortKey = typeof index === "number" ? `s${index + 1}` : (stat.id || "s1");
       const payload = getWhatsAppPayloadForButton(
         {
           whatsapp_message: stat.whatsapp_message,
           whatsapp_image_url: stat.whatsapp_image_url,
-          whatsapp_image_key: stat.id,
+          whatsapp_image_key: shortKey,
         },
         stat.whatsapp_image_url || stat.media_url || stat.bgImageUrl || image,
         content?.site_logo_url,
@@ -403,7 +404,7 @@ function Hero() {
 
           {stats.length > 0 && (
             <dl className="mt-10 grid max-w-lg grid-cols-2 sm:grid-cols-3 gap-4">
-              {stats.map((s) => {
+              {stats.map((s, idx) => {
                 const statColor = resolveStatColor(s);
                 const isClickable = s.action_type && s.action_type !== "none";
                 const animClass =
@@ -471,7 +472,7 @@ function Hero() {
                     key={s.id}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => handleStatClick(s)}
+                    onClick={() => handleStatClick(s, idx)}
                     style={containerStyle}
                     className={`relative overflow-hidden isolate border border-border p-3.5 text-center transition-all shadow-2xs min-h-[80px] flex flex-col items-center justify-center ${roundedClass} ${widthClass} ${
                       isClickable ? "cursor-pointer hover:border-primary hover:shadow-md" : ""
