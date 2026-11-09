@@ -1,7 +1,7 @@
 import { UnifiedButton, getIconShapeStyle } from "@/components/UnifiedButton";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect, memo } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import {
   Boxes,
@@ -111,12 +111,12 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-const SECTION_COMPONENTS: Record<HomeSectionKey, React.ComponentType> = {
+const SECTION_COMPONENTS: Record<HomeSectionKey, () => React.ReactNode> = {
   hero: Hero,
   services: Services,
   products: FeaturedProducts,
-  portfolio: InstagramFeed as React.ComponentType,
-  quoter: Quoter as React.ComponentType,
+  portfolio: InstagramFeed,
+  quoter: Quoter,
   about: AboutPreview,
 };
 
@@ -133,7 +133,7 @@ function Home() {
   );
 }
 
-const Hero = memo(function Hero() {
+function Hero() {
   const router = useRouter();
   const { content, getText } = useSiteContent();
   const activeTheme = getActiveTheme(content);
@@ -463,10 +463,10 @@ const Hero = memo(function Hero() {
       </div>
     </section>
   );
-});
+}
 
 
-const Services = memo(function Services() {
+function Services() {
   const ref = useScrollReveal<HTMLElement>();
   const loaderData = Route.useLoaderData();
   const { data: dbServices } = useQuery({
@@ -549,9 +549,9 @@ const Services = memo(function Services() {
       </div>
     </section>
   );
-});
+}
 
-const AboutPreview = memo(function AboutPreview() {
+function AboutPreview() {
   const ref = useScrollReveal<HTMLElement>();
   const router = useRouter();
   const { content, getText } = useSiteContent();
@@ -697,9 +697,9 @@ const AboutPreview = memo(function AboutPreview() {
       </div>
     </section>
   );
-});
+}
 
-const FeaturedProducts = memo(function FeaturedProducts() {
+function FeaturedProducts() {
   const loaderData = Route.useLoaderData();
   // Reutiliza exactamente la misma consulta que /tienda (única fuente de verdad).
   const { data: products, isPending, isError } = useQuery({
@@ -787,4 +787,4 @@ const FeaturedProducts = memo(function FeaturedProducts() {
       </div>
     </section>
   );
-});
+}
