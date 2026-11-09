@@ -333,6 +333,8 @@ export function SiteHeader() {
               alt={businessName}
               width={44}
               height={44}
+              loading="eager"
+              decoding="async"
               className="h-11 w-11 shrink-0 rounded-lg object-cover"
             />
           )}

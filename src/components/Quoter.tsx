@@ -125,7 +125,7 @@ function FieldControl({
             {field.media_type === "video" ? (
               <video src={field.media_url} autoPlay loop muted playsInline className="h-40 w-full object-cover" />
             ) : (
-              <img src={field.media_url} alt={field.label} className="h-40 w-full object-cover" />
+              <img src={field.media_url} alt={field.label} loading="lazy" decoding="async" className="h-40 w-full object-cover aspect-video" />
             )}
           </div>
         )}
@@ -148,7 +148,7 @@ function FieldControl({
                     {o.media.type === "video" ? (
                       <video src={o.media.url} autoPlay loop muted playsInline className="h-24 w-full object-cover" />
                     ) : (
-                      <img src={o.media.url} alt={o.label} className="h-24 w-full object-cover" />
+                      <img src={o.media.url} alt={o.label} loading="lazy" decoding="async" className="h-24 w-full object-cover aspect-video" />
                     )}
                   </div>
                 )}

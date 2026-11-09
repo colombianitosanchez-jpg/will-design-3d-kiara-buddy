@@ -1,7 +1,7 @@
 import { UnifiedButton, getIconShapeStyle } from "@/components/UnifiedButton";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { toast } from "sonner";
 import {
   Boxes,
@@ -111,12 +111,12 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-const SECTION_COMPONENTS: Record<HomeSectionKey, () => React.ReactNode> = {
+const SECTION_COMPONENTS: Record<HomeSectionKey, React.ComponentType> = {
   hero: Hero,
   services: Services,
   products: FeaturedProducts,
-  portfolio: InstagramFeed,
-  quoter: Quoter,
+  portfolio: InstagramFeed as React.ComponentType,
+  quoter: Quoter as React.ComponentType,
   about: AboutPreview,
 };
 
@@ -133,7 +133,7 @@ function Home() {
   );
 }
 
-function Hero() {
+const Hero = memo(function Hero() {
   const router = useRouter();
   const { content, getText } = useSiteContent();
   const activeTheme = getActiveTheme(content);
@@ -352,6 +352,10 @@ function Hero() {
                       <img
                         src={iconUrl}
                         alt=""
+                        width={20}
+                        height={20}
+                        loading="lazy"
+                        decoding="async"
                         className="h-full w-full object-cover"
                       />
                     )}
@@ -395,6 +399,8 @@ function Hero() {
                       <img
                         src={bgUrl}
                         alt=""
+                        loading="lazy"
+                        decoding="async"
                         className={`absolute inset-0 h-full w-full object-center -z-20 ${mediaFitClass}`}
                       />
                     )}
@@ -457,10 +463,10 @@ function Hero() {
       </div>
     </section>
   );
-}
+});
 
 
-function Services() {
+const Services = memo(function Services() {
   const ref = useScrollReveal<HTMLElement>();
   const loaderData = Route.useLoaderData();
   const { data: dbServices } = useQuery({
@@ -543,9 +549,9 @@ function Services() {
       </div>
     </section>
   );
-}
+});
 
-function AboutPreview() {
+const AboutPreview = memo(function AboutPreview() {
   const ref = useScrollReveal<HTMLElement>();
   const router = useRouter();
   const { content, getText } = useSiteContent();
@@ -614,7 +620,15 @@ function AboutPreview() {
             <ProductMedia src={image} alt={title} className="h-full w-full object-cover" />
           ) : (
             <div className="flex flex-col items-center justify-center p-8 text-center space-y-3">
-              <img src="/logo.png" alt="Will Design 3D" className="h-32 sm:h-40 w-auto opacity-70 object-contain" />
+              <img
+                src="/logo.png"
+                alt="Will Design 3D"
+                width={160}
+                height={160}
+                loading="lazy"
+                decoding="async"
+                className="h-32 sm:h-40 w-auto opacity-70 object-contain"
+              />
               <span className="text-xs font-semibold text-muted-foreground">{title}</span>
             </div>
           )}
@@ -683,9 +697,9 @@ function AboutPreview() {
       </div>
     </section>
   );
-}
+});
 
-function FeaturedProducts() {
+const FeaturedProducts = memo(function FeaturedProducts() {
   const loaderData = Route.useLoaderData();
   // Reutiliza exactamente la misma consulta que /tienda (única fuente de verdad).
   const { data: products, isPending, isError } = useQuery({
@@ -773,4 +787,4 @@ function FeaturedProducts() {
       </div>
     </section>
   );
-}
+});
