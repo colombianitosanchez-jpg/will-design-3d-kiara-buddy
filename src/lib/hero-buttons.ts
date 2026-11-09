@@ -93,7 +93,7 @@ export function parseHeroButtons(values: Record<string, string>): HeroButtonItem
             const shade = typeof item.shade === "number" && !isNaN(item.shade) ? item.shade : undefined;
             const media_url = typeof item.media_url === "string" ? item.media_url : undefined;
             const media_mode = normalizeMediaMode(item.media_mode);
-            const media_fit = normalizeMediaFit(item.media_fit);
+            const media_fit = normalizeMediaFit(item.media_fit) || "cover";
             const icon_url = typeof item.icon_url === "string" ? item.icon_url : undefined;
             const icon_position = normalizeIconPosition(item.icon_position);
             const icon_shape = typeof item.icon_shape === "string" ? (item.icon_shape as ButtonIconShape) : undefined;
@@ -152,7 +152,7 @@ export function parseHeroButtons(values: Record<string, string>): HeroButtonItem
     ...(primaryShade !== undefined ? { shade: primaryShade } : {}),
     ...(values.hero_cta_media_url ? { media_url: values.hero_cta_media_url } : {}),
     ...(normalizeMediaMode(values.hero_cta_media_mode) ? { media_mode: normalizeMediaMode(values.hero_cta_media_mode) } : {}),
-    ...(normalizeMediaFit(values.hero_cta_media_fit) ? { media_fit: normalizeMediaFit(values.hero_cta_media_fit) } : {}),
+    media_fit: normalizeMediaFit(values.hero_cta_media_fit) || "cover",
     ...(values.hero_cta_icon_url ? { icon_url: values.hero_cta_icon_url } : {}),
     ...(normalizeIconPosition(values.hero_cta_icon_position) ? { icon_position: normalizeIconPosition(values.hero_cta_icon_position) } : {}),
     ...(values.hero_cta_icon_shape ? { icon_shape: values.hero_cta_icon_shape as ButtonIconShape } : {}),
@@ -184,7 +184,7 @@ export function parseHeroButtons(values: Record<string, string>): HeroButtonItem
       ...(secShade !== undefined ? { shade: secShade } : {}),
       ...(values.hero_secondary_cta_media_url ? { media_url: values.hero_secondary_cta_media_url } : {}),
       ...(normalizeMediaMode(values.hero_secondary_cta_media_mode) ? { media_mode: normalizeMediaMode(values.hero_secondary_cta_media_mode) } : {}),
-      ...(normalizeMediaFit(values.hero_secondary_cta_media_fit) ? { media_fit: normalizeMediaFit(values.hero_secondary_cta_media_fit) } : {}),
+      media_fit: normalizeMediaFit(values.hero_secondary_cta_media_fit) || "cover",
       ...(values.hero_secondary_cta_icon_url ? { icon_url: values.hero_secondary_cta_icon_url } : {}),
       ...(normalizeIconPosition(values.hero_secondary_cta_icon_position) ? { icon_position: normalizeIconPosition(values.hero_secondary_cta_icon_position) } : {}),
       ...(values.hero_secondary_cta_icon_shape ? { icon_shape: values.hero_secondary_cta_icon_shape as ButtonIconShape } : {}),
