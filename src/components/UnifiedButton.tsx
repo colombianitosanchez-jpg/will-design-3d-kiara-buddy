@@ -247,6 +247,14 @@ export function UnifiedButton({
       : "object-cover";
   const iconShapeConfig = getIconShapeStyle(button.icon_shape);
   const solidShade = !isFillMedia ? a11y.overlayOpacity : 0;
+  function renderIcon() {
+    const url = unifiedStyle.iconUrl;
+    if (!url) return null;
+    const className = `h-5 w-5 shrink-0 ${iconShapeConfig.className}`;
+    if (/\.json($|\?)/i.test(url)) return <span className={`${className} overflow-hidden`} style={iconShapeConfig.style}><LottiePlayer url={url} className="h-full w-full" /></span>;
+    if (/\.(mp4|webm|mov)($|\?)/i.test(url)) return <video src={url} autoPlay loop muted playsInline style={iconShapeConfig.style} className={className} />;
+    return <img src={url} alt="" width={20} height={20} loading="lazy" decoding="async" style={iconShapeConfig.style} className={className} />;
+  }
 
   return (
     <motion.div
@@ -318,31 +326,13 @@ export function UnifiedButton({
           className={`relative z-10 flex items-center justify-center gap-2 ${a11y.textShadowClass}`}
         >
           {unifiedStyle.iconPosition === "left" && unifiedStyle.iconUrl && (
-            <img
-              src={unifiedStyle.iconUrl}
-              alt=""
-              width={20}
-              height={20}
-              loading="lazy"
-              decoding="async"
-              style={iconShapeConfig.style}
-              className={`h-5 w-5 shrink-0 ${iconShapeConfig.className}`}
-            />
+            renderIcon()
           )}
 
           {children || <span className="truncate">{button.text}</span>}
 
           {unifiedStyle.iconPosition === "right" && unifiedStyle.iconUrl && (
-            <img
-              src={unifiedStyle.iconUrl}
-              alt=""
-              width={20}
-              height={20}
-              loading="lazy"
-              decoding="async"
-              style={iconShapeConfig.style}
-              className={`h-5 w-5 shrink-0 ${iconShapeConfig.className}`}
-            />
+            renderIcon()
           )}
         </span>
       </button>
