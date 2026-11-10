@@ -80,7 +80,7 @@ export const Route = createFileRoute("/tienda/$slug")({
     ).slice(0, 160);
     // Primera FOTO de la variante (saltando videos); si no tiene, la del producto.
     const rawImage =
-      [...(v?.images ?? []), base0.image_url, ...(base0.images ?? [])].find((u) => u && !isVideoUrl(u)) || null;
+      [v?.image_url, ...(v?.images ?? []), base0.image_url, ...(base0.images ?? [])].find((u) => u && !isVideoUrl(u)) || null;
 
     const seo = getSeo(
       {

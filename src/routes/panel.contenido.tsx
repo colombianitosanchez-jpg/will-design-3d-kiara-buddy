@@ -1778,7 +1778,6 @@ function CTAButtonGroup({
                 shade: shadeNum,
                 media_fit: mediaFit,
                 icon_shape: iconShape,
-                include_image_link: true,
               }}
             />
           </div>
@@ -2404,7 +2403,6 @@ function SortableHeroButtonItemCard({
                 shade: shadeNum,
                 media_fit: mediaFit,
                 icon_shape: iconShape,
-                include_image_link: true,
               }}
             />
           </div>

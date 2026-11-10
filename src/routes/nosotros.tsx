@@ -229,7 +229,6 @@ function NosotrosPage() {
                   variant: "default",
                   width: "auto",
                   position: "left",
-                  include_image_link: true,
                 }}
                 onClick={
                   missionActionType === "whatsapp"
@@ -282,7 +281,6 @@ function NosotrosPage() {
                   variant: "default",
                   width: "auto",
                   position: "left",
-                  include_image_link: true,
                 }}
                 onClick={
                   visionActionType === "whatsapp"

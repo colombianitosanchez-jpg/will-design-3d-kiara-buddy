@@ -1,3 +1,4 @@
+import { productShareLink } from "@/lib/product-share";
 import { useState, useEffect } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -184,6 +185,7 @@ export function UnifiedButton({
             price: product ? formatCOP(product.price_cop) : "",
             variant_id: variantId ?? null,
             variant_name: variantName ?? null,
+            ...(product ? { share_url: productShareLink(product, variantId ?? null, button.id) } : {}),
           },
           extraWhatsappNote ?? "",
           globalDefaultMessage
