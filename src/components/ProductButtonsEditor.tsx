@@ -634,14 +634,14 @@ function SortableButtonCard({
               <MediaDropZone
                 forWhatsapp
                 value={b.whatsapp_image_url || ""}
-                onChange={(url) => onUpdate({ whatsapp_image_url: url, include_image_link: Boolean(url) })}
+                onChange={(url) => onUpdate({ whatsapp_image_url: url })}
               />
             </div>
             {b.whatsapp_image_url ? (
               <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 flex items-start gap-2.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300">Previsualización activa: Se incluirá enlace corto con tu foto</p>
+                  <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300">Se usará esta foto en la tarjeta de WhatsApp</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5">WhatsApp mostrará la tarjeta con esta foto.</p>
                 </div>
               </div>
@@ -649,8 +649,8 @@ function SortableButtonCard({
               <div className="rounded-xl border border-border bg-muted/30 p-3 flex items-start gap-2.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/50 mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-xs font-bold text-foreground">Mensaje limpio: Se enviará solo texto plano</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Sin foto configurada, WhatsApp enviará exclusivamente el texto del mensaje.</p>
+                  <p className="text-xs font-bold text-foreground">Se usará la foto ★ de la variante o del producto</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Sin foto aquí, la tarjeta muestra la portada ★ de la variante elegida o, si no tiene, la del producto. Si no hay ninguna foto, se envía solo texto.</p>
                 </div>
               </div>
             )}

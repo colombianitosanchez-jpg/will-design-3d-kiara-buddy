@@ -63,8 +63,6 @@ export type ProductButton = {
   action_value: string;
   /** Mensaje personalizado de WhatsApp; admite {{producto}} y {{precio}}. */
   whatsapp_message: string;
-  /** Añade al final del mensaje el enlace de la imagen principal. */
-  include_image_link: boolean;
   /** URL de imagen específica cargada para acompañar el mensaje de WhatsApp. */
   whatsapp_image_url?: string;
   /** ID del color seleccionado de la paleta del tema activo */
@@ -153,7 +151,6 @@ export function newProductButton(): ProductButton {
     action_type: "add_to_cart",
     action_value: "",
     whatsapp_message: "",
-    include_image_link: false,
     color_id: "",
     custom_hex: "",
     text_color: "",
@@ -194,7 +191,6 @@ export function parseProductButtons(raw: unknown): ProductButton[] {
       action_type: pick(b.action_type, BUTTON_ACTIONS, "link"),
       action_value: typeof b.action_value === "string" ? b.action_value.trim() : "",
       whatsapp_message: typeof b.whatsapp_message === "string" ? b.whatsapp_message : "",
-      include_image_link: b.include_image_link === true,
       whatsapp_image_url: typeof b.whatsapp_image_url === "string" ? b.whatsapp_image_url.trim() : "",
       color_id: typeof b.color_id === "string" ? b.color_id : "",
       custom_hex: typeof b.custom_hex === "string" ? b.custom_hex : "",
@@ -246,7 +242,7 @@ export function productPageUrl(slug?: string | null, variantId?: string | null):
  * (con Open Graph) en una línea aparte para que WhatsApp muestre la miniatura.
  */
 export function buildButtonWhatsappText(
-  button: Pick<ProductButton, "whatsapp_message" | "include_image_link" | "whatsapp_image_url">,
+  button: Pick<ProductButton, "whatsapp_message" | "whatsapp_image_url">,
   product: {
     name: string;
     slug?: string | null;
@@ -255,15 +251,21 @@ export function buildButtonWhatsappText(
     price?: string | null;
     variant_id?: string | null;
     variant_name?: string | null;
+    /** Enlace corto /t/... con la foto ya resuelta; "" = sin foto, mensaje limpio. */
+    share_url?: string | null;
   },
   extraNote = "",
   globalDefaultMessage = "",
 ): string {
   const custom = (button.whatsapp_message ?? "").trim() || globalDefaultMessage.trim();
+  // Productos: enlace corto con la jerarquía botón > variante ★ > producto ★.
+  // Fuera de productos: solo la foto propia del botón.
   const resolvedMedia =
-    (button.whatsapp_image_url ? shortenStorageUrl(button.whatsapp_image_url) : "") ||
-    productPageUrl(product.slug, product.variant_id) ||
-    shortenStorageUrl(product.image_url || product.images?.[0] || "");
+    product.share_url !== undefined
+      ? product.share_url || ""
+      : button.whatsapp_image_url
+        ? shortenStorageUrl(button.whatsapp_image_url)
+        : "";
   const absoluteMedia = resolvedMedia ? toAbsoluteUrl(resolvedMedia) : "";
 
   const base = custom
@@ -279,8 +281,7 @@ export function buildButtonWhatsappText(
   if (extraNote.trim()) parts.push(extraNote.trim());
   let text = parts.join(" ");
 
-  const shouldIncludeImage = button.include_image_link || Boolean(button.whatsapp_image_url);
-  if (shouldIncludeImage && absoluteMedia) {
+  if (absoluteMedia) {
     if (!custom.includes("{media") && !custom.includes("{{media")) {
       text = `${text}\n\n${absoluteMedia}`;
     }

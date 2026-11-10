@@ -290,7 +290,6 @@ function Hero() {
                   shade: btn.shade,
                   media_fit: btn.media_fit || "cover",
                   icon_shape: btn.icon_shape || "circle",
-                  include_image_link: true,
                 }}
                 onClick={() => handleHeroButtonClick(btn, idx)}
               />
@@ -675,7 +674,6 @@ function AboutPreview() {
                 variant: "default",
                 width: "auto",
                 position: "left",
-                include_image_link: true,
               }}
               onClick={handleAboutCtaClick}
             />
