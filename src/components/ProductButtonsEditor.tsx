@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { GripVertical, Layers, Trash2, Upload, Sparkles, Copy } from "lucide-react";
+import { GripVertical, Layers, Trash2, Upload, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSiteContent } from "@/hooks/use-site-content";
