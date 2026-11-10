@@ -11,17 +11,19 @@ const idx = (raw: unknown): number | null => {
 // Enlace corto de WhatsApp: /t/<producto>?v=<nº variante>&b=<nº botón>.
 // La tarjeta usa: foto del botón > portada ★ de la variante > portada ★ del producto.
 export const Route = createFileRoute("/t/$slug")({
-  validateSearch: (s: Record<string, unknown>): { v?: string; b?: string } => ({
-    ...(s.v != null && s.v !== "" ? { v: String(s.v).slice(0, 64) } : {}),
-    ...(s.b != null && s.b !== "" ? { b: String(s.b).slice(0, 8) } : {}),
-  }),
+  // Se conservan tal cual (número o texto) para no provocar una redirección 307.
+  validateSearch: (s: Record<string, unknown>): { v?: string | number; b?: string | number } => {
+    const keep = (x: unknown) => (typeof x === "number" ? x : typeof x === "string" && x ? x.slice(0, 64) : undefined);
+    const v = keep(s.v), b = keep(s.b);
+    return { ...(v !== undefined ? { v } : {}), ...(b !== undefined ? { b } : {}) };
+  },
   loaderDeps: ({ search }) => ({ v: search.v, b: search.b }),
   loader: async ({ params, context, deps }) => {
     const product = await context.queryClient.ensureQueryData(productBySlugQuery(params.slug));
     if (!product) throw notFound();
     const variants = product.variants ?? [];
     // Compatibilidad con enlaces viejos ?v=<uuid>.
-    const byId = deps.v ? variants.findIndex((x) => x.id === deps.v) : -1;
+    const byId = deps.v ? variants.findIndex((x) => x.id === String(deps.v)) : -1;
     const vIndex = byId >= 0 ? byId : idx(deps.v);
     const variant = vIndex != null ? variants[vIndex] ?? null : null;
     const img = resolveProductShareImage(product, variant ? vIndex : null, idx(deps.b));
