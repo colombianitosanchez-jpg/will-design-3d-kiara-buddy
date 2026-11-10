@@ -1,5 +1,5 @@
 # Roadmap
-- [ ] Sincronizar tarjetas de Contenido con Orden de Secciones y eliminar Pos; verificar arrastre y guardado.
+- [x] Sincronizar tarjetas de Contenido con Orden de Secciones y eliminar Pos; arrastre y guardado verificados con sesión del Super Admin.
 - [x] Foto de variante (video + foto) en vista previa de WhatsApp
 - [x] Orden de secciones del inicio arrastrando desde el panel
 - [x] Búsqueda de tienda encuentra variantes y abre la variante
