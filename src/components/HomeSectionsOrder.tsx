@@ -1,18 +1,29 @@
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
-import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Layers } from "lucide-react";
 import { HOME_SECTIONS, type HomeSectionKey } from "@/lib/home-sections";
 import { Button } from "@/components/ui/button";
 
-function Row({
-  id,
-  index,
-}: {
-  id: HomeSectionKey;
-  index: number;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+function Row({ id, index }: { id: HomeSectionKey; index: number }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+  });
   const label = HOME_SECTIONS.find((s) => s.key === id)?.label ?? id;
 
   return (
@@ -46,12 +57,17 @@ function Row({
         <Layers className="h-4 w-4 text-muted-foreground shrink-0" />
         {label}
       </span>
-
     </li>
   );
 }
 
-export function HomeSectionsOrder({ value, onChange }: { value: HomeSectionKey[]; onChange: (next: HomeSectionKey[]) => void }) {
+export function HomeSectionsOrder({
+  value,
+  onChange,
+}: {
+  value: HomeSectionKey[];
+  onChange: (next: HomeSectionKey[]) => void;
+}) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 6 } }),
@@ -60,7 +76,13 @@ export function HomeSectionsOrder({ value, onChange }: { value: HomeSectionKey[]
 
   function onDragEnd({ active, over }: DragEndEvent) {
     if (!over || active.id === over.id) return;
-    onChange(arrayMove(value, value.indexOf(active.id as HomeSectionKey), value.indexOf(over.id as HomeSectionKey)));
+    onChange(
+      arrayMove(
+        value,
+        value.indexOf(active.id as HomeSectionKey),
+        value.indexOf(over.id as HomeSectionKey),
+      ),
+    );
   }
 
   return (
@@ -68,11 +90,7 @@ export function HomeSectionsOrder({ value, onChange }: { value: HomeSectionKey[]
       <SortableContext items={value} strategy={verticalListSortingStrategy}>
         <ul className="space-y-2.5">
           {value.map((k, i) => (
-            <Row
-              key={k}
-              id={k}
-              index={i}
-            />
+            <Row key={k} id={k} index={i} />
           ))}
         </ul>
       </SortableContext>
