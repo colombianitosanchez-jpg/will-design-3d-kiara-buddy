@@ -32,7 +32,7 @@ export const Route = createFileRoute("/ref")({
     if (/^(?:(?:s|stat|a|v|t)\d+|stat_[a-z0-9_]+)$/i.test(rawKey)) {
       const { supabase } = await import("@/integrations/supabase/client");
       const { data } = await supabase.from("site_content").select("key,value").in("key", ["hero_stats", "about_stats", "about_values_items", "about_workshop_items"]);
-      img = resolveStatShareImage(rawKey, Object.fromEntries((data || []).map(row => [row.key, row.value]))) || "";
+      img = resolveStatShareImage(rawKey, Object.fromEntries((data || []).map((row: { key: string; value: string }) => [row.key, row.value]))) || "";
     } else if (key && (key === "site_logo_url" || /^[a-z0-9_]+_image_url$/i.test(key))) {
       const { supabase } = await import("@/integrations/supabase/client");
       // Posibles claves equivalentes en site_content para garantizar retrocompatibilidad

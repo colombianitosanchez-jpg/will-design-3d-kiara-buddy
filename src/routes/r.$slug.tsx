@@ -14,7 +14,7 @@ export const Route = createFileRoute("/r/$slug")({
 
     if (/^(?:(?:s|stat|a|v|t)\d+|stat_[a-z0-9_]+)$/i.test(rawSlug)) {
       const { data } = await supabase.from("site_content").select("key,value").in("key", ["hero_stats", "about_stats", "about_values_items", "about_workshop_items"]);
-      img = resolveStatShareImage(rawSlug, Object.fromEntries((data || []).map(row => [row.key, row.value]))) || "";
+      img = resolveStatShareImage(rawSlug, Object.fromEntries((data || []).map((row: { key: string; value: string }) => [row.key, row.value]))) || "";
       return { img, title: "Will Design 3D", desc: "" };
     }
 
