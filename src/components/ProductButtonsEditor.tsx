@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { GripVertical, Layers, Trash2, Upload, Sparkles, Sun, Moon, AlertTriangle } from "lucide-react";
+import { GripVertical, Layers, Trash2, Upload, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSiteContent } from "@/hooks/use-site-content";
@@ -18,6 +18,10 @@ import {
   POSITION_LABELS,
   VARIANT_LABELS,
   WIDTH_LABELS,
+  BUTTON_ICON_SHAPES,
+  ICON_SHAPE_LABELS,
+  type ButtonIconShape,
+  type ButtonMediaMode,
   newProductButton,
   type ProductButton,
   type ButtonAnimationType,
@@ -121,6 +125,15 @@ export function ProductButtonsEditor({
     onChange(buttons.map((b) => (b.id === id ? { ...b, ...patch } : b)));
   };
 
+  const duplicateButton = (id: string) => {
+    const idx = buttons.findIndex((b) => b.id === id);
+    if (idx === -1) return;
+    const copy = { ...buttons[idx], id: crypto.randomUUID() };
+    const next = [...buttons];
+    next.splice(idx + 1, 0, copy);
+    onChange(next);
+  };
+
   const removeButton = (id: string) => {
     onChange(buttons.filter((b) => b.id !== id));
   };
@@ -191,6 +204,7 @@ export function ProductButtonsEditor({
                 showVariantToken={showVariantToken}
                 onUpdate={(patch) => updateButton(b.id, patch)}
                 onRemove={() => removeButton(b.id)}
+                onDuplicate={() => duplicateButton(b.id)}
               />
             ))}
           </div>
@@ -215,6 +229,7 @@ function SortableButtonCard({
   showVariantToken,
   onUpdate,
   onRemove,
+  onDuplicate,
 }: {
   button: ProductButton;
   index: number;
@@ -222,10 +237,9 @@ function SortableButtonCard({
   showVariantToken: boolean;
   onUpdate: (patch: Partial<ProductButton>) => void;
   onRemove: () => void;
+  onDuplicate: () => void;
 }) {
   const [uploading, setUploading] = useState(false);
-  const [overlayOpacity, setOverlayOpacity] = useState<number>(50);
-  const [simulatedEnvironment, setSimulatedEnvironment] = useState<"sun" | "night">("sun");
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: b.id,
@@ -282,7 +296,6 @@ function SortableButtonCard({
     }
   }
 
-  const isLiveButton = Boolean(b.media_url && b.animation_type && b.animation_type !== "none");
 
   return (
     <div
@@ -306,42 +319,18 @@ function SortableButtonCard({
           </span>
         </div>
 
-        {/* Live Preview con Simulación de Sol / Noche */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/50 p-1">
-            <button
-              type="button"
-              onClick={() => setSimulatedEnvironment("sun")}
-              className={`p-1 rounded-md transition ${
-                simulatedEnvironment === "sun" ? "bg-amber-100 text-amber-800 shadow-xs" : "text-muted-foreground"
-              }`}
-              title="Simular Sol Intenso (Entorno Claro)"
-            >
-              <Sun className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setSimulatedEnvironment("night")}
-              className={`p-1 rounded-md transition ${
-                simulatedEnvironment === "night" ? "bg-slate-800 text-slate-100 shadow-xs" : "text-muted-foreground"
-              }`}
-              title="Simular Noche (Entorno Oscuro)"
-            >
-              <Moon className="h-3.5 w-3.5" />
-            </button>
+        <div className="flex items-center gap-2">
+          <div className="max-w-[220px]">
+            <UnifiedButton button={b} onClick={() => {}} />
           </div>
-
-          <div
-            className={`p-2 rounded-xl transition-colors ${
-              simulatedEnvironment === "sun" ? "bg-amber-50 border border-amber-200" : "bg-slate-900 border border-slate-800"
-            }`}
+          <button
+            type="button"
+            onClick={onDuplicate}
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+            title="Duplicar botón"
           >
-            <UnifiedButton
-              button={b}
-              styleOverride={{ overlayOpacity }}
-              onClick={() => {}}
-            />
-          </div>
+            <Copy className="h-4 w-4" />
+          </button>
 
           <button
             type="button"
@@ -432,6 +421,30 @@ function SortableButtonCard({
               </div>
             </label>
           )}
+
+          <label className="text-xs font-semibold text-muted-foreground">
+            Color del Texto (vacío = automático)
+            <div className="flex items-center gap-2 mt-1">
+              <input
+                type="color"
+                value={b.text_color?.startsWith("#") ? b.text_color : "#ffffff"}
+                onChange={(e) => onUpdate({ text_color: e.target.value })}
+                className="h-9 w-10 cursor-pointer rounded-lg border border-input p-0"
+              />
+              <input
+                type="text"
+                value={b.text_color || ""}
+                onChange={(e) => onUpdate({ text_color: e.target.value })}
+                placeholder="Automático"
+                className={inputCls}
+              />
+              {b.text_color && (
+                <button type="button" onClick={() => onUpdate({ text_color: "" })} className="shrink-0 text-xs text-red-500 hover:underline">
+                  Auto
+                </button>
+              )}
+            </div>
+          </label>
 
           <label className="text-xs font-semibold text-muted-foreground">
             Estilo / Preset Tailwind
@@ -588,33 +601,80 @@ function SortableButtonCard({
             </label>
           </div>
 
-          {/* Slider de Oscurecimiento Overlay (WCAG AA) */}
-          {isLiveButton && (
-            <div className="rounded-xl border border-border bg-card p-3 space-y-2 mt-3">
-              <div className="flex items-center justify-between text-xs font-bold">
-                <span>Overlay Oscuro Automático (WCAG AA): {overlayOpacity}%</span>
-                <span className={overlayOpacity < 45 ? "text-amber-600" : "text-emerald-600"}>
-                  {overlayOpacity < 45 ? "Advertencia: Legibilidad baja" : "Accesible ✓"}
-                </span>
-              </div>
-
-              <input
-                type="range"
-                min={30}
-                max={75}
-                value={overlayOpacity}
-                onChange={(e) => setOverlayOpacity(Number(e.target.value))}
-                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-              />
-
-              {overlayOpacity < 45 && (
-                <p className="flex items-center gap-1.5 text-[11px] text-amber-700 bg-amber-50 dark:bg-amber-950/40 p-2 rounded-lg border border-amber-200">
-                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" />
-                  Menos de 45% de overlay reduce la legibilidad del texto bajo luz solar directa. Se aplicará un piso automático de 45% en producción para mantener conversión.
-                </p>
+          {b.media_url && (
+            <div className="grid gap-3 sm:grid-cols-2 mt-3">
+              <label className="text-xs font-semibold text-muted-foreground">
+                Uso del medio
+                <select
+                  value={b.media_mode || "fill"}
+                  onChange={(e) => onUpdate({ media_mode: e.target.value as ButtonMediaMode })}
+                  className={inputCls}
+                >
+                  <option value="fill">Fondo vivo (todo el botón)</option>
+                  <option value="icon">Ícono / logo</option>
+                </select>
+              </label>
+              {(b.media_mode || "fill") === "fill" ? (
+                <label className="text-xs font-semibold text-muted-foreground">
+                  Cobertura del fondo
+                  <select
+                    value={b.media_fit || "cover"}
+                    onChange={(e) => onUpdate({ media_fit: e.target.value as "cover" | "contain" | "fill" })}
+                    className={inputCls}
+                  >
+                    <option value="cover">Cubrir todo</option>
+                    <option value="contain">Ajustar al centro</option>
+                    <option value="fill">Estirar</option>
+                  </select>
+                </label>
+              ) : (
+                <>
+                  <label className="text-xs font-semibold text-muted-foreground">
+                    Forma del ícono
+                    <select
+                      value={b.icon_shape || "circle"}
+                      onChange={(e) => onUpdate({ icon_shape: e.target.value as ButtonIconShape })}
+                      className={inputCls}
+                    >
+                      {BUTTON_ICON_SHAPES.map((sh) => (
+                        <option key={sh} value={sh}>{ICON_SHAPE_LABELS[sh]}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="text-xs font-semibold text-muted-foreground">
+                    Posición del ícono
+                    <select
+                      value={b.icon_position || "left"}
+                      onChange={(e) => onUpdate({ icon_position: e.target.value as "left" | "right" })}
+                      className={inputCls}
+                    >
+                      <option value="left">Izquierda</option>
+                      <option value="right">Derecha</option>
+                    </select>
+                  </label>
+                </>
               )}
             </div>
           )}
+
+          <div className="rounded-xl border border-border bg-card p-3 space-y-2 mt-3">
+            <div className="flex items-center justify-between text-xs font-bold">
+              <span>Sombreado: {typeof b.shade === "number" ? `${b.shade}%` : "Automático"}</span>
+              {typeof b.shade === "number" && (
+                <button type="button" onClick={() => onUpdate({ shade: undefined })} className="text-xs text-muted-foreground hover:underline">
+                  Automático
+                </button>
+              )}
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={typeof b.shade === "number" ? b.shade : 0}
+              onChange={(e) => onUpdate({ shade: Number(e.target.value) })}
+              className="w-full accent-primary"
+            />
+          </div>
         </div>
       </div>
 
