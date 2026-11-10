@@ -5,7 +5,7 @@ import { siteContentQuery, getContactInfo, waLink, pickWhatsapp } from "@/lib/ca
 import { openExternalUrl } from "@/lib/whatsapp";
 import { getWhatsAppPayloadForButton } from "@/lib/whatsapp-buttons";
 import { useSiteContent } from "@/hooks/use-site-content";
-import { parseHeroStats } from "@/lib/hero-stats";
+import { StatCollection } from "@/components/StatCollection";
 import { ProductMedia } from "@/components/ProductMedia";
 import { UnifiedButton } from "@/components/UnifiedButton";
 import { getSeo } from "@/lib/seo";
@@ -32,6 +32,8 @@ export const Route = createFileRoute("/nosotros")({
       { property: "og:title", content: seo.title },
       { property: "og:description", content: seo.description },
       { property: "og:url", content: "https://willdesign3d.com/nosotros" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ];
 
     if (seo.image) {
@@ -131,8 +133,7 @@ function NosotrosPage() {
   const valuesTitle = getText("about_values_title", "Valores");
   const valuesText = getText("about_values_text", "Cercanía, honestidad técnica, y ese cariño que solo un taller familiar (con perro incluido) puede ofrecer.");
   const valuesMedia = getText("about_values_image_url", "");
-  const valuesItemsRaw = content?.about_values_items || "";
-  const valuesItemsParsed = parseHeroStats({ hero_stats: valuesItemsRaw }).filter((s) => s.k || s.v);
+
 
   // Kiara
   const kiaraTitle = getText("about_kiara_title", "Kiara, nuestra directora de operaciones 🐾");
@@ -146,8 +147,7 @@ function NosotrosPage() {
   const workshopText = getText("about_workshop_text", "");
   const workshopMedia = getText("about_workshop_image_url", "");
   const workshopAddress = getText("about_workshop_address", "Bogotá, Colombia · Atención por cita previa.");
-  const workshopItemsRaw = content?.about_workshop_items || "";
-  const workshopItemsParsed = parseHeroStats({ hero_stats: workshopItemsRaw }).filter((s) => s.k || s.v);
+
 
   function handleSectionWaClick(itemTitle: string, itemBody: string, customMsg?: string, customMedia?: string, logic?: string, phone?: string) {
     const payload = getWhatsAppPayloadForButton(
@@ -311,23 +311,7 @@ function NosotrosPage() {
             <h2 className="mt-4 text-xl font-black">{valuesTitle}</h2>
             <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{valuesText}</p>
 
-            {valuesItemsParsed.length > 0 && (
-              <div className="mt-4 space-y-2">
-                {valuesItemsParsed.map((item) => (
-                  <div key={item.id} className="flex items-center gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-xs font-medium">
-                    {item.media_url ? (
-                      <div className="h-6 w-6 shrink-0 overflow-hidden rounded-md">
-                        <ProductMedia src={item.media_url} alt={item.k} className="h-full w-full object-cover" />
-                      </div>
-                    ) : (
-                      <Heart className="h-3.5 w-3.5 text-[var(--brand-wine)] shrink-0" />
-                    )}
-                    <span className="font-bold">{item.k}:</span>
-                    <span className="text-muted-foreground truncate">{item.v}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="mt-4"><StatCollection collection="about_values_items" /></div>
           </div>
           <div className="mt-6 pt-2">
             <button
@@ -379,25 +363,9 @@ function NosotrosPage() {
               </p>
             )}
 
+            <div className="mt-6"><StatCollection collection="about_workshop_items" /></div>
             <ul className="mt-6 space-y-3 text-sm">
-              {workshopItemsParsed.length > 0 ? (
-                workshopItemsParsed.map((item) => (
-                  <li key={item.id} className="flex items-start gap-3">
-                    {item.media_url ? (
-                      <div className="h-5 w-5 shrink-0 overflow-hidden rounded-md mt-0.5">
-                        <ProductMedia src={item.media_url} alt={item.k} className="h-full w-full object-cover" />
-                      </div>
-                    ) : (
-                      <Wrench className="mt-0.5 h-5 w-5 text-[var(--brand-orange)] shrink-0" />
-                    )}
-                    <span>
-                      <strong className="font-bold">{item.k}</strong> {item.v ? `— ${item.v}` : ""}
-                    </span>
-                  </li>
-                ))
-              ) : (
-                <>
-                  <li className="flex items-start gap-3">
+              <li className="flex items-start gap-3">
                     <Wrench className="mt-0.5 h-5 w-5 text-[var(--brand-orange)]" />
                     <span>Impresoras FDM de gran formato hasta 500×500×500 mm.</span>
                   </li>

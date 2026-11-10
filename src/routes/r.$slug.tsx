@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Calculator, ExternalLink, Image as ImageIcon, Box } from "lucide-react";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { REVERSE_REF_ALIASES } from "@/lib/whatsapp-buttons";
+import { resolveStatShareImage } from "@/lib/stat-share-image";
 
 export const Route = createFileRoute("/r/$slug")({
   loader: async ({ params }) => {
@@ -11,48 +12,10 @@ export const Route = createFileRoute("/r/$slug")({
 
     const { supabase } = await import("@/integrations/supabase/client");
 
-    // 1. Alias o ID de estadísticas
-    // Formato s1, s2, ..., stat1, stat2, ...
-    const statIndexMatch = lowerSlug.match(/^(?:s|stat)(\d+)$/);
-    if (statIndexMatch) {
-      const targetIndex = parseInt(statIndexMatch[1], 10) - 1;
-      const { data } = await supabase
-        .from("site_content")
-        .select("key, value")
-        .eq("key", "hero_stats")
-        .maybeSingle();
-
-      // sN = posición N en la portada (misma numeración que genera index.tsx),
-      // sin filtrar: así cada botón abre SU propia foto aunque otros no tengan.
-      try {
-        const arr = JSON.parse(String(data?.value || "[]"));
-        if (Array.isArray(arr) && targetIndex >= 0 && targetIndex < arr.length) {
-          img = String(arr[targetIndex]?.whatsapp_image_url || "");
-        }
-      } catch {
-        /* ignore */
-      }
-    } else if (/^stat_[a-z0-9_]+$/i.test(rawSlug)) {
-      // Coincidencia por ID exacto de la estadística (ej: stat_1792688101861)
-      const { data } = await supabase
-        .from("site_content")
-        .select("key, value")
-        .in("key", ["hero_stats", "about_stats"]);
-
-      for (const row of data || []) {
-        try {
-          const arr = JSON.parse(String(row.value || "[]"));
-          const found = Array.isArray(arr)
-            ? arr.find((s: any) => String(s?.id).toLowerCase() === lowerSlug)
-            : null;
-          if (found?.whatsapp_image_url) {
-            img = String(found.whatsapp_image_url);
-            break;
-          }
-        } catch {
-          /* ignore */
-        }
-      }
+    if (/^(?:(?:s|stat|a|v|t)\d+|stat_[a-z0-9_]+)$/i.test(rawSlug)) {
+      const { data } = await supabase.from("site_content").select("key,value").in("key", ["hero_stats", "about_stats", "about_values_items", "about_workshop_items"]);
+      img = resolveStatShareImage(rawSlug, Object.fromEntries((data || []).map(row => [row.key, row.value]))) || "";
+      return { img, title: "Will Design 3D", desc: "" };
     }
 
     // 2. Botones del Hero: formato heroN, hN (ej: hero1, hero2, hero3, h1, h2, h3, o "hero")
@@ -79,9 +42,11 @@ export const Route = createFileRoute("/r/$slug")({
         }
 
         // Primero verificar si hero_buttons existe en JSON
+        let hasModernButtons = false;
         if (contentMap.hero_buttons) {
           try {
             const arr = JSON.parse(contentMap.hero_buttons);
+            hasModernButtons = Array.isArray(arr);
             if (Array.isArray(arr) && targetIndex < arr.length) {
               const btn = arr[targetIndex];
               if (btn && typeof btn === "object" && btn.whatsapp_image_url) {
@@ -94,7 +59,7 @@ export const Route = createFileRoute("/r/$slug")({
         }
 
         // Si no se resolvió por hero_buttons, usar fallback a claves legadas
-        if (!img) {
+        if (!img && !hasModernButtons) {
           if (targetIndex === 0 && contentMap.hero_cta_whatsapp_image_url) {
             img = contentMap.hero_cta_whatsapp_image_url.trim();
           } else if (targetIndex === 1 && contentMap.hero_secondary_cta_whatsapp_image_url) {
@@ -103,6 +68,8 @@ export const Route = createFileRoute("/r/$slug")({
         }
       }
     }
+
+    if (isHeroAlias) return { img, title: "Will Design 3D", desc: "" };
 
     // 3. Si no se resolvió como estadística ni botón Hero, resolver por alias de botones o claves directas
     if (!img) {
@@ -160,7 +127,7 @@ export const Route = createFileRoute("/r/$slug")({
       { name: "twitter:card", content: "summary_large_image" },
     ];
 
-    if (desc) {
+    if (true) {
       metaTags.push(
         { name: "description", content: desc },
         { property: "og:description", content: desc }
