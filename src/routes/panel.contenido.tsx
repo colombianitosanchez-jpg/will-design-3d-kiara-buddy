@@ -101,7 +101,7 @@ function shortMediaName(url?: string): string {
 }
 
 export { parseHeroStats, type HeroStatItem } from "@/lib/hero-stats";
-import { parseHeroStats, parseStatItems, contrastText, accentPalette, type HeroStatItem } from "@/lib/hero-stats";
+import { parseHeroStats, parseStatItems, statShareKey, contrastText, accentPalette, type HeroStatItem, type StatCollectionKey } from "@/lib/hero-stats";
 import { parseHeroButtons, type HeroButtonItem } from "@/lib/hero-buttons";
 
 export function MediaDropZone({
@@ -664,6 +664,7 @@ function SortableHeroStatCard({
   onUpdate,
   onDuplicate,
   onRemove,
+  collectionKey,
 }: {
   item: HeroStatItem;
   index: number;
@@ -671,6 +672,7 @@ function SortableHeroStatCard({
   onUpdate: (patch: Partial<HeroStatItem>) => void;
   onDuplicate: () => void;
   onRemove: () => void;
+  collectionKey: StatCollectionKey;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
@@ -740,7 +742,7 @@ function SortableHeroStatCard({
     {
       whatsapp_message: item.whatsapp_message,
       whatsapp_image_url: item.whatsapp_image_url,
-      whatsapp_image_key: item.id,
+      whatsapp_image_key: statShareKey(collectionKey, index),
     },
     mediaUrl || content?.hero_image_url || "",
     content?.site_logo_url,
@@ -1573,7 +1575,7 @@ function HeroStatsEditor({
 }: {
   value: string;
   onChange: (newValue: string) => void;
-  collectionKey: string;
+  collectionKey: StatCollectionKey;
   title: string;
 }) {
   const { content } = useSiteContent();
@@ -1698,6 +1700,7 @@ function HeroStatsEditor({
                   item={it}
                   index={idx}
                   palette={palette}
+                  collectionKey={collectionKey}
                   onUpdate={(patch) => handleUpdateItem(it.id, patch)}
                   onDuplicate={() => handleDuplicateItem(it.id)}
                   onRemove={() => handleRemoveItem(it.id)}
@@ -3438,7 +3441,7 @@ function ContenidoAdmin() {
           <Label className="text-sm font-bold">{f.label}</Label>
           {f.help && <p className="text-xs text-muted-foreground">{f.help}</p>}
           <HeroStatsEditor
-            collectionKey={f.key}
+            collectionKey={f.key as StatCollectionKey}
             title={f.label}
             value={values[f.key] ?? ""}
             onChange={(next) => setValues((v) => ({ ...v, [f.key]: next }))}
