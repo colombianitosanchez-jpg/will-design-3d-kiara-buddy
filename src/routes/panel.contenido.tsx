@@ -602,13 +602,11 @@ function LottiePreview({ url }: { url: string }) {
 function HeroStatOrderRow({
   item,
   index,
-  total,
-  onPositionChange,
+  onRemove,
 }: {
   item: HeroStatItem;
   index: number;
-  total: number;
-  onPositionChange: (from: number, to: number) => void;
+  onRemove: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `stat_order_${item.id}`,
@@ -645,25 +643,16 @@ function HeroStatOrderRow({
         <span className="truncate">{label}</span>
       </span>
 
-      <div className="flex items-center gap-1.5 shrink-0">
-        <label className="text-[11px] text-muted-foreground font-semibold">Pos:</label>
-        <input
-          type="number"
-          min={1}
-          max={total}
-          value={index + 1}
-          onChange={(e) => {
-            const val = parseInt(e.target.value, 10);
-            if (!isNaN(val)) {
-              const targetIdx = Math.max(0, Math.min(total - 1, val - 1));
-              if (targetIdx !== index) {
-                onPositionChange(index, targetIdx);
-              }
-            }
-          }}
-          className="w-12 rounded-lg border border-input bg-background px-2 py-1 text-xs font-bold text-center outline-none focus:ring-2 focus:ring-primary"
-        />
-      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        onClick={onRemove}
+        className="h-8 w-8 text-destructive hover:bg-destructive/10 shrink-0"
+        title="Eliminar elemento"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
     </li>
   );
 }
@@ -1671,8 +1660,7 @@ function HeroStatsEditor({
                   key={`stat_order_${it.id}`}
                   item={it}
                   index={idx}
-                  total={items.length}
-                  onPositionChange={handlePositionChange}
+                  onRemove={() => handleRemoveItem(it.id)}
                 />
               ))}
             </ul>
@@ -2347,13 +2335,11 @@ function CTAButtonGroup({
 function HeroButtonOrderRow({
   button,
   index,
-  total,
-  onPositionChange,
+  onRemove,
 }: {
   button: HeroButtonItem;
   index: number;
-  total: number;
-  onPositionChange: (from: number, to: number) => void;
+  onRemove: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `order_${button.id}`,
@@ -2390,25 +2376,16 @@ function HeroButtonOrderRow({
         <span className="truncate">{label}</span>
       </span>
 
-      <div className="flex items-center gap-1.5 shrink-0">
-        <label className="text-[11px] text-muted-foreground font-semibold">Pos:</label>
-        <input
-          type="number"
-          min={1}
-          max={total}
-          value={index + 1}
-          onChange={(e) => {
-            const val = parseInt(e.target.value, 10);
-            if (!isNaN(val)) {
-              const targetIdx = Math.max(0, Math.min(total - 1, val - 1));
-              if (targetIdx !== index) {
-                onPositionChange(index, targetIdx);
-              }
-            }
-          }}
-          className="w-12 rounded-lg border border-input bg-background px-2 py-1 text-xs font-bold text-center outline-none focus:ring-2 focus:ring-primary"
-        />
-      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        onClick={onRemove}
+        className="h-8 w-8 text-destructive hover:bg-destructive/10 shrink-0"
+        title="Eliminar este botón"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
     </li>
   );
 }
@@ -3179,8 +3156,7 @@ function HeroButtonsEditor({
                   key={`order_${b.id}`}
                   button={b}
                   index={idx}
-                  total={buttons.length}
-                  onPositionChange={handlePositionChange}
+                  onRemove={() => handleRemoveButton(b.id)}
                 />
               ))}
             </ul>
