@@ -92,6 +92,8 @@ export interface UnifiedButtonProps {
   variantName?: string | null;
   variantId?: string | null;
   onClick?: () => void;
+  children?: React.ReactNode;
+  interactive?: boolean;
 }
 
 export function UnifiedButton({
@@ -104,6 +106,8 @@ export function UnifiedButton({
   variantName,
   variantId,
   onClick,
+  children,
+  interactive = true,
 }: UnifiedButtonProps) {
   const router = useRouter();
   const { addItem } = useCart();
@@ -252,6 +256,7 @@ export function UnifiedButton({
       <button
         type="button"
         aria-label={a11y.ariaLabel || button.text}
+        disabled={!interactive}
         onClick={handleAction}
         style={{ color: a11y.textColor }}
         className={`relative overflow-hidden cursor-pointer select-none border border-black/10 shadow-md transition-all ${widthClass} ${roundedClass} ${a11y.tapTargetClass} ${a11y.focusClass} ${animClass} ${className}`}
@@ -325,7 +330,7 @@ export function UnifiedButton({
             />
           )}
 
-          <span className="truncate">{button.text}</span>
+          {children || <span className="truncate">{button.text}</span>}
 
           {unifiedStyle.iconPosition === "right" && unifiedStyle.iconUrl && (
             <img

@@ -1,13 +1,11 @@
 import { useRouter } from "@tanstack/react-router";
-import { Button } from "@/components/ui/button";
-import { UnifiedButton, getIconShapeStyle } from "@/components/UnifiedButton";
+import { UnifiedButton } from "@/components/UnifiedButton";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { getActiveTheme } from "@/lib/theme";
 import { contrastText, parseStatItems, statShareKey, type StatCollectionKey } from "@/lib/hero-stats";
 import { getContactInfo, pickWhatsapp, waLink } from "@/lib/catalog";
 import { getWhatsAppPayloadForButton } from "@/lib/whatsapp-buttons";
 import { openExternalUrl } from "@/lib/whatsapp";
-import { ProductMedia } from "@/components/ProductMedia";
 import { toast } from "sonner";
 
 /** One renderer for all independent About collections: no invisible editor options. */
@@ -22,9 +20,7 @@ export function StatCollection({ collection }: { collection: StatCollectionKey }
     {items.map((item, index) => {
       if (!item.k && !item.v) return null;
       const color = item.custom_hex || palette.find(color => color.id === item.color_id)?.hex;
-      const iconShape = getIconShapeStyle(item.icon_shape);
       const clickable = Boolean(item.action_type && item.action_type !== "none");
-      const icon = item.icon_position !== "none" && item.icon_url ? <span className={`h-5 w-5 shrink-0 overflow-hidden ${iconShape.className}`} style={iconShape.style}><ProductMedia src={item.icon_url} alt="" className="h-full w-full object-cover" /></span> : null;
       function act() {
         if (item.action_type === "whatsapp") {
           const payload = getWhatsAppPayloadForButton({ ...item, whatsapp_image_key: statShareKey(collection, index) }, undefined, undefined, `Hola, me interesa ${item.k}.`, content.whatsapp_default_message);
@@ -41,7 +37,12 @@ export function StatCollection({ collection }: { collection: StatCollectionKey }
       // UnifiedButton supplies the exact same visual layers as the Hero buttons.
       // Its content is replaced only for the two-field card; actions run once.
       return <div key={item.id} className={`relative ${item.width === "full" ? "col-span-full" : ""}`}>
-        <UnifiedButton button={{ ...item, id: item.id, text: [item.k, item.v].filter(Boolean).join(" — "), action_type: "link", action_value: "", custom_hex: color, text_color: item.text_color || (color ? contrastText(color) : undefined), width: "full", position: "center" }} onClick={clickable ? act : () => {}} className="min-h-20 w-full whitespace-normal [&_span.truncate]:whitespace-normal [&_span.truncate]:break-words" />
+        <UnifiedButton button={{ ...item, id: item.id, text: [item.k, item.v].filter(Boolean).join(" — "), action_type: "link", action_value: "", whatsapp_message: item.whatsapp_message || "", variant: "default", include_image_link: false, custom_hex: color, text_color: item.text_color || (item.media_mode === "fill" && item.media_url ? undefined : color ? contrastText(color) : undefined), width: "full", position: "center" }} styleOverride={{ rounded: item.rounded?.replace("rounded-", "") as "xl" | "2xl" | "3xl" | "full" }} interactive={clickable} onClick={act} className={`min-h-20 w-full ${clickable ? "" : "cursor-default"}`}>
+          <span className="flex min-w-0 flex-col gap-1 whitespace-normal break-words">
+            <span className="text-lg font-bold">{item.k}</span>
+            {item.v && <span className="text-xs font-medium">{item.v}</span>}
+          </span>
+        </UnifiedButton>
       </div>;
     })}
   </div>;
