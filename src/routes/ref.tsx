@@ -74,12 +74,10 @@ export const Route = createFileRoute("/ref")({
       { name: "twitter:card", content: "summary_large_image" },
     ];
 
-    if (true) {
-      metaTags.push(
+    metaTags.push(
         { name: "description", content: desc },
         { property: "og:description", content: desc }
-      );
-    }
+    );
 
     if (img) {
       metaTags.push(

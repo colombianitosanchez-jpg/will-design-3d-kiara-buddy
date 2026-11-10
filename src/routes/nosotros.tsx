@@ -366,20 +366,6 @@ function NosotrosPage() {
             <div className="mt-6"><StatCollection collection="about_workshop_items" /></div>
             <ul className="mt-6 space-y-3 text-sm">
               <li className="flex items-start gap-3">
-                    <Wrench className="mt-0.5 h-5 w-5 text-[var(--brand-orange)]" />
-                    <span>Impresoras FDM de gran formato hasta 500×500×500 mm.</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <Wrench className="mt-0.5 h-5 w-5 text-[var(--brand-teal)]" />
-                    <span>Impresoras de resina 12K para alto detalle.</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <Wrench className="mt-0.5 h-5 w-5 text-[var(--brand-wine)]" />
-                    <span>Área de acabados con cabina de pintura profesional.</span>
-                  </li>
-                </>
-              )}
-              <li className="flex items-start gap-3">
                 <MapPin className="mt-0.5 h-5 w-5 text-[var(--brand-wine)] shrink-0" />
                 <span>{workshopAddress}</span>
               </li>
