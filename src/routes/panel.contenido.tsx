@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -30,6 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { sanitizeWidgetId, parsePhotos, type PortfolioPhoto } from "@/components/InstagramFeed";
 import { HomeSectionsOrder } from "@/components/HomeSectionsOrder";
 import { parseHomeOrder } from "@/lib/home-sections";
+import { getHomeEditorGroups } from "@/lib/home-editor-groups";
 import { ProductMedia, isVideoUrl } from "@/components/ProductMedia";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { getActiveTheme } from "@/lib/theme";
@@ -62,6 +63,17 @@ import { CSS } from "@dnd-kit/utilities";
 
 export const Route = createFileRoute("/panel/contenido")({
   ssr: false,
+  head: () => ({
+    meta: [
+      { title: "Contenido del sitio · Will Design 3D" },
+      { name: "description", content: "Gestión privada del contenido y el orden de las secciones de Will Design 3D." },
+      { name: "robots", content: "noindex, nofollow" },
+      { property: "og:title", content: "Contenido del sitio · Will Design 3D" },
+      { property: "og:description", content: "Edición del inicio, Nosotros y textos de la tienda de Will Design 3D." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: ContenidoAdmin,
 });
 
@@ -3553,7 +3565,7 @@ function ContenidoAdmin() {
     );
   }
 
-  const groups = Array.from(new Set(FIELDS.map((f) => f.group)));
+  const groups = getHomeEditorGroups(values.home_sections_order, Array.from(new Set(FIELDS.map((f) => f.group))));
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -3607,7 +3619,13 @@ function ContenidoAdmin() {
                     <CardHeader className="pb-3 border-b border-border/60">
                       <CardTitle className="text-base font-bold">{group}</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-6 pt-6">{groupFields.map(renderField)}</CardContent>
+                    <CardContent className="space-y-6 pt-6">
+                      {group === "Servicios" ? (
+                        <Button asChild variant="outline"><Link to="/panel/servicios">Editar servicios</Link></Button>
+                      ) : group === "Cotizador" ? (
+                        <Button asChild variant="outline"><Link to="/panel/cotizador">Editar cotizador</Link></Button>
+                      ) : groupFields.map(renderField)}
+                    </CardContent>
                   </Card>
                 );
               })}

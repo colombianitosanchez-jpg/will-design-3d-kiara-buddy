@@ -3,17 +3,14 @@ import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Layers } from "lucide-react";
 import { HOME_SECTIONS, type HomeSectionKey } from "@/lib/home-sections";
+import { Button } from "@/components/ui/button";
 
 function Row({
   id,
   index,
-  total,
-  onPositionChange,
 }: {
   id: HomeSectionKey;
   index: number;
-  total: number;
-  onPositionChange: (from: number, to: number) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const label = HOME_SECTIONS.find((s) => s.key === id)?.label ?? id;
@@ -28,8 +25,10 @@ function Row({
           : "border-border hover:border-border/80"
       }`}
     >
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="icon"
         {...attributes}
         {...listeners}
         aria-label={`Arrastrar ${label}`}
@@ -37,7 +36,7 @@ function Row({
         title="Arrastrar para reordenar sección"
       >
         <GripVertical className="h-5 w-5 text-primary" />
-      </button>
+      </Button>
 
       <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-xs font-black text-primary shrink-0">
         #{index + 1}
@@ -48,25 +47,6 @@ function Row({
         {label}
       </span>
 
-      <div className="flex items-center gap-1.5 shrink-0">
-        <label className="text-[11px] text-muted-foreground font-semibold">Pos:</label>
-        <input
-          type="number"
-          min={1}
-          max={total}
-          value={index + 1}
-          onChange={(e) => {
-            const val = parseInt(e.target.value, 10);
-            if (!isNaN(val)) {
-              const targetIdx = Math.max(0, Math.min(total - 1, val - 1));
-              if (targetIdx !== index) {
-                onPositionChange(index, targetIdx);
-              }
-            }
-          }}
-          className="w-12 rounded-lg border border-input bg-background px-2 py-1 text-xs font-bold text-center outline-none focus:ring-2 focus:ring-primary"
-        />
-      </div>
     </li>
   );
 }
@@ -83,10 +63,6 @@ export function HomeSectionsOrder({ value, onChange }: { value: HomeSectionKey[]
     onChange(arrayMove(value, value.indexOf(active.id as HomeSectionKey), value.indexOf(over.id as HomeSectionKey)));
   }
 
-  function handlePositionChange(from: number, to: number) {
-    onChange(arrayMove(value, from, to));
-  }
-
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
       <SortableContext items={value} strategy={verticalListSortingStrategy}>
@@ -96,8 +72,6 @@ export function HomeSectionsOrder({ value, onChange }: { value: HomeSectionKey[]
               key={k}
               id={k}
               index={i}
-              total={value.length}
-              onPositionChange={handlePositionChange}
             />
           ))}
         </ul>
