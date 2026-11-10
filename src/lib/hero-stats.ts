@@ -48,12 +48,14 @@ export function accentPalette<T extends { id: string }>(palette: T[]): T[] {
   return palette.filter((p) => p.id !== "background");
 }
 
-export function parseHeroStats(values: Record<string, string>): HeroStatItem[] {
-  if (values.hero_stats) {
+export type StatCollectionKey = "hero_stats" | "about_stats" | "about_values_items" | "about_workshop_items";
+
+export function parseStatItems(raw?: string): HeroStatItem[] {
+  if (raw?.trim()) {
     try {
-      const parsed = JSON.parse(values.hero_stats);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.map((item: any) => {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.filter((item) => item && typeof item === "object" && !Array.isArray(item)).map((item: any, index: number) => {
           const bgUrl = item.media_url !== undefined ? item.media_url : (item.bgImageUrl || "");
           const iconUrl = item.icon_url !== undefined ? item.icon_url : (item.iconPosition && item.iconPosition !== "none" ? (item.bgImageUrl || "") : "");
           const isVid = /\.(mp4|webm|quicktime)($|\?)/i.test(bgUrl);
@@ -69,6 +71,9 @@ export function parseHeroStats(values: Record<string, string>): HeroStatItem[] {
 
           return {
             ...item,
+            id: typeof item.id === "string" && item.id ? item.id : `stat_${index + 1}`,
+            k: typeof item.k === "string" ? item.k : "",
+            v: typeof item.v === "string" ? item.v : "",
             media_mode: mediaMode,
             media_fit: item.media_fit || "cover",
             icon_position: iconPos,
@@ -94,6 +99,18 @@ export function parseHeroStats(values: Record<string, string>): HeroStatItem[] {
     }
   }
 
+  return [];
+}
+
+export function statShareKey(collection: StatCollectionKey, index: number): string {
+  const prefixes = { hero_stats: "s", about_stats: "a", about_values_items: "v", about_workshop_items: "t" };
+  return `${prefixes[collection]}${index + 1}`;
+}
+
+export function parseHeroStats(values: Record<string, string>): HeroStatItem[] {
+  // An explicitly saved collection is authoritative, including [] or invalid JSON.
+  if (values.hero_stats?.trim()) return parseStatItems(values.hero_stats);
+
   const legacy: HeroStatItem[] = [];
   for (let i = 1; i <= 6; i++) {
     const k = values[`hero_stat_${i}_k`]?.trim();
@@ -117,11 +134,5 @@ export function parseHeroStats(values: Record<string, string>): HeroStatItem[] {
       });
     }
   }
-  return legacy.length > 0
-    ? legacy
-    : [
-        { id: "stat_1", k: "50×50", v: "cm mínimo", action_type: "none", type: "solid", media_mode: "none", media_fit: "cover", icon_position: "none", iconPosition: "none", icon_shape: "circle", width: "auto", rounded: "rounded-2xl" },
-        { id: "stat_2", k: "1.8 m", v: "en una sola pieza", action_type: "none", type: "solid", media_mode: "none", media_fit: "cover", icon_position: "none", iconPosition: "none", icon_shape: "circle", width: "auto", rounded: "rounded-2xl" },
-        { id: "stat_3", k: "24/7", v: "atención y cotización", action_type: "none", type: "solid", media_mode: "none", media_fit: "cover", icon_position: "none", iconPosition: "none", icon_shape: "circle", width: "auto", rounded: "rounded-2xl" },
-      ];
+  return legacy;
 }

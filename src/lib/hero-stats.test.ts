@@ -1,8 +1,26 @@
 import { describe, expect, test } from "vitest";
-import { contrastText, accentPalette, parseHeroStats } from "./hero-stats";
+import { contrastText, accentPalette, parseHeroStats, parseStatItems, statShareKey } from "./hero-stats";
 import { getWhatsAppPayloadForButton } from "./whatsapp-buttons";
 
 describe("estadísticas del hero", () => {
+  test("borrar todas las estadísticas no resucita claves antiguas", () => {
+    expect(parseHeroStats({ hero_stats: "[]", hero_stat_1_k: "Idea", hero_stat_1_v: "En grande" })).toEqual([]);
+  });
+  test("Nosotros vacío nunca hereda métricas del Hero", () => {
+    expect(parseStatItems("")).toEqual([]);
+    expect(parseStatItems("[]")).toEqual([]);
+    expect(parseHeroStats({})).toEqual([]);
+  });
+  test("conserva métricas antiguas solo si no existe colección moderna", () => {
+    expect(parseHeroStats({ hero_stat_1_k: "Idea" }).map(s => s.k)).toEqual(["Idea"]);
+    expect(parseHeroStats({ hero_stats: "{invalid", hero_stat_1_k: "Idea" })).toEqual([]);
+  });
+  test("cada colección tiene su propio enlace aunque comparta posición", () => {
+    expect([statShareKey("hero_stats", 0), statShareKey("about_stats", 0), statShareKey("about_values_items", 0), statShareKey("about_workshop_items", 0)]).toEqual(["s1", "a1", "v1", "t1"]);
+  });
+  test("descarta entradas malformadas sin perder elementos válidos", () => {
+    expect(parseStatItems('[null,12,{"id":"ok","k":"Real"}]').map(s => s.k)).toEqual(["Real"]);
+  });
   test("texto automático: negro sobre fondo claro, blanco sobre oscuro", () => {
     expect(contrastText("#ffffff")).toBe("#111111");
     expect(contrastText("#881337")).toBe("#ffffff");
