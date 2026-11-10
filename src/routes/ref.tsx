@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ArrowRight, Calculator, ExternalLink, Image as ImageIcon, Box } from "lucide-react";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { REVERSE_REF_ALIASES } from "@/lib/whatsapp-buttons";
+import { resolveStatShareImage } from "@/lib/stat-share-image";
 
 // Sin valores por defecto: un default obliga al router a "canonizar" la URL
 // con una redirección 307 que añade &img=&title=...&desc=, y el robot de
@@ -28,25 +29,10 @@ export const Route = createFileRoute("/ref")({
     const rawKey = deps.k?.trim() || "";
     const key = REVERSE_REF_ALIASES[rawKey] || rawKey;
 
-    // Estadísticas: k = id de la estadística (stat_...); la foto vive dentro del JSON.
-    if (/^stat_[a-z0-9_]+$/i.test(rawKey)) {
+    if (/^(?:(?:s|stat|a|v|t)\d+|stat_[a-z0-9_]+)$/i.test(rawKey)) {
       const { supabase } = await import("@/integrations/supabase/client");
-      const { data } = await supabase
-        .from("site_content")
-        .select("key, value")
-        .in("key", ["hero_stats", "about_stats"]);
-      for (const row of data || []) {
-        try {
-          const arr = JSON.parse(String(row.value || "[]"));
-          const found = Array.isArray(arr) ? arr.find((s: any) => s?.id === rawKey) : null;
-          if (found?.whatsapp_image_url) {
-            img = String(found.whatsapp_image_url);
-            break;
-          }
-        } catch {
-          /* ignore */
-        }
-      }
+      const { data } = await supabase.from("site_content").select("key,value").in("key", ["hero_stats", "about_stats", "about_values_items", "about_workshop_items"]);
+      img = resolveStatShareImage(rawKey, Object.fromEntries((data || []).map((row: { key: string; value: string }) => [row.key, row.value]))) || "";
     } else if (key && (key === "site_logo_url" || /^[a-z0-9_]+_image_url$/i.test(key))) {
       const { supabase } = await import("@/integrations/supabase/client");
       // Posibles claves equivalentes en site_content para garantizar retrocompatibilidad
@@ -88,12 +74,10 @@ export const Route = createFileRoute("/ref")({
       { name: "twitter:card", content: "summary_large_image" },
     ];
 
-    if (desc) {
-      metaTags.push(
+    metaTags.push(
         { name: "description", content: desc },
         { property: "og:description", content: desc }
-      );
-    }
+    );
 
     if (img) {
       metaTags.push(

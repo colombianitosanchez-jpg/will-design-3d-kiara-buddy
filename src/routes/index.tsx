@@ -28,6 +28,7 @@ import { getWhatsAppPayloadForButton } from "@/lib/whatsapp-buttons";
 import { getSeo } from "@/lib/seo";
 import type { ButtonIconShape } from "@/lib/product-buttons";
 import { motion } from "framer-motion";
+import { StatCollection } from "@/components/StatCollection";
 
 function LottiePlayer({ url, className }: { url: string; className?: string }) {
   const [data, setData] = useState<any>(null);
@@ -94,6 +95,8 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: seo.title },
       { property: "og:description", content: seo.description },
       { property: "og:url", content: canonicalUrl },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ];
 
     if (seo.image) {
@@ -145,10 +148,10 @@ function Hero() {
   const subtitle = getText("hero_subtitle", "");
   const image = getText("hero_image_url", "");
   const badge = getText("hero_badge_title", "");
-  const stats = parseHeroStats(content).filter((s) => s.k || s.v);
+  const stats = parseHeroStats(content);
 
   // Hero CTAs Config (Soporte ilimitado con parseHeroButtons)
-  const heroButtons = parseHeroButtons(content).filter((b) => b.text?.trim());
+  const heroButtons = parseHeroButtons(content);
 
   function handleHeroButtonClick(btn: HeroButtonItem, index: number) {
     const actionType = btn.action_type || "link";
@@ -265,7 +268,7 @@ function Hero() {
           </p>
           {heroButtons.length > 0 && (
           <div className="mt-7 flex flex-wrap items-center gap-3">
-            {heroButtons.map((btn, idx) => (
+            {heroButtons.map((btn, idx) => btn.text?.trim() ? (
               <UnifiedButton
                 key={btn.id || `hero-btn-${idx}`}
                 button={{
@@ -291,13 +294,14 @@ function Hero() {
                 }}
                 onClick={() => handleHeroButtonClick(btn, idx)}
               />
-            ))}
+            ) : null)}
           </div>
           )}
 
           {stats.length > 0 && (
             <dl className="mt-10 grid max-w-lg grid-cols-2 sm:grid-cols-3 gap-4">
               {stats.map((s, idx) => {
+                if (!s.k && !s.v) return null;
                 const statColor = resolveStatColor(s);
                 const isClickable = s.action_type && s.action_type !== "none";
                 const animClass =
@@ -561,7 +565,7 @@ function AboutPreview() {
   const subtitle = getText("about_subtitle", "Diseño, ingeniería y fabricación aditiva desde Bogotá, Colombia.");
   const shortDesc = getText("about_short", "");
   const image = getText("about_image_url", "");
-  const stats = parseHeroStats({ hero_stats: content?.about_stats || "" }).filter((s) => s.k || s.v);
+
 
   const ctaText = getText("about_cta_text", "Conoce más sobre nosotros");
   const ctaUrl = getText("about_cta_url", "/nosotros");
@@ -592,7 +596,7 @@ function AboutPreview() {
         "Hola Will Design 3D, me interesa conocer más sobre ustedes.",
         globalDefaultMessage
       );
-      const url = waLink(fallbackWhatsapp, payload.formattedText);
+      const url = waLink(pickWhatsapp(ctaUrl, fallbackWhatsapp), payload.formattedText);
       if (!url) {
         toast.error("Configura WhatsApp en /panel/marca");
         return;
@@ -633,26 +637,9 @@ function AboutPreview() {
             </div>
           )}
 
-          {/* Stats flotantes sobre la imagen con backdrop-blur */}
-          {stats.length > 0 && (
-            <div className="absolute inset-x-4 bottom-4 z-10 grid grid-cols-2 gap-3 sm:inset-x-6 sm:bottom-6 sm:grid-cols-3">
-              {stats.map((s) => (
-                <div
-                  key={s.id}
-                  className="rounded-2xl border border-white/20 bg-background/80 p-3.5 text-center shadow-lg backdrop-blur-md dark:border-white/10 dark:bg-card/80 flex flex-col items-center justify-center"
-                >
-                  {s.media_url && (
-                    <div className="mb-1 h-7 w-7 overflow-hidden rounded-full shrink-0">
-                      <ProductMedia src={s.media_url} alt={s.k} className="h-full w-full object-cover" />
-                    </div>
-                  )}
-                  <dt className="text-lg font-black text-primary sm:text-xl">{s.k}</dt>
-                  <dd className="mt-0.5 text-xs font-medium text-foreground/80 sm:text-sm">{s.v}</dd>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
+
+        <StatCollection collection="about_stats" />
 
         {/* Texto debajo */}
         <div className="text-center md:text-left">

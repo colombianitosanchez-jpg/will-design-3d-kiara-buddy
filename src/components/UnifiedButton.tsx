@@ -92,6 +92,8 @@ export interface UnifiedButtonProps {
   variantName?: string | null;
   variantId?: string | null;
   onClick?: () => void;
+  children?: React.ReactNode;
+  interactive?: boolean;
 }
 
 export function UnifiedButton({
@@ -104,6 +106,8 @@ export function UnifiedButton({
   variantName,
   variantId,
   onClick,
+  children,
+  interactive = true,
 }: UnifiedButtonProps) {
   const router = useRouter();
   const { addItem } = useCart();
@@ -243,6 +247,14 @@ export function UnifiedButton({
       : "object-cover";
   const iconShapeConfig = getIconShapeStyle(button.icon_shape);
   const solidShade = !isFillMedia ? a11y.overlayOpacity : 0;
+  function renderIcon() {
+    const url = unifiedStyle.iconUrl;
+    if (!url) return null;
+    const className = `h-5 w-5 shrink-0 ${iconShapeConfig.className}`;
+    if (/\.json($|\?)/i.test(url)) return <span className={`${className} overflow-hidden`} style={iconShapeConfig.style}><LottiePlayer url={url} className="h-full w-full" /></span>;
+    if (/\.(mp4|webm|mov)($|\?)/i.test(url)) return <video src={url} autoPlay loop muted playsInline style={iconShapeConfig.style} className={className} />;
+    return <img src={url} alt="" width={20} height={20} loading="lazy" decoding="async" style={iconShapeConfig.style} className={className} />;
+  }
 
   return (
     <motion.div
@@ -252,6 +264,7 @@ export function UnifiedButton({
       <button
         type="button"
         aria-label={a11y.ariaLabel || button.text}
+        disabled={!interactive}
         onClick={handleAction}
         style={{ color: a11y.textColor }}
         className={`relative overflow-hidden cursor-pointer select-none border border-black/10 shadow-md transition-all ${widthClass} ${roundedClass} ${a11y.tapTargetClass} ${a11y.focusClass} ${animClass} ${className}`}
@@ -313,31 +326,13 @@ export function UnifiedButton({
           className={`relative z-10 flex items-center justify-center gap-2 ${a11y.textShadowClass}`}
         >
           {unifiedStyle.iconPosition === "left" && unifiedStyle.iconUrl && (
-            <img
-              src={unifiedStyle.iconUrl}
-              alt=""
-              width={20}
-              height={20}
-              loading="lazy"
-              decoding="async"
-              style={iconShapeConfig.style}
-              className={`h-5 w-5 shrink-0 ${iconShapeConfig.className}`}
-            />
+            renderIcon()
           )}
 
-          <span className="truncate">{button.text}</span>
+          {children || <span className="truncate">{button.text}</span>}
 
           {unifiedStyle.iconPosition === "right" && unifiedStyle.iconUrl && (
-            <img
-              src={unifiedStyle.iconUrl}
-              alt=""
-              width={20}
-              height={20}
-              loading="lazy"
-              decoding="async"
-              style={iconShapeConfig.style}
-              className={`h-5 w-5 shrink-0 ${iconShapeConfig.className}`}
-            />
+            renderIcon()
           )}
         </span>
       </button>
