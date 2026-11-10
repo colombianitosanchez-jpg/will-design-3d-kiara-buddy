@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Derive homepage editor group order through `getHomeEditorGroups` from `home_sections_order`, keeping stable group keys and existing field renderers; this synchronizes controls without resetting their state or duplicating ordering logic.
