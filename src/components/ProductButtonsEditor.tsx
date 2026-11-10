@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { GripVertical, Trash2, Upload, Sparkles, Sun, Moon, AlertTriangle } from "lucide-react";
+import { GripVertical, Layers, Trash2, Upload, Sparkles, Sun, Moon, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSiteContent } from "@/hooks/use-site-content";
@@ -43,6 +43,62 @@ import { CSS } from "@dnd-kit/utilities";
 const inputCls =
   "mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring";
 
+function SortableButtonOrderRow({
+  button,
+  index,
+  onRemove,
+}: {
+  button: ProductButton;
+  index: number;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: `order_${button.id}`,
+  });
+  const label = button.label?.trim() || button.text?.trim() || `Botón #${index + 1}`;
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`flex items-center gap-3 rounded-2xl border bg-card p-2.5 transition shadow-2xs ${
+        isDragging
+          ? "z-20 border-primary bg-primary/10 shadow-xl ring-2 ring-primary"
+          : "border-border hover:border-border/80"
+      }`}
+    >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        aria-label={`Arrastrar ${label}`}
+        className="cursor-grab touch-none rounded-xl p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing transition"
+        title="Arrastrar para reordenar botón"
+      >
+        <GripVertical className="h-4 w-4 text-primary" />
+      </button>
+
+      <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-xs font-black text-primary shrink-0">
+        #{index + 1}
+      </span>
+
+      <span className="text-xs font-bold flex-1 text-foreground flex items-center gap-2 truncate">
+        <Layers className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <span className="truncate">{label}</span>
+      </span>
+
+      <button
+        type="button"
+        onClick={onRemove}
+        className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-destructive hover:bg-destructive/10 transition shrink-0"
+        title="Eliminar este botón"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
+    </li>
+  );
+}
+
 export function ProductButtonsEditor({
   buttons,
   onChange,
@@ -73,8 +129,11 @@ export function ProductButtonsEditor({
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const oldIndex = buttons.findIndex((b) => b.id === active.id);
-    const newIndex = buttons.findIndex((b) => b.id === over.id);
+    const cleanActiveId = String(active.id).replace(/^order_/, "");
+    const cleanOverId = String(over.id).replace(/^order_/, "");
+
+    const oldIndex = buttons.findIndex((b) => b.id === cleanActiveId);
+    const newIndex = buttons.findIndex((b) => b.id === cleanOverId);
     if (oldIndex !== -1 && newIndex !== -1) {
       onChange(arrayMove(buttons, oldIndex, newIndex));
     }
@@ -86,6 +145,38 @@ export function ProductButtonsEditor({
         <p className="text-xs text-muted-foreground">
           Sin botones personalizados: la tarjeta mostrará el texto de acción estándar.
         </p>
+      )}
+
+      {buttons.length > 0 && (
+        <div className="rounded-2xl border border-border bg-card p-3.5 space-y-2.5">
+          <div>
+            <label className="text-xs font-bold flex items-center gap-2 text-foreground">
+              <Layers className="h-3.5 w-3.5 text-primary" />
+              Orden de los Botones
+            </label>
+            <p className="text-[11px] text-muted-foreground">
+              Arrastra los botones para definir su orden de aparición o elimínalos rápidamente.
+            </p>
+          </div>
+
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext
+              items={buttons.map((b) => `order_${b.id}`)}
+              strategy={verticalListSortingStrategy}
+            >
+              <ul className="space-y-2">
+                {buttons.map((b, i) => (
+                  <SortableButtonOrderRow
+                    key={`order_${b.id}`}
+                    button={b}
+                    index={i}
+                    onRemove={() => removeButton(b.id)}
+                  />
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
+        </div>
       )}
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

@@ -55,6 +55,7 @@ export const ICON_SHAPE_CLIP_PATHS: Record<string, string | undefined> = {
 export type ProductButton = {
   id: string;
   text: string;
+  label?: string;
   variant: ButtonVariant;
   width: ButtonWidth;
   position: ButtonPosition;
