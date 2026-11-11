@@ -54,10 +54,20 @@ export function ImageDropzone({
     setError(null);
     try {
       const urls: string[] = [];
-      for (const f of list) {
+      for (let f of list) {
         const is3d = f.name.toLowerCase().endsWith(".stl") || f.name.toLowerCase().endsWith(".obj") || f.name.toLowerCase().endsWith(".3mf");
         const maxMb = is3d ? 100 : f.type.startsWith("video/") ? 50 : 25;
         if (f.size > maxMb * 1024 * 1024) throw new Error(`${f.name} pesa más de ${maxMb} MB`);
+
+        if (f.type.startsWith("image/") && f.type !== "image/gif" && f.type !== "image/svg+xml") {
+          try {
+            const { compressForWhatsapp } = await import("@/lib/whatsapp-image");
+            f = await compressForWhatsapp(f);
+          } catch {
+            // Si no es comprimible por canvas, continúa con el original
+          }
+        }
+
         urls.push(await uploadToStorage(f, bucket));
       }
       onChange([...images, ...urls]);
