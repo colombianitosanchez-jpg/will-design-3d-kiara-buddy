@@ -42,7 +42,7 @@ describe("foto de WhatsApp en productos", () => {
     expect(productShareLink(empty, null, "p1", "https://s")).toBe("");
   });
   it("enlace corto con número de variante y de botón", () => {
-    expect(productShareLink(base, "uva", "u2", "https://s")).toBe("https://s/t/pla?v=2&b=2");
+    expect(productShareLink(base, "uva", "u2", "https://s")).toBe("https://s/t/pla--v2--b2");
   });
 
   it("la ruta /t/$slug declara dimensiones Open Graph completas para WhatsApp (1200x630)", async () => {

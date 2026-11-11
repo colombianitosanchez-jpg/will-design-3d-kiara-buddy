@@ -19,16 +19,30 @@ export const Route = createFileRoute("/t/$slug")({
   },
   loaderDeps: ({ search }) => ({ v: search.v, b: search.b }),
   loader: async ({ params, context, deps }) => {
-    const product = await context.queryClient.ensureQueryData(productBySlugQuery(params.slug));
+    const match = params.slug.match(/^(.*?)(?:--v(\d+))?(?:--b(\d+))?$/);
+    const productSlug = match ? match[1] : params.slug;
+    const parsedV = match && match[2] ? Number.parseInt(match[2], 10) : null;
+    const parsedB = match && match[3] ? Number.parseInt(match[3], 10) : null;
+
+    const product = await context.queryClient.ensureQueryData(productBySlugQuery(productSlug));
     if (!product) throw notFound();
     const variants = product.variants ?? [];
-    // Compatibilidad con enlaces viejos ?v=<uuid>.
+
+    // Compatibilidad con enlaces viejos ?v=<uuid> o ?v=<num> vs nuevo formato limpio en slug
     const byId = deps.v ? variants.findIndex((x) => x.id === String(deps.v)) : -1;
-    const vIndex = byId >= 0 ? byId : idx(deps.v);
+    const vFromQuery = byId >= 0 ? byId : idx(deps.v);
+    const vFromSlug = parsedV != null && parsedV >= 1 ? parsedV - 1 : null;
+    const vIndex = vFromQuery != null ? vFromQuery : vFromSlug;
+
+    const bFromQuery = idx(deps.b);
+    const bFromSlug = parsedB != null && parsedB >= 1 ? parsedB - 1 : null;
+    const bIndex = bFromQuery != null ? bFromQuery : bFromSlug;
+
     const variant = vIndex != null ? variants[vIndex] ?? null : null;
-    const img = resolveProductShareImage(product, variant ? vIndex : null, idx(deps.b));
+    const img = resolveProductShareImage(product, variant ? vIndex : null, bIndex);
     return {
-      slug: product.slug,
+      slug: productSlug,
+      productSlug,
       variantId: variant?.id ?? null,
       title: variant ? `${product.name} — ${variant.name}` : product.name,
       img: /^https:\/\//i.test(img) ? img : "",
@@ -62,10 +76,11 @@ export const Route = createFileRoute("/t/$slug")({
 });
 
 function ShareRedirect() {
-  const { slug, variantId } = Route.useLoaderData();
+  const { slug, productSlug, variantId } = Route.useLoaderData();
+  const targetSlug = productSlug || slug;
   const navigate = useNavigate();
   useEffect(() => {
-    navigate({ to: "/tienda/$slug", params: { slug }, search: variantId ? { v: variantId } : {}, replace: true });
-  }, [slug, variantId, navigate]);
+    navigate({ to: "/tienda/$slug", params: { slug: targetSlug }, search: variantId ? { v: variantId } : {}, replace: true });
+  }, [targetSlug, variantId, navigate]);
   return <div className="min-h-[60vh]" />;
 }
