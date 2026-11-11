@@ -49,6 +49,8 @@ export const Route = createFileRoute("/t/$slug")({
         ...(img
           ? [
               { property: "og:image", content: img },
+              { property: "og:image:width", content: "1200" },
+              { property: "og:image:height", content: "630" },
               { property: "og:image:alt", content: title },
               { name: "twitter:image", content: img },
             ]

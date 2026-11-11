@@ -44,4 +44,26 @@ describe("foto de WhatsApp en productos", () => {
   it("enlace corto con número de variante y de botón", () => {
     expect(productShareLink(base, "uva", "u2", "https://s")).toBe("https://s/t/pla?v=2&b=2");
   });
+
+  it("la ruta /t/$slug declara dimensiones Open Graph completas para WhatsApp (1200x630)", async () => {
+    const { Route } = await import("@/routes/t.$slug");
+    const headResult = (Route.options.head as any)({
+      loaderData: {
+        slug: "pla",
+        variantId: null,
+        title: "PLA",
+        img: "https://x/prod.jpg",
+      },
+    });
+
+    const meta = headResult.meta;
+    const findMeta = (key: string, val: string) =>
+      meta.find((m: Record<string, string>) => m.property === key || m.name === key);
+
+    expect(findMeta("og:image", "https://x/prod.jpg")?.content).toBe("https://x/prod.jpg");
+    expect(findMeta("og:image:width", "1200")?.content).toBe("1200");
+    expect(findMeta("og:image:height", "630")?.content).toBe("630");
+    expect(findMeta("og:image:alt", "PLA — Will Design 3D")?.content).toBe("PLA — Will Design 3D");
+    expect(findMeta("twitter:image", "https://x/prod.jpg")?.content).toBe("https://x/prod.jpg");
+  });
 });
