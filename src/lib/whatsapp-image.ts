@@ -6,6 +6,13 @@ export async function compressForWhatsapp(file: File): Promise<File> {
   if (!file.type.startsWith("image/") || file.type === "image/gif" || file.type === "image/svg+xml") {
     throw new Error("Usa una foto JPG, PNG o WEBP.");
   }
+  // Si el archivo ya pesa <= 280 KB y su tipo es JPG o WebP, se retorna intacto sin degradar
+  if (
+    file.size <= WHATSAPP_IMAGE_MAX_BYTES &&
+    (file.type === "image/jpeg" || file.type === "image/webp")
+  ) {
+    return file;
+  }
   const bitmap = await createImageBitmap(file);
   let maxSide = 1200;
   for (let attempt = 0; attempt < 6; attempt++) {
