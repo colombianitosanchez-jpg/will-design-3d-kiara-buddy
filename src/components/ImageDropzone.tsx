@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductMedia } from "@/components/ProductMedia";
 import { UploadCloud, X, Star, Loader2 } from "lucide-react";
@@ -63,9 +64,13 @@ export function ImageDropzone({
           try {
             const { compressForWhatsapp } = await import("@/lib/whatsapp-image");
             f = await compressForWhatsapp(f);
-          } catch {
-            // Si no es comprimible por canvas, continúa con el original
+          } catch (compressErr) {
+            toast.error(`Error al optimizar imagen ${f.name} para WhatsApp: ${(compressErr as Error).message}`);
           }
+        }
+
+        if (f.type.startsWith("image/") && f.size > 300 * 1024) {
+          toast.warning(`La imagen ${f.name} supera los 300 KB (${Math.round(f.size / 1024)} KB) y podría no verse en WhatsApp.`);
         }
 
         urls.push(await uploadToStorage(f, bucket));
