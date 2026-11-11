@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { productShareLink, resolveProductShareImage, type ShareProduct } from "./product-share";
+import { productShareLink, productShareUrl, resolveProductShareImage, type ShareProduct } from "./product-share";
 
 const btn = (id: string, img = "") => ({ id, whatsapp_image_url: img }) as never;
 const variant = (id: string, o: Record<string, unknown> = {}) =>
@@ -45,6 +45,31 @@ describe("foto de WhatsApp en productos", () => {
     expect(productShareLink(base, "uva", "u2", "https://s")).toBe("https://s/t/pla--v2--b2");
   });
 
+  it("productShareUrl genera enlace limpio exacto con variante y botón sin ?, & ni =", () => {
+    const url = productShareUrl("pla", 4, 0);
+    expect(url).toBe("https://will-design-3d.lovable.app/t/pla--v5--b1");
+    expect(url.includes("?")).toBe(false);
+    expect(url.includes("&")).toBe(false);
+    expect(url.includes("=")).toBe(false);
+  });
+
+  it("productShareUrl genera enlace limpio solo con variante", () => {
+    expect(productShareUrl("pla", 2, null)).toBe("https://will-design-3d.lovable.app/t/pla--v3");
+  });
+
+  it("productShareUrl genera enlace limpio sin variante ni botón", () => {
+    expect(productShareUrl("pla", null, null)).toBe("https://will-design-3d.lovable.app/t/pla");
+  });
+
+  it("productShareLink retorna el enlace limpio correspondiente cuando existe foto en la jerarquía", () => {
+    // Caso con variante y botón con foto
+    expect(productShareLink(base, "uva", "u2")).toBe("https://will-design-3d.lovable.app/t/pla--v2--b2");
+    // Caso con producto padre y botón con foto
+    expect(productShareLink(base, null, "p1")).toBe("https://will-design-3d.lovable.app/t/pla--b1");
+    // Caso con variante que hereda foto de variante
+    expect(productShareLink(base, "azul", "p2")).toBe("https://will-design-3d.lovable.app/t/pla--v1--b2");
+  });
+
   it("la ruta /t/$slug declara dimensiones Open Graph completas para WhatsApp (1200x630)", async () => {
     const { Route } = await import("@/routes/t.$slug");
     const headResult = (Route.options.head as any)({
@@ -61,6 +86,7 @@ describe("foto de WhatsApp en productos", () => {
       meta.find((m: Record<string, string>) => m.property === key || m.name === key);
 
     expect(findMeta("og:image", "https://x/prod.jpg")?.content).toBe("https://x/prod.jpg");
+    expect(findMeta("og:image:secure_url", "https://x/prod.jpg")?.content).toBe("https://x/prod.jpg");
     expect(findMeta("og:image:width", "1200")?.content).toBe("1200");
     expect(findMeta("og:image:height", "630")?.content).toBe("630");
     expect(findMeta("og:image:alt", "PLA — Will Design 3D")?.content).toBe("PLA — Will Design 3D");

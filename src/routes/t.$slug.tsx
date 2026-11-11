@@ -20,9 +20,11 @@ export const Route = createFileRoute("/t/$slug")({
   loaderDeps: ({ search }) => ({ v: search.v, b: search.b }),
   loader: async ({ params, context, deps }) => {
     const match = params.slug.match(/^(.*?)(?:--v(\d+))?(?:--b(\d+))?$/);
-    const productSlug = match ? match[1] : params.slug;
+    const productSlug = match && match[1] ? match[1] : params.slug;
     const parsedV = match && match[2] ? Number.parseInt(match[2], 10) : null;
     const parsedB = match && match[3] ? Number.parseInt(match[3], 10) : null;
+
+    if (!productSlug) throw notFound();
 
     const product = await context.queryClient.ensureQueryData(productBySlugQuery(productSlug));
     if (!product) throw notFound();
@@ -57,6 +59,7 @@ export const Route = createFileRoute("/t/$slug")({
         ...(img
           ? [
               { property: "og:image", content: img },
+              { property: "og:image:secure_url", content: img },
               { property: "og:image:width", content: "1200" },
               { property: "og:image:height", content: "630" },
               { property: "og:image:alt", content: title },
