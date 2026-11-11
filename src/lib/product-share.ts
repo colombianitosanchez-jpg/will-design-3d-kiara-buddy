@@ -34,8 +34,8 @@ export function resolveProductShareImage(product: ShareProduct, variantIndex: nu
 export function productShareUrl(slug: string, variantIndex: number | null, buttonIndex: number | null, origin?: string): string {
   const base =
     origin || (typeof window !== "undefined" && window.location?.origin ? window.location.origin : "https://will-design-3d.lovable.app");
-  const q = [variantIndex != null ? `v=${variantIndex + 1}` : "", buttonIndex != null ? `b=${buttonIndex + 1}` : ""].filter(Boolean).join("&");
-  return `${base}/t/${slug}${q ? `?${q}` : ""}`;
+  const suffix = [variantIndex != null ? `--v${variantIndex + 1}` : "", buttonIndex != null ? `--b${buttonIndex + 1}` : ""].join("");
+  return `${base}/t/${slug}${suffix}`;
 }
 
 /** Enlace corto con foto para un botón; vacío si no hay ninguna foto (mensaje limpio). */
