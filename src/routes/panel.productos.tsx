@@ -1,15 +1,43 @@
 import { ProductMedia } from "@/components/ProductMedia";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, memo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Pencil, Trash2, Loader2, X, Search, Sparkles } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Loader2,
+  X,
+  Search,
+  Sparkles,
+  ChevronDown,
+  ChevronRight,
+  GripVertical,
+  Copy,
+  Layers,
+  ArrowRightLeft,
+} from "lucide-react";
 import { lazy, Suspense } from "react";
 import { ProductImageOptimizerModal } from "@/components/ProductImageOptimizerModal";
 import { ImageDropzone } from "@/components/ImageDropzone";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { PaymentMethodsPicker } from "@/components/PaymentMethodsPicker";
+import { UnifiedButton } from "@/components/UnifiedButton";
 import { normalizeMethodIds } from "@/lib/payment-rules";
+import {
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  useDraggable,
+  useDroppable,
+  DragOverlay,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
 
 const RichTextEditor = lazy(() =>
   import("@/components/RichTextEditor").then((m) => ({ default: m.RichTextEditor }))
@@ -27,6 +55,13 @@ import {
   validateProductButtons,
   type ProductButton,
 } from "@/lib/product-buttons";
+import {
+  variantToProduct,
+  productToVariant,
+  transferVariant,
+  duplicateProductRecord,
+  type ProductRecord,
+} from "@/lib/product-hierarchy";
 import {
   buildCategoryTree,
   categoryPath,
@@ -105,7 +140,6 @@ const empty: Omit<Product, "id"> = {
   allowed_payment_method_ids: [],
 };
 
-
 function slugify(s: string) {
   return s
     .toLowerCase()
@@ -118,6 +152,36 @@ function slugify(s: string) {
 function formatCOP(n: number) {
   return n.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
 }
+
+function detectAnimType(url?: string | null): "video" | "gif" | "lottie" | "image" | "none" {
+  if (!url) return "none";
+  if (/\.(mp4|webm|mov|quicktime)($|\?)/i.test(url)) return "video";
+  if (/\.gif($|\?)/i.test(url)) return "gif";
+  if (/\.json($|\?)/i.test(url)) return "lottie";
+  return "image";
+}
+
+type DragItemData =
+  | { type: "product"; product: Product }
+  | { type: "variant"; variant: ProductVariant; parentProduct: Product };
+
+type HierarchyActionPrompt =
+  | {
+      type: "variant_to_standalone";
+      variant: ProductVariant;
+      parent: Product;
+    }
+  | {
+      type: "variant_to_other_product";
+      variant: ProductVariant;
+      sourceParent: Product;
+      targetParent: Product;
+    }
+  | {
+      type: "product_to_variant";
+      sourceProduct: Product;
+      targetParent: Product;
+    };
 
 function ProductosAdmin() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -136,6 +200,11 @@ function ProductosAdmin() {
   const scrollPosRef = useRef<number>(0);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [expandedProductIds, setExpandedProductIds] = useState<Set<string>>(new Set());
+
+  // Drag and drop state
+  const [activeDragItem, setActiveDragItem] = useState<DragItemData | null>(null);
+  const [actionPrompt, setActionPrompt] = useState<HierarchyActionPrompt | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -224,7 +293,6 @@ function ProductosAdmin() {
     }, 50);
   }
 
-
   useEffect(() => {
     load();
     try {
@@ -247,8 +315,212 @@ function ProductosAdmin() {
     load(true);
   }
 
+  // Duplicar producto principal completo
+  async function handleDuplicateProduct(product: Product) {
+    const existingSlugs = products.map((p) => p.slug);
+    const existingNames = products.map((p) => p.name);
+    const dup = duplicateProductRecord(product, existingSlugs, existingNames);
+
+    const { error } = await supabase.from("products").insert(dup as any);
+    if (error) {
+      toast.error("Error al duplicar el producto: " + error.message);
+      return;
+    }
+    toast.success(`Producto duplicado: ${dup.name}`);
+    load(true);
+  }
+
+  // Eliminar una variante de un producto principal desde la tabla
+  async function handleRemoveVariant(product: Product, variantId: string) {
+    if (!confirm("¿Eliminar esta variante?")) return;
+    const nextVariants = (product.variants ?? []).filter((v) => v.id !== variantId);
+    const { error } = await supabase
+      .from("products")
+      .update({ variants: nextVariants })
+      .eq("id", product.id);
+    if (error) {
+      toast.error("Error al eliminar variante: " + error.message);
+      return;
+    }
+    toast.success("Variante eliminada");
+    load(true);
+  }
+
+  // Duplicar variante dentro del mismo producto
+  async function handleDuplicateVariantInProduct(product: Product, variant: ProductVariant) {
+    const copy = transferVariant(variant, product, { makeUniqueId: true });
+    const nextVariants = [...(product.variants ?? []), copy];
+    const { error } = await supabase
+      .from("products")
+      .update({ variants: nextVariants })
+      .eq("id", product.id);
+    if (error) {
+      toast.error("Error al duplicar variante: " + error.message);
+      return;
+    }
+    toast.success(`Variante duplicada: ${copy.name}`);
+    load(true);
+  }
+
+  // Resolver acción de jerarquía (Mover vs Duplicar)
+  async function executeHierarchyAction(mode: "move" | "duplicate") {
+    if (!actionPrompt) return;
+    const existingSlugs = products.map((p) => p.slug);
+    const existingNames = products.map((p) => p.name);
+
+    try {
+      if (actionPrompt.type === "variant_to_standalone") {
+        const { variant, parent } = actionPrompt;
+        const newProd = variantToProduct(variant, parent, existingSlugs, existingNames);
+
+        // 1. Insertar el nuevo producto
+        const { error: insErr } = await supabase.from("products").insert(newProd as any);
+        if (insErr) throw insErr;
+
+        // 2. Si es mover, quitar la variante del producto padre
+        if (mode === "move") {
+          const nextVars = (parent.variants ?? []).filter((v) => v.id !== variant.id);
+          const { error: updErr } = await supabase
+            .from("products")
+            .update({ variants: nextVars })
+            .eq("id", parent.id);
+          if (updErr) throw updErr;
+          toast.success(`Variante convertida en producto principal: ${newProd.name}`);
+        } else {
+          toast.success(`Nuevo producto principal creado desde la variante: ${newProd.name}`);
+        }
+      } else if (actionPrompt.type === "variant_to_other_product") {
+        const { variant, sourceParent, targetParent } = actionPrompt;
+        const transferred = transferVariant(variant, targetParent, { makeUniqueId: true });
+        const targetVars = [...(targetParent.variants ?? []), transferred];
+
+        // 1. Añadir al nuevo padre
+        const { error: updTargetErr } = await supabase
+          .from("products")
+          .update({ variants: targetVars })
+          .eq("id", targetParent.id);
+        if (updTargetErr) throw updTargetErr;
+
+        // 2. Si es mover, quitar del origen
+        if (mode === "move") {
+          const sourceVars = (sourceParent.variants ?? []).filter((v) => v.id !== variant.id);
+          const { error: updSourceErr } = await supabase
+            .from("products")
+            .update({ variants: sourceVars })
+            .eq("id", sourceParent.id);
+          if (updSourceErr) throw updSourceErr;
+          toast.success(`Variante movida a ${targetParent.name}`);
+        } else {
+          toast.success(`Variante duplicada en ${targetParent.name}`);
+        }
+      } else if (actionPrompt.type === "product_to_variant") {
+        const { sourceProduct, targetParent } = actionPrompt;
+        const newVar = productToVariant(sourceProduct);
+        const transferred = transferVariant(newVar, targetParent, { makeUniqueId: true });
+        const targetVars = [...(targetParent.variants ?? []), transferred];
+
+        // 1. Añadir al producto padre destino
+        const { error: updTargetErr } = await supabase
+          .from("products")
+          .update({ variants: targetVars })
+          .eq("id", targetParent.id);
+        if (updTargetErr) throw updTargetErr;
+
+        // 2. Si es mover, borrar o archivar el producto de origen
+        if (mode === "move") {
+          const { error: delErr } = await supabase.from("products").delete().eq("id", sourceProduct.id);
+          if (delErr) throw delErr;
+          toast.success(`Producto asociado como variante de ${targetParent.name}`);
+        } else {
+          toast.success(`Copia del producto asociada como variante de ${targetParent.name}`);
+        }
+      }
+      load(true);
+    } catch (e: any) {
+      toast.error("Error en la operación: " + (e.message || e));
+    } finally {
+      setActionPrompt(null);
+    }
+  }
+
+  // DND Sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 6 } })
+  );
+
+  const handleDragStart = (e: DragStartEvent) => {
+    const data = e.active.data.current as DragItemData | undefined;
+    if (data) {
+      setActiveDragItem(data);
+    }
+  };
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    setActiveDragItem(null);
+    if (!over) return;
+
+    const activeData = active.data.current as DragItemData | undefined;
+    const overData = over.data.current as { type: string; product?: Product } | undefined;
+
+    if (!activeData || !overData) return;
+
+    // Caso A: Arrastrar variante
+    if (activeData.type === "variant") {
+      const { variant, parentProduct } = activeData;
+
+      // Soltada en zona de convertir a producto principal (borde o dropzone)
+      if (overData.type === "standalone_zone") {
+        setActionPrompt({
+          type: "variant_to_standalone",
+          variant,
+          parent: parentProduct,
+        });
+        return;
+      }
+
+      // Soltada sobre otro producto
+      if (overData.type === "product_target" && overData.product) {
+        if (overData.product.id === parentProduct.id) {
+          // Es el mismo producto, nada que hacer
+          return;
+        }
+        setActionPrompt({
+          type: "variant_to_other_product",
+          variant,
+          sourceParent: parentProduct,
+          targetParent: overData.product,
+        });
+        return;
+      }
+    }
+
+    // Caso B: Arrastrar producto principal hacia otro producto principal
+    if (activeData.type === "product") {
+      const sourceProduct = activeData.product;
+      if (overData.type === "product_target" && overData.product) {
+        if (overData.product.id === sourceProduct.id) return;
+        setActionPrompt({
+          type: "product_to_variant",
+          sourceProduct,
+          targetParent: overData.product,
+        });
+      }
+    }
+  };
+
+  const toggleExpand = (productId: string) => {
+    setExpandedProductIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(productId)) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+  };
+
   return (
-    <>
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-black">Productos</h1>
@@ -314,7 +586,10 @@ function ProductosAdmin() {
         </select>
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-3xl border border-border bg-card">
+      {/* Zona activa superior de soltar para convertir variante en producto principal */}
+      <StandaloneDropZone isDragging={activeDragItem?.type === "variant"} />
+
+      <div className="mt-4 overflow-hidden rounded-3xl border border-border bg-card shadow-xs">
         {loading ? (
           <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Cargando…
@@ -332,6 +607,7 @@ function ProductosAdmin() {
             <table className="w-full text-sm">
               <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
+                  <th className="w-10 px-3 py-3"></th>
                   <th className="px-4 py-3">Imagen</th>
                   <th className="px-4 py-3">Nombre</th>
                   <th className="px-4 py-3">Categoría</th>
@@ -339,85 +615,75 @@ function ProductosAdmin() {
                   <th className="px-4 py-3 text-right">Precio</th>
                   <th className="px-4 py-3 text-right">Stock</th>
                   <th className="px-4 py-3">Estado</th>
-                  <th className="px-4 py-3"></th>
+                  <th className="px-4 py-3 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {visibleProducts.map((p) => {
                   const cat = p.category_id
-                    ? (categoryPath(categories.find((c) => c.id === p.category_id)?.slug, categories) || "—")
+                    ? categoryPath(categories.find((c) => c.id === p.category_id)?.slug, categories) || "—"
                     : "—";
                   const br = brands.find((b) => b.id === p.brand_id)?.name ?? "—";
                   const matchedVars = search.trim() ? getMatchingVariants(p.variants, search) : [];
                   const primaryVar = matchedVars[0] ?? null;
                   const displayImageUrl = primaryVar?.image_url ?? p.image_url;
+                  const isExpanded = expandedProductIds.has(p.id);
+                  const hasVariants = (p.variants ?? []).length > 0;
 
                   return (
-                    <tr
-                      id={`product-row-${p.id}`}
-                      key={p.id}
-                      className={`border-t border-border transition-all duration-500 ${
-                        highlightedId === p.id
-                          ? "bg-amber-500/10 ring-2 ring-[var(--brand-orange)] dark:bg-amber-500/20"
-                          : ""
-                      }`}
-                    >
-                      <td className="px-4 py-3">
-                        {displayImageUrl ? (
-                          <ProductMedia thumb src={displayImageUrl} className="h-12 w-12 rounded-lg object-cover" />
-                        ) : (
-                          <div className="h-12 w-12 rounded-lg bg-muted" />
-                        )}
-                      </td>
-                      <td className="px-4 py-3 font-semibold">
-                        <div>{p.name}</div>
-                        {matchedVars.length > 0 && (
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {matchedVars.map((mv) => (
-                              <button
-                                key={mv.id}
-                                type="button"
-                                onClick={() => handleEditProduct(p, mv.id)}
-                                className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-[var(--brand-orange)] hover:bg-amber-500/20"
-                                title="Hacer clic para editar directamente esta variante"
-                              >
-                                Variante: {mv.name} · Editar
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">{cat}</td>
-                      <td className="px-4 py-3">{br}</td>
-                      <td className="px-4 py-3 text-right">{formatCOP(primaryVar?.price_cop ?? p.price_cop)}</td>
-                      <td className="px-4 py-3 text-right">{primaryVar?.stock ?? p.stock}</td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                            p.active ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {p.active ? "Activo" : "Oculto"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <button
-                          onClick={() => handleEditProduct(p, primaryVar?.id)}
-                          className="mr-2 inline-flex items-center gap-1 rounded-lg bg-muted px-3 py-1.5 text-xs font-semibold hover:bg-muted/70"
-                        >
-                          <Pencil className="h-3 w-3" /> Editar
-                        </button>
-                        <button
-                          onClick={() => {
-                            scrollPosRef.current = window.scrollY;
-                            remove(p.id);
-                          }}
-                          className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100"
-                        >
-                          <Trash2 className="h-3 w-3" /> Borrar
-                        </button>
-                      </td>
-                    </tr>
+                    <React.Fragment key={p.id}>
+                      <ProductTableRow
+                        product={p}
+                        cat={cat}
+                        br={br}
+                        displayImageUrl={displayImageUrl}
+                        primaryVar={primaryVar}
+                        matchedVars={matchedVars}
+                        isExpanded={isExpanded}
+                        hasVariants={hasVariants}
+                        highlightedId={highlightedId}
+                        onToggleExpand={() => toggleExpand(p.id)}
+                        onEditProduct={(varId) => handleEditProduct(p, varId)}
+                        onDuplicate={() => handleDuplicateProduct(p)}
+                        onRemove={() => {
+                          scrollPosRef.current = window.scrollY;
+                          remove(p.id);
+                        }}
+                      />
+
+                      {/* Subfilas de variantes expandibles con estilo de barra de herramientas 6 puntos */}
+                      {isExpanded && hasVariants && (
+                        <tr className="bg-muted/20 border-t border-border">
+                          <td colSpan={9} className="p-3 sm:p-4">
+                            <div className="rounded-2xl border border-border/80 bg-background/90 p-3 sm:p-4 space-y-2.5">
+                              <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-2">
+                                <span className="text-xs font-bold text-foreground flex items-center gap-2">
+                                  <Layers className="h-3.5 w-3.5 text-primary" />
+                                  Variantes de {p.name} ({p.variants.length})
+                                </span>
+                                <span className="text-[11px] text-muted-foreground">
+                                  Arrastra desde los 6 puntos hacia otro producto o hacia arriba para independizar
+                                </span>
+                              </div>
+
+                              <ul className="space-y-2">
+                                {p.variants.map((v, idx) => (
+                                  <VariantTableRow
+                                    key={v.id}
+                                    variant={v}
+                                    parentProduct={p}
+                                    index={idx}
+                                    onEdit={() => handleEditProduct(p, v.id)}
+                                    onDuplicate={() => handleDuplicateVariantInProduct(p, v)}
+                                    onRemove={() => handleRemoveVariant(p, v.id)}
+                                  />
+                                ))}
+                              </ul>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>
@@ -425,6 +691,34 @@ function ProductosAdmin() {
           </div>
         )}
       </div>
+
+      {/* Drag Overlay para visualización mientras se arrastra */}
+      <DragOverlay>
+        {activeDragItem?.type === "variant" ? (
+          <div className="flex items-center gap-3 rounded-2xl border-2 border-primary bg-background p-3 shadow-2xl ring-4 ring-primary/20 max-w-sm">
+            <GripVertical className="h-5 w-5 text-primary" />
+            <div className="text-xs font-bold text-foreground truncate">
+              Variante: {activeDragItem.variant.name || "Sin nombre"}
+            </div>
+          </div>
+        ) : activeDragItem?.type === "product" ? (
+          <div className="flex items-center gap-3 rounded-2xl border-2 border-[var(--brand-orange)] bg-background p-3 shadow-2xl ring-4 ring-[var(--brand-orange)]/20 max-w-sm">
+            <GripVertical className="h-5 w-5 text-[var(--brand-orange)]" />
+            <div className="text-xs font-bold text-foreground truncate">
+              Producto: {activeDragItem.product.name}
+            </div>
+          </div>
+        ) : null}
+      </DragOverlay>
+
+      {/* Cuadro de diálogo para confirmar: Mover vs Duplicar */}
+      {actionPrompt && (
+        <HierarchyConfirmDialog
+          prompt={actionPrompt}
+          onConfirm={(mode) => executeHierarchyAction(mode)}
+          onCancel={() => setActionPrompt(null)}
+        />
+      )}
 
       {optimizerOpen && (
         <ProductImageOptimizerModal
@@ -460,8 +754,361 @@ function ProductosAdmin() {
           }}
         />
       )}
+    </DndContext>
+  );
+}
 
-    </>
+/** Zona de soltar para convertir variante en producto principal sin textos largos */
+function StandaloneDropZone({ isDragging }: { isDragging: boolean }) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: "standalone_drop_zone",
+    data: { type: "standalone_zone" },
+  });
+
+  if (!isDragging) return null;
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`mt-4 rounded-2xl border-2 border-dashed p-4 text-center transition-all ${
+        isOver
+          ? "border-primary bg-primary/10 scale-[1.01] shadow-lg ring-2 ring-primary"
+          : "border-primary/40 bg-primary/[0.03]"
+      }`}
+    >
+      <div className="flex items-center justify-center gap-2 text-xs font-bold text-primary">
+        <ArrowRightLeft className="h-4 w-4" />
+        Soltar aquí para convertir en producto principal
+      </div>
+    </div>
+  );
+}
+
+/** Fila arrastrable y receptora de producto principal */
+function ProductTableRow({
+  product,
+  cat,
+  br,
+  displayImageUrl,
+  primaryVar,
+  matchedVars,
+  isExpanded,
+  hasVariants,
+  highlightedId,
+  onToggleExpand,
+  onEditProduct,
+  onDuplicate,
+  onRemove,
+}: {
+  product: Product;
+  cat: string;
+  br: string;
+  displayImageUrl: string | null;
+  primaryVar: ProductVariant | null;
+  matchedVars: ProductVariant[];
+  isExpanded: boolean;
+  hasVariants: boolean;
+  highlightedId: string | null;
+  onToggleExpand: () => void;
+  onEditProduct: (varId?: string | null) => void;
+  onDuplicate: () => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({
+    id: `prod_drag_${product.id}`,
+    data: { type: "product", product },
+  });
+
+  const { setNodeRef: setDropRef, isOver } = useDroppable({
+    id: `prod_drop_${product.id}`,
+    data: { type: "product_target", product },
+  });
+
+  return (
+    <tr
+      ref={setDropRef}
+      id={`product-row-${product.id}`}
+      className={`border-t border-border transition-all duration-300 ${
+        highlightedId === product.id
+          ? "bg-amber-500/10 ring-2 ring-[var(--brand-orange)] dark:bg-amber-500/20"
+          : isOver
+            ? "bg-primary/10 ring-2 ring-primary"
+            : isDragging
+              ? "opacity-50"
+              : ""
+      }`}
+    >
+      <td className="px-3 py-3 text-center">
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            className="cursor-grab touch-none rounded-md p-1 text-muted-foreground hover:bg-muted active:cursor-grabbing transition"
+            title="Arrastrar producto sobre otro para convertirlo en variante"
+          >
+            <GripVertical className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+          </button>
+          {hasVariants ? (
+            <button
+              type="button"
+              onClick={onToggleExpand}
+              className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+              title={isExpanded ? "Plegar variantes" : "Ver variantes"}
+            >
+              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </button>
+          ) : (
+            <span className="w-6" />
+          )}
+        </div>
+      </td>
+      <td className="px-4 py-3">
+        {displayImageUrl ? (
+          <ProductMedia thumb src={displayImageUrl} className="h-12 w-12 rounded-lg object-cover" />
+        ) : (
+          <div className="h-12 w-12 rounded-lg bg-muted" />
+        )}
+      </td>
+      <td className="px-4 py-3 font-semibold">
+        <div className="flex items-center gap-2">
+          <span>{product.name}</span>
+          {hasVariants && (
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-black text-primary">
+              {product.variants.length} var
+            </span>
+          )}
+        </div>
+        {matchedVars.length > 0 && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {matchedVars.map((mv) => (
+              <button
+                key={mv.id}
+                type="button"
+                onClick={() => onEditProduct(mv.id)}
+                className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-[var(--brand-orange)] hover:bg-amber-500/20"
+                title="Hacer clic para editar directamente esta variante"
+              >
+                Variante: {mv.name} · Editar
+              </button>
+            ))}
+          </div>
+        )}
+      </td>
+      <td className="px-4 py-3">{cat}</td>
+      <td className="px-4 py-3">{br}</td>
+      <td className="px-4 py-3 text-right">{formatCOP(primaryVar?.price_cop ?? product.price_cop)}</td>
+      <td className="px-4 py-3 text-right">{primaryVar?.stock ?? product.stock}</td>
+      <td className="px-4 py-3">
+        <span
+          className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+            product.active ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"
+          }`}
+        >
+          {product.active ? "Activo" : "Oculto"}
+        </span>
+      </td>
+      <td className="px-4 py-3 text-right">
+        <div className="flex items-center justify-end gap-1.5">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onDuplicate}
+            className="h-8 text-xs font-semibold gap-1"
+            title="Duplicar producto completo"
+          >
+            <Copy className="h-3.5 w-3.5 text-primary" />
+            Duplicar
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => onEditProduct(primaryVar?.id)}
+            className="h-8 text-xs font-semibold gap-1"
+          >
+            <Pencil className="h-3 w-3" /> Editar
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onRemove}
+            className="h-8 text-xs font-semibold text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+/** Fila arrastrable de variante dentro de la tabla */
+function VariantTableRow({
+  variant,
+  parentProduct,
+  index,
+  onEdit,
+  onDuplicate,
+  onRemove,
+}: {
+  variant: ProductVariant;
+  parentProduct: Product;
+  index: number;
+  onEdit: () => void;
+  onDuplicate: () => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `var_drag_${variant.id}`,
+    data: { type: "variant", variant, parentProduct },
+  });
+
+  const primaryBtn = variant.custom_buttons?.[0] ?? parentProduct.custom_buttons[0] ?? {
+    id: `var-btn-${variant.id}`,
+    text: variant.name || "Comprar",
+    action_type: "whatsapp",
+    action_value: "",
+    media_mode: "none",
+  };
+
+  const previewBtn: ProductButton = {
+    ...primaryBtn,
+    text: primaryBtn.text || variant.name || "Ver producto",
+    animation_type: detectAnimType(primaryBtn.media_url),
+  };
+
+  return (
+    <li
+      ref={setNodeRef}
+      className={`flex items-center justify-between gap-3 rounded-xl border bg-card p-2.5 transition shadow-2xs ${
+        isDragging ? "opacity-40 border-primary" : "border-border hover:border-border/80"
+      }`}
+    >
+      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          aria-label={`Arrastrar variante ${variant.name}`}
+          className="cursor-grab touch-none rounded-xl p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing transition"
+          title="Arrastrar variante a otro producto o a la zona superior para independizar"
+        >
+          <GripVertical className="h-4 w-4 text-primary" />
+        </button>
+
+        <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-primary/10 text-[11px] font-black text-primary shrink-0">
+          #{index + 1}
+        </span>
+
+        {variant.image_url ? (
+          <ProductMedia thumb src={variant.image_url} className="h-7 w-7 rounded-lg object-cover shrink-0" />
+        ) : null}
+
+        <button
+          type="button"
+          onClick={onEdit}
+          className="text-xs font-bold text-foreground truncate hover:underline text-left"
+        >
+          {variant.name || "Sin nombre"}
+          {variant.price_cop !== null && (
+            <span className="ml-2 font-normal text-muted-foreground">
+              (${variant.price_cop.toLocaleString("es-CO")})
+            </span>
+          )}
+        </button>
+      </div>
+
+      <div className="flex items-center gap-2 shrink-0">
+        <div className="shrink-0 max-w-[160px]">
+          <UnifiedButton button={previewBtn} onClick={() => {}} />
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onDuplicate}
+          className="h-7 text-[11px] font-semibold gap-1"
+          title="Duplicar variante"
+        >
+          <Copy className="h-3 w-3 text-primary" />
+          Duplicar
+        </Button>
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onRemove}
+          className="h-7 text-[11px] font-semibold text-destructive hover:bg-destructive/10"
+          title="Eliminar variante"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </li>
+  );
+}
+
+/** Diálogo de confirmación: Mover vs Duplicar */
+function HierarchyConfirmDialog({
+  prompt,
+  onConfirm,
+  onCancel,
+}: {
+  prompt: HierarchyActionPrompt;
+  onConfirm: (mode: "move" | "duplicate") => void;
+  onCancel: () => void;
+}) {
+  const title =
+    prompt.type === "variant_to_standalone"
+      ? `Convertir variante «${prompt.variant.name}» en producto principal`
+      : prompt.type === "variant_to_other_product"
+        ? `Asignar variante «${prompt.variant.name}» a «${prompt.targetParent.name}»`
+        : `Convertir producto «${prompt.sourceProduct.name}» en variante de «${prompt.targetParent.name}»`;
+
+  const description =
+    prompt.type === "variant_to_standalone"
+      ? "¿Deseas moverla (eliminarla de las variantes del producto actual) o duplicarla como un nuevo producto independiente?"
+      : prompt.type === "variant_to_other_product"
+        ? "¿Deseas mover la variante al nuevo producto o conservar una copia en el producto original?"
+        : "¿Deseas mover el producto (se convertirá en variante y dejará de ser principal) o duplicarlo como variante?";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="w-full max-w-md rounded-3xl bg-background p-6 shadow-2xl border border-border animate-in fade-in zoom-in-95">
+        <h3 className="text-lg font-black text-foreground">{title}</h3>
+        <p className="mt-2 text-xs text-muted-foreground">{description}</p>
+
+        <div className="mt-6 flex flex-wrap items-center justify-end gap-2.5">
+          <Button type="button" variant="ghost" size="sm" onClick={onCancel} className="text-xs">
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onConfirm("duplicate")}
+            className="text-xs font-bold gap-1.5"
+          >
+            <Copy className="h-3.5 w-3.5 text-primary" />
+            Duplicar
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => onConfirm("move")}
+            className="text-xs font-bold bg-primary text-primary-foreground gap-1.5 hover:opacity-90"
+          >
+            <ArrowRightLeft className="h-3.5 w-3.5" />
+            Mover
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -612,20 +1259,19 @@ function ProductModal({
     set("brand_id", data.id);
   }
 
-
   async function uploadToStorage(file: File): Promise<string> {
-      const path = `${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-      const up = await supabase.storage.from("product-images").upload(path, file, {
-        cacheControl: "3600",
-        upsert: false,
-      });
-      if (up.error) throw up.error;
-      // signed URL 10 years
-      const signed = await supabase.storage
-        .from("product-images")
-        .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-      if (signed.error) throw signed.error;
-      return signed.data.signedUrl;
+    const path = `${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    const up = await supabase.storage.from("product-images").upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+    });
+    if (up.error) throw up.error;
+    // signed URL 10 years
+    const signed = await supabase.storage
+      .from("product-images")
+      .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+    if (signed.error) throw signed.error;
+    return signed.data.signedUrl;
   }
 
   async function uploadImage(file: File) {
@@ -923,7 +1569,6 @@ function ProductModal({
           </p>
         )}
 
-
         <Field label="Descripción corta">
           <textarea
             rows={2}
@@ -958,7 +1603,6 @@ function ProductModal({
             coverIndex={0}
             onSetCover={(url) => set("image_url", url)}
             onChange={(urls) => {
-              // La posición 1 de la lista es siempre la portada.
               const cover = urls[0] ?? null;
               setForm((fm) => ({
                 ...fm,
@@ -966,7 +1610,6 @@ function ProductModal({
                 images: urls.slice(1),
               }));
             }}
-
           />
         </Field>
 
@@ -990,7 +1633,6 @@ function ProductModal({
             />
           </Suspense>
         </Field>
-
 
         <Field label="Especificaciones técnicas (tecnología, volumen, material…)">
           <div className="grid gap-2">
@@ -1034,8 +1676,6 @@ function ProductModal({
             <ProductButtonsEditor buttons={buttons} onChange={setButtons} />
           </Suspense>
         </Field>
-
-
 
         <div className="mt-4 flex flex-wrap gap-6">
           <label className="inline-flex items-center gap-2 text-sm">
