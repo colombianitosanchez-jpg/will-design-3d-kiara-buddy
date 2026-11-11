@@ -3,8 +3,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Pencil, Trash2, Loader2, X, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, X, Search, Sparkles } from "lucide-react";
 import { lazy, Suspense } from "react";
+import { ProductImageOptimizerModal } from "@/components/ProductImageOptimizerModal";
 import { ImageDropzone } from "@/components/ImageDropzone";
 import { Switch } from "@/components/ui/switch";
 import { PaymentMethodsPicker } from "@/components/PaymentMethodsPicker";
@@ -131,6 +132,7 @@ function ProductosAdmin() {
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [optimizerOpen, setOptimizerOpen] = useState(false);
   const scrollPosRef = useRef<number>(0);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
@@ -254,12 +256,22 @@ function ProductosAdmin() {
             {visibleProducts.length} de {products.length} producto{products.length === 1 ? "" : "s"} en el catálogo.
           </p>
         </div>
-        <button
-          onClick={() => setEditing({ ...empty })}
-          className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-orange)] px-5 py-2.5 text-sm font-bold text-white hover:opacity-90"
-        >
-          <Plus className="h-4 w-4" /> Añadir producto
-        </button>
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setOptimizerOpen(true)}
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--brand-orange)]/40 bg-[var(--brand-orange)]/10 px-4 py-2.5 text-sm font-semibold text-[var(--brand-orange)] hover:bg-[var(--brand-orange)]/20 transition"
+            title="Escanear y optimizar fotos pesadas (>280 KB) para previsualización en WhatsApp"
+          >
+            <Sparkles className="h-4 w-4" /> Optimizar imágenes WhatsApp
+          </button>
+          <button
+            onClick={() => setEditing({ ...empty })}
+            className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-orange)] px-5 py-2.5 text-sm font-bold text-white hover:opacity-90"
+          >
+            <Plus className="h-4 w-4" /> Añadir producto
+          </button>
+        </div>
       </div>
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -413,6 +425,14 @@ function ProductosAdmin() {
           </div>
         )}
       </div>
+
+      {optimizerOpen && (
+        <ProductImageOptimizerModal
+          open={optimizerOpen}
+          onOpenChange={setOptimizerOpen}
+          onComplete={() => load(true)}
+        />
+      )}
 
       {editing && (
         <ProductModal
