@@ -882,15 +882,12 @@ function ProductTableRow({
         {matchedVars.length > 0 && (
           <div className="mt-1 flex flex-wrap gap-1">
             {matchedVars.map((mv) => (
-              <button
+              <span
                 key={mv.id}
-                type="button"
-                onClick={() => onEditProduct(mv.id)}
-                className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-[var(--brand-orange)] hover:bg-amber-500/20"
-                title="Hacer clic para editar directamente esta variante"
+                className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-[var(--brand-orange)]"
               >
-                Variante: {mv.name} · Editar
-              </button>
+                Variante: {mv.name}
+              </span>
             ))}
           </div>
         )}
@@ -966,7 +963,7 @@ function VariantTableRow({
     data: { type: "variant", variant, parentProduct },
   });
 
-  const primaryBtn = variant.custom_buttons?.[0] ?? parentProduct.custom_buttons[0] ?? {
+  const primaryBtn = variant.custom_buttons?.[0] ?? parentProduct.custom_buttons?.[0] ?? {
     id: `var-btn-${variant.id}`,
     text: variant.name || "Comprar",
     action_type: "whatsapp",
@@ -1007,18 +1004,14 @@ function VariantTableRow({
           <ProductMedia thumb src={variant.image_url} className="h-7 w-7 rounded-lg object-cover shrink-0" />
         ) : null}
 
-        <button
-          type="button"
-          onClick={onEdit}
-          className="text-xs font-bold text-foreground truncate hover:underline text-left"
-        >
+        <span className="text-xs font-bold text-foreground truncate text-left">
           {variant.name || "Sin nombre"}
           {variant.price_cop !== null && (
             <span className="ml-2 font-normal text-muted-foreground">
               (${variant.price_cop.toLocaleString("es-CO")})
             </span>
           )}
-        </button>
+        </span>
       </div>
 
       <div className="flex items-center gap-2 shrink-0">

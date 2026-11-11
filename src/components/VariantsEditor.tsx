@@ -1,6 +1,6 @@
 import { ProductMedia } from "@/components/ProductMedia";
 import { memo, useCallback, useEffect, useState } from "react";
-import { ChevronDown, ChevronUp, GripVertical, Plus, Trash2, Copy, Sparkles, Layers } from "lucide-react";
+import { ChevronDown, ChevronUp, GripVertical, Plus, Trash2, Copy, Sparkles } from "lucide-react";
 import {
   DndContext,
   KeyboardSensor,
@@ -38,78 +38,6 @@ function detectAnimType(url?: string | null): "video" | "gif" | "lottie" | "imag
   if (/\.gif($|\?)/i.test(url)) return "gif";
   if (/\.json($|\?)/i.test(url)) return "lottie";
   return "image";
-}
-
-/** Fila compacta de orden para variantes (Idéntica a SortableButtonOrderRow / HeroButtonOrderRow). */
-function SortableVariantOrderRow({
-  variant,
-  index,
-  onRemove,
-  onSelect,
-}: {
-  variant: ProductVariant;
-  index: number;
-  onRemove: () => void;
-  onSelect: () => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: `order_${variant.id}`,
-  });
-  const label = variant.name?.trim() || `Variante #${index + 1}`;
-
-  return (
-    <li
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex items-center gap-3 rounded-2xl border bg-card p-2.5 transition shadow-2xs ${
-        isDragging
-          ? "z-20 border-primary bg-primary/10 shadow-xl ring-2 ring-primary"
-          : "border-border hover:border-border/80"
-      }`}
-    >
-      <button
-        type="button"
-        {...attributes}
-        {...listeners}
-        aria-label={`Arrastrar ${label}`}
-        className="cursor-grab touch-none rounded-xl p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing transition"
-        title="Arrastrar para reordenar variante"
-      >
-        <GripVertical className="h-4 w-4 text-primary" />
-      </button>
-
-      <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-xs font-black text-primary shrink-0">
-        #{index + 1}
-      </span>
-
-      <button
-        type="button"
-        onClick={onSelect}
-        className="text-xs font-bold flex-1 text-left text-foreground flex items-center gap-2 truncate hover:underline"
-      >
-        {variant.image_url ? (
-          <ProductMedia thumb src={variant.image_url} className="h-6 w-6 rounded-md object-cover shrink-0" />
-        ) : (
-          <Layers className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        )}
-        <span className="truncate">{label}</span>
-        {variant.price_cop !== null && (
-          <span className="text-[11px] text-muted-foreground font-normal">
-            (${variant.price_cop.toLocaleString("es-CO")})
-          </span>
-        )}
-      </button>
-
-      <button
-        type="button"
-        onClick={onRemove}
-        className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-destructive hover:bg-destructive/10 transition shrink-0"
-        title="Eliminar esta variante"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </button>
-    </li>
-  );
 }
 
 /** Tarjeta individual colapsable de variante con barra de herramientas. */
@@ -481,8 +409,8 @@ export function VariantsEditor({
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over || active.id === over.id) return;
-    const cleanActiveId = String(active.id).replace(/^order_/, "");
-    const cleanOverId = String(over.id).replace(/^order_/, "");
+    const cleanActiveId = String(active.id);
+    const cleanOverId = String(over.id);
 
     const from = variants.findIndex((v) => v.id === cleanActiveId);
     const to = variants.findIndex((v) => v.id === cleanOverId);
@@ -511,94 +439,53 @@ export function VariantsEditor({
       </div>
 
       {!isCollapsed && (
-        <>
-          {/* Barra compacta de orden tipo captura HeroButtonOrderRow */}
-          {variants.length > 0 && (
-            <div className="rounded-2xl border border-border bg-card p-3.5 space-y-2.5">
-              <div>
-                <label className="text-xs font-bold flex items-center gap-2 text-foreground">
-                  <Layers className="h-3.5 w-3.5 text-primary" />
-                  Orden de las Variantes
-                </label>
-                <p className="text-[11px] text-muted-foreground">
-                  Arrastra las variantes desde el tirador de 6 puntos para decidir su orden en la tienda.
-                </p>
-              </div>
-
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext
-                  items={variants.map((v) => `order_${v.id}`)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <ul className="space-y-2">
-                    {variants.map((v, i) => (
-                      <SortableVariantOrderRow
-                        key={`order_${v.id}`}
-                        variant={v}
-                        index={i}
-                        onRemove={() => removeVariant(i)}
-                        onSelect={() => {
-                          setOpenIds((prev) => new Set([...prev, v.id]));
-                          const el = document.getElementById(`variant-editor-${v.id}`);
-                          if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-                        }}
-                      />
-                    ))}
-                  </ul>
-                </SortableContext>
-              </DndContext>
+        <div className="space-y-4 rounded-2xl border border-primary/20 bg-primary/[0.02] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
+            <div>
+              <label className="text-sm font-bold flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Variantes del Producto
+              </label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Haz clic en cualquier variante para desplegar sus detalles, fotos y botones propios.
+              </p>
             </div>
-          )}
-
-          {/* Tarjetas completas de variantes colapsables */}
-          <div className="space-y-4 rounded-2xl border border-primary/20 bg-primary/[0.02] p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
-              <div>
-                <label className="text-sm font-bold flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  Variantes del Producto
-                </label>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Haz clic en cualquier variante para desplegar sus detalles, fotos y botones propios.
-                </p>
-              </div>
-              <Button
-                type="button"
-                onClick={() => {
-                  const nv = newVariant();
-                  onChange([...variants, nv]);
-                  setOpenIds((prev) => new Set([...prev, nv.id]));
-                }}
-                className="text-xs font-bold gap-1.5 shadow-sm"
-              >
-                <Plus className="h-4 w-4" />
-                + Añadir variante
-              </Button>
-            </div>
-
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={variants.map((v) => v.id)} strategy={verticalListSortingStrategy}>
-                <div className="space-y-4">
-                  {variants.map((v, i) => (
-                    <SortableVariantCard
-                      key={v.id}
-                      variant={v}
-                      index={i}
-                      isOpen={openIds.has(v.id)}
-                      onToggle={() => toggleOpen(v.id)}
-                      onDuplicate={() => duplicateVariant(i)}
-                      onRemove={() => removeVariant(i)}
-                      onUpdate={(patch) => update(i, patch)}
-                      gallery={gallery}
-                      parentButtons={parentButtons}
-                      isGlowing={glowingId === v.id}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
+            <Button
+              type="button"
+              onClick={() => {
+                const nv = newVariant();
+                onChange([...variants, nv]);
+                setOpenIds((prev) => new Set([...prev, nv.id]));
+              }}
+              className="text-xs font-bold gap-1.5 shadow-sm"
+            >
+              <Plus className="h-4 w-4" />
+              + Añadir variante
+            </Button>
           </div>
-        </>
+
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={variants.map((v) => v.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-4">
+                {variants.map((v, i) => (
+                  <SortableVariantCard
+                    key={v.id}
+                    variant={v}
+                    index={i}
+                    isOpen={openIds.has(v.id)}
+                    onToggle={() => toggleOpen(v.id)}
+                    onDuplicate={() => duplicateVariant(i)}
+                    onRemove={() => removeVariant(i)}
+                    onUpdate={(patch) => update(i, patch)}
+                    gallery={gallery}
+                    parentButtons={parentButtons}
+                    isGlowing={glowingId === v.id}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        </div>
       )}
     </div>
   );
