@@ -30,14 +30,8 @@ export const Route = createFileRoute("/t/$slug")({
 
     // Compatibilidad con enlaces viejos ?v=<uuid> o ?v=<num> vs nuevo formato limpio en slug
     const byId = deps.v ? variants.findIndex((x) => x.id === String(deps.v)) : -1;
-    const vFromQuery = byId >= 0 ? byId : idx(deps.v);
-    const vFromSlug = parsedV != null && parsedV >= 1 ? parsedV - 1 : null;
-    const vIndex = vFromQuery != null ? vFromQuery : vFromSlug;
-
-    const bFromQuery = idx(deps.b);
-    const bFromSlug = parsedB != null && parsedB >= 1 ? parsedB - 1 : null;
-    const bIndex = bFromQuery != null ? bFromQuery : bFromSlug;
-
+    const vIndex = byId >= 0 ? byId : deps.v ? idx(deps.v) : parsedV != null && parsedV >= 1 ? parsedV - 1 : null;
+    const bIndex = deps.b ? idx(deps.b) : parsedB != null && parsedB >= 1 ? parsedB - 1 : null;
     const variant = vIndex != null ? variants[vIndex] ?? null : null;
     const img = resolveProductShareImage(product, variant ? vIndex : null, bIndex);
     return {
@@ -76,11 +70,10 @@ export const Route = createFileRoute("/t/$slug")({
 });
 
 function ShareRedirect() {
-  const { slug, productSlug, variantId } = Route.useLoaderData();
-  const targetSlug = productSlug || slug;
+  const { productSlug, variantId } = Route.useLoaderData();
   const navigate = useNavigate();
   useEffect(() => {
-    navigate({ to: "/tienda/$slug", params: { slug: targetSlug }, search: variantId ? { v: variantId } : {}, replace: true });
-  }, [targetSlug, variantId, navigate]);
+    navigate({ to: "/tienda/$slug", params: { slug: productSlug }, search: variantId ? { v: variantId } : {}, replace: true });
+  }, [productSlug, variantId, navigate]);
   return <div className="min-h-[60vh]" />;
 }
