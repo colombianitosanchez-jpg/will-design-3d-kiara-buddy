@@ -48,8 +48,10 @@ function sanitizeRichText(html: string | null | undefined): string {
 }
 
 export const Route = createFileRoute("/tienda/$slug")({
-  validateSearch: (search: Record<string, unknown>): { v?: string } =>
-    typeof search.v === "string" && search.v ? { v: search.v.slice(0, 64) } : {},
+  validateSearch: (search: Record<string, unknown>): { v?: string; pedir?: string } => ({
+    ...(typeof search.v === "string" && search.v ? { v: search.v.slice(0, 64) } : {}),
+    ...(search.pedir ? { pedir: "1" } : {}),
+  }),
   loaderDeps: ({ search }) => ({ v: search.v }),
   loader: async ({ params, context, deps }) => {
     const product = await context.queryClient.ensureQueryData(productBySlugQuery(params.slug));
@@ -239,6 +241,12 @@ function ProductPage() {
       }
     : product;
   const shownButtons = effectiveButtons(product.custom_buttons, selectedVariant);
+  useEffect(() => {
+    const open = () => setOrderOpen(true);
+    window.addEventListener("wd3d:order-request", open);
+    if (new URLSearchParams(window.location.search).get("pedir")) setOrderOpen(true);
+    return () => window.removeEventListener("wd3d:order-request", open);
+  }, []);
   const waHref = waLink(
     contact.whatsapp,
     applyGlobalWaTemplate(
@@ -427,6 +435,7 @@ function ProductPage() {
             </div>
           )}
 
+          {shownButtons.length === 0 && (
           <div className="mt-6 flex flex-wrap gap-3">
             {!product.quote_only && (
               <button type="button" onClick={() => setOrderOpen(true)} className="btn-primary">
@@ -447,6 +456,7 @@ function ProductPage() {
               Cotizar una impresión
             </Link>
           </div>
+          )}
 
           {product.accepts_3d_file && (
             <Suspense fallback={<div className="mt-6 p-4 text-xs text-muted-foreground flex items-center gap-2 border border-dashed rounded-2xl"><Loader2 className="h-4 w-4 animate-spin" /> Cargando visor 3D...</div>}>

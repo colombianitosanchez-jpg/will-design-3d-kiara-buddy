@@ -44,6 +44,7 @@ export const ProductCard = memo(function ProductCard({ product, variant }: { pro
   );
   const actionText = product.btn_text?.trim() || "Ver más";
   const [quickOpen, setQuickOpen] = useState(false);
+  const cardButtons = product.custom_buttons.filter((b) => b.show_on_card !== false);
 
   const handleQuickView = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -158,15 +159,15 @@ export const ProductCard = memo(function ProductCard({ product, variant }: { pro
           </div>
         )}
       </div>
-      {product.custom_buttons.length > 0 && (
+      {cardButtons.length > 0 && (
         <ProductButtons
           product={product}
-          buttons={product.custom_buttons}
+          buttons={cardButtons}
           className="px-4 pb-4"
           quoteOnly={product.quote_only}
         />
       )}
-      {product.custom_buttons.length === 0 && <div className="pb-2" />}
+      {cardButtons.length === 0 && <div className="pb-2" />}
 
       <ProductQuickView product={product} open={quickOpen} onOpenChange={setQuickOpen} />
     </article>

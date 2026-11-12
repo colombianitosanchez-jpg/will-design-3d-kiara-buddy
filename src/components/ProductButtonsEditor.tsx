@@ -1,3 +1,4 @@
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -171,7 +172,7 @@ function SortableButtonCard({
   const actionValue = b.action_value || "";
 
   const selectValue = (() => {
-    if (actionType === "whatsapp" || actionType === "add_to_cart" || actionType === "checkout") return actionType;
+    if (actionType === "whatsapp" || actionType === "add_to_cart" || actionType === "checkout" || actionType === "order_request") return actionType;
     const matched = SITE_INTERNAL_PAGES.find((p) => p.path === actionValue);
     return matched ? matched.path : "custom_link";
   })();
@@ -451,7 +452,7 @@ function SortableButtonCard({
           <Select
             value={selectValue}
             onValueChange={(val) => {
-              if (val === "whatsapp" || val === "add_to_cart" || val === "checkout") {
+              if (val === "whatsapp" || val === "add_to_cart" || val === "checkout" || val === "order_request") {
                 onUpdate({ action_type: val, action_value: actionType === val ? actionValue : "" });
               } else if (val === "custom_link") {
                 const known = SITE_INTERNAL_PAGES.some((p) => p.path === actionValue);
@@ -466,6 +467,7 @@ function SortableButtonCard({
               <div className="px-2 py-1 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Compra</div>
               <SelectItem value="add_to_cart">🛒 Añadir al carrito</SelectItem>
               <SelectItem value="checkout">⚡ Comprar ahora (ir al carrito)</SelectItem>
+              <SelectItem value="order_request">🛍️ Solicitar pedido (formulario)</SelectItem>
               <div className="px-2 py-1 mt-1 text-[11px] font-bold text-muted-foreground uppercase tracking-wider border-t border-border/50">
                 Páginas Oficiales del Sitio
               </div>
@@ -480,6 +482,20 @@ function SortableButtonCard({
             </SelectContent>
           </Select>
         </div>
+
+        <label className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-background/50 p-3 text-xs">
+          <span>
+            <span className="font-semibold">Mostrar en la tarjeta del catálogo</span>
+            <span className="block text-muted-foreground">Si lo apagas, solo aparece al entrar a «Ver más».</span>
+          </span>
+          <Switch checked={b.show_on_card !== false} onCheckedChange={(c) => onUpdate({ show_on_card: c })} />
+        </label>
+
+        {actionType === "order_request" && (
+          <div className="rounded-lg bg-background/50 border border-border/60 p-3 text-xs text-muted-foreground">
+            Abre el formulario «Solicitar pedido»; llega a Pedidos del panel con la variante elegida.
+          </div>
+        )}
 
         {(actionType === "add_to_cart" || actionType === "checkout") && (
           <div className="rounded-lg bg-background/50 border border-border/60 p-3 text-xs text-muted-foreground">

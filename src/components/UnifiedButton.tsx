@@ -205,6 +205,15 @@ export function UnifiedButton({
         toast.success(`${product.name} se añadió al carrito`);
         return;
       }
+      case "order_request": {
+        if (!product || quoteOnly) return;
+        if (typeof window !== "undefined" && window.location.pathname === `/tienda/${product.slug}`) {
+          window.dispatchEvent(new CustomEvent("wd3d:order-request"));
+        } else {
+          router.navigate({ to: "/tienda/$slug", params: { slug: product.slug }, search: { pedir: "1" } as never });
+        }
+        return;
+      }
       case "checkout": {
         if (!product || quoteOnly) return;
         addItem(cartPayload());

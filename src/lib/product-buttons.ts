@@ -10,7 +10,7 @@ export type ButtonWidth = (typeof BUTTON_WIDTHS)[number];
 export const BUTTON_POSITIONS = ["left", "center", "right"] as const;
 export type ButtonPosition = (typeof BUTTON_POSITIONS)[number];
 
-export const BUTTON_ACTIONS = ["link", "whatsapp", "add_to_cart", "checkout"] as const;
+export const BUTTON_ACTIONS = ["link", "whatsapp", "add_to_cart", "checkout", "order_request"] as const;
 export type ButtonActionType = (typeof BUTTON_ACTIONS)[number];
 
 export const ANIMATION_TYPES = ["none", "image", "video", "gif", "lottie"] as const;
@@ -91,6 +91,8 @@ export type ProductButton = {
   media_fit?: "cover" | "contain" | "fill";
   /** Forma del ícono o logo */
   icon_shape?: ButtonIconShape;
+  /** Mostrar también en la tarjeta del catálogo (/tienda). Por defecto sí. */
+  show_on_card?: boolean;
 };
 
 export const VARIANT_LABELS: Record<ButtonVariant, string> = {
@@ -117,6 +119,7 @@ export const ACTION_LABELS: Record<ButtonActionType, string> = {
   whatsapp: "WhatsApp",
   add_to_cart: "Añadir al carrito",
   checkout: "Ir al pago",
+  order_request: "Solicitar pedido (formulario)",
 };
 
 export const ANIMATION_TYPE_LABELS: Record<ButtonAnimationType, string> = {
@@ -204,6 +207,7 @@ export function parseProductButtons(raw: unknown): ProductButton[] {
       icon_shape: pick(b.icon_shape, BUTTON_ICON_SHAPES, "circle"),
       opacity: typeof b.opacity === "number" ? b.opacity : undefined,
       shade: typeof b.shade === "number" ? b.shade : undefined,
+      show_on_card: b.show_on_card !== false,
       media_fit: (b.media_fit === "contain" || b.media_fit === "fill" || b.media_fit === "cover" ? b.media_fit : "cover") as "cover" | "contain" | "fill",
     }))
     .filter((b) => !!b.text);
