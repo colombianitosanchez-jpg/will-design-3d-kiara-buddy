@@ -150,6 +150,7 @@ export async function fetchProducts(): Promise<Product[]> {
     .from("products")
     .select(PRODUCT_SELECT)
     .eq("active", true)
+    .order("sort_order", { ascending: true })
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map(normalize);

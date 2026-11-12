@@ -56,6 +56,8 @@ import {
 import {
   variantToProduct,
   productToVariant,
+  flattenProductIntoVariants,
+  moveToSlot,
   transferVariant,
   type ProductRecord,
 } from "@/lib/product-hierarchy";
@@ -239,7 +241,7 @@ function ProductosAdmin() {
   async function load(isBackground = false) {
     if (!isBackground) setLoading(true);
     const [p, c, b, a, ca, pav] = await Promise.all([
-      supabase.from("products").select("*").order("created_at", { ascending: false }),
+      supabase.from("products").select("*").order("sort_order", { ascending: true }).order("created_at", { ascending: false }),
       supabase
         .from("categories")
         .select("id,name,slug,sort_order,parent_id,is_active,image_url")
@@ -373,9 +375,7 @@ function ProductosAdmin() {
         toast.success(`Variante movida a ${targetParent.name}`);
       } else if (actionPrompt.type === "product_to_variant") {
         const { sourceProduct, targetParent } = actionPrompt;
-        const newVar = productToVariant(sourceProduct);
-        const transferred = transferVariant(newVar, targetParent, { makeUniqueId: true });
-        const targetVars = [...(targetParent.variants ?? []), transferred];
+        const targetVars = flattenProductIntoVariants(sourceProduct, targetParent);
 
         // 1. Añadir al producto padre destino
         const { error: updTargetErr } = await supabase
@@ -397,6 +397,42 @@ function ProductosAdmin() {
     }
   }
 
+  // Reordenar productos principales (persistente en tienda)
+  async function reorderProduct(sourceId: string, slotIndex: number) {
+    const visibleIds = visibleProducts.map((p) => p.id);
+    const anchorId = visibleIds[slotIndex];
+    const from = products.findIndex((p) => p.id === sourceId);
+    if (from === -1) return;
+    let slot = anchorId ? products.findIndex((p) => p.id === anchorId) : -1;
+    if (slot === -1) {
+      const lastVisible = visibleIds[visibleIds.length - 1];
+      slot = products.findIndex((p) => p.id === lastVisible) + 1;
+    }
+    const next = moveToSlot(products, from, slot);
+    if (next.every((p, i) => p.id === products[i].id)) return;
+    setProducts(next);
+    const results = await Promise.all(
+      next.map((p, i) => supabase.from("products").update({ sort_order: i + 1 } as any).eq("id", p.id)),
+    );
+    const err = results.find((r) => r.error)?.error;
+    if (err) toast.error("No se pudo guardar el orden: " + err.message);
+    else toast.success("Orden guardado");
+    load(true);
+  }
+
+  // Reordenar variantes dentro del mismo producto
+  async function reorderVariant(parent: Product, variantId: string, slotIndex: number) {
+    const vars = parent.variants ?? [];
+    const from = vars.findIndex((v) => v.id === variantId);
+    const next = moveToSlot(vars, from, slotIndex);
+    if (next.every((v, i) => v.id === vars[i]?.id)) return;
+    setProducts((prev) => prev.map((p) => (p.id === parent.id ? { ...p, variants: next } : p)));
+    const { error } = await supabase.from("products").update({ variants: next as any }).eq("id", parent.id);
+    if (error) toast.error("No se pudo guardar el orden: " + error.message);
+    else toast.success("Orden de variantes guardado");
+    load(true);
+  }
+
   // DND Sensors
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -416,9 +452,22 @@ function ProductosAdmin() {
     if (!over) return;
 
     const activeData = active.data.current as DragItemData | undefined;
-    const overData = over.data.current as { type: string; product?: Product } | undefined;
+    const overData = over.data.current as
+      | { type: string; product?: Product; index?: number; parentId?: string }
+      | undefined;
 
     if (!activeData || !overData) return;
+
+    if (overData.type === "product_slot" && activeData.type === "product") {
+      reorderProduct(activeData.product.id, overData.index ?? 0);
+      return;
+    }
+    if (overData.type === "variant_slot" && activeData.type === "variant") {
+      if (overData.parentId === activeData.parentProduct.id) {
+        reorderVariant(activeData.parentProduct, activeData.variant.id, overData.index ?? 0);
+      }
+      return;
+    }
 
     // Caso A: Arrastrar variante
     if (activeData.type === "variant") {
@@ -575,7 +624,7 @@ function ProductosAdmin() {
                 </tr>
               </thead>
               <tbody>
-                {visibleProducts.map((p) => {
+                {visibleProducts.map((p, pIdx) => {
                   const cat = p.category_id
                     ? categoryPath(categories.find((c) => c.id === p.category_id)?.slug, categories) || "—"
                     : "—";
@@ -588,6 +637,7 @@ function ProductosAdmin() {
 
                   return (
                     <React.Fragment key={p.id}>
+                      {activeDragItem?.type === "product" && <ProductReorderSlot index={pIdx} />}
                       <ProductTableRow
                         product={p}
                         cat={cat}
@@ -618,12 +668,16 @@ function ProductosAdmin() {
                                   Variantes de {p.name} ({p.variants.length})
                                 </span>
                                 <span className="text-[11px] text-muted-foreground">
-                                  Arrastra desde los 6 puntos hacia otro producto o hacia arriba para independizar
+                                  Arrastra desde los 6 puntos: a una franja para reordenar, sobre otro producto para moverla, o abajo para independizar
                                 </span>
                               </div>
 
                               <ul className="space-y-2">
                                 {p.variants.map((v, idx) => (
+                                  <React.Fragment key={v.id}>
+                                  {activeDragItem?.type === "variant" && activeDragItem.parentProduct.id === p.id && (
+                                    <VariantReorderSlot parentId={p.id} index={idx} />
+                                  )}
                                   <VariantTableRow
                                     key={v.id}
                                     variant={v}
@@ -633,7 +687,11 @@ function ProductosAdmin() {
                                     onRemove={() => handleRemoveVariant(p, v.id)}
                                     onSaved={() => load(true)}
                                   />
+                                  </React.Fragment>
                                 ))}
+                                {activeDragItem?.type === "variant" && activeDragItem.parentProduct.id === p.id && (
+                                  <VariantReorderSlot parentId={p.id} index={p.variants.length} />
+                                )}
                               </ul>
                             </div>
                           </td>
@@ -642,6 +700,7 @@ function ProductosAdmin() {
                     </React.Fragment>
                   );
                 })}
+                {activeDragItem?.type === "product" && <ProductReorderSlot index={visibleProducts.length} />}
               </tbody>
             </table>
           </div>
@@ -711,6 +770,32 @@ function ProductosAdmin() {
         />
       )}
     </DndContext>
+  );
+}
+
+/** Ranura entre filas: soltar aquí cambia la posición (no fusiona). */
+function ProductReorderSlot({ index }: { index: number }) {
+  const { isOver, setNodeRef } = useDroppable({ id: `prod_slot_${index}`, data: { type: "product_slot", index } });
+  return (
+    <tr ref={setNodeRef}>
+      <td colSpan={9} className="px-3 py-0.5">
+        <div className={`rounded-full text-center text-[10px] font-bold transition-all ${isOver ? "h-7 leading-7 bg-primary/15 text-primary ring-2 ring-primary" : "h-2 bg-primary/10 text-transparent"}`}>
+          Soltar aquí para mover a esta posición
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function VariantReorderSlot({ parentId, index }: { parentId: string; index: number }) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: `var_slot_${parentId}_${index}`,
+    data: { type: "variant_slot", parentId, index },
+  });
+  return (
+    <li ref={setNodeRef} className={`list-none rounded-full text-center text-[10px] font-bold transition-all ${isOver ? "h-7 leading-7 bg-primary/15 text-primary ring-2 ring-primary" : "h-2 bg-primary/10 text-transparent"}`}>
+      Soltar aquí para mover a esta posición
+    </li>
   );
 }
 

@@ -259,3 +259,47 @@ export function duplicateProductRecord(
     variants: duplicatedVariants,
   };
 }
+
+/**
+ * Fusión plana: convierte un producto (con o sin variantes) en variantes de primer nivel
+ * del destino. La ficha base se vuelve una variante y cada variante del origen pasa como
+ * hermana (nunca subvariantes). Lo que la variante heredaba del origen (precio, stock,
+ * fotos, botones, pagos) se fija con los valores del origen para que no cambie al moverse.
+ */
+export function flattenProductIntoVariants(
+  source: ProductRecord,
+  target: ProductRecord,
+): ProductVariant[] {
+  const base = productToVariant({ ...source, variants: [] });
+  const children: ProductVariant[] = (source.variants ?? []).map((v) => {
+    const ownImages = (v.images ?? []).filter(Boolean);
+    const images = ownImages.length ? ownImages : base.images;
+    return {
+      ...v,
+      price_cop: v.price_cop ?? base.price_cop,
+      stock: v.stock ?? base.stock,
+      images,
+      image_url: ownImages.length ? v.image_url ?? ownImages[0] : base.image_url,
+      custom_buttons: v.custom_buttons ?? base.custom_buttons,
+      allowed_payment_method_ids: v.allowed_payment_method_ids ?? base.allowed_payment_method_ids,
+    };
+  });
+  const result: ProductVariant[] = [...(target.variants ?? [])];
+  for (const v of [base, ...children]) {
+    result.push(transferVariant(v, { ...target, variants: result }, { makeUniqueId: true }));
+  }
+  return result;
+}
+
+/**
+ * Mueve el elemento `fromIndex` para que quede justo antes de la ranura `slotIndex`
+ * (0..length; length = al final). Devuelve una lista nueva.
+ */
+export function moveToSlot<T>(list: T[], fromIndex: number, slotIndex: number): T[] {
+  if (fromIndex < 0 || fromIndex >= list.length) return list.slice();
+  const next = list.slice();
+  const [item] = next.splice(fromIndex, 1);
+  const insertAt = slotIndex > fromIndex ? slotIndex - 1 : slotIndex;
+  next.splice(Math.max(0, Math.min(insertAt, next.length)), 0, item);
+  return next;
+}

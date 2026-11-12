@@ -68,7 +68,7 @@ function InventarioAdmin() {
   async function load() {
     setLoading(true);
     const [p, c, b] = await Promise.all([
-      supabase.from("products").select("*").order("created_at", { ascending: false }),
+      supabase.from("products").select("*").order("sort_order", { ascending: true }).order("created_at", { ascending: false }),
       supabase.from("categories").select("id,name,slug").order("sort_order"),
       supabase.from("brands").select("id,name").order("name"),
     ]);

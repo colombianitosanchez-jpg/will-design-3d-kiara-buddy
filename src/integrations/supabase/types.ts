@@ -860,6 +860,7 @@ export type Database = {
           show_whatsapp: boolean
           sku: string | null
           slug: string
+          sort_order: number
           specs: Json
           stock: number
           updated_at: string
@@ -890,6 +891,7 @@ export type Database = {
           show_whatsapp?: boolean
           sku?: string | null
           slug: string
+          sort_order?: number
           specs?: Json
           stock?: number
           updated_at?: string
@@ -920,6 +922,7 @@ export type Database = {
           show_whatsapp?: boolean
           sku?: string | null
           slug?: string
+          sort_order?: number
           specs?: Json
           stock?: number
           updated_at?: string
