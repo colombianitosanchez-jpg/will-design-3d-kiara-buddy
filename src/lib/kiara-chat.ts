@@ -69,7 +69,7 @@ export async function sendChat(
   const { data: sessionData } = await supabase.auth.getSession();
   const token = sessionData.session?.access_token;
 
-  const res = await fetch("/api/kiara", {
+  const doFetch = () => fetch("/api/kiara", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -79,6 +79,12 @@ export async function sendChat(
       messages: messages.slice(-20).map((m) => ({ role: m.role, content: m.content })),
     }),
   });
+  let res = await doFetch();
+  // 503 transitorio (servidor recargando): reintentar una vez tras una pausa.
+  if (res.status === 503) {
+    await new Promise((r) => setTimeout(r, 1500));
+    res = await doFetch();
+  }
 
   if (!res.ok || !res.body) {
     throw new Error(`Kiara no disponible (${res.status})`);
