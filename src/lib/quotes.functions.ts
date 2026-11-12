@@ -76,3 +76,22 @@ export const createQuoteRequest = createServerFn({ method: "POST" })
 
     return { ok: true as const, quote_id: row.id };
   });
+
+const ALLOWED_QUOTE_EXT = /\.(stl|obj|3mf|step|stp|iges|igs|fbx|blend|zip|rar|7z|png|jpe?g|webp|gif|pdf|svg|dxf|ai|eps)$/i;
+
+/** Emite una URL de subida firmada de un solo uso para archivos de cotización (sin política INSERT pública). */
+export const createQuoteUploadUrl = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z.object({ file_name: z.string().trim().min(1).max(200) }).parse(input),
+  )
+  .handler(async ({ data }) => {
+    const safe = data.file_name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    if (!ALLOWED_QUOTE_EXT.test(safe)) throw new Error("Tipo de archivo no permitido");
+    const path = `cotizaciones/${crypto.randomUUID()}-${safe}`;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: signed, error } = await supabaseAdmin.storage
+      .from("quote-files")
+      .createSignedUploadUrl(path);
+    if (error || !signed) throw new Error("No pudimos preparar la subida del archivo");
+    return { path: signed.path, token: signed.token };
+  });

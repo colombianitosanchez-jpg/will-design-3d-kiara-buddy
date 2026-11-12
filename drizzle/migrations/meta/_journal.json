@@ -36,6 +36,13 @@
       "when": 1793390522124,
       "tag": "0004_close_public_admin_settings_read",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794502417128,
+      "tag": "0005_migration",
+      "breakpoints": true
     }
   ]
 }

@@ -30,6 +30,22 @@ function shouldFallback(status: number) {
 }
 
 
+const PUBLIC_WINDOW_MS = 60_000;
+const PUBLIC_MAX_PER_WINDOW = 12;
+const publicHits = new Map<string, number[]>();
+function takePublicQuota(key: string) {
+  const now = Date.now();
+  const hits = (publicHits.get(key) ?? []).filter((t) => now - t < PUBLIC_WINDOW_MS);
+  if (hits.length >= PUBLIC_MAX_PER_WINDOW) {
+    publicHits.set(key, hits);
+    return false;
+  }
+  hits.push(now);
+  publicHits.set(key, hits);
+  if (publicHits.size > 5000) publicHits.clear();
+  return true;
+}
+
 export const Route = createFileRoute("/api/kiara")({
   server: {
     handlers: {
@@ -50,6 +66,32 @@ export const Route = createFileRoute("/api/kiara")({
         const { isInternalTeam } = await resolveAuthBoundary(
           request.headers.get("authorization"),
         );
+
+        // ── Guardia del modo público: solo desde el propio sitio y con cupo por visitante ──
+        if (!isInternalTeam) {
+          const host = request.headers.get("host") ?? "";
+          const origin = request.headers.get("origin") ?? request.headers.get("referer") ?? "";
+          let originHost = "";
+          try { originHost = new URL(origin).host; } catch { /* sin origen */ }
+          if (!originHost || originHost !== host) {
+            return Response.json({ error: "Origen no permitido" }, { status: 403 });
+          }
+          const ip =
+            request.headers.get("cf-connecting-ip") ??
+            request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+            "anon";
+          if (!takePublicQuota(ip)) {
+            return Response.json(
+              { error: "Kiara está atendiendo muchas consultas. Intenta en un minuto." },
+              { status: 429 },
+            );
+          }
+          // Limita el contexto público para acotar el costo por solicitud.
+          parsed.messages = parsed.messages.slice(-12).map((m) => ({
+            ...m,
+            content: m.content.slice(0, 1500),
+          }));
+        }
 
         const { data: contentRows } = await supabaseAdmin
           .from("site_content")
