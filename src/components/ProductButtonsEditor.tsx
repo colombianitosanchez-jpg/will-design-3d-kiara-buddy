@@ -3,7 +3,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { GripVertical, Layers, Trash2, Plus, Sparkles } from "lucide-react";
+import { GripVertical, Layers, Trash2, Plus, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
+import { useState } from "react";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { getActiveTheme } from "@/lib/theme";
 import { UnifiedButton } from "@/components/UnifiedButton";
@@ -36,62 +37,6 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-
-function SortableButtonOrderRow({
-  button,
-  index,
-  onRemove,
-}: {
-  button: ProductButton;
-  index: number;
-  onRemove: () => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: `order_${button.id}`,
-  });
-  const label = button.label?.trim() || button.text?.trim() || `Botón #${index + 1}`;
-
-  return (
-    <li
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex items-center gap-3 rounded-2xl border bg-card p-2.5 transition shadow-2xs ${
-        isDragging
-          ? "z-20 border-primary bg-primary/10 shadow-xl ring-2 ring-primary"
-          : "border-border hover:border-border/80"
-      }`}
-    >
-      <button
-        type="button"
-        {...attributes}
-        {...listeners}
-        aria-label={`Arrastrar ${label}`}
-        className="cursor-grab touch-none rounded-xl p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing transition"
-        title="Arrastrar para reordenar botón"
-      >
-        <GripVertical className="h-4 w-4 text-primary" />
-      </button>
-
-      <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-xs font-black text-primary shrink-0">
-        #{index + 1}
-      </span>
-
-      <span className="text-xs font-bold flex-1 text-foreground flex items-center gap-2 truncate">
-        <Layers className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <span className="truncate">{label}</span>
-      </span>
-
-      <button
-        type="button"
-        onClick={onRemove}
-        className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-destructive hover:bg-destructive/10 transition shrink-0"
-        title="Eliminar este botón"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </button>
-    </li>
-  );
-}
 
 export function ProductButtonsEditor({
   buttons,
@@ -140,38 +85,6 @@ export function ProductButtonsEditor({
         <p className="text-xs text-muted-foreground">
           Sin botones personalizados: la tarjeta mostrará el texto de acción estándar.
         </p>
-      )}
-
-      {buttons.length > 0 && (
-        <div className="rounded-2xl border border-border bg-card p-3.5 space-y-2.5">
-          <div>
-            <label className="text-xs font-bold flex items-center gap-2 text-foreground">
-              <Layers className="h-3.5 w-3.5 text-primary" />
-              Orden de los Botones
-            </label>
-            <p className="text-[11px] text-muted-foreground">
-              Arrastra los botones para definir su orden de aparición o elimínalos rápidamente.
-            </p>
-          </div>
-
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext
-              items={buttons.map((b) => `order_${b.id}`)}
-              strategy={verticalListSortingStrategy}
-            >
-              <ul className="space-y-2">
-                {buttons.map((b, i) => (
-                  <SortableButtonOrderRow
-                    key={`order_${b.id}`}
-                    button={b}
-                    index={i}
-                    onRemove={() => removeButton(b.id)}
-                  />
-                ))}
-              </ul>
-            </SortableContext>
-          </DndContext>
-        </div>
       )}
 
       <div className="space-y-4 rounded-2xl border border-primary/20 bg-primary/[0.02] p-4">
@@ -241,6 +154,7 @@ function SortableButtonCard({
   onRemove: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: b.id });
+  const [isOpen, setIsOpen] = useState(false);
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
 
   const textColor = b.text_color || "";
@@ -264,10 +178,10 @@ function SortableButtonCard({
   const matchedPage = actionType === "link" ? SITE_INTERNAL_PAGES.find((p) => p.path === actionValue) : undefined;
 
   return (
-    <div ref={setNodeRef} style={style} className="rounded-2xl border border-dashed border-border p-5 space-y-6 bg-muted/20">
+    <div ref={setNodeRef} style={style} className="rounded-2xl border border-border bg-card shadow-2xs">
       {/* Encabezado: arrastre, #, nombre, eliminar y vista previa */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
-        <div className="flex items-center gap-2">
+      <div className={`flex flex-wrap items-center justify-between gap-2.5 p-3 ${isOpen ? "border-b border-border/50" : ""}`}>
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <button
             type="button"
             {...attributes}
@@ -281,15 +195,24 @@ function SortableButtonCard({
           <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-xs font-black text-primary shrink-0">
             #{index + 1}
           </span>
-          <span className="text-sm font-bold text-foreground">{b.text || "Sin texto"}</span>
+          <button type="button" onClick={() => setIsOpen((o) => !o)} className="text-sm font-bold text-foreground truncate hover:underline text-left flex-1 min-w-0">
+            {b.text || "Sin texto"}
+          </button>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button type="button" variant="ghost" size="sm" onClick={onRemove} className="h-8 text-xs font-semibold text-destructive hover:bg-destructive/10 gap-1.5">
             <Trash2 className="h-3.5 w-3.5" />
-            Eliminar
           </Button>
-          <div className="shrink-0 flex items-center gap-2 border-l border-border pl-3 ml-1 max-w-[260px]">
-            <span className="text-[11px] font-semibold text-muted-foreground">Vista previa:</span>
+          <button
+            type="button"
+            onClick={() => setIsOpen((o) => !o)}
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition"
+            title={isOpen ? "Plegar controles" : "Desplegar controles"}
+            aria-label={isOpen ? "Plegar controles" : "Desplegar controles"}
+          >
+            {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+          <div className="shrink-0 max-w-[220px]">
             <UnifiedButton
               button={{
                 ...b,
@@ -307,6 +230,8 @@ function SortableButtonCard({
         </div>
       </div>
 
+      {isOpen && (
+      <div className="p-4 sm:p-5 space-y-6 bg-muted/[0.04] rounded-b-2xl">
       {/* Texto visible */}
       <div>
         <Label className="text-xs font-semibold">Texto visible del Botón</Label>
@@ -640,6 +565,8 @@ function SortableButtonCard({
           </div>
         )}
       </div>
+      </div>
+      )}
     </div>
   );
 }
