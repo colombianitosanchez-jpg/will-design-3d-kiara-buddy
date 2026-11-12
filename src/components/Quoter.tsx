@@ -32,7 +32,7 @@ import { computePublicQuote } from "@/lib/quoter.functions";
 import { Link } from "@tanstack/react-router";
 
 import { supabase } from "@/integrations/supabase/client";
-import { createQuoteRequest } from "@/lib/quotes.functions";
+import { createQuoteRequest, createQuoteUploadUrl } from "@/lib/quotes.functions";
 import {
   quoterServicesQuery,
   defaultValuesFor,
@@ -228,6 +228,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
 
   const contact = getContactInfo(content);
   const saveQuote = useServerFn(createQuoteRequest);
+  const getUploadUrl = useServerFn(createQuoteUploadUrl);
   const computeQuoteFn = useServerFn(computePublicQuote);
   const { items: cartItems, addItem } = useCart();
 
@@ -320,9 +321,8 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
       let file_path: string | null = null;
       let file_name: string | null = null;
       if (file) {
-        const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-        const path = `cotizaciones/${crypto.randomUUID()}-${safe}`;
-        const up = await supabase.storage.from("quote-files").upload(path, file, { upsert: false });
+        const { path, token } = await getUploadUrl({ data: { file_name: file.name } });
+        const up = await supabase.storage.from("quote-files").uploadToSignedUrl(path, token, file);
         if (up.error) throw new Error("No pudimos subir el archivo: " + up.error.message);
         file_path = path;
         file_name = file.name;
