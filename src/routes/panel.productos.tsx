@@ -480,6 +480,8 @@ function ProductosAdmin() {
           <h1 className="text-3xl font-black">Productos</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {visibleProducts.length} de {products.length} producto{products.length === 1 ? "" : "s"} en el catálogo.
+            {" "}· {products.reduce((n, x) => n + (x.variants?.length ?? 0), 0)} variantes · Stock total:{" "}
+            {products.reduce((n, x) => n + ((x.variants?.length ?? 0) > 0 ? x.variants.reduce((m, v) => m + (v.stock ?? 0), 0) : x.stock || 0), 0)}
           </p>
         </div>
         <div className="flex items-center gap-2.5">
@@ -597,6 +599,7 @@ function ProductosAdmin() {
                         hasVariants={hasVariants}
                         highlightedId={highlightedId}
                         onToggleExpand={() => toggleExpand(p.id)}
+                        onSaved={() => load(true)}
                         onEditProduct={(varId) => handleEditProduct(p, varId)}
                         onRemove={() => {
                           scrollPosRef.current = window.scrollY;
@@ -628,6 +631,7 @@ function ProductosAdmin() {
                                     index={idx}
                                     onEdit={() => handleEditProduct(p, v.id)}
                                     onRemove={() => handleRemoveVariant(p, v.id)}
+                                    onSaved={() => load(true)}
                                   />
                                 ))}
                               </ul>
@@ -750,7 +754,9 @@ function ProductTableRow({
   onToggleExpand,
   onEditProduct,
   onRemove,
+  onSaved,
 }: {
+  onSaved: () => void;
   product: Product;
   cat: string;
   br: string;
@@ -856,8 +862,14 @@ function ProductTableRow({
       </td>
       <td className="px-4 py-3">{cat}</td>
       <td className="px-4 py-3">{br}</td>
-      <td className="px-4 py-3 text-right">{formatCOP(primaryVar?.price_cop ?? product.price_cop)}</td>
-      <td className="px-4 py-3 text-right">{primaryVar?.stock ?? product.stock}</td>
+      <td className="px-4 py-3 text-right">
+        <InlineNumber value={primaryVar?.price_cop ?? product.price_cop} format={formatCOP}
+          onSave={(n) => saveQuick(product, primaryVar?.id ?? null, "price_cop", n, onSaved)} />
+      </td>
+      <td className="px-4 py-3 text-right">
+        <InlineNumber value={primaryVar?.stock ?? product.stock}
+          onSave={(n) => saveQuick(product, primaryVar?.id ?? null, "stock", n, onSaved)} />
+      </td>
       <td className="px-4 py-3">
         <span
           className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
@@ -889,13 +901,57 @@ function ProductTableRow({
 }
 
 /** Fila arrastrable de variante dentro de la tabla */
+async function saveQuick(
+  product: Product,
+  variantId: string | null,
+  field: "price_cop" | "stock",
+  value: number,
+  onSaved: () => void,
+) {
+  const n = Math.max(0, Math.round(value));
+  const patch = variantId
+    ? { variants: product.variants.map((v) => (v.id === variantId ? { ...v, [field]: n } : v)) }
+    : { [field]: n };
+  const { error } = await supabase.from("products").update(patch as never).eq("id", product.id);
+  if (error) return toast.error("No se pudo guardar: " + error.message);
+  toast.success(field === "stock" ? "Stock actualizado" : "Precio actualizado");
+  onSaved();
+}
+
+function InlineNumber({ value, onSave, format }: { value: number; onSave: (n: number) => void; format?: (n: number) => string }) {
+  const [editing, setEditing] = React.useState(false);
+  const [draft, setDraft] = React.useState(String(value));
+  if (!editing)
+    return (
+      <button type="button" title="Clic para editar"
+        onClick={(e) => { e.stopPropagation(); setDraft(String(value)); setEditing(true); }}
+        className="rounded px-1 underline decoration-dotted underline-offset-4 hover:bg-muted">
+        {format ? format(value) : value}
+      </button>
+    );
+  const commit = () => {
+    setEditing(false);
+    const n = Number(draft);
+    if (Number.isFinite(n) && n !== value) onSave(n);
+  };
+  return (
+    <input autoFocus type="number" min={0} value={draft}
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => { e.stopPropagation(); if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
+      onChange={(e) => setDraft(e.target.value)} onBlur={commit}
+      className="w-24 rounded border border-border bg-background px-1 py-0.5 text-right text-xs" />
+  );
+}
+
 function VariantTableRow({
   variant,
   parentProduct,
   index,
   onEdit,
   onRemove,
+  onSaved,
 }: {
+  onSaved: () => void;
   variant: ProductVariant;
   parentProduct: Product;
   index: number;
@@ -959,11 +1015,13 @@ function VariantTableRow({
 
         <span className="text-xs font-bold text-foreground truncate text-left">
           {variant.name || "Sin nombre"}
-          {variant.price_cop !== null && (
-            <span className="ml-2 font-normal text-muted-foreground">
-              (${variant.price_cop.toLocaleString("es-CO")})
-            </span>
-          )}
+        </span>
+        <span className="flex items-center gap-1 text-[11px] text-muted-foreground shrink-0">
+          <InlineNumber value={variant.price_cop ?? parentProduct.price_cop} format={formatCOP}
+            onSave={(n) => saveQuick(parentProduct, variant.id, "price_cop", n, onSaved)} />
+          · Stock
+          <InlineNumber value={variant.stock ?? 0}
+            onSave={(n) => saveQuick(parentProduct, variant.id, "stock", n, onSaved)} />
         </span>
       </div>
 
