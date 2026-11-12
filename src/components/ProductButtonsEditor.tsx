@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { GripVertical, Layers, Trash2, Copy, Plus, Sparkles } from "lucide-react";
+import { GripVertical, Layers, Trash2, Plus, Sparkles } from "lucide-react";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { getActiveTheme } from "@/lib/theme";
 import { UnifiedButton } from "@/components/UnifiedButton";
@@ -116,16 +116,6 @@ export function ProductButtonsEditor({
     onChange(buttons.map((b) => (b.id === id ? { ...b, ...patch } : b)));
   };
 
-  const duplicateButton = (id: string) => {
-    const idx = buttons.findIndex((b) => b.id === id);
-    if (idx === -1) return;
-    const src = buttons[idx];
-    const copy = { ...src, id: crypto.randomUUID(), text: src.text ? `${src.text} (Copia)` : "Nuevo Botón" };
-    const next = [...buttons];
-    next.splice(idx + 1, 0, copy);
-    onChange(next);
-  };
-
   const removeButton = (id: string) => {
     onChange(buttons.filter((b) => b.id !== id));
   };
@@ -217,7 +207,6 @@ export function ProductButtonsEditor({
                   showVariantToken={showVariantToken}
                   onUpdate={(patch) => updateButton(b.id, patch)}
                   onRemove={() => removeButton(b.id)}
-                  onDuplicate={() => duplicateButton(b.id)}
                 />
               ))}
             </div>
@@ -243,7 +232,6 @@ function SortableButtonCard({
   showVariantToken,
   onUpdate,
   onRemove,
-  onDuplicate,
 }: {
   button: ProductButton;
   index: number;
@@ -251,7 +239,6 @@ function SortableButtonCard({
   showVariantToken: boolean;
   onUpdate: (patch: Partial<ProductButton>) => void;
   onRemove: () => void;
-  onDuplicate: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: b.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
@@ -278,7 +265,7 @@ function SortableButtonCard({
 
   return (
     <div ref={setNodeRef} style={style} className="rounded-2xl border border-dashed border-border p-5 space-y-6 bg-muted/20">
-      {/* Encabezado: arrastre, #, nombre, duplicar, eliminar y vista previa */}
+      {/* Encabezado: arrastre, #, nombre, eliminar y vista previa */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
         <div className="flex items-center gap-2">
           <button
@@ -297,10 +284,6 @@ function SortableButtonCard({
           <span className="text-sm font-bold text-foreground">{b.text || "Sin texto"}</span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={onDuplicate} className="h-8 text-xs font-semibold gap-1.5">
-            <Copy className="h-3.5 w-3.5 text-primary" />
-            Duplicar
-          </Button>
           <Button type="button" variant="ghost" size="sm" onClick={onRemove} className="h-8 text-xs font-semibold text-destructive hover:bg-destructive/10 gap-1.5">
             <Trash2 className="h-3.5 w-3.5" />
             Eliminar

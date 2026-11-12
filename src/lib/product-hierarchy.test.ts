@@ -95,7 +95,7 @@ describe("product-hierarchy bidirectional conversions", () => {
           action_type: "whatsapp",
           action_value: "573000000000",
           media_mode: "none",
-        },
+        } as any,
       ],
       allowed_payment_method_ids: ["wompi"],
     };
@@ -131,7 +131,7 @@ describe("product-hierarchy bidirectional conversions", () => {
           action_type: "link",
           action_value: "/repuestos",
           media_mode: "none",
-        },
+        } as any,
       ],
     };
 

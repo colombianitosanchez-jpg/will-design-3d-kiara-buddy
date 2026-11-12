@@ -14,7 +14,6 @@ import {
   ChevronDown,
   ChevronRight,
   GripVertical,
-  Copy,
   Layers,
   ArrowRightLeft,
 } from "lucide-react";
@@ -59,7 +58,6 @@ import {
   variantToProduct,
   productToVariant,
   transferVariant,
-  duplicateProductRecord,
   type ProductRecord,
 } from "@/lib/product-hierarchy";
 import {
@@ -315,21 +313,6 @@ function ProductosAdmin() {
     load(true);
   }
 
-  // Duplicar producto principal completo
-  async function handleDuplicateProduct(product: Product) {
-    const existingSlugs = products.map((p) => p.slug);
-    const existingNames = products.map((p) => p.name);
-    const dup = duplicateProductRecord(product, existingSlugs, existingNames);
-
-    const { error } = await supabase.from("products").insert(dup as any);
-    if (error) {
-      toast.error("Error al duplicar el producto: " + error.message);
-      return;
-    }
-    toast.success(`Producto duplicado: ${dup.name}`);
-    load(true);
-  }
-
   // Eliminar una variante de un producto principal desde la tabla
   async function handleRemoveVariant(product: Product, variantId: string) {
     if (!confirm("¿Eliminar esta variante?")) return;
@@ -346,24 +329,8 @@ function ProductosAdmin() {
     load(true);
   }
 
-  // Duplicar variante dentro del mismo producto
-  async function handleDuplicateVariantInProduct(product: Product, variant: ProductVariant) {
-    const copy = transferVariant(variant, product, { makeUniqueId: true });
-    const nextVariants = [...(product.variants ?? []), copy];
-    const { error } = await supabase
-      .from("products")
-      .update({ variants: nextVariants })
-      .eq("id", product.id);
-    if (error) {
-      toast.error("Error al duplicar variante: " + error.message);
-      return;
-    }
-    toast.success(`Variante duplicada: ${copy.name}`);
-    load(true);
-  }
-
-  // Resolver acción de jerarquía (Mover vs Duplicar)
-  async function executeHierarchyAction(mode: "move" | "duplicate") {
+  // Resolver acción de jerarquía (Mover / Convertir)
+  async function executeHierarchyAction() {
     if (!actionPrompt) return;
     const existingSlugs = products.map((p) => p.slug);
     const existingNames = products.map((p) => p.name);
@@ -377,18 +344,14 @@ function ProductosAdmin() {
         const { error: insErr } = await supabase.from("products").insert(newProd as any);
         if (insErr) throw insErr;
 
-        // 2. Si es mover, quitar la variante del producto padre
-        if (mode === "move") {
-          const nextVars = (parent.variants ?? []).filter((v) => v.id !== variant.id);
-          const { error: updErr } = await supabase
-            .from("products")
-            .update({ variants: nextVars })
-            .eq("id", parent.id);
-          if (updErr) throw updErr;
-          toast.success(`Variante convertida en producto principal: ${newProd.name}`);
-        } else {
-          toast.success(`Nuevo producto principal creado desde la variante: ${newProd.name}`);
-        }
+        // 2. Quitar la variante del producto padre
+        const nextVars = (parent.variants ?? []).filter((v) => v.id !== variant.id);
+        const { error: updErr } = await supabase
+          .from("products")
+          .update({ variants: nextVars })
+          .eq("id", parent.id);
+        if (updErr) throw updErr;
+        toast.success(`Variante convertida en producto principal: ${newProd.name}`);
       } else if (actionPrompt.type === "variant_to_other_product") {
         const { variant, sourceParent, targetParent } = actionPrompt;
         const transferred = transferVariant(variant, targetParent, { makeUniqueId: true });
@@ -401,18 +364,14 @@ function ProductosAdmin() {
           .eq("id", targetParent.id);
         if (updTargetErr) throw updTargetErr;
 
-        // 2. Si es mover, quitar del origen
-        if (mode === "move") {
-          const sourceVars = (sourceParent.variants ?? []).filter((v) => v.id !== variant.id);
-          const { error: updSourceErr } = await supabase
-            .from("products")
-            .update({ variants: sourceVars })
-            .eq("id", sourceParent.id);
-          if (updSourceErr) throw updSourceErr;
-          toast.success(`Variante movida a ${targetParent.name}`);
-        } else {
-          toast.success(`Variante duplicada en ${targetParent.name}`);
-        }
+        // 2. Quitar del origen
+        const sourceVars = (sourceParent.variants ?? []).filter((v) => v.id !== variant.id);
+        const { error: updSourceErr } = await supabase
+          .from("products")
+          .update({ variants: sourceVars })
+          .eq("id", sourceParent.id);
+        if (updSourceErr) throw updSourceErr;
+        toast.success(`Variante movida a ${targetParent.name}`);
       } else if (actionPrompt.type === "product_to_variant") {
         const { sourceProduct, targetParent } = actionPrompt;
         const newVar = productToVariant(sourceProduct);
@@ -426,14 +385,10 @@ function ProductosAdmin() {
           .eq("id", targetParent.id);
         if (updTargetErr) throw updTargetErr;
 
-        // 2. Si es mover, borrar o archivar el producto de origen
-        if (mode === "move") {
-          const { error: delErr } = await supabase.from("products").delete().eq("id", sourceProduct.id);
-          if (delErr) throw delErr;
-          toast.success(`Producto asociado como variante de ${targetParent.name}`);
-        } else {
-          toast.success(`Copia del producto asociada como variante de ${targetParent.name}`);
-        }
+        // 2. Borrar el producto de origen
+        const { error: delErr } = await supabase.from("products").delete().eq("id", sourceProduct.id);
+        if (delErr) throw delErr;
+        toast.success(`Producto asociado como variante de ${targetParent.name}`);
       }
       load(true);
     } catch (e: any) {
@@ -644,7 +599,6 @@ function ProductosAdmin() {
                         highlightedId={highlightedId}
                         onToggleExpand={() => toggleExpand(p.id)}
                         onEditProduct={(varId) => handleEditProduct(p, varId)}
-                        onDuplicate={() => handleDuplicateProduct(p)}
                         onRemove={() => {
                           scrollPosRef.current = window.scrollY;
                           remove(p.id);
@@ -674,7 +628,6 @@ function ProductosAdmin() {
                                     parentProduct={p}
                                     index={idx}
                                     onEdit={() => handleEditProduct(p, v.id)}
-                                    onDuplicate={() => handleDuplicateVariantInProduct(p, v)}
                                     onRemove={() => handleRemoveVariant(p, v.id)}
                                   />
                                 ))}
@@ -711,11 +664,11 @@ function ProductosAdmin() {
         ) : null}
       </DragOverlay>
 
-      {/* Cuadro de diálogo para confirmar: Mover vs Duplicar */}
+      {/* Cuadro de diálogo para confirmar: Mover / Convertir */}
       {actionPrompt && (
         <HierarchyConfirmDialog
           prompt={actionPrompt}
-          onConfirm={(mode) => executeHierarchyAction(mode)}
+          onConfirm={() => executeHierarchyAction()}
           onCancel={() => setActionPrompt(null)}
         />
       )}
@@ -797,7 +750,6 @@ function ProductTableRow({
   highlightedId,
   onToggleExpand,
   onEditProduct,
-  onDuplicate,
   onRemove,
 }: {
   product: Product;
@@ -811,7 +763,6 @@ function ProductTableRow({
   highlightedId: string | null;
   onToggleExpand: () => void;
   onEditProduct: (varId?: string | null) => void;
-  onDuplicate: () => void;
   onRemove: () => void;
 }) {
   const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({
@@ -909,17 +860,6 @@ function ProductTableRow({
         <div className="flex items-center justify-end gap-1.5">
           <Button
             type="button"
-            variant="outline"
-            size="sm"
-            onClick={onDuplicate}
-            className="h-8 text-xs font-semibold gap-1"
-            title="Duplicar producto completo"
-          >
-            <Copy className="h-3.5 w-3.5 text-primary" />
-            Duplicar
-          </Button>
-          <Button
-            type="button"
             variant="secondary"
             size="sm"
             onClick={() => onEditProduct(primaryVar?.id)}
@@ -948,14 +888,12 @@ function VariantTableRow({
   parentProduct,
   index,
   onEdit,
-  onDuplicate,
   onRemove,
 }: {
   variant: ProductVariant;
   parentProduct: Product;
   index: number;
   onEdit: () => void;
-  onDuplicate: () => void;
   onRemove: () => void;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -1021,18 +959,6 @@ function VariantTableRow({
 
         <Button
           type="button"
-          variant="outline"
-          size="sm"
-          onClick={onDuplicate}
-          className="h-7 text-[11px] font-semibold gap-1"
-          title="Duplicar variante"
-        >
-          <Copy className="h-3 w-3 text-primary" />
-          Duplicar
-        </Button>
-
-        <Button
-          type="button"
           variant="ghost"
           size="sm"
           onClick={onRemove}
@@ -1046,29 +972,29 @@ function VariantTableRow({
   );
 }
 
-/** Diálogo de confirmación: Mover vs Duplicar */
+/** Diálogo de confirmación: Mover / Convertir */
 function HierarchyConfirmDialog({
   prompt,
   onConfirm,
   onCancel,
 }: {
   prompt: HierarchyActionPrompt;
-  onConfirm: (mode: "move" | "duplicate") => void;
+  onConfirm: () => void;
   onCancel: () => void;
 }) {
   const title =
     prompt.type === "variant_to_standalone"
       ? `Convertir variante «${prompt.variant.name}» en producto principal`
       : prompt.type === "variant_to_other_product"
-        ? `Asignar variante «${prompt.variant.name}» a «${prompt.targetParent.name}»`
+        ? `Mover variante «${prompt.variant.name}» a «${prompt.targetParent.name}»`
         : `Convertir producto «${prompt.sourceProduct.name}» en variante de «${prompt.targetParent.name}»`;
 
   const description =
     prompt.type === "variant_to_standalone"
-      ? "¿Deseas moverla (eliminarla de las variantes del producto actual) o duplicarla como un nuevo producto independiente?"
+      ? "¿Deseas mover esta variante y convertirla en un nuevo producto independiente? (Se eliminará de las variantes del producto actual)."
       : prompt.type === "variant_to_other_product"
-        ? "¿Deseas mover la variante al nuevo producto o conservar una copia en el producto original?"
-        : "¿Deseas mover el producto (se convertirá en variante y dejará de ser principal) o duplicarlo como variante?";
+        ? `¿Deseas mover la variante al producto «${prompt.targetParent.name}»? (Se retirará del producto original).`
+        : `¿Deseas mover el producto a «${prompt.targetParent.name}»? (Se convertirá en variante y dejará de ser un producto principal).`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
@@ -1082,22 +1008,12 @@ function HierarchyConfirmDialog({
           </Button>
           <Button
             type="button"
-            variant="outline"
             size="sm"
-            onClick={() => onConfirm("duplicate")}
-            className="text-xs font-bold gap-1.5"
-          >
-            <Copy className="h-3.5 w-3.5 text-primary" />
-            Duplicar
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => onConfirm("move")}
+            onClick={onConfirm}
             className="text-xs font-bold bg-primary text-primary-foreground gap-1.5 hover:opacity-90"
           >
             <ArrowRightLeft className="h-3.5 w-3.5" />
-            Mover
+            {prompt.type === "variant_to_standalone" || prompt.type === "product_to_variant" ? "Convertir" : "Mover"}
           </Button>
         </div>
       </div>

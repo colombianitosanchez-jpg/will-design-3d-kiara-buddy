@@ -1,6 +1,6 @@
 import { ProductMedia } from "@/components/ProductMedia";
 import { memo, useCallback, useEffect, useState } from "react";
-import { ChevronDown, ChevronUp, GripVertical, Plus, Trash2, Copy, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronUp, GripVertical, Plus, Trash2, Sparkles } from "lucide-react";
 import {
   DndContext,
   KeyboardSensor,
@@ -27,7 +27,6 @@ import { ProductButtonsEditor } from "@/components/ProductButtonsEditor";
 import { UnifiedButton } from "@/components/UnifiedButton";
 import type { ProductButton } from "@/lib/product-buttons";
 import { newVariant, type ProductVariant } from "@/lib/product-variants";
-import { transferVariant } from "@/lib/product-hierarchy";
 
 const inputCls =
   "mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring";
@@ -46,7 +45,6 @@ const SortableVariantCard = memo(function SortableVariantCard({
   index,
   isOpen,
   onToggle,
-  onDuplicate,
   onRemove,
   onUpdate,
   gallery,
@@ -57,7 +55,6 @@ const SortableVariantCard = memo(function SortableVariantCard({
   index: number;
   isOpen: boolean;
   onToggle: () => void;
-  onDuplicate: () => void;
   onRemove: () => void;
   onUpdate: (patch: Partial<ProductVariant>) => void;
   gallery: string[];
@@ -132,18 +129,6 @@ const SortableVariantCard = memo(function SortableVariantCard({
               onClick={() => {}}
             />
           </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onDuplicate}
-            className="h-8 text-xs font-semibold gap-1.5"
-            title="Duplicar variante"
-          >
-            <Copy className="h-3.5 w-3.5 text-primary" />
-            Duplicar
-          </Button>
 
           <Button
             type="button"
@@ -372,19 +357,6 @@ export function VariantsEditor({
     [onChange, variants],
   );
 
-  const duplicateVariant = useCallback(
-    (index: number) => {
-      const src = variants[index];
-      if (!src) return;
-      const copy = transferVariant(src, { name: "", variants } as unknown as any, { makeUniqueId: true });
-      const next = [...variants];
-      next.splice(index + 1, 0, copy);
-      onChange(next);
-      setOpenIds((prev) => new Set([...prev, copy.id]));
-    },
-    [onChange, variants],
-  );
-
   const removeVariant = useCallback(
     (index: number) => {
       onChange(variants.filter((_, idx) => idx !== index));
@@ -474,7 +446,6 @@ export function VariantsEditor({
                     index={i}
                     isOpen={openIds.has(v.id)}
                     onToggle={() => toggleOpen(v.id)}
-                    onDuplicate={() => duplicateVariant(i)}
                     onRemove={() => removeVariant(i)}
                     onUpdate={(patch) => update(i, patch)}
                     gallery={gallery}
