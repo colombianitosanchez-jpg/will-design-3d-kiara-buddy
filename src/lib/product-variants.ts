@@ -19,6 +19,15 @@ export type ProductVariant = {
   custom_buttons: ProductButton[] | null;
   /** null = hereda los métodos de pago del producto; [] = todos los activos. */
   allowed_payment_method_ids: string[] | null;
+  featured?: boolean;
+  description?: string;
+  short?: string;
+  specs?: { label: string; value: string }[];
+  custom_share_text?: string | null;
+  kiara_tip?: string;
+  btn_text?: string;
+  accepts_3d_file?: boolean;
+  quote_only?: boolean;
 };
 
 export function newVariant(): ProductVariant {
@@ -35,6 +44,15 @@ export function newVariant(): ProductVariant {
     is_active: true,
     custom_buttons: null,
     allowed_payment_method_ids: null,
+    featured: false,
+    description: "",
+    short: "",
+    specs: [],
+    custom_share_text: null,
+    kiara_tip: "",
+    btn_text: "",
+    accepts_3d_file: false,
+    quote_only: false,
   };
 }
 
@@ -42,6 +60,16 @@ function numOrNull(v: unknown): number | null {
   if (v === null || v === undefined || v === "") return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
+}
+
+function parseSpecs(value: unknown): { label: string; value: string }[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
+    .map((item) => ({
+      label: typeof item.label === "string" ? item.label : "",
+      value: typeof item.value === "string" ? item.value : "",
+    }));
 }
 
 /** Convierte el JSON guardado en variantes válidas; productos antiguos devuelven []. */
@@ -66,6 +94,15 @@ export function parseVariants(raw: unknown): ProductVariant[] {
         allowed_payment_method_ids: Array.isArray(r.allowed_payment_method_ids)
           ? normalizeMethodIds(r.allowed_payment_method_ids)
           : null,
+        featured: r.featured === true,
+        description: typeof r.description === "string" ? r.description : "",
+        short: typeof r.short === "string" ? r.short : "",
+        specs: parseSpecs(r.specs),
+        custom_share_text: typeof r.custom_share_text === "string" ? r.custom_share_text : null,
+        kiara_tip: typeof r.kiara_tip === "string" ? r.kiara_tip : "",
+        btn_text: typeof r.btn_text === "string" ? r.btn_text : "",
+        accepts_3d_file: r.accepts_3d_file === true,
+        quote_only: r.quote_only === true,
       };
     });
 }
