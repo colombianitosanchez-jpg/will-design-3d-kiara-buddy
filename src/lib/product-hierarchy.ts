@@ -1,5 +1,5 @@
 import type { ProductVariant } from "@/lib/product-variants";
-import { newVariant } from "@/lib/product-variants";
+import { newVariant, resolveVariantProduct } from "@/lib/product-variants";
 import type { ProductButton } from "@/lib/product-buttons";
 
 export type ProductRecord = {
@@ -93,6 +93,7 @@ export function variantToProduct(
   existingSlugs: string[] = [],
   existingNames: string[] = [],
 ): ProductRecord {
+  const resolved = resolveVariantProduct(parent, variant);
   const composedName = variant.name.trim()
     ? parent.name.trim()
       ? `${parent.name.trim()} - ${variant.name.trim()}`
@@ -118,9 +119,7 @@ export function variantToProduct(
   const effectiveStock = variant.stock !== null && variant.stock !== undefined
     ? variant.stock
     : parent.stock ?? 0;
-  const effectiveButtons = variant.custom_buttons?.length
-    ? variant.custom_buttons
-    : (parent.custom_buttons ?? []);
+  const effectiveButtons = variant.custom_buttons ?? parent.custom_buttons ?? [];
   const effectivePaymentMethods = variant.allowed_payment_method_ids !== null &&
     variant.allowed_payment_method_ids !== undefined
       ? variant.allowed_payment_method_ids
@@ -135,17 +134,17 @@ export function variantToProduct(
     images: extraImages,
     category_id: parent.category_id ?? null,
     brand_id: parent.brand_id ?? null,
-    short: variant.short || parent.short || "",
-    description: variant.description || parent.description || "",
-    kiara_tip: variant.kiara_tip || parent.kiara_tip || "",
-    btn_text: variant.btn_text || parent.btn_text || "",
-    show_whatsapp: parent.show_whatsapp ?? false,
-    hide_default_cta: parent.hide_default_cta ?? false,
+    short: resolved.short ?? "",
+    description: resolved.description ?? "",
+    kiara_tip: resolved.kiara_tip ?? "",
+    btn_text: resolved.btn_text ?? "",
+    show_whatsapp: variant.show_whatsapp ?? parent.show_whatsapp ?? false,
+    hide_default_cta: variant.hide_default_cta ?? parent.hide_default_cta ?? false,
     accepts_3d_file: variant.accepts_3d_file ?? parent.accepts_3d_file ?? false,
     quote_only: variant.quote_only ?? parent.quote_only ?? false,
-    custom_share_text: variant.custom_share_text ?? parent.custom_share_text ?? null,
+    custom_share_text: resolved.custom_share_text ?? null,
     custom_buttons: effectiveButtons,
-    specs: variant.specs?.length ? [...variant.specs] : parent.specs ? [...parent.specs] : [],
+    specs: resolved.specs ? [...resolved.specs] : [],
     sku: variant.sku ?? parent.sku ?? null,
     featured: variant.featured ?? false,
     active: variant.is_active ?? true,
@@ -164,6 +163,7 @@ export function productToVariant(product: ProductRecord): ProductVariant {
 
   return {
     ...newVariant(),
+    ...(product.id ? { id: product.id } : {}),
     name: product.name.trim() || "Variante",
     sku: product.sku ?? null,
     image_url: product.image_url ?? images[0] ?? null,
@@ -171,10 +171,8 @@ export function productToVariant(product: ProductRecord): ProductVariant {
     price_cop: product.price_cop ?? 0,
     stock: product.stock ?? 0,
     is_active: product.active ?? true,
-    custom_buttons: product.custom_buttons?.length ? product.custom_buttons : null,
-    allowed_payment_method_ids: product.allowed_payment_method_ids?.length
-      ? product.allowed_payment_method_ids
-      : null,
+    custom_buttons: product.custom_buttons ?? [],
+    allowed_payment_method_ids: product.allowed_payment_method_ids ?? [],
     featured: product.featured ?? false,
     description: product.description ?? "",
     short: product.short ?? "",
@@ -184,6 +182,9 @@ export function productToVariant(product: ProductRecord): ProductVariant {
     btn_text: product.btn_text ?? "",
     accepts_3d_file: product.accepts_3d_file ?? false,
     quote_only: product.quote_only ?? false,
+    show_whatsapp: product.show_whatsapp ?? false,
+    hide_default_cta: product.hide_default_cta ?? false,
+    inheritance_frozen: true,
   };
 }
 
@@ -259,31 +260,27 @@ export function flattenProductIntoVariants(
   target: ProductRecord,
 ): ProductVariant[] {
   const base = productToVariant({ ...source, variants: [] });
-  const children: ProductVariant[] = (source.variants ?? []).map((variant) => ({
-    ...variant,
-    price_cop: variant.price_cop ?? base.price_cop,
-    stock: variant.stock ?? base.stock,
-    images: variant.images?.length ? variant.images : base.images,
-    image_url: variant.images?.length
-      ? variant.image_url ?? variant.images[0] ?? base.image_url
-      : base.image_url,
-    custom_buttons: variant.custom_buttons ?? base.custom_buttons,
-    allowed_payment_method_ids: variant.allowed_payment_method_ids ?? base.allowed_payment_method_ids,
-    description: variant.description || base.description,
-    short: variant.short || base.short,
-    specs: variant.specs?.length ? variant.specs : base.specs,
-    custom_share_text: variant.custom_share_text ?? base.custom_share_text,
-    kiara_tip: variant.kiara_tip || base.kiara_tip,
-    btn_text: variant.btn_text || base.btn_text,
-    accepts_3d_file: variant.accepts_3d_file ?? base.accepts_3d_file,
-    quote_only: variant.quote_only ?? base.quote_only,
-    featured: variant.featured ?? base.featured,
-  }));
+  const children = (source.variants ?? []).map((variant) => freezeVariantInheritance(variant, source));
   const result: ProductVariant[] = [...(target.variants ?? [])];
   for (const variant of [base, ...children]) {
-    result.push(transferVariant(variant, { ...target, variants: result }, { makeUniqueId: true }));
+    if (result.some((existing) => existing.id === variant.id)) {
+      throw new Error("Ya existe una variante con esta identidad en el destino.");
+    }
+    result.push(transferVariant(variant, { ...target, variants: result }, { makeUniqueId: false }));
   }
   return result;
+}
+
+/** Freeze source inheritance before a move; an explicit empty button list stays empty. */
+export function freezeVariantInheritance(variant: ProductVariant, source: ProductRecord): ProductVariant {
+  const resolved = resolveVariantProduct(source, variant);
+  const frozen = productToVariant({ ...resolved, id: variant.id, name: variant.name, active: variant.is_active });
+  return {
+    ...frozen,
+    inheritance_frozen: true,
+    featured: variant.featured ?? false,
+    allowed_payment_method_ids: variant.allowed_payment_method_ids ?? source.allowed_payment_method_ids ?? [],
+  };
 }
 
 /**

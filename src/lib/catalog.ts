@@ -157,14 +157,16 @@ export async function fetchProducts(): Promise<Product[]> {
 }
 
 export async function fetchFeaturedProducts(): Promise<Product[]> {
-  const { data, error } = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("active", true)
-    .eq("featured", true)
-    .limit(4);
-  if (error) throw error;
-  return (data ?? []).map(normalize);
+  return featuredProductItems(await fetchProducts()).map((item) => item.product);
+}
+
+export function featuredProductItems(products: Product[]): { product: Product; variant: ProductVariant | null }[] {
+  const active = products.filter((p) => p.active);
+  const marked = active.flatMap((product) => [
+    ...(product.featured ? [{ product, variant: null }] : []),
+    ...product.variants.filter((v) => v.is_active && v.featured).map((variant) => ({ product, variant })),
+  ]);
+  return (marked.length ? marked : active.map((product) => ({ product, variant: null }))).slice(0, 4);
 }
 
 export async function fetchProductBySlug(slug: string): Promise<Product | null> {

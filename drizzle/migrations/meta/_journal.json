@@ -50,6 +50,13 @@
       "when": 1794511076463,
       "tag": "0006_products_sort_order",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794595412765,
+      "tag": "0007_product_moves_undo",
+      "breakpoints": true
     }
   ]
 }

@@ -27,6 +27,7 @@ import { ProductButtonsEditor } from "@/components/ProductButtonsEditor";
 import { UnifiedButton } from "@/components/UnifiedButton";
 import type { ProductButton } from "@/lib/product-buttons";
 import { newVariant, type ProductVariant } from "@/lib/product-variants";
+import { VariantContentFields } from "@/components/VariantContentFields";
 
 const inputCls =
   "mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring";
@@ -219,6 +220,8 @@ const SortableVariantCard = memo(function SortableVariantCard({
               Visible en tienda
             </label>
           </div>
+
+          <VariantContentFields variant={v} onUpdate={onUpdate} />
 
           {/* Fotos de la variante */}
           <div className="mt-3 rounded-xl border border-border/70 bg-card p-3.5 space-y-2">

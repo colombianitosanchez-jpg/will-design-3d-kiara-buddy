@@ -24,7 +24,7 @@ import { openExternalUrl } from "@/lib/whatsapp";
 import { KiaraTip } from "@/components/KiaraTip";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductButtons } from "@/components/ProductButtons";
-import { effectiveButtons, variantGallery } from "@/lib/product-variants";
+import { effectiveButtons, variantGallery, resolveVariantProduct } from "@/lib/product-variants";
 import { productPageUrl } from "@/lib/product-buttons";
 import { lazy, Suspense } from "react";
 import { file3dWaNote, type Dims3D } from "@/lib/file3d-types";
@@ -71,7 +71,7 @@ export const Route = createFileRoute("/tienda/$slug")({
     const base0 = loaderData.product;
     const v = base0.variants?.find((x) => x.id === loaderData.variantId) ?? null;
     const p = v
-      ? { ...base0, name: `${base0.name} — ${v.name}`, image_url: v.image_url ?? base0.image_url, price_cop: v.price_cop ?? base0.price_cop, stock: v.stock ?? base0.stock }
+      ? { ...resolveVariantProduct(base0, v), name: `${base0.name} — ${v.name}`, image_url: v.image_url ?? base0.image_url, price_cop: v.price_cop ?? base0.price_cop, stock: v.stock ?? base0.stock }
       : base0;
     const url = `https://willdesign3d.com/tienda/${params.slug}`;
     const base = (p.short || p.description || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
@@ -100,6 +100,7 @@ export const Route = createFileRoute("/tienda/$slug")({
         { property: "og:title", content: seo.title },
         { property: "og:description", content: seo.description },
         { property: "og:type", content: "product" },
+        { name: "twitter:card", content: "summary_large_image" },
         { property: "og:url", content: url },
         ...(seo.image
           ? [
@@ -231,15 +232,7 @@ function ProductPage() {
 
   const shownPrice = selectedVariant?.price_cop ?? product.price_cop;
   const shownStock = selectedVariant?.stock ?? product.stock;
-  const variantProduct: Product = selectedVariant
-    ? {
-        ...product,
-        name: `${product.name} — ${selectedVariant.name}`,
-        price_cop: shownPrice,
-        stock: shownStock,
-        image_url: selectedVariant.image_url ?? product.image_url,
-      }
-    : product;
+  const variantProduct = resolveVariantProduct(product, selectedVariant);
   const shownButtons = effectiveButtons(product.custom_buttons, selectedVariant);
   useEffect(() => {
     const open = () => setOrderOpen(true);
@@ -351,19 +344,19 @@ function ProductPage() {
             <h1 className="text-3xl font-black sm:text-4xl">{product.name}</h1>
             <ShareButton
               title={variantProduct.name}
-              text={product.custom_share_text}
+              text={variantProduct.custom_share_text}
               url={selectedVariant ? productPageUrl(product.slug, selectedVariant.id) : undefined}
               className="mt-1 h-9 w-9 shrink-0 text-muted-foreground"
             />
           </div>
-          {/<[a-z][\s\S]*>/i.test(product.description ?? "") ? (
+          {/<[a-z][\s\S]*>/i.test(variantProduct.description ?? "") ? (
             <div
               className="rich-text mt-3 text-muted-foreground"
               // Contenido del editor visual del Panel, saneado antes de mostrarse.
-              dangerouslySetInnerHTML={{ __html: sanitizeRichText(product.description) }}
+              dangerouslySetInnerHTML={{ __html: sanitizeRichText(variantProduct.description) }}
             />
           ) : (
-            <p className="mt-3 text-muted-foreground">{product.description}</p>
+            <p className="mt-3 text-muted-foreground">{variantProduct.description}</p>
           )}
 
 
@@ -387,15 +380,15 @@ function ProductPage() {
                 {a.attribute_name}: {a.value_label}
               </span>
             ))}
-            {product.sku && (
+            {variantProduct.sku && (
               <span className="rounded-full bg-muted px-3 py-1 font-semibold text-muted-foreground">
-                SKU: {product.sku}
+                SKU: {variantProduct.sku}
               </span>
             )}
           </div>
 
 
-          {product.quote_only ? (
+          {variantProduct.quote_only ? (
             <p className="mt-6 text-2xl font-black text-[var(--brand-teal-deep)]">
               Sujeto a cotización
             </p>
@@ -437,7 +430,7 @@ function ProductPage() {
 
           {shownButtons.length === 0 && (
           <div className="mt-6 flex flex-wrap gap-3">
-            {!product.quote_only && (
+            {!variantProduct.quote_only && (
               <button type="button" onClick={() => setOrderOpen(true)} className="btn-primary">
                 <ShoppingBag className="h-4 w-4" />
                 Solicitar pedido
@@ -445,7 +438,7 @@ function ProductPage() {
             )}
             <a href={waHref} target="_blank" rel="noreferrer" className="btn-outline">
               <MessageCircle className="h-4 w-4" />
-              {product.quote_only ? "Pedir cotización por WhatsApp" : "Consultar por WhatsApp"}
+              {variantProduct.quote_only ? "Pedir cotización por WhatsApp" : "Consultar por WhatsApp"}
             </a>
             <Link
               to="/cotizador"
@@ -458,7 +451,7 @@ function ProductPage() {
           </div>
           )}
 
-          {product.accepts_3d_file && (
+          {variantProduct.accepts_3d_file && (
             <Suspense fallback={<div className="mt-6 p-4 text-xs text-muted-foreground flex items-center gap-2 border border-dashed rounded-2xl"><Loader2 className="h-4 w-4 animate-spin" /> Cargando visor 3D...</div>}>
               <FileDropzone3D
                 fileName={file3dName}
@@ -479,7 +472,7 @@ function ProductPage() {
               variantId={selectedVariant?.id ?? null}
               className="mt-4"
               extraWhatsappNote={file3dWaNote(file3dName, file3dDims)}
-              quoteOnly={product.quote_only}
+              quoteOnly={variantProduct.quote_only}
             />
           )}
 
@@ -494,13 +487,13 @@ function ProductPage() {
             </li>
           </ul>
 
-          {product.specs.length > 0 && (
+          {variantProduct.specs.length > 0 && (
             <div className="mt-8">
               <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
                 Especificaciones
               </h2>
               <dl className="mt-3 divide-y divide-border rounded-2xl border border-border">
-                {product.specs.map((s) => (
+                {variantProduct.specs.map((s) => (
                   <div key={s.label} className="grid grid-cols-2 gap-2 p-3 text-sm">
                     <dt className="font-medium text-muted-foreground">{s.label}</dt>
                     <dd className="font-semibold">{s.value}</dd>
@@ -510,16 +503,16 @@ function ProductPage() {
             </div>
           )}
 
-          {product.kiara_tip && (
+          {variantProduct.kiara_tip && (
             <div className="mt-6">
-              <KiaraTip tip={product.kiara_tip} />
+              <KiaraTip tip={variantProduct.kiara_tip} />
             </div>
           )}
         </div>
       </section>
 
       {orderOpen && (
-        <OrderRequestModal product={product} variantName={selectedVariant?.name ?? null} onClose={() => setOrderOpen(false)} />
+        <OrderRequestModal product={variantProduct} variantName={selectedVariant?.name ?? null} onClose={() => setOrderOpen(false)} />
       )}
 
       {related.length > 0 && (

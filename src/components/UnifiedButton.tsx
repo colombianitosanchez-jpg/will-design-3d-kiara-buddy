@@ -210,7 +210,7 @@ export function UnifiedButton({
         if (typeof window !== "undefined" && window.location.pathname === `/tienda/${product.slug}`) {
           window.dispatchEvent(new CustomEvent("wd3d:order-request"));
         } else {
-          router.navigate({ to: "/tienda/$slug", params: { slug: product.slug }, search: { pedir: "1" } as never });
+          router.navigate({ to: "/tienda/$slug", params: { slug: product.slug }, search: { pedir: "1", ...(variantId ? { v: variantId } : {}) } });
         }
         return;
       }

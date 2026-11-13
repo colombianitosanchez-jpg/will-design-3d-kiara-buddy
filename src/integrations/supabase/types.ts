@@ -835,8 +835,39 @@ export type Database = {
           },
         ]
       }
+      product_move_history: {
+        Row: {
+          after_rows: Json
+          before_rows: Json
+          created_at: string
+          id: string
+          label: string
+          undone: boolean
+          user_id: string
+        }
+        Insert: {
+          after_rows: Json
+          before_rows: Json
+          created_at?: string
+          id?: string
+          label: string
+          undone?: boolean
+          user_id: string
+        }
+        Update: {
+          after_rows?: Json
+          before_rows?: Json
+          created_at?: string
+          id?: string
+          label?: string
+          undone?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
+          absorbed_by: string | null
           accepts_3d_file: boolean
           active: boolean
           allowed_payment_method_ids: Json
@@ -868,6 +899,7 @@ export type Database = {
           variants: Json
         }
         Insert: {
+          absorbed_by?: string | null
           accepts_3d_file?: boolean
           active?: boolean
           allowed_payment_method_ids?: Json
@@ -899,6 +931,7 @@ export type Database = {
           variants?: Json
         }
         Update: {
+          absorbed_by?: string | null
           accepts_3d_file?: boolean
           active?: boolean
           allowed_payment_method_ids?: Json
@@ -1288,6 +1321,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_product_move: {
+        Args: { _changes: Json; _insert?: Json; _label: string }
+        Returns: string
+      }
       category_descendants: {
         Args: { _slug: string }
         Returns: {
@@ -1305,6 +1342,7 @@ export type Database = {
         }
         Returns: string
       }
+      undo_product_move: { Args: { _history_id: string }; Returns: undefined }
       verify_cron_secret: { Args: { _secret: string }; Returns: boolean }
     }
     Enums: {

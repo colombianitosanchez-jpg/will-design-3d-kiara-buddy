@@ -14,6 +14,7 @@ import {
   ChevronRight,
   GripVertical,
   Layers,
+  Undo2,
   ArrowRightLeft,
 } from "lucide-react";
 import { lazy, Suspense } from "react";
@@ -33,6 +34,8 @@ import {
   useDraggable,
   useDroppable,
   DragOverlay,
+  pointerWithin,
+  closestCenter,
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
@@ -59,6 +62,7 @@ import {
   flattenProductIntoVariants,
   moveToSlot,
   transferVariant,
+  freezeVariantInheritance,
   type ProductRecord,
 } from "@/lib/product-hierarchy";
 import {
@@ -75,6 +79,7 @@ import {
 
 export const Route = createFileRoute("/panel/productos")({
   ssr: false,
+  head: () => ({ meta: [{ title: "Productos del panel — Will Design 3D" }, { name: "description", content: "Administración de productos, variantes y orden del catálogo." }, { property: "og:title", content: "Productos del panel — Will Design 3D" }, { property: "og:description", content: "Administración de productos y variantes." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: ProductosAdmin,
 });
 
@@ -84,6 +89,9 @@ type ProductAttrRow = { product_id: string; attribute_id: string; attribute_valu
 
 type Product = {
   id: string;
+  updated_at: string;
+  sort_order: number;
+  absorbed_by: string | null;
   slug: string;
   name: string;
   price_cop: number;
@@ -111,7 +119,7 @@ type Product = {
   allowed_payment_method_ids: string[];
 };
 
-const empty: Omit<Product, "id"> = {
+const empty: Omit<Product, "id" | "updated_at" | "sort_order" | "absorbed_by"> = {
   slug: "",
   name: "",
   price_cop: 0,
@@ -203,6 +211,9 @@ function ProductosAdmin() {
 
   // Drag and drop state
   const [activeDragItem, setActiveDragItem] = useState<DragItemData | null>(null);
+  const mutationLock = useRef(false);
+  const [moving, setMoving] = useState(false);
+  const [undoStack, setUndoStack] = useState<{ id: string; label: string }[]>([]);
   const [actionPrompt, setActionPrompt] = useState<HierarchyActionPrompt | null>(null);
 
   useEffect(() => {
@@ -241,7 +252,7 @@ function ProductosAdmin() {
   async function load(isBackground = false) {
     if (!isBackground) setLoading(true);
     const [p, c, b, a, ca, pav] = await Promise.all([
-      supabase.from("products").select("*").order("sort_order", { ascending: true }).order("created_at", { ascending: false }),
+      supabase.from("products").select("*").is("absorbed_by", null).order("sort_order", { ascending: true }).order("created_at", { ascending: false }),
       supabase
         .from("categories")
         .select("id,name,slug,sort_order,parent_id,is_active,image_url")
@@ -256,6 +267,7 @@ function ProductosAdmin() {
       supabase.from("category_attributes").select("id,category_id,attribute_id,is_required,sort_order"),
       supabase.from("product_attribute_values").select("product_id,attribute_id,attribute_value_id"),
     ]);
+    if (p.error) { toast.error("No se pudieron cargar los productos: " + p.error.message); setLoading(false); return; }
     setProducts(
       ((p.data as Record<string, unknown>[]) ?? []).map((r) => ({
         ...r,
@@ -330,107 +342,104 @@ function ProductosAdmin() {
     load(true);
   }
 
-  // Resolver acción de jerarquía (Mover / Convertir)
-  async function executeHierarchyAction() {
-    if (!actionPrompt) return;
-    const existingSlugs = products.map((p) => p.slug);
-    const existingNames = products.map((p) => p.name);
+  type MoveChange = { id: string; updated_at: string; variants?: ProductVariant[]; sort_order?: number; active?: boolean; absorbed_by?: string | null };
 
+  async function saveMove(changes: MoveChange[], label: string, insert?: ProductRecord) {
+    if (mutationLock.current) return false;
+    mutationLock.current = true;
+    setMoving(true);
     try {
-      if (actionPrompt.type === "variant_to_standalone") {
-        const { variant, parent } = actionPrompt;
-        const newProd = variantToProduct(variant, parent, existingSlugs, existingNames);
-
-        // 1. Insertar el nuevo producto
-        const { error: insErr } = await supabase.from("products").insert(newProd as any);
-        if (insErr) throw insErr;
-
-        // 2. Quitar la variante del producto padre
-        const nextVars = (parent.variants ?? []).filter((v) => v.id !== variant.id);
-        const { error: updErr } = await supabase
-          .from("products")
-          .update({ variants: nextVars })
-          .eq("id", parent.id);
-        if (updErr) throw updErr;
-        toast.success(`Variante convertida en producto principal: ${newProd.name}`);
-      } else if (actionPrompt.type === "variant_to_other_product") {
-        const { variant, sourceParent, targetParent } = actionPrompt;
-        const transferred = transferVariant(variant, targetParent, { makeUniqueId: true });
-        const targetVars = [...(targetParent.variants ?? []), transferred];
-
-        // 1. Añadir al nuevo padre
-        const { error: updTargetErr } = await supabase
-          .from("products")
-          .update({ variants: targetVars })
-          .eq("id", targetParent.id);
-        if (updTargetErr) throw updTargetErr;
-
-        // 2. Quitar del origen
-        const sourceVars = (sourceParent.variants ?? []).filter((v) => v.id !== variant.id);
-        const { error: updSourceErr } = await supabase
-          .from("products")
-          .update({ variants: sourceVars })
-          .eq("id", sourceParent.id);
-        if (updSourceErr) throw updSourceErr;
-        toast.success(`Variante movida a ${targetParent.name}`);
-      } else if (actionPrompt.type === "product_to_variant") {
-        const { sourceProduct, targetParent } = actionPrompt;
-        const targetVars = flattenProductIntoVariants(sourceProduct, targetParent);
-
-        // 1. Añadir al producto padre destino
-        const { error: updTargetErr } = await supabase
-          .from("products")
-          .update({ variants: targetVars })
-          .eq("id", targetParent.id);
-        if (updTargetErr) throw updTargetErr;
-
-        // 2. Borrar el producto de origen
-        const { error: delErr } = await supabase.from("products").delete().eq("id", sourceProduct.id);
-        if (delErr) throw delErr;
-        toast.success(`Producto asociado como variante de ${targetParent.name}`);
-      }
-      load(true);
-    } catch (e: any) {
-      toast.error("Error en la operación: " + (e.message || e));
-    } finally {
-      setActionPrompt(null);
-    }
+      const { data, error } = await supabase.rpc("apply_product_move", {
+        _changes: JSON.parse(JSON.stringify(changes)), _label: label,
+        ...(insert ? { _insert: JSON.parse(JSON.stringify(insert)) } : {}),
+      });
+      if (error) throw error;
+      if (data) setUndoStack((stack) => [...stack, { id: data, label }].slice(-30));
+      toast.success(label);
+      await load(true);
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String((error as { message?: string }).message ?? error));
+      await load(true);
+      return false;
+    } finally { mutationLock.current = false; setMoving(false); }
   }
 
-  // Reordenar productos principales (persistente en tienda)
+  async function undoMove() {
+    const last = undoStack.at(-1);
+    if (!last || mutationLock.current || editing || actionPrompt) return;
+    mutationLock.current = true;
+    setMoving(true);
+    try {
+      const { error } = await supabase.rpc("undo_product_move", { _history_id: last.id });
+      if (error) throw error;
+      setUndoStack((stack) => stack.slice(0, -1));
+      toast.success("Movimiento deshecho");
+      await load(true);
+    } catch (error) { toast.error(String((error as { message?: string }).message ?? error)); }
+    finally { mutationLock.current = false; setMoving(false); }
+  }
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest('input, textarea, select, [contenteditable="true"], [role="textbox"]')) return;
+      if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === "z" && undoStack.length && !editing && !actionPrompt) {
+        event.preventDefault(); void undoMove();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [undoStack, editing, actionPrompt]);
+
+  useEffect(() => {
+    void supabase.from("product_move_history").select("id,label").eq("undone", false).order("created_at", { ascending: false }).limit(30)
+      .then(({ data }: { data: { id: string; label: string }[] | null }) => { if (data) setUndoStack([...data].reverse()); });
+  }, []);
+
+  async function executeHierarchyAction() {
+    if (!actionPrompt || mutationLock.current) return;
+    const prompt = actionPrompt;
+    try {
+      if (prompt.type === "variant_to_standalone") {
+        const { variant, parent } = prompt;
+        const newProd = variantToProduct(variant, parent, products.map((p) => p.slug), products.map((p) => p.name));
+        await saveMove([{ id: parent.id, updated_at: parent.updated_at, variants: parent.variants.filter((v) => v.id !== variant.id) }], "Variante convertida en producto", newProd);
+      } else if (prompt.type === "variant_to_other_product") {
+        const { variant, sourceParent, targetParent } = prompt;
+        if (targetParent.variants.some((v) => v.id === variant.id)) throw new Error("La variante ya está en el destino");
+        const transferred = transferVariant(freezeVariantInheritance(variant, sourceParent), targetParent, { makeUniqueId: false });
+        await saveMove([
+          { id: sourceParent.id, updated_at: sourceParent.updated_at, variants: sourceParent.variants.filter((v) => v.id !== variant.id) },
+          { id: targetParent.id, updated_at: targetParent.updated_at, variants: [...targetParent.variants, transferred] },
+        ], "Variante movida a " + targetParent.name);
+      } else {
+        const { sourceProduct, targetParent } = prompt;
+        await saveMove([
+          { id: sourceProduct.id, updated_at: sourceProduct.updated_at, active: false, absorbed_by: targetParent.id },
+          { id: targetParent.id, updated_at: targetParent.updated_at, variants: flattenProductIntoVariants(sourceProduct, targetParent) },
+        ], "Producto y variantes movidos a " + targetParent.name);
+      }
+    } catch (error) { toast.error(error instanceof Error ? error.message : "No se pudo mover el producto"); }
+    finally { setActionPrompt(null); }
+  }
+
   async function reorderProduct(sourceId: string, slotIndex: number) {
     const visibleIds = visibleProducts.map((p) => p.id);
     const anchorId = visibleIds[slotIndex];
     const from = products.findIndex((p) => p.id === sourceId);
     if (from === -1) return;
     let slot = anchorId ? products.findIndex((p) => p.id === anchorId) : -1;
-    if (slot === -1) {
-      const lastVisible = visibleIds[visibleIds.length - 1];
-      slot = products.findIndex((p) => p.id === lastVisible) + 1;
-    }
+    if (slot === -1) slot = products.findIndex((p) => p.id === visibleIds.at(-1)) + 1;
     const next = moveToSlot(products, from, slot);
     if (next.every((p, i) => p.id === products[i].id)) return;
-    setProducts(next);
-    const results = await Promise.all(
-      next.map((p, i) => supabase.from("products").update({ sort_order: i + 1 } as any).eq("id", p.id)),
-    );
-    const err = results.find((r) => r.error)?.error;
-    if (err) toast.error("No se pudo guardar el orden: " + err.message);
-    else toast.success("Orden guardado");
-    load(true);
+    await saveMove(next.map((p, i) => ({ id: p.id, updated_at: p.updated_at, sort_order: i + 1 })), "Orden de productos guardado");
   }
 
-  // Reordenar variantes dentro del mismo producto
   async function reorderVariant(parent: Product, variantId: string, slotIndex: number) {
-    const vars = parent.variants ?? [];
-    const from = vars.findIndex((v) => v.id === variantId);
-    const next = moveToSlot(vars, from, slotIndex);
-    if (next.every((v, i) => v.id === vars[i]?.id)) return;
-    setProducts((prev) => prev.map((p) => (p.id === parent.id ? { ...p, variants: next } : p)));
-    const { error } = await supabase.from("products").update({ variants: next as any }).eq("id", parent.id);
-    if (error) toast.error("No se pudo guardar el orden: " + error.message);
-    else toast.success("Orden de variantes guardado");
-    load(true);
+    const next = moveToSlot(parent.variants, parent.variants.findIndex((v) => v.id === variantId), slotIndex);
+    if (next.every((v, i) => v.id === parent.variants[i]?.id)) return;
+    await saveMove([{ id: parent.id, updated_at: parent.updated_at, variants: next }], "Orden de variantes guardado");
   }
 
   // DND Sensors
@@ -440,6 +449,7 @@ function ProductosAdmin() {
   );
 
   const handleDragStart = (e: DragStartEvent) => {
+    if (mutationLock.current) return;
     const data = e.active.data.current as DragItemData | undefined;
     if (data) {
       setActiveDragItem(data);
@@ -449,7 +459,7 @@ function ProductosAdmin() {
   const handleDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
     setActiveDragItem(null);
-    if (!over) return;
+    if (!over || mutationLock.current) return;
 
     const activeData = active.data.current as DragItemData | undefined;
     const overData = over.data.current as
@@ -523,17 +533,23 @@ function ProductosAdmin() {
   };
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} collisionDetection={(args) => {
+      const hits = pointerWithin(args);
+      return hits.length ? hits : closestCenter({ ...args, droppableContainers: args.droppableContainers.filter((container) => container.data.current?.type?.endsWith("_slot")) });
+    }} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setActiveDragItem(null)}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-black">Productos</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {visibleProducts.length} de {products.length} producto{products.length === 1 ? "" : "s"} en el catálogo.
+            {products.length + products.reduce((n, p) => n + p.variants.length, 0)} productos · {products.length} principales
             {" "}· {products.reduce((n, x) => n + (x.variants?.length ?? 0), 0)} variantes · Stock total:{" "}
             {products.reduce((n, x) => n + ((x.variants?.length ?? 0) > 0 ? x.variants.reduce((m, v) => m + (v.stock ?? 0), 0) : x.stock || 0), 0)}
           </p>
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Button type="button" variant="outline" disabled={!undoStack.length || moving || !!editing || !!actionPrompt} onClick={() => void undoMove()} title={undoStack.at(-1)?.label ?? "Sin movimientos"}>
+            <Undo2 className="h-4 w-4" /> Deshacer
+          </Button>
           <button
             type="button"
             onClick={() => setOptimizerOpen(true)}
@@ -730,6 +746,7 @@ function ProductosAdmin() {
       {actionPrompt && (
         <HierarchyConfirmDialog
           prompt={actionPrompt}
+          busy={moving}
           onConfirm={() => executeHierarchyAction()}
           onCancel={() => setActionPrompt(null)}
         />
@@ -754,7 +771,7 @@ function ProductosAdmin() {
           initialAttrs={Object.fromEntries(
             attrRows
               .filter((r) => r.product_id === editing.id && r.attribute_value_id)
-              .map((r) => [r.attribute_id, r.attribute_value_id!]),
+              .flatMap((r) => r.attribute_value_id ? [[r.attribute_id, r.attribute_value_id]] : []),
           )}
           onClose={() => {
             const savedScroll = scrollPosRef.current;
@@ -779,7 +796,7 @@ function ProductReorderSlot({ index }: { index: number }) {
   return (
     <tr ref={setNodeRef}>
       <td colSpan={9} className="px-3 py-0.5">
-        <div className={`rounded-full text-center text-[10px] font-bold transition-all ${isOver ? "h-7 leading-7 bg-primary/15 text-primary ring-2 ring-primary" : "h-2 bg-primary/10 text-transparent"}`}>
+        <div className={`h-5 leading-5 rounded-full text-center text-[10px] font-bold ${isOver ? "bg-primary/15 text-primary ring-2 ring-primary" : "bg-primary/10 text-transparent"}`}>
           Soltar aquí para mover a esta posición
         </div>
       </td>
@@ -793,7 +810,7 @@ function VariantReorderSlot({ parentId, index }: { parentId: string; index: numb
     data: { type: "variant_slot", parentId, index },
   });
   return (
-    <li ref={setNodeRef} className={`list-none rounded-full text-center text-[10px] font-bold transition-all ${isOver ? "h-7 leading-7 bg-primary/15 text-primary ring-2 ring-primary" : "h-2 bg-primary/10 text-transparent"}`}>
+    <li ref={setNodeRef} className={`h-5 leading-5 list-none rounded-full text-center text-[10px] font-bold ${isOver ? "bg-primary/15 text-primary ring-2 ring-primary" : "bg-primary/10 text-transparent"}`}>
       Soltar aquí para mover a esta posición
     </li>
   );
@@ -867,7 +884,7 @@ function ProductTableRow({
 
   return (
     <tr
-      ref={setDropRef}
+      ref={(node) => { setDropRef(node); setDragRef(node); }}
       id={`product-row-${product.id}`}
       onClick={() => onEditProduct(primaryVar?.id)}
       tabIndex={0}
@@ -893,9 +910,10 @@ function ProductTableRow({
             type="button"
             {...attributes}
             {...listeners}
+            aria-label={`Arrastrar producto ${product.name}`}
             onClick={(e) => e.stopPropagation()}
             className="cursor-grab touch-none rounded-md p-1 text-muted-foreground hover:bg-muted active:cursor-grabbing transition"
-            title="Arrastrar producto sobre otro para convertirlo en variante"
+            title="Arrastrar para ordenar o convertir en variante"
           >
             <GripVertical className="h-4 w-4 text-muted-foreground hover:text-foreground" />
           </button>
@@ -1138,7 +1156,9 @@ function HierarchyConfirmDialog({
   prompt,
   onConfirm,
   onCancel,
+  busy,
 }: {
+  busy: boolean;
   prompt: HierarchyActionPrompt;
   onConfirm: () => void;
   onCancel: () => void;
@@ -1155,7 +1175,7 @@ function HierarchyConfirmDialog({
       ? "¿Deseas mover esta variante y convertirla en un nuevo producto independiente? (Se eliminará de las variantes del producto actual)."
       : prompt.type === "variant_to_other_product"
         ? `¿Deseas mover la variante al producto «${prompt.targetParent.name}»? (Se retirará del producto original).`
-        : `¿Deseas mover el producto a «${prompt.targetParent.name}»? (Se convertirá en variante y dejará de ser un producto principal).`;
+        : `¿Deseas mover el producto a «${prompt.targetParent.name}»? (Su ficha y sus ${prompt.sourceProduct.variants.length} variantes quedarán como variantes hermanas; sin subvariantes).`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
@@ -1164,13 +1184,14 @@ function HierarchyConfirmDialog({
         <p className="mt-2 text-xs text-muted-foreground">{description}</p>
 
         <div className="mt-6 flex flex-wrap items-center justify-end gap-2.5">
-          <Button type="button" variant="ghost" size="sm" onClick={onCancel} className="text-xs">
+          <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={busy} className="text-xs">
             Cancelar
           </Button>
           <Button
             type="button"
             size="sm"
             onClick={onConfirm}
+            disabled={busy}
             className="text-xs font-bold bg-primary text-primary-foreground gap-1.5 hover:opacity-90"
           >
             <ArrowRightLeft className="h-3.5 w-3.5" />

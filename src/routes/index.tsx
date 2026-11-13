@@ -12,7 +12,7 @@ import { Quoter } from "@/components/Quoter";
 import { InstagramFeed } from "@/components/InstagramFeed";
 import { ProductCard } from "@/components/ProductCard";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
-import { categoriesQuery, productsQuery, siteContentQuery, getContactInfo, waLink, pickWhatsapp } from "@/lib/catalog";
+import { categoriesQuery, productsQuery, siteContentQuery, getContactInfo, waLink, pickWhatsapp, featuredProductItems } from "@/lib/catalog";
 import { openExternalUrl } from "@/lib/whatsapp";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { heroCarouselQuery } from "@/lib/hero-carousel";
@@ -697,9 +697,7 @@ function FeaturedProducts() {
   const subtitle = getText("featured_products_subtitle", "Impresoras, filamentos y accesorios con asesoría técnica incluida.");
 
   const list = products ?? [];
-  const marked = list.filter((p) => p.featured);
-  // Si no hay ninguno marcado como destacado, mostramos los más recientes.
-  const shown = (marked.length > 0 ? marked : list).slice(0, 4);
+  const shown = featuredProductItems(list);
   const loading = isPending && !products;
 
   return (
@@ -739,8 +737,8 @@ function FeaturedProducts() {
           </div>
         ) : shown.length > 0 ? (
           <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {shown.map((p) => (
-              <ProductCard key={p.id} product={p} />
+            {shown.map(({ product: p, variant }) => (
+              <ProductCard key={`${p.id}:${variant?.id ?? "parent"}`} product={p} variant={variant} />
             ))}
           </div>
         ) : (

@@ -63,6 +63,8 @@ export const Route = createFileRoute("/tienda/")({
       { name: "description", content: seo.description },
       { property: "og:title", content: seo.title },
       { property: "og:description", content: seo.description },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { property: "og:url", content: "https://willdesign3d.com/tienda" },
     ];
 

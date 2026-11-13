@@ -17,7 +17,7 @@ import { useSiteContent } from "@/hooks/use-site-content";
 import { ProductButtons } from "@/components/ProductButtons";
 import { ProductQuickView } from "@/components/ProductQuickView";
 import { ShareButton } from "@/components/ShareButton";
-import type { ProductVariant } from "@/lib/product-variants";
+import { resolveVariantProduct, type ProductVariant } from "@/lib/product-variants";
 
 
 const GRADIENTS: Record<string, string> = {
@@ -30,7 +30,8 @@ const GRADIENTS: Record<string, string> = {
 };
 
 /** `variant`: la tarjeta muestra y abre esa variante (p. ej. resultado de búsqueda). */
-export const ProductCard = memo(function ProductCard({ product, variant }: { product: Product; variant?: ProductVariant | null }) {
+export const ProductCard = memo(function ProductCard({ product: parentProduct, variant }: { product: Product; variant?: ProductVariant | null }) {
+  const product = resolveVariantProduct(parentProduct, variant);
   const cover = variant?.image_url ?? product.image_url;
   const gradient = GRADIENTS[gradientKeyFor(product.category?.slug)];
   const { content } = useSiteContent();
@@ -76,7 +77,7 @@ export const ProductCard = memo(function ProductCard({ product, variant }: { pro
           ) : (
             <span className="drop-shadow-md">{product.name.split(" ")[0]}</span>
           )}
-          {product.featured && (
+          {(variant?.featured ?? product.featured) && (
             <span className="absolute left-3 top-3 rounded-full bg-background/95 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--brand-wine)]">
               Destacado
             </span>
@@ -84,7 +85,7 @@ export const ProductCard = memo(function ProductCard({ product, variant }: { pro
           <ShareButton
             title={product.name}
             text={product.custom_share_text}
-            url={`https://will-design-3d.lovable.app/tienda/${product.slug}`}
+            url={`https://will-design-3d.lovable.app/tienda/${product.slug}${variant ? `?v=${encodeURIComponent(variant.id)}` : ""}`}
             className="absolute right-2 top-2 h-8 w-8 rounded-full bg-background/80 text-foreground shadow-sm backdrop-blur hover:bg-background"
           />
           <button
@@ -128,6 +129,7 @@ export const ProductCard = memo(function ProductCard({ product, variant }: { pro
             <Link
               to="/tienda/$slug"
               params={{ slug: product.slug }}
+              search={variant ? { v: variant.id } : {}}
               className="inline-flex min-w-0 items-center gap-1 text-xs font-semibold text-[var(--brand-orange)] transition group-hover:gap-2"
             >
               <span className="truncate">{actionText}</span>
@@ -165,11 +167,13 @@ export const ProductCard = memo(function ProductCard({ product, variant }: { pro
           buttons={cardButtons}
           className="px-4 pb-4"
           quoteOnly={product.quote_only}
+          variantId={variant?.id}
+          variantName={variant?.name}
         />
       )}
       {cardButtons.length === 0 && <div className="pb-2" />}
 
-      <ProductQuickView product={product} open={quickOpen} onOpenChange={setQuickOpen} />
+      <ProductQuickView product={parentProduct} initialVariant={variant} open={quickOpen} onOpenChange={setQuickOpen} />
     </article>
   );
 });

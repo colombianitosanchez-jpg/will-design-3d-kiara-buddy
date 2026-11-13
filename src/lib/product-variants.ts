@@ -28,6 +28,9 @@ export type ProductVariant = {
   btn_text?: string;
   accepts_3d_file?: boolean;
   quote_only?: boolean;
+  show_whatsapp?: boolean;
+  hide_default_cta?: boolean;
+  inheritance_frozen?: boolean;
 };
 
 export function newVariant(): ProductVariant {
@@ -51,8 +54,6 @@ export function newVariant(): ProductVariant {
     custom_share_text: null,
     kiara_tip: "",
     btn_text: "",
-    accepts_3d_file: false,
-    quote_only: false,
   };
 }
 
@@ -101,8 +102,11 @@ export function parseVariants(raw: unknown): ProductVariant[] {
         custom_share_text: typeof r.custom_share_text === "string" ? r.custom_share_text : null,
         kiara_tip: typeof r.kiara_tip === "string" ? r.kiara_tip : "",
         btn_text: typeof r.btn_text === "string" ? r.btn_text : "",
-        accepts_3d_file: r.accepts_3d_file === true,
-        quote_only: r.quote_only === true,
+        accepts_3d_file: typeof r.accepts_3d_file === "boolean" ? r.accepts_3d_file : undefined,
+        quote_only: typeof r.quote_only === "boolean" ? r.quote_only : undefined,
+        show_whatsapp: typeof r.show_whatsapp === "boolean" ? r.show_whatsapp : undefined,
+        hide_default_cta: typeof r.hide_default_cta === "boolean" ? r.hide_default_cta : undefined,
+        inheritance_frozen: r.inheritance_frozen === true,
       };
     });
 }
@@ -122,6 +126,37 @@ export function validateVariants(variants: ProductVariant[]): string | null {
 /** Botones efectivos de una variante (propios o heredados). */
 export function effectiveButtons(parent: ProductButton[], variant?: ProductVariant | null): ProductButton[] {
   return variant?.custom_buttons ?? parent;
+}
+
+/** One resolver for every public surface and hierarchy transfer. */
+export function resolveVariantProduct<T extends {
+  price_cop: number; stock?: number; image_url?: string | null; images?: string[];
+  short?: string; description?: string; specs?: { label: string; value: string }[];
+  custom_share_text?: string | null; kiara_tip?: string; btn_text?: string; sku?: string | null;
+  accepts_3d_file?: boolean; quote_only?: boolean; show_whatsapp?: boolean; hide_default_cta?: boolean;
+  custom_buttons?: ProductButton[];
+}>(parent: T, variant?: ProductVariant | null): T {
+  if (!variant) return parent;
+  const gallery = variant.images.length ? variant.images : variant.image_url ? [variant.image_url] : null;
+  return {
+    ...parent,
+    price_cop: variant.price_cop ?? parent.price_cop,
+    stock: variant.stock ?? parent.stock,
+    image_url: variant.inheritance_frozen ? gallery?.[0] ?? null : gallery?.[0] ?? parent.image_url,
+    images: variant.inheritance_frozen ? gallery ?? [] : gallery ?? parent.images,
+    short: variant.inheritance_frozen ? variant.short ?? "" : variant.short?.trim() ? variant.short : parent.short,
+    description: variant.inheritance_frozen ? variant.description ?? "" : variant.description?.trim() ? variant.description : parent.description,
+    specs: variant.inheritance_frozen ? variant.specs ?? [] : variant.specs?.length ? variant.specs : parent.specs,
+    custom_share_text: variant.inheritance_frozen ? variant.custom_share_text ?? null : variant.custom_share_text ?? parent.custom_share_text,
+    kiara_tip: variant.inheritance_frozen ? variant.kiara_tip ?? "" : variant.kiara_tip?.trim() ? variant.kiara_tip : parent.kiara_tip,
+    btn_text: variant.inheritance_frozen ? variant.btn_text ?? "" : variant.btn_text?.trim() ? variant.btn_text : parent.btn_text,
+    sku: variant.inheritance_frozen ? variant.sku ?? null : variant.sku ?? parent.sku,
+    accepts_3d_file: variant.accepts_3d_file ?? parent.accepts_3d_file,
+    quote_only: variant.quote_only ?? parent.quote_only,
+    show_whatsapp: variant.show_whatsapp ?? parent.show_whatsapp,
+    hide_default_cta: variant.hide_default_cta ?? parent.hide_default_cta,
+    custom_buttons: variant.custom_buttons ?? parent.custom_buttons,
+  };
 }
 
 /** Normaliza texto: minúsculas y sin acentos, para búsquedas tolerantes. */

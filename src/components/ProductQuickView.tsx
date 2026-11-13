@@ -1,6 +1,6 @@
 import { ProductMedia } from "@/components/ProductMedia";
 import { StockIndicator } from "@/components/StockIndicator";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import {
@@ -20,7 +20,7 @@ const FileDropzone3D = lazy(() =>
 import { ProductButtons } from "@/components/ProductButtons";
 import { ShareButton } from "@/components/ShareButton";
 import { formatCOP, gradientKeyFor, type Product } from "@/lib/catalog";
-import { parseVariants, type ProductVariant } from "@/lib/product-variants";
+import { parseVariants, resolveVariantProduct, type ProductVariant } from "@/lib/product-variants";
 
 const GRADIENTS: Record<string, string> = {
   orange:
@@ -32,18 +32,22 @@ const GRADIENTS: Record<string, string> = {
 };
 
 export function ProductQuickView({
-  product,
+  product: parentProduct,
+  initialVariant,
   open,
   onOpenChange,
 }: {
   product: Product;
+  initialVariant?: ProductVariant | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   const [fileName, setFileName] = useState<string | null>(null);
   const [dims, setDims] = useState<Dims3D | null>(null);
-  const variants = parseVariants(product.variants ?? []);
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+  const variants = parseVariants(parentProduct.variants ?? []);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(initialVariant ?? null);
+  useEffect(() => { if (open) setSelectedVariant(initialVariant ?? null); }, [open, initialVariant]);
+  const product = resolveVariantProduct(parentProduct, selectedVariant);
   const gradient = GRADIENTS[gradientKeyFor(product.category?.slug)];
 
   // Determina la imagen, precio y stock efectivos
@@ -82,7 +86,7 @@ export function ProductQuickView({
                 <ShareButton
                   title={product.name}
                   text={product.custom_share_text}
-                  url={`https://will-design-3d.lovable.app/tienda/${product.slug}`}
+                  url={`https://will-design-3d.lovable.app/tienda/${product.slug}${selectedVariant ? `?v=${encodeURIComponent(selectedVariant.id)}` : ""}`}
                   className="-mr-2 -mt-1 h-8 w-8 shrink-0 text-muted-foreground"
                 />
               </div>
@@ -148,12 +152,14 @@ export function ProductQuickView({
                 extraWhatsappNote={file3dWaNote(fileName, dims)}
                 quoteOnly={product.quote_only}
                 variantName={selectedVariant?.name}
+                variantId={selectedVariant?.id}
               />
             )}
 
             <Link
               to="/tienda/$slug"
               params={{ slug: product.slug }}
+              search={selectedVariant ? { v: selectedVariant.id } : {}}
               onClick={() => onOpenChange(false)}
               className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-[var(--brand-orange)]"
             >
