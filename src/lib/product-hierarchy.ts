@@ -52,7 +52,6 @@ export function generateUniqueSlug(baseNameOrSlug: string, existingSlugs: string
     return cleanBase;
   }
 
-  // Si ya tiene un sufijo numérico al final (-2, -3), lo extraemos
   const match = cleanBase.match(/^(.*?)-(\d+)$/);
   const root = match ? match[1] : cleanBase;
   let counter = match ? parseInt(match[2], 10) + 1 : 2;
@@ -64,9 +63,7 @@ export function generateUniqueSlug(baseNameOrSlug: string, existingSlugs: string
   return `${root}-${counter}`;
 }
 
-/**
- * Genera un nombre de producto limpio y único sin agregar "(Copia)".
- */
+/** Genera un nombre de producto limpio y único sin agregar "(Copia)". */
 export function generateUniqueName(baseName: string, existingNames: string[]): string {
   const trimmed = baseName.trim() || "Producto";
   const nameSet = new Set(existingNames.map((n) => n.trim().toLowerCase()));
@@ -88,8 +85,7 @@ export function generateUniqueName(baseName: string, existingNames: string[]): s
 
 /**
  * Convierte una variante existente en un producto principal e independiente.
- * Resuelve la herencia: si la variante no tenía precio, fotos, botones o métodos de pago,
- * los congela con los valores del producto padre actual.
+ * Congela la herencia de los datos comerciales y descriptivos.
  */
 export function variantToProduct(
   variant: ProductVariant,
@@ -97,7 +93,6 @@ export function variantToProduct(
   existingSlugs: string[] = [],
   existingNames: string[] = [],
 ): ProductRecord {
-  // 1. Nombre y slug
   const composedName = variant.name.trim()
     ? parent.name.trim()
       ? `${parent.name.trim()} - ${variant.name.trim()}`
@@ -106,7 +101,6 @@ export function variantToProduct(
   const uniqueName = generateUniqueName(composedName, existingNames);
   const uniqueSlug = generateUniqueSlug(uniqueName, existingSlugs);
 
-  // 2. Imágenes: si la variante tiene galería/foto propia, se usa. Si no, las del padre.
   const parentGallery = [
     ...(parent.image_url ? [parent.image_url] : []),
     ...(parent.images ?? []).filter((u) => u !== parent.image_url),
@@ -118,21 +112,15 @@ export function variantToProduct(
       : parentGallery;
   const mainImage = variant.image_url ?? variantGallery[0] ?? parent.image_url ?? null;
   const extraImages = variantGallery.filter((u) => u !== mainImage);
-
-  // 3. Precios y stock
   const effectivePrice = variant.price_cop !== null && variant.price_cop !== undefined
     ? variant.price_cop
     : parent.price_cop ?? 0;
   const effectiveStock = variant.stock !== null && variant.stock !== undefined
     ? variant.stock
     : parent.stock ?? 0;
-
-  // 4. Botones
   const effectiveButtons = variant.custom_buttons?.length
     ? variant.custom_buttons
     : (parent.custom_buttons ?? []);
-
-  // 5. Métodos de pago
   const effectivePaymentMethods = variant.allowed_payment_method_ids !== null &&
     variant.allowed_payment_method_ids !== undefined
       ? variant.allowed_payment_method_ids
@@ -147,19 +135,19 @@ export function variantToProduct(
     images: extraImages,
     category_id: parent.category_id ?? null,
     brand_id: parent.brand_id ?? null,
-    short: parent.short ?? "",
-    description: parent.description ?? "",
-    kiara_tip: parent.kiara_tip ?? "",
-    btn_text: parent.btn_text ?? "",
+    short: variant.short || parent.short || "",
+    description: variant.description || parent.description || "",
+    kiara_tip: variant.kiara_tip || parent.kiara_tip || "",
+    btn_text: variant.btn_text || parent.btn_text || "",
     show_whatsapp: parent.show_whatsapp ?? false,
     hide_default_cta: parent.hide_default_cta ?? false,
-    accepts_3d_file: parent.accepts_3d_file ?? false,
-    quote_only: parent.quote_only ?? false,
-    custom_share_text: parent.custom_share_text ?? null,
+    accepts_3d_file: variant.accepts_3d_file ?? parent.accepts_3d_file ?? false,
+    quote_only: variant.quote_only ?? parent.quote_only ?? false,
+    custom_share_text: variant.custom_share_text ?? parent.custom_share_text ?? null,
     custom_buttons: effectiveButtons,
-    specs: parent.specs ? [...parent.specs] : [],
+    specs: variant.specs?.length ? [...variant.specs] : parent.specs ? [...parent.specs] : [],
     sku: variant.sku ?? parent.sku ?? null,
-    featured: false,
+    featured: variant.featured ?? false,
     active: variant.is_active ?? true,
     variants: [],
     variant_label: "",
@@ -167,10 +155,7 @@ export function variantToProduct(
   };
 }
 
-/**
- * Convierte un producto principal existente en una variante de otro producto padre.
- * Preserva intactos: fotos, precio, stock, sku, botones personalizados y métodos de pago.
- */
+/** Convierte un producto principal en variante conservando sus datos enriquecidos. */
 export function productToVariant(product: ProductRecord): ProductVariant {
   const images = [
     ...(product.image_url ? [product.image_url] : []),
@@ -178,9 +163,7 @@ export function productToVariant(product: ProductRecord): ProductVariant {
   ];
 
   return {
-    id: typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? crypto.randomUUID()
-      : `var-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    ...newVariant(),
     name: product.name.trim() || "Variante",
     sku: product.sku ?? null,
     image_url: product.image_url ?? images[0] ?? null,
@@ -192,14 +175,21 @@ export function productToVariant(product: ProductRecord): ProductVariant {
     allowed_payment_method_ids: product.allowed_payment_method_ids?.length
       ? product.allowed_payment_method_ids
       : null,
+    featured: product.featured ?? false,
+    description: product.description ?? "",
+    short: product.short ?? "",
+    specs: product.specs ? [...product.specs] : [],
+    custom_share_text: product.custom_share_text ?? null,
+    kiara_tip: product.kiara_tip ?? "",
+    btn_text: product.btn_text ?? "",
+    accepts_3d_file: product.accepts_3d_file ?? false,
+    quote_only: product.quote_only ?? false,
   };
 }
 
 /**
- * Mueve o copia una variante de un producto origen a un producto destino.
- * Si la variante no tenía fotos/precio/botones propios (usaba los del padre de origen),
- * al llegar al nuevo padre hereda automáticamente los del nuevo padre (se mantienen como null).
- * Si tenía fotos/precio/botones personalizados, se conservan intactos.
+ * Mueve o copia una variante de un producto origen a un producto destino,
+ * conservando las propiedades propias de la variante.
  */
 export function transferVariant(
   variant: ProductVariant,
@@ -261,32 +251,37 @@ export function duplicateProductRecord(
 }
 
 /**
- * Fusión plana: convierte un producto (con o sin variantes) en variantes de primer nivel
- * del destino. La ficha base se vuelve una variante y cada variante del origen pasa como
- * hermana (nunca subvariantes). Lo que la variante heredaba del origen (precio, stock,
- * fotos, botones, pagos) se fija con los valores del origen para que no cambie al moverse.
+ * Fusión plana: la ficha base y las variantes del origen se convierten en variantes
+ * hermanas del destino; ningún dato enriquecido se convierte en una subvariante.
  */
 export function flattenProductIntoVariants(
   source: ProductRecord,
   target: ProductRecord,
 ): ProductVariant[] {
   const base = productToVariant({ ...source, variants: [] });
-  const children: ProductVariant[] = (source.variants ?? []).map((v) => {
-    const ownImages = (v.images ?? []).filter(Boolean);
-    const images = ownImages.length ? ownImages : base.images;
-    return {
-      ...v,
-      price_cop: v.price_cop ?? base.price_cop,
-      stock: v.stock ?? base.stock,
-      images,
-      image_url: ownImages.length ? v.image_url ?? ownImages[0] : base.image_url,
-      custom_buttons: v.custom_buttons ?? base.custom_buttons,
-      allowed_payment_method_ids: v.allowed_payment_method_ids ?? base.allowed_payment_method_ids,
-    };
-  });
+  const children: ProductVariant[] = (source.variants ?? []).map((variant) => ({
+    ...variant,
+    price_cop: variant.price_cop ?? base.price_cop,
+    stock: variant.stock ?? base.stock,
+    images: variant.images?.length ? variant.images : base.images,
+    image_url: variant.images?.length
+      ? variant.image_url ?? variant.images[0] ?? base.image_url
+      : base.image_url,
+    custom_buttons: variant.custom_buttons ?? base.custom_buttons,
+    allowed_payment_method_ids: variant.allowed_payment_method_ids ?? base.allowed_payment_method_ids,
+    description: variant.description || base.description,
+    short: variant.short || base.short,
+    specs: variant.specs?.length ? variant.specs : base.specs,
+    custom_share_text: variant.custom_share_text ?? base.custom_share_text,
+    kiara_tip: variant.kiara_tip || base.kiara_tip,
+    btn_text: variant.btn_text || base.btn_text,
+    accepts_3d_file: variant.accepts_3d_file ?? base.accepts_3d_file,
+    quote_only: variant.quote_only ?? base.quote_only,
+    featured: variant.featured ?? base.featured,
+  }));
   const result: ProductVariant[] = [...(target.variants ?? [])];
-  for (const v of [base, ...children]) {
-    result.push(transferVariant(v, { ...target, variants: result }, { makeUniqueId: true }));
+  for (const variant of [base, ...children]) {
+    result.push(transferVariant(variant, { ...target, variants: result }, { makeUniqueId: true }));
   }
   return result;
 }
