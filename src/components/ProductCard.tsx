@@ -20,6 +20,7 @@ import { ShareButton } from "@/components/ShareButton";
 import { resolveVariantProduct, type ProductVariant } from "@/lib/product-variants";
 import { productShareLink } from "@/lib/product-share";
 import { buildButtonWhatsappText } from "@/lib/product-buttons";
+import { productSummary } from "@/lib/product-description";
 
 
 const GRADIENTS: Record<string, string> = {
@@ -112,7 +113,7 @@ export const ProductCard = memo(function ProductCard({ product: parentProduct, v
               Variante: <span className="font-medium text-foreground">{variant.name}</span>
             </p>
           )}
-          <p className="line-clamp-2 text-xs text-muted-foreground">{product.short}</p>
+          {productSummary(product) && <p className="line-clamp-2 text-xs text-muted-foreground">{productSummary(product)}</p>}
           <StockIndicator stock={product.stock} className="text-[11px]" />
         </div>
       </Link>

@@ -341,7 +341,7 @@ function ProductPage() {
             </p>
           )}
           <div className="mt-1 flex items-start justify-between gap-3">
-            <h1 className="text-3xl font-black sm:text-4xl">{product.name}</h1>
+            <h1 className="min-w-0 break-words text-3xl font-black sm:text-4xl">{selectedVariant?.name.trim() ? `${product.name} — ${selectedVariant.name.trim()}` : product.name}</h1>
             <ShareButton
               title={variantProduct.name}
               text={variantProduct.custom_share_text}
@@ -349,15 +349,16 @@ function ProductPage() {
               className="mt-1 h-9 w-9 shrink-0 text-muted-foreground"
             />
           </div>
-          {/<[a-z][\s\S]*>/i.test(variantProduct.description ?? "") ? (
+          {variantProduct.short?.trim() && <p className="mt-3 whitespace-pre-line text-base font-medium text-foreground">{variantProduct.short}</p>}
+          {variantProduct.description?.trim() && (/<[a-z][\s\S]*>/i.test(variantProduct.description) ? (
             <div
               className="rich-text mt-3 text-muted-foreground"
               // Contenido del editor visual del Panel, saneado antes de mostrarse.
               dangerouslySetInnerHTML={{ __html: sanitizeRichText(variantProduct.description) }}
             />
           ) : (
-            <p className="mt-3 text-muted-foreground">{variantProduct.description}</p>
-          )}
+            <p className="mt-3 whitespace-pre-line text-muted-foreground">{variantProduct.description}</p>
+          ))}
 
 
           <div className="mt-4 flex flex-wrap gap-2 text-xs">

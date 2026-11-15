@@ -27,7 +27,7 @@ import { ProductButtonsEditor } from "@/components/ProductButtonsEditor";
 import { UnifiedButton } from "@/components/UnifiedButton";
 import type { ProductButton } from "@/lib/product-buttons";
 import { newVariant, type ProductVariant } from "@/lib/product-variants";
-import { VariantContentFields } from "@/components/VariantContentFields";
+import { VariantContentFields, type VariantParentSettings } from "@/components/VariantContentFields";
 
 const inputCls =
   "mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring";
@@ -50,6 +50,7 @@ const SortableVariantCard = memo(function SortableVariantCard({
   onUpdate,
   gallery,
   parentButtons,
+  parentSettings,
   isGlowing,
 }: {
   variant: ProductVariant;
@@ -60,6 +61,7 @@ const SortableVariantCard = memo(function SortableVariantCard({
   onUpdate: (patch: Partial<ProductVariant>) => void;
   gallery: string[];
   parentButtons: ProductButton[];
+  parentSettings: VariantParentSettings;
   isGlowing: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: v.id });
@@ -221,7 +223,7 @@ const SortableVariantCard = memo(function SortableVariantCard({
             </label>
           </div>
 
-          <VariantContentFields variant={v} onUpdate={onUpdate} />
+          <VariantContentFields variant={v} onUpdate={onUpdate} parentSettings={parentSettings} />
 
           {/* Fotos de la variante */}
           <div className="mt-3 rounded-xl border border-border/70 bg-card p-3.5 space-y-2">
@@ -315,6 +317,7 @@ export function VariantsEditor({
   onChange,
   gallery,
   parentButtons,
+  parentSettings = {},
   targetVariantId,
 }: {
   label: string;
@@ -323,6 +326,7 @@ export function VariantsEditor({
   onChange: (v: ProductVariant[]) => void;
   gallery: string[];
   parentButtons: ProductButton[];
+  parentSettings?: VariantParentSettings;
   targetVariantId?: string | null;
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -453,6 +457,7 @@ export function VariantsEditor({
                     onUpdate={(patch) => update(i, patch)}
                     gallery={gallery}
                     parentButtons={parentButtons}
+                    parentSettings={parentSettings}
                     isGlowing={glowingId === v.id}
                   />
                 ))}

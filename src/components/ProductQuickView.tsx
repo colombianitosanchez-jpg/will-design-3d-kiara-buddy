@@ -21,6 +21,7 @@ import { ProductButtons } from "@/components/ProductButtons";
 import { ShareButton } from "@/components/ShareButton";
 import { formatCOP, gradientKeyFor, type Product } from "@/lib/catalog";
 import { parseVariants, resolveVariantProduct, type ProductVariant } from "@/lib/product-variants";
+import { productDisplayName, productSummary } from "@/lib/product-description";
 
 const GRADIENTS: Record<string, string> = {
   orange:
@@ -82,7 +83,7 @@ export function ProductQuickView({
                 </p>
               )}
               <div className="flex items-start justify-between gap-2">
-                <DialogTitle className="text-xl font-bold leading-tight">{product.name}</DialogTitle>
+                <DialogTitle className="min-w-0 break-words text-xl font-bold leading-tight">{productDisplayName(parentProduct.name, selectedVariant)}</DialogTitle>
                 <ShareButton
                   title={product.name}
                   text={product.custom_share_text}
@@ -90,7 +91,7 @@ export function ProductQuickView({
                   className="-mr-2 -mt-1 h-8 w-8 shrink-0 text-muted-foreground"
                 />
               </div>
-              <DialogDescription className="text-sm">{product.short}</DialogDescription>
+              <DialogDescription className="text-sm">{productSummary(product)}</DialogDescription>
             </DialogHeader>
 
             {/* Selector de variantes */}

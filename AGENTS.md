@@ -16,3 +16,5 @@
 - Persist product ordering and hierarchy moves through the atomic, Super Admin-only `apply_product_move` RPC and undo through its timestamp-checked history; absorbed records stay inactive outside panel lists so order references and original attributes survive.
 - Preserve variant IDs across moves and flatten parent conversion into sibling variants; ID collisions must fail instead of generating a duplicate identity.
 - Use `firstStaticShareImage` for share-image selection across WhatsApp payloads and public metadata; galleries retain their original animated media.
+- Product editors group legacy fallback actions separately and keep inheritance freezing internal; optional commercial booleans use explicit overrides while heavyweight variant editors mount only in expanded sections to preserve behavior without crowding the editor.
+- Use `productSummary` for plain-text card and quick-view excerpts; product details render short and full descriptions independently so either field remains visible.

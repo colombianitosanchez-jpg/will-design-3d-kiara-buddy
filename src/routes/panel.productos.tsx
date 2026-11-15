@@ -22,6 +22,7 @@ import { ProductImageOptimizerModal } from "@/components/ProductImageOptimizerMo
 import { ImageDropzone } from "@/components/ImageDropzone";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { ProductControlSection } from "@/components/ProductControlSection";
 import { PaymentMethodsPicker } from "@/components/PaymentMethodsPicker";
 import { UnifiedButton } from "@/components/UnifiedButton";
 import { normalizeMethodIds } from "@/lib/payment-rules";
@@ -543,7 +544,7 @@ function ProductosAdmin() {
           <p className="mt-1 text-sm text-muted-foreground">
             {products.length + products.reduce((n, p) => n + p.variants.length, 0)} productos · {products.length} principales
             {" "}· {products.reduce((n, x) => n + (x.variants?.length ?? 0), 0)} variantes · Stock total:{" "}
-            {products.reduce((n, x) => n + ((x.variants?.length ?? 0) > 0 ? x.variants.reduce((m, v) => m + (v.stock ?? 0), 0) : x.stock || 0), 0)}
+            {products.reduce((n, x) => n + ((x.variants?.length ?? 0) > 0 ? x.variants.reduce((m, v) => m + (v.stock ?? x.stock), 0) : x.stock || 0), 0)}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
@@ -1123,7 +1124,7 @@ function VariantTableRow({
           <InlineNumber value={variant.price_cop ?? parentProduct.price_cop} format={formatCOP}
             onSave={(n) => saveQuick(parentProduct, variant.id, "price_cop", n, onSaved)} />
           · Stock
-          <InlineNumber value={variant.stock ?? 0}
+          <InlineNumber value={variant.stock ?? parentProduct.stock}
             onSave={(n) => saveQuick(parentProduct, variant.id, "stock", n, onSaved)} />
         </span>
       </div>
@@ -1553,14 +1554,6 @@ function ProductModal({
               className={inputCls}
             />
           </Field>
-          <Field label="Texto de acción">
-            <input
-              value={form.btn_text ?? ""}
-              onChange={(e) => set("btn_text", e.target.value)}
-              className={inputCls}
-              placeholder="Ver más, Cotizar, Reservar"
-            />
-          </Field>
           <Field label="Texto para compartir (Ej: ¡Mira este diseño increíble!)">
             <input
               value={form.custom_share_text ?? ""}
@@ -1720,6 +1713,7 @@ function ProductModal({
               onChange={(v) => set("variants", v)}
               gallery={[...(form.image_url ? [form.image_url] : []), ...(form.images ?? []).filter((u) => u !== form.image_url)]}
               parentButtons={buttons}
+              parentSettings={form}
               targetVariantId={targetVariantId}
             />
           </Suspense>
@@ -1762,13 +1756,16 @@ function ProductModal({
           </div>
         </Field>
 
-        <Field label="Botones del producto (se muestran en las tarjetas del catálogo)">
+        <Field label="Botones del producto">
           <Suspense fallback={<div className="p-4 text-xs text-muted-foreground flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Cargando botones...</div>}>
             <ProductButtonsEditor buttons={buttons} onChange={setButtons} />
           </Suspense>
         </Field>
 
-        <div className="mt-4 flex flex-wrap gap-6">
+        <ProductControlSection title="Acciones predeterminadas">
+          <Field label="Texto de acción">
+            <input value={form.btn_text ?? ""} onChange={(e) => set("btn_text", e.target.value)} className={inputCls} placeholder="Ver más, Cotizar, Reservar" />
+          </Field>
           <label className="inline-flex items-center gap-2 text-sm">
             <Switch
               checked={!!form.show_whatsapp}
@@ -1785,6 +1782,8 @@ function ProductModal({
             />
             Ocultar el texto de acción y el icono de WhatsApp
           </label>
+        </ProductControlSection>
+        <div className="mt-4 flex flex-wrap gap-6">
           <label className="inline-flex items-center gap-2 text-sm">
             <Switch
               checked={!!form.accepts_3d_file}
