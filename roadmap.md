@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Unificar fotos estáticas para WhatsApp y compartir: saltar GIF/videos, respetar prioridades y verificar PLA + TRANSLÚCIDO (ambas variantes, mensaje público y JPG accesible).
 - [x] Restaurar controles de variantes y herencia en tienda, vista rápida y destacados.
 - [x] Corregir arrastre por los seis puntos y movimientos planos sin duplicación ni pérdida de configuraciones.
 - [x] Incorporar deshacer seguro de ordenamientos y conversiones; verificar con sesión real y pruebas.

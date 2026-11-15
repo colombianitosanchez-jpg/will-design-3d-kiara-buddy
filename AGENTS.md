@@ -15,3 +15,4 @@
 - Resolve variant data with `resolveVariantProduct` on public surfaces and freeze source inheritance before hierarchy moves; explicit false and empty custom button arrays must not become parent defaults.
 - Persist product ordering and hierarchy moves through the atomic, Super Admin-only `apply_product_move` RPC and undo through its timestamp-checked history; absorbed records stay inactive outside panel lists so order references and original attributes survive.
 - Preserve variant IDs across moves and flatten parent conversion into sibling variants; ID collisions must fail instead of generating a duplicate identity.
+- Use `firstStaticShareImage` for share-image selection across WhatsApp payloads and public metadata; galleries retain their original animated media.

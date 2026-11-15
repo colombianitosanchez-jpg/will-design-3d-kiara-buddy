@@ -1,4 +1,5 @@
-import { ProductMedia, isVideoUrl } from "@/components/ProductMedia";
+import { ProductMedia } from "@/components/ProductMedia";
+import { resolveProductShareImage } from "@/lib/product-share";
 import { StockIndicator } from "@/components/StockIndicator";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ShareButton } from "@/components/ShareButton";
@@ -73,16 +74,15 @@ export const Route = createFileRoute("/tienda/$slug")({
     const p = v
       ? { ...resolveVariantProduct(base0, v), name: `${base0.name} — ${v.name}`, image_url: v.image_url ?? base0.image_url, price_cop: v.price_cop ?? base0.price_cop, stock: v.stock ?? base0.stock }
       : base0;
-    const url = `https://willdesign3d.com/tienda/${params.slug}`;
+    const url = `https://will-design-3d.lovable.app/tienda/${params.slug}${v ? `?v=${encodeURIComponent(v.id)}` : ""}`;
     const base = (p.short || p.description || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
     const rawDesc = (
       base.length >= 50
         ? base
         : `${p.name} disponible en Will Design 3D, Bogotá. ${base} Asesoría técnica y envíos a todo el país.`
     ).slice(0, 160);
-    // Primera FOTO de la variante (saltando videos); si no tiene, la del producto.
-    const rawImage =
-      [v?.image_url, ...(v?.images ?? []), base0.image_url, ...(base0.images ?? [])].find((u) => u && !isVideoUrl(u)) || null;
+    // Compartir la ficha no corresponde a un botón: variante > padre, sin GIF/videos.
+    const rawImage = resolveProductShareImage(base0, v ? base0.variants.findIndex((item) => item.id === v.id) : null, null);
 
     const seo = getSeo(
       {
@@ -467,6 +467,7 @@ function ProductPage() {
           {shownButtons.length > 0 && (
             <ProductButtons
               product={variantProduct}
+              shareProduct={product}
               buttons={shownButtons}
               variantName={selectedVariant?.name ?? null}
               variantId={selectedVariant?.id ?? null}

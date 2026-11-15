@@ -1,8 +1,6 @@
 import type { ProductButton } from "@/lib/product-buttons";
 import type { ProductVariant } from "@/lib/product-variants";
-
-const VIDEO_RE = /\.(mp4|webm|mov|m4v|ogv)(\?|#|$)/i;
-const isPhoto = (u?: string | null): u is string => Boolean(u && u.trim() && !VIDEO_RE.test(u));
+import { firstStaticShareImage } from "./share-image";
 
 export type ShareProduct = {
   slug?: string | null;
@@ -28,12 +26,12 @@ export function resolveProductShareImage(product: ShareProduct, variantIndex: nu
     product.image_url,
     ...(product.images ?? []),
   ];
-  return (candidates.find(isPhoto) || "").trim();
+  return firstStaticShareImage(candidates);
 }
 
 export function productShareUrl(slug: string, variantIndex: number | null, buttonIndex: number | null, origin?: string): string {
-  const base =
-    origin || (typeof window !== "undefined" && window.location?.origin ? window.location.origin : "https://will-design-3d.lovable.app");
+  // Crawlers cannot access editor previews: outgoing WhatsApp URLs use the public site.
+  const base = origin || "https://will-design-3d.lovable.app";
   const suffix = [variantIndex != null ? `--v${variantIndex + 1}` : "", buttonIndex != null ? `--b${buttonIndex + 1}` : ""].join("");
   return `${base}/t/${slug}${suffix}`;
 }
@@ -43,7 +41,7 @@ export function productShareLink(product: ShareProduct, variantId: string | null
   if (!product.slug) return "";
   const vIdx = variantId ? (product.variants ?? []).findIndex((v) => v.id === variantId) : -1;
   const variantIndex = vIdx >= 0 ? vIdx : null;
-  const variant = variantIndex != null ? product.variants![variantIndex] : null;
+  const variant = variantIndex != null ? product.variants?.[variantIndex] ?? null : null;
   const buttons = variant?.custom_buttons ?? product.custom_buttons ?? [];
   const bIdx = buttons.findIndex((b) => b.id === buttonId);
   const buttonIndex = bIdx >= 0 ? bIdx : null;

@@ -148,6 +148,7 @@ export function ProductQuickView({
             {product.custom_buttons.length > 0 && (
               <ProductButtons
                 product={product}
+                shareProduct={parentProduct}
                 buttons={product.custom_buttons}
                 extraWhatsappNote={file3dWaNote(fileName, dims)}
                 quoteOnly={product.quote_only}

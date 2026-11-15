@@ -1,3 +1,5 @@
+import { firstStaticShareImage } from "./share-image";
+
 export type ButtonWhatsAppConfig = {
   whatsapp_message?: string;
   whatsapp_image_logic?: "auto" | "none" | "logo" | "product_image" | "custom" | string;
@@ -117,7 +119,7 @@ export function getWhatsAppPayloadForButton(
 ): WhatsAppPayload {
   const mainMedia = (currentSectionMedia || "").trim();
   const logic = buttonConfig.whatsapp_image_logic || "auto";
-  const explicitImage = (buttonConfig.whatsapp_image_url || "").trim();
+  const explicitImage = firstStaticShareImage([buttonConfig.whatsapp_image_url]);
 
   const rawMessage =
     buttonConfig.whatsapp_message?.trim() ||

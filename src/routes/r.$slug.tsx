@@ -3,6 +3,7 @@ import { ArrowRight, Calculator, ExternalLink, Image as ImageIcon, Box } from "l
 import { useSiteContent } from "@/hooks/use-site-content";
 import { REVERSE_REF_ALIASES } from "@/lib/whatsapp-buttons";
 import { resolveStatShareImage } from "@/lib/stat-share-image";
+import { firstStaticShareImage } from "@/lib/share-image";
 
 export const Route = createFileRoute("/r/$slug")({
   loader: async ({ params }) => {
@@ -69,7 +70,7 @@ export const Route = createFileRoute("/r/$slug")({
       }
     }
 
-    if (isHeroAlias) return { img, title: "Will Design 3D", desc: "" };
+    if (isHeroAlias) return { img: firstStaticShareImage([img]), title: "Will Design 3D", desc: "" };
 
     // 3. Si no se resolvió como estadística ni botón Hero, resolver por alias de botones o claves directas
     if (!img) {
@@ -110,7 +111,7 @@ export const Route = createFileRoute("/r/$slug")({
     }
 
     return {
-      img,
+      img: firstStaticShareImage([img]),
       title: "Will Design 3D",
       desc: "",
     };
@@ -118,7 +119,7 @@ export const Route = createFileRoute("/r/$slug")({
   head: ({ loaderData }: any) => {
     const title = loaderData?.title || "Will Design 3D";
     const desc = loaderData?.desc?.trim() || "";
-    const img = loaderData?.img || "";
+    const img = firstStaticShareImage([loaderData?.img]);
 
     const metaTags: Array<Record<string, string>> = [
       { title },

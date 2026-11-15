@@ -1,3 +1,5 @@
+import { firstStaticShareImage } from "./share-image";
+
 export type PageSeoInput = {
   seo_title?: string;
   title?: string;
@@ -42,10 +44,9 @@ export function getSeo(
 ): SeoResult {
   const defaultGlobalTitle = globalSeo?.site_title?.trim() || "Will Design 3D";
   const defaultGlobalDesc = globalSeo?.site_description?.trim() || "";
-  const defaultGlobalImage =
-    globalSeo?.site_meta_thumbnail_url?.trim() ||
-    globalSeo?.site_logo_url?.trim() ||
-    "";
+  const defaultGlobalImage = firstStaticShareImage([
+    globalSeo?.site_meta_thumbnail_url, globalSeo?.site_logo_url,
+  ]);
 
   const title =
     pageData?.seo_title?.trim() ||
@@ -63,12 +64,10 @@ export function getSeo(
     pageData?.summary?.trim() ||
     defaultGlobalDesc;
 
-  const image =
-    pageData?.seo_image?.trim() ||
-    pageData?.image?.trim() ||
-    pageData?.hero_image_url?.trim() ||
-    pageData?.main_image_url?.trim() ||
-    defaultGlobalImage;
+  const image = firstStaticShareImage([
+    pageData?.seo_image, pageData?.image, pageData?.hero_image_url,
+    pageData?.main_image_url, defaultGlobalImage,
+  ]);
 
   return {
     title,
@@ -99,7 +98,7 @@ export function buildSeoFromContent(
 ) {
   const globalTitle = content.site_title?.trim() || "Will Design 3D";
   const globalDesc = content.site_description?.trim() || content.site_description_fallback?.trim() || "";
-  const globalImage = content.site_meta_thumbnail_url?.trim() || content.site_logo_url?.trim() || "";
+  const globalImage = firstStaticShareImage([content.site_meta_thumbnail_url, content.site_logo_url]);
 
   let title = globalTitle;
   let description = globalDesc;
@@ -108,17 +107,17 @@ export function buildSeoFromContent(
   if (page === 'home') {
     title = content.hero_title?.trim() || globalTitle;
     description = content.hero_subtitle?.trim() || globalDesc;
-    image = content.hero_image_url?.trim() || globalImage;
+    image = firstStaticShareImage([content.hero_image_url, globalImage]);
   } else if (page === 'producto' && item) {
     title = item.name ? `${item.name} | ${globalTitle}` : globalTitle;
     const cleanDesc = item.short || item.description?.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
     description = cleanDesc?.slice(0, 155) || globalDesc;
-    image = item.images?.[0] || item.image_url || globalImage;
+    image = firstStaticShareImage([item.image_url, ...(item.images ?? []), globalImage]);
   } else if (page === 'servicio') {
     if (item?.title) {
       title = `${item.title} | ${globalTitle}`;
       description = item.lead?.trim() || globalDesc;
-      image = item.image_url?.trim() || globalImage;
+      image = firstStaticShareImage([item.image_url, globalImage]);
     } else {
       title = content.services_section_title ? `${content.services_section_title} | ${globalTitle}` : `Servicios | ${globalTitle}`;
       description = content.services_section_subtitle?.trim() || globalDesc;

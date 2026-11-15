@@ -4,6 +4,7 @@ import { ArrowRight, Calculator, ExternalLink, Image as ImageIcon, Box } from "l
 import { useSiteContent } from "@/hooks/use-site-content";
 import { REVERSE_REF_ALIASES } from "@/lib/whatsapp-buttons";
 import { resolveStatShareImage } from "@/lib/stat-share-image";
+import { firstStaticShareImage } from "@/lib/share-image";
 
 // Sin valores por defecto: un default obliga al router a "canonizar" la URL
 // con una redirección 307 que añade &img=&title=...&desc=, y el robot de
@@ -57,7 +58,7 @@ export const Route = createFileRoute("/ref")({
       }
     }
     return {
-      img,
+      img: firstStaticShareImage([img]),
       title: deps.title || "Will Design 3D",
       desc: deps.desc || "",
     };
@@ -65,7 +66,7 @@ export const Route = createFileRoute("/ref")({
   head: ({ loaderData }: any) => {
     const title = loaderData?.title || "Will Design 3D";
     const desc = loaderData?.desc?.trim() || "";
-    const img = loaderData?.img || "";
+    const img = firstStaticShareImage([loaderData?.img]);
 
     const metaTags: Array<Record<string, string>> = [
       { title },

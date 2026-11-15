@@ -352,6 +352,11 @@ describe("enlace ultra corto /r/ con alias limpios", () => {
 });
 
 describe("mensaje limpio (solo texto)", () => {
+  test("GIF explícito no genera enlace ni toma fotos de otra sección", () => {
+    const payload = getWhatsAppPayloadForButton({ whatsapp_message: "Consulta {media}", whatsapp_image_url: "https://example.com/button.gif", whatsapp_image_key: "s1" }, "https://example.com/section.jpg", "https://example.com/logo.png");
+    expect(payload.mediaToSend).toBe("");
+    expect(payload.formattedText).toBe("Consulta");
+  });
   test("no incluye ningún enlace cuando la lógica es none", () => {
     const p = getWhatsAppPayloadForButton(
       {

@@ -2,6 +2,9 @@ import { describe, expect, test } from "vitest";
 import { resolveStatShareImage } from "./stat-share-image";
 
 describe("independent shared images", () => {
+  test("una estadística con GIF no toma la foto de otra colección", () => {
+    expect(resolveStatShareImage("s1", { hero_stats: JSON.stringify([{ whatsapp_image_url: "https://example.com/stat.gif" }]), about_stats: JSON.stringify([{ whatsapp_image_url: "https://example.com/about.jpg" }]) })).toBe("");
+  });
   const content = {
     hero_stats: JSON.stringify([{ id: "stat_1", k: "", whatsapp_image_url: "" }, { id: "stat_2", k: "Hero", whatsapp_image_url: "https://example.com/hero.jpg" }]),
     about_stats: JSON.stringify([{ id: "stat_2", k: "About", whatsapp_image_url: "https://example.com/about.jpg" }]),

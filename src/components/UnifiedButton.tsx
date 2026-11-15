@@ -87,6 +87,8 @@ export interface UnifiedButtonProps {
   button: ProductButton;
   styleOverride?: Partial<UnifiedButtonStyle>;
   product?: Product;
+  /** Original catalog record, before selected-variant presentation overrides. */
+  shareProduct?: Product;
   className?: string;
   extraWhatsappNote?: string;
   quoteOnly?: boolean;
@@ -101,6 +103,7 @@ export function UnifiedButton({
   button,
   styleOverride,
   product,
+  shareProduct,
   className = "",
   extraWhatsappNote,
   quoteOnly = false,
@@ -185,7 +188,7 @@ export function UnifiedButton({
             price: product ? formatCOP(product.price_cop) : "",
             variant_id: variantId ?? null,
             variant_name: variantName ?? null,
-            ...(product ? { share_url: productShareLink(product, variantId ?? null, button.id) } : {}),
+            ...(product ? { share_url: productShareLink(shareProduct ?? product, variantId ?? null, button.id) } : {}),
           },
           extraWhatsappNote ?? "",
           globalDefaultMessage

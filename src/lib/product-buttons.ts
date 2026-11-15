@@ -1,5 +1,6 @@
 /** Botones personalizables por producto, configurados desde /panel/productos. */
 import { replaceTemplatePlaceholders, toAbsoluteUrl } from "./whatsapp-buttons";
+import { firstStaticShareImage } from "./share-image";
 
 export const BUTTON_VARIANTS = ["default", "secondary", "destructive", "outline", "ghost"] as const;
 export type ButtonVariant = (typeof BUTTON_VARIANTS)[number];
@@ -267,8 +268,8 @@ export function buildButtonWhatsappText(
   const resolvedMedia =
     product.share_url !== undefined
       ? product.share_url || ""
-      : button.whatsapp_image_url
-        ? shortenStorageUrl(button.whatsapp_image_url)
+      : firstStaticShareImage([button.whatsapp_image_url])
+        ? shortenStorageUrl(firstStaticShareImage([button.whatsapp_image_url]))
         : "";
   const absoluteMedia = resolvedMedia ? toAbsoluteUrl(resolvedMedia) : "";
 

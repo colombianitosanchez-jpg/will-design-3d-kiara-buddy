@@ -164,6 +164,7 @@ export const ProductCard = memo(function ProductCard({ product: parentProduct, v
       {cardButtons.length > 0 && (
         <ProductButtons
           product={product}
+          shareProduct={parentProduct}
           buttons={cardButtons}
           className="px-4 pb-4"
           quoteOnly={product.quote_only}

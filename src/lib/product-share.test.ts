@@ -18,6 +18,23 @@ const base: ShareProduct = {
 };
 
 describe("foto de WhatsApp en productos", () => {
+  it("PLA + TRANSLÚCIDO: portada GIF y segunda JPG generan enlace con foto estática", () => {
+    const product: ShareProduct = { slug: "p", image_url: "https://example.com/Gif_GROOT_prueba_1.gif", images: ["https://example.com/product-photo-whatsapp.jpg"] };
+    expect(resolveProductShareImage(product, null, null)).toBe("https://example.com/product-photo-whatsapp.jpg");
+    expect(productShareLink(product, null, "comprar", "https://s")).toBe("https://s/t/p");
+  });
+  it("una variante con portada GIF usa su segunda foto antes que la del padre", () => {
+    expect(resolveProductShareImage({ ...base, variants: [variant("azul", { image_url: "https://x/cover.GIF?download=1", images: ["https://x/video.mp4", "https://x/second.jpg"] })] }, 0, 1)).toBe("https://x/second.jpg");
+  });
+  it("un botón con GIF se salta, sin prestar la foto de otro botón", () => {
+    expect(resolveProductShareImage({ ...base, variants: [variant("azul", { custom_buttons: [btn("u1", "https://x/button.gif"), btn("u2", "https://x/other.jpg")], image_url: "https://x/azul.jpg" })] }, 0, 0)).toBe("https://x/azul.jpg");
+  });
+  it("variante sin fotos estáticas recurre a la segunda foto estática del padre", () => {
+    expect(resolveProductShareImage({ slug: "p", image_url: "https://x/parent.gif", images: ["https://x/parent.jpg"], variants: [variant("azul", { image_url: "https://x/variant.gif", images: ["https://x/variant.mp4"], custom_buttons: [] })] }, 0, 0)).toBe("https://x/parent.jpg");
+  });
+  it("solo GIF y videos producen mensaje sin enlace de imagen", () => {
+    expect(productShareLink({ slug: "p", image_url: "https://x/cover.gif", images: ["https://x/clip.mp4"] }, null, "buy")).toBe("");
+  });
   it("la foto del botón gana siempre", () => {
     expect(resolveProductShareImage(base, null, 0)).toBe("https://x/padre-btn.jpg");
   });

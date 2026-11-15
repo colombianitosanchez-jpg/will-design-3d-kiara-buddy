@@ -15,6 +15,7 @@ const ORDER: ButtonPosition[] = ["left", "center", "right"];
 
 export function ProductButtons({
   product,
+  shareProduct,
   buttons,
   className = "",
   extraWhatsappNote,
@@ -23,6 +24,7 @@ export function ProductButtons({
   variantId,
 }: {
   product?: Product;
+  shareProduct?: Product;
   buttons: ProductButton[];
   className?: string;
   extraWhatsappNote?: string;
@@ -52,6 +54,7 @@ export function ProductButtons({
               key={b.id}
               button={b}
               product={product}
+              shareProduct={shareProduct}
               extraWhatsappNote={extraWhatsappNote}
               quoteOnly={quoteOnly}
               variantName={variantName}
