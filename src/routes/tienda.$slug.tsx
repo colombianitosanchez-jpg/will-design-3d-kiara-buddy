@@ -1,5 +1,5 @@
 import { ProductMedia } from "@/components/ProductMedia";
-import { resolveProductShareImage } from "@/lib/product-share";
+import { resolveProductShareImage, productShareLink } from "@/lib/product-share";
 import { StockIndicator } from "@/components/StockIndicator";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ShareButton } from "@/components/ShareButton";
@@ -26,7 +26,7 @@ import { KiaraTip } from "@/components/KiaraTip";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductButtons } from "@/components/ProductButtons";
 import { effectiveButtons, variantGallery, resolveVariantProduct } from "@/lib/product-variants";
-import { productPageUrl } from "@/lib/product-buttons";
+import { productPageUrl, buildButtonWhatsappText } from "@/lib/product-buttons";
 import { lazy, Suspense } from "react";
 import { file3dWaNote, type Dims3D } from "@/lib/file3d-types";
 import { getSeo } from "@/lib/seo";
@@ -242,11 +242,11 @@ function ProductPage() {
   }, []);
   const waHref = waLink(
     contact.whatsapp,
-    applyGlobalWaTemplate(
+    buildButtonWhatsappText({ whatsapp_message: applyGlobalWaTemplate(
       content?.whatsapp_default_message,
       { producto: product.name, precio: formatCOP(shownPrice), variante: selectedVariant?.name ?? "" },
       `Hola Will Design 3D, me interesa el producto: ${variantProduct.name} (${formatCOP(shownPrice)}). ¿Está disponible?`,
-    ),
+    ) }, { name: variantProduct.name, share_url: productShareLink(product, selectedVariant?.id, "") }),
   );
   const [orderOpen, setOrderOpen] = useState(false);
   const [file3dName, setFile3dName] = useState<string | null>(null);

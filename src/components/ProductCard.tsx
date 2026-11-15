@@ -18,6 +18,8 @@ import { ProductButtons } from "@/components/ProductButtons";
 import { ProductQuickView } from "@/components/ProductQuickView";
 import { ShareButton } from "@/components/ShareButton";
 import { resolveVariantProduct, type ProductVariant } from "@/lib/product-variants";
+import { productShareLink } from "@/lib/product-share";
+import { buildButtonWhatsappText } from "@/lib/product-buttons";
 
 
 const GRADIENTS: Record<string, string> = {
@@ -37,11 +39,11 @@ export const ProductCard = memo(function ProductCard({ product: parentProduct, v
   const { content } = useSiteContent();
   const whatsappUrl = waLink(
     getContactInfo(content).whatsapp,
-    applyGlobalWaTemplate(
+    buildButtonWhatsappText({ whatsapp_message: applyGlobalWaTemplate(
       content?.whatsapp_default_message,
       { producto: product.name, precio: formatCOP(variant?.price_cop ?? product.price_cop), variante: variant?.name ?? "" },
       `Hola, me interesa el producto: ${product.name}`,
-    ),
+    ) }, { name: product.name, share_url: productShareLink(parentProduct, variant?.id, "") }),
   );
   const actionText = product.btn_text?.trim() || "Ver más";
   const [quickOpen, setQuickOpen] = useState(false);

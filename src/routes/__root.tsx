@@ -119,7 +119,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
     const title = seo.title;
     const desc = seo.description;
-    const image = seo.image;
 
     const metaTags: Array<Record<string, string>> = [
       { charSet: "utf-8" },
@@ -133,13 +132,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:title", content: title },
       { name: "twitter:description", content: desc },
     ];
-
-    if (image) {
-      metaTags.push(
-        { property: "og:image", content: image },
-        { name: "twitter:image", content: image }
-      );
-    }
 
     return {
       meta: metaTags,

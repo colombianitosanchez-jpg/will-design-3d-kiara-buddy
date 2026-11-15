@@ -149,11 +149,13 @@ function NosotrosPage() {
   const workshopAddress = getText("about_workshop_address", "Bogotá, Colombia · Atención por cita previa.");
 
 
-  function handleSectionWaClick(itemTitle: string, itemBody: string, customMsg?: string, customMedia?: string, logic?: string, phone?: string) {
+  function handleSectionWaClick(itemTitle: string, itemBody: string, customMsg?: string, customMedia?: string, logic?: string, phone?: string, imageKey?: string) {
     const payload = getWhatsAppPayloadForButton(
       {
         whatsapp_message: customMsg || globalDefaultMessage,
         whatsapp_image_logic: logic || content?.about_cta_whatsapp_image_logic,
+        whatsapp_image_url: customMedia,
+        whatsapp_image_key: imageKey,
       },
       customMedia || imageUrl,
       content?.site_logo_url,
@@ -232,7 +234,7 @@ function NosotrosPage() {
                 }}
                 onClick={
                   missionActionType === "whatsapp"
-                    ? () => handleSectionWaClick(missionTitle, missionText, missionWaMsg, missionWaImg || missionCtaMedia, content?.about_mission_cta_whatsapp_image_logic, missionCtaUrl)
+                    ? () => handleSectionWaClick(missionTitle, missionText, missionWaMsg, missionWaImg, content?.about_mission_cta_whatsapp_image_logic, missionCtaUrl, "about_mission_cta_whatsapp_image_url")
                     : undefined
                 }
               />
@@ -284,7 +286,7 @@ function NosotrosPage() {
                 }}
                 onClick={
                   visionActionType === "whatsapp"
-                    ? () => handleSectionWaClick(visionTitle, visionText, visionWaMsg, visionWaImg || visionCtaMedia, content?.about_vision_cta_whatsapp_image_logic, visionCtaUrl)
+                    ? () => handleSectionWaClick(visionTitle, visionText, visionWaMsg, visionWaImg, content?.about_vision_cta_whatsapp_image_logic, visionCtaUrl, "about_vision_cta_whatsapp_image_url")
                     : undefined
                 }
               />

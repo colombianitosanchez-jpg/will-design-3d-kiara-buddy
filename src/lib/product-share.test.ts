@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { productShareLink, productShareUrl, resolveProductShareImage, type ShareProduct } from "./product-share";
+import { buildButtonWhatsappText } from "./product-buttons";
 
 const btn = (id: string, img = "") => ({ id, whatsapp_image_url: img }) as never;
 const variant = (id: string, o: Record<string, unknown> = {}) =>
@@ -18,6 +19,12 @@ const base: ShareProduct = {
 };
 
 describe("foto de WhatsApp en productos", () => {
+  it("consulta predeterminada sin botón adjunta la foto del producto, no la de un botón diferente", () => {
+    const link = productShareLink(base, "uva", "", "https://s");
+    expect(link).toBe("https://s/t/pla--v2");
+    expect(resolveProductShareImage(base, 1, null)).toBe("https://x/uva.jpg");
+    expect(buildButtonWhatsappText({ whatsapp_message: "Consultar PLA" }, { name: "PLA", share_url: link })).toBe("Consultar PLA\n\nhttps://s/t/pla--v2");
+  });
   it("PLA + TRANSLÚCIDO: portada GIF y segunda JPG generan enlace con foto estática", () => {
     const product: ShareProduct = { slug: "p", image_url: "https://example.com/Gif_GROOT_prueba_1.gif", images: ["https://example.com/product-photo-whatsapp.jpg"] };
     expect(resolveProductShareImage(product, null, null)).toBe("https://example.com/product-photo-whatsapp.jpg");
