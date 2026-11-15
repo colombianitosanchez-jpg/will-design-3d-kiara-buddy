@@ -29,6 +29,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { sanitizeWidgetId, parsePhotos, type PortfolioPhoto } from "@/components/InstagramFeed";
 import { HomeSectionsOrder } from "@/components/HomeSectionsOrder";
+import { FeaturedProductsOrder } from "@/components/FeaturedProductsOrder";
 import { parseHomeOrder } from "@/lib/home-sections";
 import { getHomeEditorGroups } from "@/lib/home-editor-groups";
 import { ProductMedia, isVideoUrl } from "@/components/ProductMedia";
@@ -104,7 +105,7 @@ type Row = { key: string; value: string };
 type FieldDef = {
   key: string;
   label: string;
-  type: "text" | "textarea" | "image" | "images" | "switch" | "select" | "order" | "hero_stats" | "media";
+  type: "text" | "textarea" | "image" | "images" | "switch" | "select" | "order" | "hero_stats" | "media" | "featured_products_order";
   help?: string;
   section: string;
   group: string;
@@ -274,6 +275,14 @@ const FIELDS: FieldDef[] = [
   // Sección Productos Destacados
   { key: "featured_products_title", label: "Título Sección Productos Destacados", type: "text", section: "Inicio", group: "Productos Destacados" },
   { key: "featured_products_subtitle", label: "Subtítulo Sección Productos Destacados", type: "textarea", section: "Inicio", group: "Productos Destacados" },
+  {
+    key: "featured_products_order",
+    label: "Orden Visual de Productos Destacados (Drag & Drop)",
+    type: "featured_products_order",
+    help: "Arrastra las tarjetas desde la manija superior izquierda para definir el orden exacto en que se muestran en la página de inicio. Se guardará automáticamente.",
+    section: "Inicio",
+    group: "Productos Destacados",
+  },
 
   // Sección Nosotros
   { key: "about_chip", label: "Etiqueta / Chip 'Nosotros'", type: "text", section: "Inicio", group: "Sección Nosotros" },
@@ -3336,6 +3345,18 @@ function ContenidoAdmin() {
           <HomeSectionsOrder
             value={parseHomeOrder(values[f.key])}
             onChange={(next) => setValues((v) => ({ ...v, [f.key]: JSON.stringify(next) }))}
+          />
+        </div>
+      );
+    }
+    if (f.type === "featured_products_order") {
+      return (
+        <div key={f.key} className="space-y-2">
+          <Label className="text-sm font-bold">{f.label}</Label>
+          {f.help && <p className="text-xs text-muted-foreground">{f.help}</p>}
+          <FeaturedProductsOrder
+            value={values[f.key] ?? ""}
+            onChange={(next) => setValues((v) => ({ ...v, [f.key]: next }))}
           />
         </div>
       );

@@ -156,17 +156,85 @@ export async function fetchProducts(): Promise<Product[]> {
   return (data ?? []).map(normalize);
 }
 
+export function featuredItemKey(
+  product: { id: string },
+  variant?: { id: string } | null,
+): string {
+  return `${product.id}:${variant?.id || "parent"}`;
+}
+
+export function parseFeaturedProductsOrder(
+  raw: string | string[] | null | undefined,
+): string[] {
+  let list: unknown[] = [];
+  if (Array.isArray(raw)) {
+    list = raw;
+  } else if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (!trimmed) return [];
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) list = parsed;
+    } catch {
+      return [];
+    }
+  }
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of list) {
+    if (typeof item !== "string") continue;
+    const key = item.trim();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(key);
+  }
+  return out;
+}
+
+export function sortFeaturedItems<
+  T extends { product: { id: string }; variant: { id: string } | null },
+>(items: T[], orderRaw?: string | string[] | null): T[] {
+  const order = parseFeaturedProductsOrder(orderRaw);
+  if (order.length === 0) return items;
+  const orderIndex = new Map<string, number>();
+  order.forEach((key, idx) => orderIndex.set(key, idx));
+
+  return items
+    .map((item, naturalIndex) => ({
+      item,
+      naturalIndex,
+      rank: orderIndex.get(featuredItemKey(item.product, item.variant)),
+    }))
+    .sort((a, b) => {
+      const aInOrder = a.rank !== undefined;
+      const bInOrder = b.rank !== undefined;
+      if (aInOrder && bInOrder) return (a.rank as number) - (b.rank as number);
+      if (aInOrder) return -1;
+      if (bInOrder) return 1;
+      return a.naturalIndex - b.naturalIndex;
+    })
+    .map((entry) => entry.item);
+}
+
 export async function fetchFeaturedProducts(): Promise<Product[]> {
   return featuredProductItems(await fetchProducts()).map((item) => item.product);
 }
 
-export function featuredProductItems(products: Product[]): { product: Product; variant: ProductVariant | null }[] {
+export function featuredProductItems(
+  products: Product[],
+  orderRaw?: string | string[] | null,
+): { product: Product; variant: ProductVariant | null }[] {
   const active = products.filter((p) => p.active);
   const marked = active.flatMap((product) => [
     ...(product.featured ? [{ product, variant: null }] : []),
-    ...product.variants.filter((v) => v.is_active && v.featured).map((variant) => ({ product, variant })),
+    ...product.variants
+      .filter((v) => v.is_active && v.featured)
+      .map((variant) => ({ product, variant })),
   ]);
-  return (marked.length ? marked : active.map((product) => ({ product, variant: null }))).slice(0, 4);
+  const base = marked.length
+    ? marked
+    : active.map((product) => ({ product, variant: null }));
+  return sortFeaturedItems(base, orderRaw);
 }
 
 export async function fetchProductBySlug(slug: string): Promise<Product | null> {

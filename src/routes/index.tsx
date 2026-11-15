@@ -695,9 +695,10 @@ function FeaturedProducts() {
 
   const title = getText("featured_products_title", "Productos destacados");
   const subtitle = getText("featured_products_subtitle", "Impresoras, filamentos y accesorios con asesoría técnica incluida.");
+  const featuredOrder = getText("featured_products_order", "");
 
   const list = products ?? [];
-  const shown = featuredProductItems(list);
+  const shown = featuredProductItems(list, featuredOrder);
   const loading = isPending && !products;
 
   return (
@@ -720,7 +721,7 @@ function FeaturedProducts() {
         </div>
 
         {loading ? (
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {[0, 1, 2, 3].map((i) => (
               <div
                 key={i}
@@ -736,7 +737,7 @@ function FeaturedProducts() {
             ))}
           </div>
         ) : shown.length > 0 ? (
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {shown.map(({ product: p, variant }) => (
               <ProductCard key={`${p.id}:${variant?.id ?? "parent"}`} product={p} variant={variant} />
             ))}
