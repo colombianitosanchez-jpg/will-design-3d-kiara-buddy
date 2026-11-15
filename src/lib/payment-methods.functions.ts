@@ -99,8 +99,10 @@ async function assertSuperAdmin(context: { supabase: unknown; userId: string }) 
 /** Métodos de pago activos para el checkout público (sin credenciales). */
 export const listPublicPaymentMethods = createServerFn({ method: "GET" }).handler(async () => {
   const { createClient } = await import("@supabase/supabase-js");
-  const key = process.env["SUPABASE_PUBLISHABLE_KEY"]!;
-  const client = createClient(process.env["SUPABASE_URL"]!, key, {
+  const url = process.env["SUPABASE_URL"] || import.meta.env.VITE_SUPABASE_URL;
+  const key = process.env["SUPABASE_PUBLISHABLE_KEY"] || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) return [] as PublicPaymentMethod[];
+  const client = createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
     global: {
       fetch: (input: RequestInfo | URL, init?: RequestInit) => {

@@ -5,8 +5,10 @@ import { normalizeField, normalizeService, type QuoterService, type QuoterVars }
 import { normalizeQuotingVars } from "@/lib/quoting-vars";
 
 function publicClient() {
-  const key = process.env['SUPABASE_PUBLISHABLE_KEY']!;
-  return createClient<Database>(process.env['SUPABASE_URL']!, key, {
+  const url = process.env["SUPABASE_URL"] || import.meta.env.VITE_SUPABASE_URL;
+  const key = process.env["SUPABASE_PUBLISHABLE_KEY"] || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) return null;
+  return createClient<Database>(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
     global: {
       fetch: (input, init) => {
@@ -23,6 +25,7 @@ function publicClient() {
 /** Servicios activos del cotizador con sus preguntas, para uso en el servidor. */
 export async function getQuoterServices(): Promise<QuoterService[]> {
   const sb = publicClient();
+  if (!sb) return [];
   const [svc, fld] = await Promise.all([
     sb.from("quoter_services").select("*").eq("is_active", true).order("sort_order"),
     sb.from("quoter_fields").select("*").eq("is_active", true).order("sort_order"),
