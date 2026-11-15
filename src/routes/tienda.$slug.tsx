@@ -34,19 +34,7 @@ import { getSeo } from "@/lib/seo";
 const FileDropzone3D = lazy(() =>
   import("@/components/FileDropzone3D").then((m) => ({ default: m.FileDropzone3D }))
 );
-import DOMPurify from "isomorphic-dompurify";
-
-/** Solo etiquetas de formato seguras: nunca scripts ni atributos de eventos. */
-function sanitizeRichText(html: string | null | undefined): string {
-  return DOMPurify.sanitize(html ?? "", {
-    ALLOWED_TAGS: [
-      "p", "br", "strong", "b", "em", "i", "u", "s", "ul", "ol", "li",
-      "h1", "h2", "h3", "h4", "blockquote", "code", "pre", "span", "a",
-    ],
-    ALLOWED_ATTR: ["href", "target", "rel"],
-    ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|tel:|#|\/)/i,
-  });
-}
+import { RichDescription } from "@/components/RichDescription";
 
 export const Route = createFileRoute("/tienda/$slug")({
   validateSearch: (search: Record<string, unknown>): { v?: string; pedir?: string } => ({
@@ -351,11 +339,7 @@ function ProductPage() {
           </div>
           {variantProduct.short?.trim() && <p className="mt-3 whitespace-pre-line text-base font-medium text-foreground">{variantProduct.short}</p>}
           {variantProduct.description?.trim() && (/<[a-z][\s\S]*>/i.test(variantProduct.description) ? (
-            <div
-              className="rich-text mt-3 text-muted-foreground"
-              // Contenido del editor visual del Panel, saneado antes de mostrarse.
-              dangerouslySetInnerHTML={{ __html: sanitizeRichText(variantProduct.description) }}
-            />
+            <RichDescription html={variantProduct.description} className="rich-text mt-3 text-muted-foreground" />
           ) : (
             <p className="mt-3 whitespace-pre-line text-muted-foreground">{variantProduct.description}</p>
           ))}
