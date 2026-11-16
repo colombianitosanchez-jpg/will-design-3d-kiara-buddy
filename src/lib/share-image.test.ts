@@ -7,7 +7,7 @@ describe("static share images", () => {
   it("standalone button with GIF produces plain text rather than an unusable media link", () => {
     expect(buildButtonWhatsappText({ whatsapp_message: "Consulta {media}", whatsapp_image_url: "https://example.com/button.gif" }, { name: "PLA" })).toBe("Consulta");
   });
-  it.each(["gif", "GIF", "mp4", "webm", "mov", "m4v", "ogv", "avi", "mkv"])("skips %s covers including query and fragment", (ext) => {
+  it.each(["gif", "GIF", "jfif", "JFIF", "mp4", "webm", "mov", "m4v", "ogv", "avi", "mkv"])("skips %s covers including query and fragment", (ext) => {
     expect(firstStaticShareImage([` https://example.com/cover.${ext}?download=1#media `, "https://example.com/second.jpg"])).toBe("https://example.com/second.jpg");
   });
   it("detects encoded GIF filenames without treating query values as extensions", () => {

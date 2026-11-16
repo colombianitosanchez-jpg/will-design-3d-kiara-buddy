@@ -87,7 +87,7 @@ export const Route = createFileRoute("/")({
       siteContent
     );
 
-    const canonicalUrl = typeof window !== 'undefined' ? window.location.origin : siteContent?.site_url || "https://willdesign3d.com";
+    const canonicalUrl = "https://will-design-3d.lovable.app";
 
     const metaTags: Array<Record<string, string>> = [
       { title: seo.title },
@@ -102,6 +102,9 @@ export const Route = createFileRoute("/")({
     if (seo.image) {
       metaTags.push(
         { property: "og:image", content: seo.image },
+        { property: "og:image:secure_url", content: seo.image },
+        { property: "og:image:width", content: "1200" },
+        { property: "og:image:height", content: "630" },
         { name: "twitter:image", content: seo.image }
       );
     }

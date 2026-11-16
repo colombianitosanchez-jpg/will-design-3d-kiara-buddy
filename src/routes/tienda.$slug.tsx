@@ -1,5 +1,5 @@
 import { ProductMedia } from "@/components/ProductMedia";
-import { resolveProductShareImage, productShareLink } from "@/lib/product-share";
+import { resolveProductShareImage, productShareLink, productShareUrl } from "@/lib/product-share";
 import { StockIndicator } from "@/components/StockIndicator";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ShareButton } from "@/components/ShareButton";
@@ -26,7 +26,7 @@ import { KiaraTip } from "@/components/KiaraTip";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductButtons } from "@/components/ProductButtons";
 import { effectiveButtons, variantGallery, resolveVariantProduct } from "@/lib/product-variants";
-import { productPageUrl, buildButtonWhatsappText } from "@/lib/product-buttons";
+import { buildButtonWhatsappText } from "@/lib/product-buttons";
 import { lazy, Suspense } from "react";
 import { file3dWaNote, type Dims3D } from "@/lib/file3d-types";
 import { getSeo } from "@/lib/seo";
@@ -93,6 +93,9 @@ export const Route = createFileRoute("/tienda/$slug")({
         ...(seo.image
           ? [
               { property: "og:image", content: seo.image },
+              { property: "og:image:secure_url", content: seo.image },
+              { property: "og:image:width", content: "1200" },
+              { property: "og:image:height", content: "630" },
               { name: "twitter:image", content: seo.image },
             ]
           : []),
@@ -222,6 +225,8 @@ function ProductPage() {
   const shownStock = selectedVariant?.stock ?? product.stock;
   const variantProduct = resolveVariantProduct(product, selectedVariant);
   const shownButtons = effectiveButtons(product.custom_buttons, selectedVariant);
+  const vIdx = selectedVariant && product.variants ? product.variants.findIndex((v) => v.id === selectedVariant.id) : -1;
+  const variantIndex = vIdx >= 0 ? vIdx : null;
   useEffect(() => {
     const open = () => setOrderOpen(true);
     window.addEventListener("wd3d:order-request", open);
@@ -333,7 +338,7 @@ function ProductPage() {
             <ShareButton
               title={variantProduct.name}
               text={variantProduct.custom_share_text}
-              url={selectedVariant ? productPageUrl(product.slug, selectedVariant.id) : undefined}
+              url={productShareUrl(product.slug, variantIndex, null)}
               className="mt-1 h-9 w-9 shrink-0 text-muted-foreground"
             />
           </div>

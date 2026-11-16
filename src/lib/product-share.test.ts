@@ -116,4 +116,67 @@ describe("foto de WhatsApp en productos", () => {
     expect(findMeta("og:image:alt", "PLA — Will Design 3D")?.content).toBe("PLA — Will Design 3D");
     expect(findMeta("twitter:image", "https://x/prod.jpg")?.content).toBe("https://x/prod.jpg");
   });
+
+  it("la ruta /tienda/$slug declara og:image:secure_url, width 1200 y height 630 y salta .jfif", async () => {
+    const { Route } = await import("@/routes/tienda.$slug");
+    type HeadFn = (ctx: Record<string, unknown>) => {
+      meta: Array<Record<string, string>>;
+      links?: Array<Record<string, string>>;
+    };
+    const headResult = (Route.options.head as unknown as HeadFn)({
+      params: { slug: "pla" },
+      loaderData: {
+        variantId: null,
+        product: {
+          slug: "pla",
+          name: "PLA",
+          short: "Filamento PLA de alta calidad para impresión 3D.",
+          description: "",
+          price_cop: 84000,
+          stock: 10,
+          image_url: "https://x/cover.jfif",
+          images: ["https://x/cover.jfif", "https://x/valid.jpg"],
+          custom_buttons: [],
+          variants: [],
+        },
+      },
+    });
+
+    const meta = headResult.meta;
+    const findMeta = (key: string) => meta.find((m) => m.property === key || m.name === key);
+
+    expect(findMeta("og:image")?.content).toBe("https://x/valid.jpg");
+    expect(findMeta("og:image:secure_url")?.content).toBe("https://x/valid.jpg");
+    expect(findMeta("og:image:width")?.content).toBe("1200");
+    expect(findMeta("og:image:height")?.content).toBe("630");
+    expect(findMeta("twitter:image")?.content).toBe("https://x/valid.jpg");
+  });
+
+  it("la ruta / (inicio) usa canonical/og:url pública y dimensiones Open Graph completas", async () => {
+    const { Route } = await import("@/routes/index");
+    type HeadFn = (ctx: Record<string, unknown>) => {
+      meta: Array<Record<string, string>>;
+      links?: Array<Record<string, string>>;
+    };
+    const headResult = (Route.options.head as unknown as HeadFn)({
+      loaderData: {
+        siteContent: {
+          hero_title: "Will Design 3D",
+          hero_subtitle: "Impresión 3D profesional en Bogotá",
+          hero_image_url: "https://x/hero.jpg",
+        },
+      },
+    });
+
+    const meta = headResult.meta;
+    const findMeta = (key: string) => meta.find((m) => m.property === key || m.name === key);
+
+    expect(findMeta("og:url")?.content).toBe("https://will-design-3d.lovable.app");
+    expect(headResult.links).toEqual([{ rel: "canonical", href: "https://will-design-3d.lovable.app" }]);
+    expect(findMeta("og:image")?.content).toBe("https://x/hero.jpg");
+    expect(findMeta("og:image:secure_url")?.content).toBe("https://x/hero.jpg");
+    expect(findMeta("og:image:width")?.content).toBe("1200");
+    expect(findMeta("og:image:height")?.content).toBe("630");
+    expect(findMeta("twitter:image")?.content).toBe("https://x/hero.jpg");
+  });
 });

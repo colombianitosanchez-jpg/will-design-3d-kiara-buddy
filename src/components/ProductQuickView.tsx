@@ -22,6 +22,7 @@ import { ShareButton } from "@/components/ShareButton";
 import { formatCOP, gradientKeyFor, type Product } from "@/lib/catalog";
 import { parseVariants, resolveVariantProduct, type ProductVariant } from "@/lib/product-variants";
 import { productDisplayName, productSummary } from "@/lib/product-description";
+import { productShareUrl } from "@/lib/product-share";
 
 const GRADIENTS: Record<string, string> = {
   orange:
@@ -55,6 +56,8 @@ export function ProductQuickView({
   const displayImage = selectedVariant?.image_url ?? product.image_url;
   const displayPrice = selectedVariant?.price_cop ?? product.price_cop;
   const displayStock = selectedVariant?.stock ?? product.stock;
+  const vIdx = selectedVariant && parentProduct.variants ? parentProduct.variants.findIndex((v) => v.id === selectedVariant.id) : -1;
+  const variantIndex = vIdx >= 0 ? vIdx : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -87,7 +90,7 @@ export function ProductQuickView({
                 <ShareButton
                   title={product.name}
                   text={product.custom_share_text}
-                  url={`https://will-design-3d.lovable.app/tienda/${product.slug}${selectedVariant ? `?v=${encodeURIComponent(selectedVariant.id)}` : ""}`}
+                  url={productShareUrl(parentProduct.slug, variantIndex, null)}
                   className="-mr-2 -mt-1 h-8 w-8 shrink-0 text-muted-foreground"
                 />
               </div>

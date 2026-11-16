@@ -18,7 +18,7 @@ import { ProductButtons } from "@/components/ProductButtons";
 import { ProductQuickView } from "@/components/ProductQuickView";
 import { ShareButton } from "@/components/ShareButton";
 import { resolveVariantProduct, type ProductVariant } from "@/lib/product-variants";
-import { productShareLink } from "@/lib/product-share";
+import { productShareLink, productShareUrl } from "@/lib/product-share";
 import { buildButtonWhatsappText } from "@/lib/product-buttons";
 import { productSummary } from "@/lib/product-description";
 
@@ -49,6 +49,8 @@ export const ProductCard = memo(function ProductCard({ product: parentProduct, v
   const actionText = product.btn_text?.trim() || "Ver más";
   const [quickOpen, setQuickOpen] = useState(false);
   const cardButtons = product.custom_buttons.filter((b) => b.show_on_card !== false);
+  const vIdx = variant && product.variants ? product.variants.findIndex((v) => v.id === variant.id) : -1;
+  const variantIndex = vIdx >= 0 ? vIdx : null;
 
   const handleQuickView = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -88,7 +90,7 @@ export const ProductCard = memo(function ProductCard({ product: parentProduct, v
           <ShareButton
             title={product.name}
             text={product.custom_share_text}
-            url={`https://will-design-3d.lovable.app/tienda/${product.slug}${variant ? `?v=${encodeURIComponent(variant.id)}` : ""}`}
+            url={productShareUrl(product.slug, variantIndex, null)}
             className="absolute right-2 top-2 h-8 w-8 rounded-full bg-background/80 text-foreground shadow-sm backdrop-blur hover:bg-background"
           />
           <button
