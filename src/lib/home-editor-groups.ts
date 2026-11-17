@@ -1,6 +1,6 @@
 import { parseHomeOrder, type HomeSectionKey } from "./home-sections";
 
-const SECTION_GROUPS: Record<HomeSectionKey, readonly string[]> = {
+export const SECTION_GROUPS: Record<HomeSectionKey, readonly string[]> = {
   hero: ["Hero Principal", "Estadísticas del Hero"],
   services: ["Servicios"],
   products: ["Productos Destacados"],

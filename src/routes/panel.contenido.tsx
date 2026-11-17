@@ -19,8 +19,8 @@ import {
   SlidersHorizontal,
   Layers,
   Save,
+  ChevronDown,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -30,8 +30,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { sanitizeWidgetId, parsePhotos, type PortfolioPhoto } from "@/components/InstagramFeed";
 import { HomeSectionsOrder } from "@/components/HomeSectionsOrder";
 import { FeaturedProductsOrder } from "@/components/FeaturedProductsOrder";
-import { parseHomeOrder } from "@/lib/home-sections";
-import { getHomeEditorGroups } from "@/lib/home-editor-groups";
+import { parseHomeOrder, type HomeSectionKey } from "@/lib/home-sections";
+import { SECTION_GROUPS, getHomeEditorGroups } from "@/lib/home-editor-groups";
 import { ProductMedia, isVideoUrl } from "@/components/ProductMedia";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { getActiveTheme } from "@/lib/theme";
@@ -42,7 +42,7 @@ import {
   BUTTON_ICON_SHAPES,
   ICON_SHAPE_LABELS,
 } from "@/lib/product-buttons";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   DndContext,
   closestCenter,
@@ -3098,6 +3098,16 @@ function ContenidoAdmin() {
   const [saving, setSaving] = useState(false);
   const [hasUnsaved, setHasUnsaved] = useState(false);
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(() => new Set());
+
+  function toggleSection(key: string) {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   const valuesRef = useRef(values);
   useEffect(() => {
@@ -3437,7 +3447,62 @@ function ContenidoAdmin() {
     );
   }
 
-  const groups = getHomeEditorGroups(values.home_sections_order, Array.from(new Set(FIELDS.map((f) => f.group))));
+  const orderedHomeSections = parseHomeOrder(values.home_sections_order);
+  const allGroups = getHomeEditorGroups(
+    values.home_sections_order,
+    Array.from(new Set(FIELDS.map((f) => f.group))),
+  );
+  const homeGroupSet = new Set<string>(Object.values(SECTION_GROUPS).flat());
+  const extraGroups = allGroups.filter(
+    (group) => group !== "Orden de Secciones" && !homeGroupSet.has(group),
+  );
+
+  function renderSectionBody(sectionKey: HomeSectionKey) {
+    if (sectionKey === "services") {
+      return (
+        <div className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Administra los servicios 3D, descripciones, fotos y precios desde su editor dedicado.
+          </p>
+          <Button asChild variant="outline">
+            <Link to="/panel/servicios">Editar servicios</Link>
+          </Button>
+        </div>
+      );
+    }
+    if (sectionKey === "quoter") {
+      return (
+        <div className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Configura fórmulas, materiales y variables globales del cotizador desde su panel dedicado.
+          </p>
+          <Button asChild variant="outline">
+            <Link to="/panel/cotizador">Editar cotizador</Link>
+          </Button>
+        </div>
+      );
+    }
+
+    const subGroups = SECTION_GROUPS[sectionKey];
+    return (
+      <div className="space-y-8">
+        {subGroups.map((subGroup) => {
+          const groupFields = FIELDS.filter((f) => f.group === subGroup);
+          if (!groupFields.length) return null;
+          return (
+            <div key={subGroup} className="space-y-6">
+              {subGroups.length > 1 && (
+                <h3 className="border-b border-border/60 pb-2 text-xs font-black uppercase tracking-wider text-muted-foreground">
+                  {subGroup}
+                </h3>
+              )}
+              {groupFields.map(renderField)}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -3448,7 +3513,7 @@ function ContenidoAdmin() {
             <Layout className="h-6 w-6 text-primary" /> Contenido del Sitio
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            Personaliza fácilmente el inicio, la sección Nosotros y los textos de tu tienda.
+            Arrastra para reordenar las secciones del inicio o haz clic en cualquiera para desplegar sus controles.
           </p>
         </div>
 
@@ -3483,24 +3548,77 @@ function ContenidoAdmin() {
       </div>
 
       <div className="space-y-6">
-            {groups
-              .map((group) => {
-                const groupFields = FIELDS.filter((f) => f.group === group);
-                return (
-                  <Card key={group} className="border-border shadow-xs">
-                    <CardHeader className="pb-3 border-b border-border/60">
-                      <CardTitle className="text-base font-bold">{group}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6 pt-6">
-                      {group === "Servicios" ? (
-                        <Button asChild variant="outline"><Link to="/panel/servicios">Editar servicios</Link></Button>
-                      ) : group === "Cotizador" ? (
-                        <Button asChild variant="outline"><Link to="/panel/cotizador">Editar cotizador</Link></Button>
-                      ) : groupFields.map(renderField)}
-                    </CardContent>
-                  </Card>
-                );
-              })}
+        <HomeSectionsOrder
+          value={orderedHomeSections}
+          onChange={(next) => setValues((v) => ({ ...v, home_sections_order: JSON.stringify(next) }))}
+          expandedSections={expandedSections}
+          onToggleSection={toggleSection}
+          renderSectionBody={renderSectionBody}
+        />
+
+        {extraGroups.length > 0 && (
+          <div className="space-y-3 pt-2">
+            <p className="px-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Configuración adicional
+            </p>
+            {extraGroups.map((group) => {
+              const groupFields = FIELDS.filter((f) => f.group === group);
+              const isOpen = expandedSections.has(group);
+              return (
+                <div
+                  key={group}
+                  className="overflow-hidden rounded-2xl border border-border bg-card shadow-2xs transition hover:border-border/80"
+                >
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={isOpen}
+                    onClick={() => toggleSection(group)}
+                    onKeyDown={(e) => {
+                      if (e.target !== e.currentTarget) return;
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        toggleSection(group);
+                      }
+                    }}
+                    className={`flex cursor-pointer select-none items-center gap-3 p-3.5 transition hover:bg-muted/30 sm:px-4 ${
+                      isOpen ? "border-b border-border/60 bg-muted/15" : ""
+                    }`}
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-muted/60 text-muted-foreground">
+                      <SlidersHorizontal className="h-4 w-4" />
+                    </span>
+                    <span className="flex-1 text-sm font-bold text-foreground">
+                      {group}
+                    </span>
+                    <ChevronDown
+                      className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${
+                        isOpen ? "rotate-180 text-primary" : ""
+                      }`}
+                    />
+                  </div>
+
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div
+                        key={`${group}-body`}
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.22, ease: "easeInOut" }}
+                        className="overflow-hidden"
+                      >
+                        <div className="space-y-6 p-5 sm:p-6">
+                          {groupFields.map(renderField)}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
