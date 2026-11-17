@@ -6,6 +6,7 @@ import {
   productToVariant,
   transferVariant,
   duplicateProductRecord,
+  buildVariantToStandaloneMove,
   type ProductRecord,
 } from "./product-hierarchy";
 import type { ProductVariant } from "./product-variants";
@@ -222,3 +223,119 @@ describe("product-hierarchy bidirectional conversions", () => {
     expect(dup.variants?.[0].price_cop).toBe(12000);
   });
 });
+
+describe("buildVariantToStandaloneMove positioning", () => {
+  const makeVar = (id: string, name: string): ProductVariant => ({
+    id,
+    name,
+    image_url: null,
+    images: [],
+    price_cop: null,
+    stock: null,
+    is_active: true,
+    custom_buttons: null,
+    allowed_payment_method_ids: null,
+  });
+
+  const products = [
+    { id: "p0", updated_at: "t0", variants: [makeVar("v0a", "Rojo")] },
+    { id: "p1", updated_at: "t1", variants: [makeVar("v1a", "Azul"), makeVar("v1b", "Verde")] },
+    { id: "p2", updated_at: "t2", variants: [] },
+  ];
+
+  const baseNewProd: ProductRecord = {
+    name: "Nuevo",
+    slug: "nuevo",
+    price_cop: 50000,
+    stock: 3,
+  };
+
+  it("inserta al principio (slot 0) y desplaza todos los sort_order existentes sin duplicar al padre", () => {
+    const res = buildVariantToStandaloneMove({
+      products,
+      visibleProductIds: ["p0", "p1", "p2"],
+      parent: products[1],
+      variantId: "v1a",
+      targetSlotIndex: 0,
+      newProd: baseNewProd,
+    });
+
+    expect(res.insert.sort_order).toBe(1);
+    expect(res.changes).toEqual([
+      { id: "p0", updated_at: "t0", sort_order: 2 },
+      { id: "p1", updated_at: "t1", sort_order: 3, variants: [makeVar("v1b", "Verde")] },
+      { id: "p2", updated_at: "t2", sort_order: 4 },
+    ]);
+  });
+
+  it("inserta en una ranura intermedia (slot 1, entre p0 y p1) manteniendo un único cambio por producto", () => {
+    const res = buildVariantToStandaloneMove({
+      products,
+      visibleProductIds: ["p0", "p1", "p2"],
+      parent: products[1],
+      variantId: "v1a",
+      targetSlotIndex: 1,
+      newProd: baseNewProd,
+    });
+
+    expect(res.insert.sort_order).toBe(2);
+    expect(res.changes).toEqual([
+      { id: "p0", updated_at: "t0", sort_order: 1 },
+      { id: "p1", updated_at: "t1", sort_order: 3, variants: [makeVar("v1b", "Verde")] },
+      { id: "p2", updated_at: "t2", sort_order: 4 },
+    ]);
+  });
+
+  it("inserta al final (slot = visibleProductIds.length)", () => {
+    const res = buildVariantToStandaloneMove({
+      products,
+      visibleProductIds: ["p0", "p1", "p2"],
+      parent: products[0],
+      variantId: "v0a",
+      targetSlotIndex: 3,
+      newProd: baseNewProd,
+    });
+
+    expect(res.insert.sort_order).toBe(4);
+    expect(res.changes).toEqual([
+      { id: "p0", updated_at: "t0", sort_order: 1, variants: [] },
+      { id: "p1", updated_at: "t1", sort_order: 2 },
+      { id: "p2", updated_at: "t2", sort_order: 3 },
+    ]);
+  });
+
+  it("mapea correctamente targetSlotIndex cuando hay filtros activos", () => {
+    const res = buildVariantToStandaloneMove({
+      products,
+      visibleProductIds: ["p1"], // p0 y p2 ocultos por filtro
+      parent: products[1],
+      variantId: "v1a",
+      targetSlotIndex: 1, // ranura debajo de p1 -> después de p1, antes de p2
+      newProd: baseNewProd,
+    });
+
+    expect(res.insert.sort_order).toBe(3);
+    expect(res.changes).toEqual([
+      { id: "p0", updated_at: "t0", sort_order: 1 },
+      { id: "p1", updated_at: "t1", sort_order: 2, variants: [makeVar("v1b", "Verde")] },
+      { id: "p2", updated_at: "t2", sort_order: 4 },
+    ]);
+  });
+
+  it("mantiene el comportamiento estándar cuando targetSlotIndex es undefined (zona superior)", () => {
+    const res = buildVariantToStandaloneMove({
+      products,
+      visibleProductIds: ["p0", "p1", "p2"],
+      parent: products[1],
+      variantId: "v1b",
+      targetSlotIndex: undefined,
+      newProd: baseNewProd,
+    });
+
+    expect(res.insert.sort_order).toBeUndefined();
+    expect(res.changes).toEqual([
+      { id: "p1", updated_at: "t1", variants: [makeVar("v1a", "Azul")] },
+    ]);
+  });
+});
+

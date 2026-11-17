@@ -64,6 +64,7 @@ import {
   moveToSlot,
   transferVariant,
   freezeVariantInheritance,
+  buildVariantToStandaloneMove,
   type ProductRecord,
 } from "@/lib/product-hierarchy";
 import {
@@ -178,6 +179,7 @@ type HierarchyActionPrompt =
       type: "variant_to_standalone";
       variant: ProductVariant;
       parent: Product;
+      targetSlotIndex?: number;
     }
   | {
       type: "variant_to_other_product";
@@ -403,9 +405,17 @@ function ProductosAdmin() {
     const prompt = actionPrompt;
     try {
       if (prompt.type === "variant_to_standalone") {
-        const { variant, parent } = prompt;
+        const { variant, parent, targetSlotIndex } = prompt;
         const newProd = variantToProduct(variant, parent, products.map((p) => p.slug), products.map((p) => p.name));
-        await saveMove([{ id: parent.id, updated_at: parent.updated_at, variants: parent.variants.filter((v) => v.id !== variant.id) }], "Variante convertida en producto", newProd);
+        const { changes, insert } = buildVariantToStandaloneMove({
+          products,
+          visibleProductIds: visibleProducts.map((p) => p.id),
+          parent,
+          variantId: variant.id,
+          targetSlotIndex,
+          newProd,
+        });
+        await saveMove(changes, "Variante convertida en producto", insert);
       } else if (prompt.type === "variant_to_other_product") {
         const { variant, sourceParent, targetParent } = prompt;
         if (targetParent.variants.some((v) => v.id === variant.id)) throw new Error("La variante ya está en el destino");
@@ -469,9 +479,20 @@ function ProductosAdmin() {
 
     if (!activeData || !overData) return;
 
-    if (overData.type === "product_slot" && activeData.type === "product") {
-      reorderProduct(activeData.product.id, overData.index ?? 0);
-      return;
+    if (overData.type === "product_slot") {
+      if (activeData.type === "product") {
+        reorderProduct(activeData.product.id, overData.index ?? 0);
+        return;
+      }
+      if (activeData.type === "variant") {
+        setActionPrompt({
+          type: "variant_to_standalone",
+          variant: activeData.variant,
+          parent: activeData.parentProduct,
+          targetSlotIndex: overData.index ?? 0,
+        });
+        return;
+      }
     }
     if (overData.type === "variant_slot" && activeData.type === "variant") {
       if (overData.parentId === activeData.parentProduct.id) {
@@ -654,7 +675,9 @@ function ProductosAdmin() {
 
                   return (
                     <React.Fragment key={p.id}>
-                      {activeDragItem?.type === "product" && <ProductReorderSlot index={pIdx} />}
+                      {(activeDragItem?.type === "product" || activeDragItem?.type === "variant") && (
+                        <ProductReorderSlot index={pIdx} isVariant={activeDragItem?.type === "variant"} />
+                      )}
                       <ProductTableRow
                         product={p}
                         cat={cat}
@@ -685,7 +708,7 @@ function ProductosAdmin() {
                                   Variantes de {p.name} ({p.variants.length})
                                 </span>
                                 <span className="text-[11px] text-muted-foreground">
-                                  Arrastra desde los 6 puntos: a una franja para reordenar, sobre otro producto para moverla, o abajo para independizar
+                                  Arrastra desde los 6 puntos: entre variantes para reordenar, a una franja entre productos para independizar ahí, o sobre otro producto para moverla
                                 </span>
                               </div>
 
@@ -717,7 +740,9 @@ function ProductosAdmin() {
                     </React.Fragment>
                   );
                 })}
-                {activeDragItem?.type === "product" && <ProductReorderSlot index={visibleProducts.length} />}
+                {(activeDragItem?.type === "product" || activeDragItem?.type === "variant") && (
+                  <ProductReorderSlot index={visibleProducts.length} isVariant={activeDragItem?.type === "variant"} />
+                )}
               </tbody>
             </table>
           </div>
@@ -792,13 +817,13 @@ function ProductosAdmin() {
 }
 
 /** Ranura entre filas: soltar aquí cambia la posición (no fusiona). */
-function ProductReorderSlot({ index }: { index: number }) {
+function ProductReorderSlot({ index, isVariant }: { index: number; isVariant?: boolean }) {
   const { isOver, setNodeRef } = useDroppable({ id: `prod_slot_${index}`, data: { type: "product_slot", index } });
   return (
     <tr ref={setNodeRef}>
       <td colSpan={9} className="px-3 py-0.5">
-        <div className={`h-5 leading-5 rounded-full text-center text-[10px] font-bold ${isOver ? "bg-primary/15 text-primary ring-2 ring-primary" : "bg-primary/10 text-transparent"}`}>
-          Soltar aquí para mover a esta posición
+        <div className={`h-5 leading-5 rounded-full text-center text-[10px] font-bold transition-all ${isOver ? "bg-primary/15 text-primary ring-2 ring-primary" : "bg-primary/10 text-transparent"}`}>
+          {isVariant ? "Soltar aquí para convertir en producto principal en esta posición" : "Soltar aquí para mover a esta posición"}
         </div>
       </td>
     </tr>
@@ -1173,7 +1198,9 @@ function HierarchyConfirmDialog({
 
   const description =
     prompt.type === "variant_to_standalone"
-      ? "¿Deseas mover esta variante y convertirla en un nuevo producto independiente? (Se eliminará de las variantes del producto actual)."
+      ? prompt.targetSlotIndex !== undefined
+        ? `¿Deseas convertir esta variante en un nuevo producto principal en la posición #${prompt.targetSlotIndex + 1}? (Se eliminará de las variantes del producto actual).`
+        : "¿Deseas mover esta variante y convertirla en un nuevo producto independiente? (Se eliminará de las variantes del producto actual)."
       : prompt.type === "variant_to_other_product"
         ? `¿Deseas mover la variante al producto «${prompt.targetParent.name}»? (Se retirará del producto original).`
         : `¿Deseas mover el producto a «${prompt.targetParent.name}»? (Su ficha y sus ${prompt.sourceProduct.variants.length} variantes quedarán como variantes hermanas; sin subvariantes).`;

@@ -5,6 +5,7 @@ import type { ProductButton } from "@/lib/product-buttons";
 export type ProductRecord = {
   id?: string;
   slug?: string;
+  sort_order?: number;
   name: string;
   price_cop: number;
   btn_text?: string;
@@ -294,4 +295,80 @@ export function moveToSlot<T>(list: T[], fromIndex: number, slotIndex: number): 
   const insertAt = slotIndex > fromIndex ? slotIndex - 1 : slotIndex;
   next.splice(Math.max(0, Math.min(insertAt, next.length)), 0, item);
   return next;
+}
+
+export type ProductHierarchyMoveChange = {
+  id: string;
+  updated_at: string;
+  variants?: ProductVariant[];
+  sort_order?: number;
+  active?: boolean;
+  absorbed_by?: string | null;
+};
+
+/**
+ * Construye los cambios atómicos para convertir una variante en producto principal,
+ * calculando el `sort_order` exacto en `targetSlotIndex` (índice sobre `visibleProductIds`)
+ * cuando se suelta en una ranura entre productos principales.
+ */
+export function buildVariantToStandaloneMove<
+  TProduct extends { id: string; updated_at: string; variants: ProductVariant[] },
+>(params: {
+  products: TProduct[];
+  visibleProductIds: string[];
+  parent: TProduct;
+  variantId: string;
+  targetSlotIndex?: number;
+  newProd: ProductRecord;
+}): {
+  changes: ProductHierarchyMoveChange[];
+  insert: ProductRecord;
+} {
+  const { products, visibleProductIds, parent, variantId, targetSlotIndex, newProd } = params;
+  const remainingVariants = parent.variants.filter((v) => v.id !== variantId);
+
+  if (targetSlotIndex === undefined) {
+    return {
+      changes: [
+        {
+          id: parent.id,
+          updated_at: parent.updated_at,
+          variants: remainingVariants,
+        },
+      ],
+      insert: newProd,
+    };
+  }
+
+  const clampedSlot = Math.max(0, targetSlotIndex);
+  const anchorId = visibleProductIds[clampedSlot];
+  let insertAt = anchorId ? products.findIndex((p) => p.id === anchorId) : -1;
+  if (insertAt === -1) {
+    const lastVisibleId = visibleProductIds[visibleProductIds.length - 1];
+    const lastVisibleIdx = lastVisibleId ? products.findIndex((p) => p.id === lastVisibleId) : -1;
+    insertAt = lastVisibleIdx >= 0 ? lastVisibleIdx + 1 : products.length;
+  }
+
+  const changes: ProductHierarchyMoveChange[] = products.map((p, idx) => {
+    const sort_order = idx < insertAt ? idx + 1 : idx + 2;
+    return p.id === parent.id
+      ? { id: p.id, updated_at: p.updated_at, sort_order, variants: remainingVariants }
+      : { id: p.id, updated_at: p.updated_at, sort_order };
+  });
+
+  if (!changes.some((c) => c.id === parent.id)) {
+    changes.push({
+      id: parent.id,
+      updated_at: parent.updated_at,
+      variants: remainingVariants,
+    });
+  }
+
+  return {
+    changes,
+    insert: {
+      ...newProd,
+      sort_order: insertAt + 1,
+    },
+  };
 }
