@@ -477,64 +477,6 @@ function LottiePreview({ url }: { url: string }) {
   return <Component animationData={data} loop={true} className="h-5 w-5" />;
 }
 
-function HeroStatOrderRow({
-  item,
-  index,
-  onRemove,
-}: {
-  item: HeroStatItem;
-  index: number;
-  onRemove: () => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: `stat_order_${item.id}`,
-  });
-  const label = [item.k, item.v].filter(Boolean).join(" — ") || `Elemento #${index + 1}`;
-
-  return (
-    <li
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex items-center gap-3 rounded-2xl border bg-card p-3 transition shadow-2xs ${
-        isDragging
-          ? "z-20 border-primary bg-primary/10 shadow-xl ring-2 ring-primary"
-          : "border-border hover:border-border/80"
-      }`}
-    >
-      <button
-        type="button"
-        {...attributes}
-        {...listeners}
-        aria-label={`Arrastrar ${label}`}
-        className="cursor-grab touch-none rounded-xl p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing transition"
-        title="Arrastrar para reordenar"
-      >
-        <GripVertical className="h-5 w-5 text-primary" />
-      </button>
-
-      <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-xs font-black text-primary shrink-0">
-        #{index + 1}
-      </span>
-
-      <span className="text-sm font-bold flex-1 text-foreground flex items-center gap-2 truncate">
-        <Layers className="h-4 w-4 text-muted-foreground shrink-0" />
-        <span className="truncate">{label}</span>
-      </span>
-
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        onClick={onRemove}
-        className="h-8 w-8 text-destructive hover:bg-destructive/10 shrink-0"
-        title="Eliminar elemento"
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
-    </li>
-  );
-}
-
 function SortableHeroStatCard({
   item,
   index,
@@ -543,6 +485,7 @@ function SortableHeroStatCard({
   onDuplicate,
   onRemove,
   collectionKey,
+  canToggle,
 }: {
   item: HeroStatItem;
   index: number;
@@ -551,7 +494,9 @@ function SortableHeroStatCard({
   onDuplicate: () => void;
   onRemove: () => void;
   collectionKey: StatCollectionKey;
+  canToggle: () => boolean;
 }) {
+  const [isOpen, setIsOpen] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
   });
@@ -561,6 +506,8 @@ function SortableHeroStatCard({
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
+
+  const statLabel = [item.k, item.v].filter(Boolean).join(" — ") || `Elemento #${index + 1}`;
 
   const { content } = useSiteContent();
 
@@ -635,126 +582,176 @@ function SortableHeroStatCard({
     <div
       ref={setNodeRef}
       style={style}
-      className="rounded-2xl border border-dashed border-border p-5 space-y-6 bg-muted/20"
+      className={`overflow-hidden rounded-2xl border bg-card shadow-2xs transition ${
+        isDragging
+          ? "z-20 border-primary bg-primary/10 shadow-xl ring-2 ring-primary"
+          : "border-border hover:border-border/80"
+      }`}
     >
-      {/* A. Encabezado de la tarjeta */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            {...attributes}
-            {...listeners}
-            className="cursor-grab touch-none text-muted-foreground hover:text-foreground p-1"
-            title="Arrastrar para reordenar estadística"
-          >
-            <GripVertical className="h-4 w-4" />
-          </button>
-          <span className="text-sm font-black uppercase tracking-wider text-muted-foreground">
-            #{index + 1} - {item.k || "Sin título"}
-          </span>
-        </div>
+      {/* A. Encabezado colapsable de la tarjeta */}
+      <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={isOpen}
+        onClick={() => {
+          if (!canToggle()) return;
+          setIsOpen((o) => !o);
+        }}
+        onKeyDown={(e) => {
+          if (e.target !== e.currentTarget) return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setIsOpen((o) => !o);
+          }
+        }}
+        className={`flex items-center gap-3 p-3 transition hover:bg-muted/30 cursor-pointer select-none ${
+          isOpen ? "bg-muted/15" : ""
+        }`}
+      >
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          onClick={(e) => e.stopPropagation()}
+          aria-label={`Arrastrar ${statLabel}`}
+          className="cursor-grab touch-none rounded-xl p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing transition shrink-0"
+          title="Arrastrar para reordenar"
+        >
+          <GripVertical className="h-5 w-5 text-primary" />
+        </button>
 
-        <div className="flex items-center gap-2">
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-xs font-black text-primary shrink-0">
+          #{index + 1}
+        </span>
+
+        <span className="text-sm font-bold flex-1 min-w-0 text-foreground flex items-center gap-2 truncate">
+          <Layers className="h-4 w-4 text-muted-foreground shrink-0" />
+          <span className="truncate">{statLabel}</span>
+        </span>
+
+        <div className="flex items-center gap-1 shrink-0">
           <Button
             type="button"
-            variant="outline"
-            size="sm"
-            onClick={onDuplicate}
-            className="h-8 text-xs font-semibold gap-1.5"
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDuplicate();
+            }}
+            aria-label="Duplicar elemento"
+            className="h-8 w-8 text-primary hover:bg-primary/10 shrink-0"
             title="Duplicar esta estadística"
           >
-            <Copy className="h-3.5 w-3.5 text-primary" />
-            Duplicar
+            <Copy className="h-4 w-4" />
           </Button>
 
           <Button
             type="button"
             variant="ghost"
-            size="sm"
-            onClick={onRemove}
-            className="h-8 text-xs font-semibold text-destructive hover:bg-destructive/10 gap-1.5"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
+            aria-label="Eliminar elemento"
+            className="h-8 w-8 text-destructive hover:bg-destructive/10 shrink-0"
             title="Eliminar esta estadística"
           >
-            <Trash2 className="h-3.5 w-3.5" />
-            Eliminar
+            <Trash2 className="h-4 w-4" />
           </Button>
 
-          {/* Vista previa en vivo idéntica a la web */}
-          <div className="shrink-0 flex items-center gap-2 border-l border-border pl-3 ml-1">
-            <span className="text-[11px] font-semibold text-muted-foreground">Vista previa:</span>
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              style={previewContainerStyle}
-              className={`relative overflow-hidden isolate border px-3.5 py-2 text-center shadow-2xs min-w-[120px] min-h-[50px] flex flex-col items-center justify-center rounded-2xl ${
-                item.animation_style && item.animation_style !== "none" ? `theme-anim-${item.animation_style}` : ""
-              } ${statWidth === "full" ? "w-full" : ""}`}
-            >
-              {/* Fondo animado / relleno vivo */}
-              {isFillMedia && (
-                <>
-                  {isLottie ? (
-                    <div className="absolute inset-0 -z-20 flex items-center justify-center overflow-hidden">
-                      <LottiePreview url={mediaUrl} />
-                    </div>
-                  ) : isVid ? (
-                    <video
-                      src={mediaUrl}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      className={`absolute inset-0 h-full w-full object-center -z-20 ${
-                        mediaFit === "contain" ? "object-contain" : mediaFit === "fill" ? "object-fill" : "object-cover"
-                      }`}
-                    />
-                  ) : (
-                    <img
-                      src={mediaUrl}
-                      alt=""
-                      className={`absolute inset-0 h-full w-full object-center -z-20 ${
-                        mediaFit === "contain" ? "object-contain" : mediaFit === "fill" ? "object-fill" : "object-cover"
-                      }`}
-                    />
-                  )}
-                </>
-              )}
-
-              {/* Sombreado / Contraste Overlay */}
-              {effectiveShade > 0 && (
-                <div
-                  className="absolute inset-0 bg-black -z-10"
-                  style={{ opacity: effectiveShade / 100 }}
-                />
-              )}
-
-              {/* Texto / Valor Destacado */}
-              <div
-                className={`relative z-10 flex items-center justify-center gap-1.5 font-black text-sm ${
-                  isFillMedia ? "drop-shadow-md" : ""
-                }`}
-                style={{ color: textColor || previewText }}
-              >
-                {iconPos === "left" && iconMedia}
-                <span>{item.k || "50×50"}</span>
-                {iconPos === "right" && iconMedia}
-              </div>
-
-              {/* Descripción Corta */}
-              <div
-                className={`relative z-10 text-[10px] truncate max-w-[120px] ${
-                  isFillMedia ? "drop-shadow-xs" : ""
-                }`}
-                style={{ color: textColor || previewText, opacity: 0.85 }}
-              >
-                {item.v || "cm mínimo"}
-              </div>
-            </motion.div>
-          </div>
+          <ChevronDown
+            className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${
+              isOpen ? "rotate-180 text-primary" : ""
+            }`}
+          />
         </div>
       </div>
 
-      {/* B. Textos Principales */}
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-6 p-4 border-t border-border/60 bg-card">
+              {/* Vista previa en vivo idéntica a la web */}
+              <div className="flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-2">
+                <span className="text-[11px] font-semibold text-muted-foreground">Vista previa en vivo:</span>
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  style={previewContainerStyle}
+                  className={`relative overflow-hidden isolate border px-3.5 py-2 text-center shadow-2xs min-w-[120px] min-h-[50px] flex flex-col items-center justify-center rounded-2xl ${
+                    item.animation_style && item.animation_style !== "none" ? `theme-anim-${item.animation_style}` : ""
+                  } ${statWidth === "full" ? "w-full" : ""}`}
+                >
+                  {/* Fondo animado / relleno vivo */}
+                  {isFillMedia && (
+                    <>
+                      {isLottie ? (
+                        <div className="absolute inset-0 -z-20 flex items-center justify-center overflow-hidden">
+                          <LottiePreview url={mediaUrl} />
+                        </div>
+                      ) : isVid ? (
+                        <video
+                          src={mediaUrl}
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          className={`absolute inset-0 h-full w-full object-center -z-20 ${
+                            mediaFit === "contain" ? "object-contain" : mediaFit === "fill" ? "object-fill" : "object-cover"
+                          }`}
+                        />
+                      ) : (
+                        <img
+                          src={mediaUrl}
+                          alt=""
+                          className={`absolute inset-0 h-full w-full object-center -z-20 ${
+                            mediaFit === "contain" ? "object-contain" : mediaFit === "fill" ? "object-fill" : "object-cover"
+                          }`}
+                        />
+                      )}
+                    </>
+                  )}
+
+                  {/* Sombreado / Contraste Overlay */}
+                  {effectiveShade > 0 && (
+                    <div
+                      className="absolute inset-0 bg-black -z-10"
+                      style={{ opacity: effectiveShade / 100 }}
+                    />
+                  )}
+
+                  {/* Texto / Valor Destacado */}
+                  <div
+                    className={`relative z-10 flex items-center justify-center gap-1.5 font-black text-sm ${
+                      isFillMedia ? "drop-shadow-md" : ""
+                    }`}
+                    style={{ color: textColor || previewText }}
+                  >
+                    {iconPos === "left" && iconMedia}
+                    <span>{item.k || "50×50"}</span>
+                    {iconPos === "right" && iconMedia}
+                  </div>
+
+                  {/* Descripción Corta */}
+                  <div
+                    className={`relative z-10 text-[10px] truncate max-w-[120px] ${
+                      isFillMedia ? "drop-shadow-xs" : ""
+                    }`}
+                    style={{ color: textColor || previewText, opacity: 0.85 }}
+                  >
+                    {item.v || "cm mínimo"}
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* B. Textos Principales */}
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <Label className="text-xs font-semibold">Valor / Título Destacado (k)</Label>
@@ -1253,7 +1250,11 @@ function SortableHeroStatCard({
             </div>
           </div>
         )}
-      </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -1466,6 +1467,16 @@ function HeroStatsEditor({
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+  const justDraggedRef = useRef(false);
+
+  function markJustDragged() {
+    justDraggedRef.current = true;
+    if (typeof window !== "undefined") {
+      window.setTimeout(() => {
+        justDraggedRef.current = false;
+      }, 80);
+    }
+  }
 
   function handleUpdateItem(id: string, patch: Partial<HeroStatItem>) {
     const updated = items.map((it) => (it.id === id ? { ...it, ...patch } : it));
@@ -1508,10 +1519,11 @@ function HeroStatsEditor({
   }
 
   function handleDragEnd(event: DragEndEvent) {
+    markJustDragged();
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const activeId = String(active.id).replace(/^stat_order_/, "");
-    const overId = String(over.id).replace(/^stat_order_/, "");
+    const activeId = String(active.id);
+    const overId = String(over.id);
     const oldIndex = items.findIndex((it) => it.id === activeId);
     const newIndex = items.findIndex((it) => it.id === overId);
     if (oldIndex !== -1 && newIndex !== -1) {
@@ -1520,74 +1532,50 @@ function HeroStatsEditor({
   }
 
   return (
-    <div className="space-y-6">
-      {/* Sistema de Orden de Estadísticas y Botones de Acción (Idéntico a Orden de Secciones) */}
-      <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+    <div className="space-y-4 rounded-2xl border border-primary/20 bg-primary/[0.02] p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
         <div>
           <Label className="text-sm font-bold flex items-center gap-2">
             <Layers className="h-4 w-4 text-primary" />
-            Orden · {title}
+            {title}
           </Label>
           <p className="text-xs text-muted-foreground mt-0.5">
+            Arrastra para reordenar o haz clic en cualquier tarjeta para editar métricas, íconos, multimedia y acciones.
           </p>
         </div>
 
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext
-            items={items.map((it) => `stat_order_${it.id}`)}
-            strategy={verticalListSortingStrategy}
-          >
-            <ul className="space-y-2.5">
-              {items.map((it, idx) => (
-                <HeroStatOrderRow
-                  key={`stat_order_${it.id}`}
-                  item={it}
-                  index={idx}
-                  onRemove={() => handleRemoveItem(it.id)}
-                />
-              ))}
-            </ul>
-          </SortableContext>
-        </DndContext>
+        <Button type="button" variant="outline" size="sm" onClick={handleAddItem} className="text-xs font-bold gap-1.5 shadow-sm">
+          <Plus className="h-4 w-4" /> + Añadir elemento
+        </Button>
       </div>
 
-      {/* Editor Detallado de Estadísticas del Hero y Botones de Acción */}
-      <div className="space-y-4 rounded-2xl border border-primary/20 bg-primary/[0.02] p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
-          <div>
-            <Label className="text-sm font-bold flex items-center gap-2">
-              <Layers className="h-4 w-4 text-primary" />
-              {title}
-            </Label>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Edita métricas, añade enlaces clickeables, íconos y personaliza el aspecto visual.
-            </p>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={() => {
+          justDraggedRef.current = false;
+        }}
+        onDragEnd={handleDragEnd}
+        onDragCancel={markJustDragged}
+      >
+        <SortableContext items={items.map((it) => it.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-2.5">
+            {items.map((it, idx) => (
+              <SortableHeroStatCard
+                key={it.id}
+                item={it}
+                index={idx}
+                palette={palette}
+                collectionKey={collectionKey}
+                canToggle={() => !justDraggedRef.current}
+                onUpdate={(patch) => handleUpdateItem(it.id, patch)}
+                onDuplicate={() => handleDuplicateItem(it.id)}
+                onRemove={() => handleRemoveItem(it.id)}
+              />
+            ))}
           </div>
-
-          <Button type="button" variant="outline" size="sm" onClick={handleAddItem} className="text-xs font-bold gap-1.5 shadow-sm">
-            <Plus className="h-4 w-4" /> + Añadir elemento
-          </Button>
-        </div>
-
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={items.map((it) => it.id)} strategy={verticalListSortingStrategy}>
-            <div className="space-y-3">
-              {items.map((it, idx) => (
-                <SortableHeroStatCard
-                  key={it.id}
-                  item={it}
-                  index={idx}
-                  palette={palette}
-                  collectionKey={collectionKey}
-                  onUpdate={(patch) => handleUpdateItem(it.id, patch)}
-                  onDuplicate={() => handleDuplicateItem(it.id)}
-                  onRemove={() => handleRemoveItem(it.id)}
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
-      </div>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 }
@@ -2215,64 +2203,6 @@ function CTAButtonGroup({
 }
 
 
-function HeroButtonOrderRow({
-  button,
-  index,
-  onRemove,
-}: {
-  button: HeroButtonItem;
-  index: number;
-  onRemove: () => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: `order_${button.id}`,
-  });
-  const label = button.text?.trim() || `Botón #${index + 1}`;
-
-  return (
-    <li
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex items-center gap-3 rounded-2xl border bg-card p-3 transition shadow-2xs ${
-        isDragging
-          ? "z-20 border-primary bg-primary/10 shadow-xl ring-2 ring-primary"
-          : "border-border hover:border-border/80"
-      }`}
-    >
-      <button
-        type="button"
-        {...attributes}
-        {...listeners}
-        aria-label={`Arrastrar ${label}`}
-        className="cursor-grab touch-none rounded-xl p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing transition"
-        title="Arrastrar para reordenar botón"
-      >
-        <GripVertical className="h-5 w-5 text-primary" />
-      </button>
-
-      <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-xs font-black text-primary shrink-0">
-        #{index + 1}
-      </span>
-
-      <span className="text-sm font-bold flex-1 text-foreground flex items-center gap-2 truncate">
-        <Layers className="h-4 w-4 text-muted-foreground shrink-0" />
-        <span className="truncate">{label}</span>
-      </span>
-
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        onClick={onRemove}
-        className="h-8 w-8 text-destructive hover:bg-destructive/10 shrink-0"
-        title="Eliminar este botón"
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
-    </li>
-  );
-}
-
 function SortableHeroButtonItemCard({
   button,
   index,
@@ -2280,6 +2210,7 @@ function SortableHeroButtonItemCard({
   onUpdate,
   onDuplicate,
   onRemove,
+  canToggle,
 }: {
   button: HeroButtonItem;
   index: number;
@@ -2287,7 +2218,9 @@ function SortableHeroButtonItemCard({
   onUpdate: (patch: Partial<HeroButtonItem>) => void;
   onDuplicate: () => void;
   onRemove: () => void;
+  canToggle: () => boolean;
 }) {
+  const [isOpen, setIsOpen] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: button.id,
   });
@@ -2297,6 +2230,8 @@ function SortableHeroButtonItemCard({
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
+
+  const buttonLabel = button.text?.trim() || `Botón #${index + 1}`;
 
   const { content } = useSiteContent();
 
@@ -2340,85 +2275,131 @@ function SortableHeroButtonItemCard({
     <div
       ref={setNodeRef}
       style={style}
-      className="rounded-2xl border border-dashed border-border p-5 space-y-6 bg-muted/20"
+      className={`overflow-hidden rounded-2xl border bg-card shadow-2xs transition ${
+        isDragging
+          ? "z-20 border-primary bg-primary/10 shadow-xl ring-2 ring-primary"
+          : "border-border hover:border-border/80"
+      }`}
     >
-      {/* Encabezado con Drag handle, #Index, Duplicar, Eliminar y Vista Previa */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            {...attributes}
-            {...listeners}
-            aria-label={`Arrastrar botón #${index + 1}`}
-            className="cursor-grab touch-none rounded-xl p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing transition"
-            title="Arrastrar para reordenar botón del Hero"
-          >
-            <GripVertical className="h-5 w-5 text-primary" />
-          </button>
-          <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-xs font-black text-primary shrink-0">
-            #{index + 1}
-          </span>
-          <span className="text-sm font-bold text-foreground">
-            {button.text || "Sin texto"}
-          </span>
-        </div>
+      {/* Encabezado colapsable con Drag handle, #Index, Título, Duplicar, Eliminar y Chevron */}
+      <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={isOpen}
+        onClick={() => {
+          if (!canToggle()) return;
+          setIsOpen((o) => !o);
+        }}
+        onKeyDown={(e) => {
+          if (e.target !== e.currentTarget) return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setIsOpen((o) => !o);
+          }
+        }}
+        className={`flex items-center gap-3 p-3 transition hover:bg-muted/30 cursor-pointer select-none ${
+          isOpen ? "bg-muted/15" : ""
+        }`}
+      >
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          onClick={(e) => e.stopPropagation()}
+          aria-label={`Arrastrar ${buttonLabel}`}
+          className="cursor-grab touch-none rounded-xl p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing transition shrink-0"
+          title="Arrastrar para reordenar botón del Hero"
+        >
+          <GripVertical className="h-5 w-5 text-primary" />
+        </button>
 
-        <div className="flex items-center gap-2">
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-xs font-black text-primary shrink-0">
+          #{index + 1}
+        </span>
+
+        <span className="text-sm font-bold flex-1 min-w-0 text-foreground flex items-center gap-2 truncate">
+          <Layers className="h-4 w-4 text-muted-foreground shrink-0" />
+          <span className="truncate">{buttonLabel}</span>
+        </span>
+
+        <div className="flex items-center gap-1 shrink-0">
           <Button
             type="button"
-            variant="outline"
-            size="sm"
-            onClick={onDuplicate}
-            className="h-8 text-xs font-semibold gap-1.5"
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDuplicate();
+            }}
+            aria-label="Duplicar botón"
+            className="h-8 w-8 text-primary hover:bg-primary/10 shrink-0"
             title="Duplicar este botón"
           >
-            <Copy className="h-3.5 w-3.5 text-primary" />
-            Duplicar
+            <Copy className="h-4 w-4" />
           </Button>
 
           <Button
             type="button"
             variant="ghost"
-            size="sm"
-            onClick={onRemove}
-            className="h-8 text-xs font-semibold text-destructive hover:bg-destructive/10 gap-1.5"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
+            aria-label="Eliminar botón"
+            className="h-8 w-8 text-destructive hover:bg-destructive/10 shrink-0"
             title="Eliminar este botón"
           >
-            <Trash2 className="h-3.5 w-3.5" />
-            Eliminar
+            <Trash2 className="h-4 w-4" />
           </Button>
 
-          {/* Vista previa en vivo idéntica a la tienda */}
-          <div className="shrink-0 flex items-center gap-2 border-l border-border pl-3 ml-1">
-            <span className="text-[11px] font-semibold text-muted-foreground">Vista previa:</span>
-            <UnifiedButton
-              button={{
-                id: button.id,
-                text: button.text || "Vista Previa",
-                action_type: actionType === "cotizador" ? "link" : (actionType as any),
-                action_value: actionValue || "/cotizador",
-                whatsapp_message: whatsappMsg,
-                text_color: textColor || undefined,
-                custom_hex: customHex || (index === 0 ? "var(--brand-orange)" : "var(--brand-wine)"),
-                media_url: mediaMode === "fill" ? mediaUrl : undefined,
-                media_mode: mediaMode,
-                icon_url: iconUrl || (mediaMode === "icon" ? mediaUrl : undefined),
-                icon_position: iconPos !== "none" ? iconPos : (mediaMode === "icon" ? "left" : "none"),
-                animation_type: animType as any,
-                variant: index === 0 ? "default" : "secondary",
-                width: buttonWidth,
-                position: "left",
-                opacity: 100,
-                shade: shadeNum,
-                media_fit: mediaFit,
-                icon_shape: iconShape,
-              }}
-            />
-          </div>
+          <ChevronDown
+            className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${
+              isOpen ? "rotate-180 text-primary" : ""
+            }`}
+          />
         </div>
       </div>
 
-      {/* Texto visible del botón */}
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-6 p-4 border-t border-border/60 bg-card">
+              {/* Vista previa en vivo idéntica a la tienda */}
+              <div className="flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-2">
+                <span className="text-[11px] font-semibold text-muted-foreground">Vista previa en vivo:</span>
+                <UnifiedButton
+                  button={{
+                    id: button.id,
+                    text: button.text || "Vista Previa",
+                    action_type: actionType === "cotizador" ? "link" : (actionType as any),
+                    action_value: actionValue || "/cotizador",
+                    whatsapp_message: whatsappMsg,
+                    text_color: textColor || undefined,
+                    custom_hex: customHex || (index === 0 ? "var(--brand-orange)" : "var(--brand-wine)"),
+                    media_url: mediaMode === "fill" ? mediaUrl : undefined,
+                    media_mode: mediaMode,
+                    icon_url: iconUrl || (mediaMode === "icon" ? mediaUrl : undefined),
+                    icon_position: iconPos !== "none" ? iconPos : (mediaMode === "icon" ? "left" : "none"),
+                    animation_type: animType as any,
+                    variant: index === 0 ? "default" : "secondary",
+                    width: buttonWidth,
+                    position: "left",
+                    opacity: 100,
+                    shade: shadeNum,
+                    media_fit: mediaFit,
+                    icon_shape: iconShape,
+                  }}
+                />
+              </div>
+
+              {/* Texto visible del botón */}
       <div>
         <Label className="text-xs font-semibold">Texto visible del Botón</Label>
         <Input
@@ -2862,7 +2843,11 @@ function SortableHeroButtonItemCard({
             </div>
           </div>
         )}
-      </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -2885,6 +2870,16 @@ function HeroButtonsEditor({
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+  const justDraggedRef = useRef(false);
+
+  function markJustDragged() {
+    justDraggedRef.current = true;
+    if (typeof window !== "undefined") {
+      window.setTimeout(() => {
+        justDraggedRef.current = false;
+      }, 80);
+    }
+  }
 
   function syncLegacyKeys(updatedList: HeroButtonItem[]): Record<string, string> {
     const normalizedList = updatedList.map((b) => ({
@@ -3002,10 +2997,11 @@ function HeroButtonsEditor({
   }
 
   function handleDragEnd(event: DragEndEvent) {
+    markJustDragged();
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const activeId = String(active.id).replace(/^order_/, "");
-    const overId = String(over.id).replace(/^order_/, "");
+    const activeId = String(active.id);
+    const overId = String(over.id);
     const oldIndex = buttons.findIndex((b) => b.id === activeId);
     const newIndex = buttons.findIndex((b) => b.id === overId);
     if (oldIndex !== -1 && newIndex !== -1) {
@@ -3014,79 +3010,54 @@ function HeroButtonsEditor({
   }
 
   return (
-    <div className="space-y-6">
-      {/* Sistema de Orden de los Botones del Hero (Idéntico a Orden de Secciones) */}
-      <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+    <div className="space-y-4 rounded-2xl border border-primary/20 bg-primary/[0.02] p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
         <div>
           <Label className="text-sm font-bold flex items-center gap-2">
             <Layers className="h-4 w-4 text-primary" />
-            Orden de los Botones del Hero
+            Botones de Acción del Hero (Ilimitados con Drag & Drop)
           </Label>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Arrastra los botones para decidir qué aparece primero al entrar a la página.
+            Arrastra para reordenar o haz clic en cualquier tarjeta para editar textos, colores, animaciones y acciones.
           </p>
         </div>
 
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext
-            items={buttons.map((b) => `order_${b.id}`)}
-            strategy={verticalListSortingStrategy}
-          >
-            <ul className="space-y-2.5">
-              {buttons.map((b, idx) => (
-                <HeroButtonOrderRow
-                  key={`order_${b.id}`}
-                  button={b}
-                  index={idx}
-                  onRemove={() => handleRemoveButton(b.id)}
-                />
-              ))}
-            </ul>
-          </SortableContext>
-        </DndContext>
+        <Button
+          type="button"
+          onClick={handleAddButton}
+          className="text-xs font-bold gap-1.5 shadow-sm"
+        >
+          <Plus className="h-4 w-4" />
+          + Añadir Botón al Hero
+        </Button>
       </div>
 
-      {/* Editor Completo y Detallado de Botones de Acción del Hero */}
-      <div className="space-y-4 rounded-2xl border border-primary/20 bg-primary/[0.02] p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
-          <div>
-            <Label className="text-sm font-bold flex items-center gap-2">
-              <Layers className="h-4 w-4 text-primary" />
-              Botones de Acción del Hero (Ilimitados con Drag & Drop)
-            </Label>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Añade, reordena y personaliza todos los botones que desees mostrar en la cabecera principal.
-            </p>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={() => {
+          justDraggedRef.current = false;
+        }}
+        onDragEnd={handleDragEnd}
+        onDragCancel={markJustDragged}
+      >
+        <SortableContext items={buttons.map((b) => b.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-2.5">
+            {buttons.map((b, idx) => (
+              <SortableHeroButtonItemCard
+                key={b.id}
+                button={b}
+                index={idx}
+                palette={palette}
+                canToggle={() => !justDraggedRef.current}
+                onUpdate={(patch) => handleUpdateButton(b.id, patch)}
+                onDuplicate={() => handleDuplicateButton(b.id)}
+                onRemove={() => handleRemoveButton(b.id)}
+              />
+            ))}
           </div>
-
-          <Button
-            type="button"
-            onClick={handleAddButton}
-            className="text-xs font-bold gap-1.5 shadow-sm"
-          >
-            <Plus className="h-4 w-4" />
-            + Añadir Botón al Hero
-          </Button>
-        </div>
-
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={buttons.map((b) => b.id)} strategy={verticalListSortingStrategy}>
-            <div className="space-y-4">
-              {buttons.map((b, idx) => (
-                <SortableHeroButtonItemCard
-                  key={b.id}
-                  button={b}
-                  index={idx}
-                  palette={palette}
-                  onUpdate={(patch) => handleUpdateButton(b.id, patch)}
-                  onDuplicate={() => handleDuplicateButton(b.id)}
-                  onRemove={() => handleRemoveButton(b.id)}
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
-      </div>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 }
