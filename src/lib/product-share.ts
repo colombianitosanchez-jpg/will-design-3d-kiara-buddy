@@ -19,13 +19,18 @@ export function resolveProductShareImage(product: ShareProduct, variantIndex: nu
   const variant = variantIndex != null ? product.variants?.[variantIndex] ?? null : null;
   const buttons = variant?.custom_buttons ?? product.custom_buttons ?? [];
   const btn = buttonIndex != null ? buttons[buttonIndex] : undefined;
-  const candidates = [
+  const candidates: (string | null | undefined)[] = [
     btn?.whatsapp_image_url,
     variant?.image_url,
     ...(variant?.images ?? []),
     product.image_url,
     ...(product.images ?? []),
   ];
+  if (variantIndex == null && product.variants) {
+    for (const v of product.variants) {
+      candidates.push(v.image_url, ...(v.images ?? []));
+    }
+  }
   return firstStaticShareImage(candidates);
 }
 

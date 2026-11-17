@@ -115,6 +115,24 @@ describe("foto de WhatsApp en productos", () => {
     expect(findMeta("og:image:height", "630")?.content).toBe("630");
     expect(findMeta("og:image:alt", "PLA — Will Design 3D")?.content).toBe("PLA — Will Design 3D");
     expect(findMeta("twitter:image", "https://x/prod.jpg")?.content).toBe("https://x/prod.jpg");
+    expect(findMeta("og:description", "")?.content.trim().length).toBeGreaterThan(0);
+    expect(findMeta("robots", "")).toBeUndefined();
+  });
+
+  it("si el producto padre solo tiene video o está vacío, resolveProductShareImage usa la foto estática de sus variantes como respaldo", () => {
+    const product: ShareProduct = {
+      slug: "combo",
+      image_url: "https://x/video-portada.mp4",
+      images: ["https://x/anim.gif"],
+      custom_buttons: [],
+      variants: [
+        variant("v1", { image_url: "https://x/v1-video.mp4", images: [] }),
+        variant("v2", { image_url: "https://x/v2-estatica.jpg", images: ["https://x/v2-extra.png"] }),
+      ],
+    };
+
+    expect(resolveProductShareImage(product, null, null)).toBe("https://x/v2-estatica.jpg");
+    expect(productShareLink(product, null, "comprar", "https://s")).toBe("https://s/t/combo");
   });
 
   it("la ruta /tienda/$slug declara og:image:secure_url, width 1200 y height 630 y salta .jfif", async () => {

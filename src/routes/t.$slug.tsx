@@ -35,27 +35,47 @@ export const Route = createFileRoute("/t/$slug")({
     const vIndex = byId >= 0 ? byId : deps.v ? idx(deps.v) : parsedV != null && parsedV >= 1 ? parsedV - 1 : null;
     const bIndex = deps.b ? idx(deps.b) : parsedB != null && parsedB >= 1 ? parsedB - 1 : null;
     const variant = vIndex != null ? variants[vIndex] ?? null : null;
+    const title = variant ? `${product.name} — ${variant.name}` : product.name;
+    const rawDescSource =
+      variant?.short?.trim() ||
+      product.short?.trim() ||
+      variant?.description?.trim() ||
+      product.description?.trim() ||
+      "";
+    const cleanDesc = rawDescSource.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    const description = (
+      cleanDesc.length >= 20
+        ? cleanDesc
+        : `${title} disponible en Will Design 3D, Bogotá.${cleanDesc ? ` ${cleanDesc}` : ""} Asesoría técnica y envíos a todo el país.`
+    ).slice(0, 160);
     const img = resolveProductShareImage(product, variant ? vIndex : null, bIndex);
     return {
       slug: productSlug,
       productSlug,
       variantId: variant?.id ?? null,
-      title: variant ? `${product.name} — ${variant.name}` : product.name,
+      title,
+      description,
       img: /^https:\/\//i.test(img) ? img : "",
     };
   },
-  head: ({ loaderData }) => {
+  head: ({ params, loaderData }) => {
     const title = loaderData?.title ? `${loaderData.title} — Will Design 3D` : "Will Design 3D";
+    const desc =
+      loaderData?.description?.trim() ||
+      `${title}. Impresión 3D profesional, filamentos, resinas y equipos en Bogotá.`;
     const img = loaderData?.img || "";
+    const shareSlug = params?.slug || loaderData?.slug || "";
     return {
       meta: [
         { title },
-        { name: "description", content: title },
+        { name: "description", content: desc },
         { property: "og:title", content: title },
-        { property: "og:description", content: "" },
+        { property: "og:description", content: desc },
         { property: "og:type", content: "product" },
+        ...(shareSlug
+          ? [{ property: "og:url", content: `https://will-design-3d.lovable.app/t/${shareSlug}` }]
+          : []),
         { name: "twitter:card", content: "summary_large_image" },
-        { name: "robots", content: "noindex" },
         ...(img
           ? [
               { property: "og:image", content: img },
