@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { canEditCartQuantity, mergeCartLine } from "./cart-quantity";
 
 export type CartItem = {
   /** Clave del artículo: id del producto, o "svc:<slug>:<hash>" para servicios cotizados. */
@@ -91,7 +92,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (found) {
         return prev.map((i) =>
           i.product_id === item.product_id
-            ? { ...i, quantity: Math.min(MAX_QTY, i.quantity + quantity) }
+            ? mergeCartLine(i, { ...item, quantity: Math.min(MAX_QTY, Math.max(1, Math.floor(quantity))) })
             : i,
         );
       }
@@ -104,7 +105,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       quantity <= 0
         ? prev.filter((i) => i.product_id !== productId)
         : prev.map((i) =>
-            i.product_id === productId
+            i.product_id === productId && canEditCartQuantity(i)
               ? { ...i, quantity: Math.min(MAX_QTY, Math.max(1, Math.floor(quantity))) }
               : i,
           ),

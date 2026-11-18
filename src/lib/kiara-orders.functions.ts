@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { assertServiceOrderQuantity } from "./cart-quantity";
 
 const schema = z.object({
   customer_name: z.string().trim().min(2).max(120),
@@ -32,6 +33,7 @@ export const confirmQuoteOrder = createServerFn({ method: "POST" })
     const services = await getQuoterServices();
     const service = services.find((s) => s.slug === data.service_slug);
     if (!service) throw new Error("El servicio de la cotización ya no está disponible");
+    assertServiceOrderQuantity(service, data.quantity);
 
     const rawAnswers: Record<string, unknown> = {};
     for (const a of data.answers) rawAnswers[a.label] = a.value;

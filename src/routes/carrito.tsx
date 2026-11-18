@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useCart } from "@/lib/cart";
+import { canEditCartQuantity } from "@/lib/cart-quantity";
 import { formatCOP, getContactInfo, waLink } from "@/lib/catalog";
 import { openExternalUrl } from "@/lib/whatsapp";
 import { useSiteContent } from "@/hooks/use-site-content";
@@ -452,7 +453,7 @@ function CarritoPage() {
                     <p className="truncate text-sm font-bold">{i.name}</p>
                     <p className="text-xs text-muted-foreground">{formatCOP(i.price_cop)} c/u</p>
                   </div>
-                  <div className="flex items-center gap-1">
+                  {canEditCartQuantity(i) ? <div className="flex items-center gap-1">
                     <Button
                       type="button"
                       size="icon"
@@ -472,7 +473,12 @@ function CarritoPage() {
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
-                  </div>
+                  </div> : <div className="flex items-center gap-3">
+                    <span className="text-sm font-bold">{i.quantity} ud.</span>
+                    <Link to="/cotizador" search={{ servicio: i.service_slug ?? i.slug }} className="text-sm text-primary underline">
+                      Volver a cotizar
+                    </Link>
+                  </div>}
                   <span className="w-28 text-right text-sm font-black text-[var(--brand-wine)]">
                     {formatCOP(i.price_cop * i.quantity)}
                   </span>

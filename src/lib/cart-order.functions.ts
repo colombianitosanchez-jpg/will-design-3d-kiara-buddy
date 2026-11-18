@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { assertServiceOrderQuantity } from "./cart-quantity";
 
 const schema = z.object({
   items: z
@@ -86,6 +87,7 @@ export const createCartOrder = createServerFn({ method: "POST" })
       for (const item of serviceItems) {
         const svc = services.find((s) => s.slug === item.service_slug);
         if (!svc || svc.has_calculator === false) throw new Error("El servicio ya no está disponible para comprar");
+        assertServiceOrderQuantity(svc, item.quantity);
         const values = item.answers ?? {};
         const errors = quoteAnswerErrors(svc, values);
         if (errors.length) throw new Error(errors[0]);
