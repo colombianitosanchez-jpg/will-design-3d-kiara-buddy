@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import {
   quoterServicesQuery,
   defaultValuesFor,
+  type VolumeDiscountTier,
   type QuoterField,
   type QuoterPricingMode,
   type QuoterService,
@@ -71,6 +72,11 @@ export const Route = createFileRoute("/panel/cotizador")({
     meta: [
       { title: "Cotizador Unificado · Panel Will Design 3D" },
       { name: "robots", content: "noindex, nofollow" },
+      { name: "description", content: "Configuración de servicios, preguntas y precios de Will Design 3D." },
+      { property: "og:title", content: "Cotizadores · Panel Will Design 3D" },
+      { property: "og:description", content: "Administración de cotizadores y variables del taller." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: QuoterUnifiedAdmin,
@@ -111,7 +117,7 @@ function QuoterUnifiedAdmin() {
   const [activeTab, setActiveTab] = useState("servicios");
 
   return (
-    <div className="space-y-6">
+    <div className="quoter-workspace min-w-0 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-black flex items-center gap-2">
@@ -260,7 +266,7 @@ function TabServiciosCotizables() {
           <Button
             type="button"
             onClick={() => setCreating(true)}
-            className="bg-[var(--brand-wine)] hover:opacity-90 text-white font-bold rounded-full whitespace-nowrap"
+            className="bg-accent hover:opacity-90 text-primary-foreground font-bold rounded-full whitespace-nowrap"
           >
             <Plus className="mr-2 h-4 w-4" /> Nuevo Servicio
           </Button>
@@ -277,7 +283,6 @@ function TabServiciosCotizables() {
               Nombre del nuevo servicio
             </span>
             <input
-              autoFocus
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Ej: Impresión en Resina Alta Resolución"
@@ -288,7 +293,7 @@ function TabServiciosCotizables() {
             <Button
               type="submit"
               disabled={creatingBusy}
-              className="rounded-full bg-[var(--brand-wine)] text-white font-bold"
+              className="rounded-full bg-accent text-primary-foreground font-bold"
             >
               {creatingBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-1.5 h-4 w-4" />}
               Crear servicio
@@ -435,7 +440,7 @@ function TabVariablesGlobales() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-start gap-2.5 rounded-2xl border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
-          <Info className="h-4 w-4 shrink-0 mt-0.5 text-[var(--brand-teal-deep)]" />
+          <Info className="h-4 w-4 shrink-0 mt-0.5 text-secondary" />
           <p>
             El cotizador web calcula los precios únicamente a partir de estas <strong>Variables Globales</strong> y la configuración de cada servicio (las antiguas reglas de precios base ya no se usan en la tienda pública).
           </p>
@@ -451,14 +456,13 @@ function TabVariablesGlobales() {
                 Nombre o clave de la nueva variable
               </span>
               <input
-                autoFocus
-                value={newVarLabel}
+                  value={newVarLabel}
                 onChange={(e) => setNewVarLabel(e.target.value)}
                 placeholder="Ej: Comisión diseñador, Costo envío base"
                 className={`mt-1 ${inputCls}`}
               />
             </label>
-            <Button type="submit" size="sm" className="rounded-full bg-[var(--brand-teal-deep)] text-white font-bold">
+            <Button type="submit" size="sm" className="rounded-full bg-secondary text-primary-foreground font-bold">
               Agregar
             </Button>
             <Button
@@ -546,32 +550,32 @@ function TabVariablesGlobales() {
               <div className="sm:col-span-2 flex justify-end pt-5">
                 {confirmDeleteKey === v.key ? (
                   <div className="flex items-center gap-1">
-                    <button
+                    <Button variant="ghost"
                       type="button"
                       onClick={() => handleDeleteCustomVar(v.key)}
-                      className="rounded-lg bg-red-600 px-2 py-1 text-xs font-bold text-white hover:bg-red-700"
+                      className="rounded-lg bg-destructive px-2 py-1 text-xs font-bold text-primary-foreground hover:bg-destructive/90"
                     >
                       Confirmar
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="ghost"
                       type="button"
                       onClick={() => setConfirmDeleteKey(null)}
                       className="rounded-lg border border-border p-1 text-muted-foreground hover:bg-muted"
                       aria-label="Cancelar eliminación"
                     >
                       <X className="h-3.5 w-3.5" />
-                    </button>
+                    </Button>
                   </div>
                 ) : (
-                  <button
+                  <Button variant="ghost"
                     type="button"
                     onClick={() => setConfirmDeleteKey(v.key)}
-                    className="rounded-lg p-2 text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                    className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                     title="Eliminar variable"
                     aria-label={`Eliminar variable ${v.label || v.key}`}
                   >
                     <Trash2 className="h-4 w-4" />
-                  </button>
+                  </Button>
                 )}
               </div>
 
@@ -593,18 +597,11 @@ function TabVariablesGlobales() {
 
               <div className="sm:col-span-12 flex flex-wrap items-center gap-4 text-xs">
                 <label className="inline-flex items-center gap-2 font-semibold cursor-pointer">
-                  <Switch
-                    checked={v.show_in_breakdown}
-                    onCheckedChange={(checked) => {
-                      const next = [...draft.custom_vars];
-                      next[idx] = { ...v, show_in_breakdown: checked };
-                      setDraft({ ...draft, custom_vars: next });
-                    }}
-                  />
-                  Mostrar en desglose al cliente
+                  <Info className="size-4" /> Costos internos privados
                 </label>
 
                 <input
+                  aria-label={`Nota interna de ${v.label || v.key}`}
                   value={v.help || ""}
                   onChange={(e) => {
                     const next = [...draft.custom_vars];
@@ -627,7 +624,7 @@ function TabVariablesGlobales() {
           type="button"
           onClick={save}
           disabled={saving}
-          className="bg-[var(--brand-wine)] text-white font-bold rounded-full"
+          className="bg-accent text-primary-foreground font-bold rounded-full"
         >
           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
           Guardar variables globales
@@ -769,7 +766,7 @@ function TabTextosPlantillas() {
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="bg-[var(--brand-wine)] text-white font-bold rounded-full"
+          className="bg-accent text-primary-foreground font-bold rounded-full"
         >
           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
           Guardar Textos del Cotizador
@@ -871,6 +868,9 @@ function ServiceCard({
   }
 
   async function save() {
+    if (!draft.name.trim()) { toast.error("Escribe el nombre del servicio"); return; }
+    const tiers = [...(draft.volume_tiers ?? [])].sort((a,b) => a.min_qty - b.min_qty);
+    if (tiers.some((t,i) => t.min_qty < 1 || (t.max_qty !== null && t.max_qty < t.min_qty) || t.discount_percentage < 0 || t.discount_percentage > 100 || (i > 0 && (tiers[i-1]?.max_qty === null || t.min_qty <= (tiers[i-1]?.max_qty ?? 0))))) { toast.error("Revisa los rangos y descuentos: no pueden superponerse"); return; }
     setSaving(true);
     const { error } = await supabase
       .from("quoter_services")
@@ -977,7 +977,7 @@ function ServiceCard({
   return (
     <section ref={setNodeRef} style={style} className="rounded-3xl border border-border bg-card shadow-xs">
       <div className="flex flex-wrap items-center gap-3 p-5">
-        <button
+        <Button variant="ghost"
           type="button"
           {...attributes}
           {...listeners}
@@ -986,13 +986,13 @@ function ServiceCard({
           aria-label={`Reordenar ${service.name}`}
         >
           <GripVertical className="h-5 w-5" />
-        </button>
+        </Button>
 
-        <button
+        <Button variant="ghost"
           type="button"
           onClick={onToggle}
           aria-expanded={open}
-          className="flex flex-1 flex-wrap items-center gap-2 text-left"
+          className="flex min-w-0 flex-1 flex-wrap items-center justify-start gap-2 text-left hover:bg-muted hover:text-foreground"
         >
           {open ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
           <span className="text-lg font-black">{service.name}</span>
@@ -1002,7 +1002,7 @@ function ServiceCard({
           <span
             className={`rounded-md px-2 py-0.5 text-[11px] font-bold ${
               service.has_calculator !== false
-                ? "bg-teal-50 text-[var(--brand-teal-deep)] border border-teal-200"
+                ? "bg-teal-50 text-secondary border border-teal-200"
                 : "bg-amber-50 text-amber-800 border border-amber-200"
             }`}
           >
@@ -1013,9 +1013,9 @@ function ServiceCard({
               Oculto
             </span>
           )}
-        </button>
+        </Button>
 
-        <button
+        <Button variant="ghost"
           type="button"
           onClick={toggleActive}
           className="rounded-lg p-2 text-muted-foreground hover:bg-muted"
@@ -1023,41 +1023,41 @@ function ServiceCard({
           aria-label={service.is_active ? `Ocultar ${service.name}` : `Mostrar ${service.name}`}
         >
           {service.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-        </button>
+        </Button>
 
         {confirmDelete ? (
           <div className="flex items-center gap-1.5">
-            <button
+            <Button variant="ghost"
               type="button"
               onClick={removeService}
-              className="rounded-lg bg-red-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-red-700"
+              className="rounded-lg bg-destructive px-2.5 py-1 text-xs font-bold text-primary-foreground hover:bg-destructive/90"
             >
               Confirmar
-            </button>
-            <button
+            </Button>
+            <Button variant="ghost"
               type="button"
               onClick={() => setConfirmDelete(false)}
               className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-muted"
             >
               Cancelar
-            </button>
+            </Button>
           </div>
         ) : (
-          <button
+          <Button variant="ghost"
             type="button"
             onClick={() => setConfirmDelete(true)}
-            className="rounded-lg p-2 text-muted-foreground hover:bg-red-50 hover:text-red-600"
+            className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
             title="Eliminar servicio"
             aria-label={`Eliminar ${service.name}`}
           >
             <Trash2 className="h-4 w-4" />
-          </button>
+          </Button>
         )}
       </div>
 
       {open && (
-        <div className="grid gap-6 border-t border-border p-5 lg:grid-cols-[1.5fr_1fr]">
-          <div className="space-y-6">
+        <div className="grid gap-6 border-t border-border p-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(280px,1fr)]">
+          <div className="min-w-0 space-y-6">
             {/* Modo de operación: Calculadora interactiva vs WhatsApp Directo */}
             <div
               className={`rounded-2xl border p-4 space-y-3 transition ${
@@ -1210,6 +1210,7 @@ function ServiceCard({
               <label className="flex items-center gap-2.5 text-xs font-semibold cursor-pointer">
                 <Switch
                   checked={draft.allow_quantity}
+                  aria-label="Permitir selector de cantidad"
                   onCheckedChange={(checked) => set("allow_quantity", checked)}
                 />
                 <span>Permitir selector de cantidad</span>
@@ -1217,19 +1218,38 @@ function ServiceCard({
               <label className="flex items-center gap-2.5 text-xs font-semibold cursor-pointer">
                 <Switch
                   checked={draft.allow_file}
+                  aria-label="Permitir subir archivo"
                   onCheckedChange={(checked) => set("allow_file", checked)}
                 />
                 <span>Permitir subir archivo (.STL/.OBJ/imagen)</span>
               </label>
-              <label className="flex items-center gap-2.5 text-xs font-semibold cursor-pointer">
-                <Switch
-                  checked={Boolean(draft.uses_global_vars)}
-                  onCheckedChange={(checked) => set("uses_global_vars", checked)}
-                />
-                <span>Usa variables globales</span>
-              </label>
+
             </div>
 
+            <div className="grid gap-4 border-t border-border pt-4 sm:grid-cols-2">
+              <label className="flex min-h-11 items-center gap-3 text-sm font-semibold">
+                <Switch checked={Boolean(draft.requires_approval)} aria-label="Revisión obligatoria" onCheckedChange={(checked) => set("requires_approval", checked)} /> Revisión obligatoria
+              </label>
+              <L label="Revisar desde este total (COP)"><Input type="number" min={0} value={draft.approval_threshold_cop ?? 0} onChange={(e) => set("approval_threshold_cop", Number(e.target.value))} /></L>
+            </div>
+            <details className="border-t border-border pt-4">
+              <summary className="min-h-11 cursor-pointer font-semibold focus-visible:outline-2 focus-visible:outline-ring">Descuentos por cantidad</summary>
+              <div className="space-y-3">
+                {(draft.volume_tiers ?? []).map((tier, index) => {
+                  const update = (key: keyof VolumeDiscountTier, value: number | null) => set("volume_tiers", (draft.volume_tiers ?? []).map((t,i) => i === index ? { ...t, [key]: value } : t));
+                  return <div key={index} className="grid gap-2 sm:grid-cols-2">
+                    <L label="Desde cantidad"><Input type="number" min={1} value={tier.min_qty} onChange={(e) => update("min_qty", Number(e.target.value))} /></L>
+                    <L label="Hasta cantidad (vacío: sin límite)"><Input type="number" min={tier.min_qty} value={tier.max_qty ?? ""} onChange={(e) => update("max_qty", e.target.value ? Number(e.target.value) : null)} /></L>
+                    <L label="Descuento (%)"><Input type="number" min={0} max={100} value={tier.discount_percentage} onChange={(e) => update("discount_percentage", Number(e.target.value))} /></L>
+                    <L label="Precio unitario fijo (opcional)"><Input type="number" min={0} value={tier.fixed_unit_price_cop ?? ""} onChange={(e) => update("fixed_unit_price_cop", e.target.value ? Number(e.target.value) : null)} /></L>
+                    <Button variant="outline" onClick={() => set("volume_tiers", draft.volume_tiers?.filter((_,i) => i !== index))}><Trash2 /> Eliminar rango</Button>
+                  </div>;
+                })}
+                <Button variant="outline" onClick={() => set("volume_tiers", [...(draft.volume_tiers ?? []), { min_qty: 1, max_qty: null, discount_percentage: 0 }])}><Plus /> Agregar rango</Button>
+              </div>
+            </details>
+            <details className="border-t border-border pt-4">
+              <summary className="min-h-11 cursor-pointer font-semibold focus-visible:outline-2 focus-visible:outline-ring">Fórmula avanzada</summary>
             <FormulaEditor
               value={draft.formula ?? ""}
               onChange={(val) => set("formula", val)}
@@ -1238,16 +1258,17 @@ function ServiceCard({
               placeholder="Ej: (peso_gramos * fdm_gram_cost) + base_price"
             />
 
-            <div className="flex flex-wrap items-center gap-2">
-              <button
+            </details>
+            <div className="sticky bottom-0 z-10 flex flex-wrap items-center gap-2 border-t border-border bg-background py-3">
+              <Button variant="ghost"
                 type="button"
                 onClick={save}
                 disabled={saving}
-                className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-wine)] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60 shadow-sm hover:opacity-90"
+                className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-60 shadow-sm hover:opacity-90"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Guardar configuración del servicio
-              </button>
+              </Button>
             </div>
 
             {/* Preguntas del servicio */}
@@ -1260,13 +1281,13 @@ function ServiceCard({
                   </p>
                 </div>
                 {!addingField && (
-                  <button
+                  <Button variant="ghost"
                     type="button"
                     onClick={() => setAddingField(true)}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-[var(--brand-teal-deep)] px-3.5 py-2 text-xs font-bold text-white hover:opacity-90 whitespace-nowrap"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3.5 py-2 text-xs font-bold text-primary-foreground hover:opacity-90 whitespace-nowrap"
                   >
                     <Plus className="h-3.5 w-3.5" /> Agregar pregunta
-                  </button>
+                  </Button>
                 )}
               </div>
 
@@ -1280,7 +1301,6 @@ function ServiceCard({
                       Etiqueta de la pregunta
                     </span>
                     <input
-                      autoFocus
                       value={newFieldLabel}
                       onChange={(e) => setNewFieldLabel(e.target.value)}
                       placeholder="Ej: Peso estimado, Material, Acabado"
@@ -1308,7 +1328,7 @@ function ServiceCard({
                       type="submit"
                       size="sm"
                       disabled={addingFieldBusy}
-                      className="rounded-full bg-[var(--brand-teal-deep)] text-white font-bold"
+                      className="rounded-full bg-secondary text-primary-foreground font-bold"
                     >
                       {addingFieldBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Crear"}
                     </Button>
@@ -1343,6 +1363,7 @@ function ServiceCard({
                         total={service.fields.length}
                         siblings={service.fields}
                         quotingVars={quotingVars}
+                        onDraftChange={(next) => setDraft((prev) => ({ ...prev, fields: prev.fields.map((item) => item.id === next.id ? next : item) }))}
                         onChanged={onChanged}
                         onMsg={onMsg}
                       />

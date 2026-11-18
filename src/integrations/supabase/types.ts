@@ -983,6 +983,7 @@ export type Database = {
         Row: {
           created_at: string
           default_value: string
+          formula: string | null
           help: string
           id: string
           input_type: string
@@ -991,6 +992,8 @@ export type Database = {
           key: string
           label: string
           max_value: number
+          media_type: string
+          media_url: string | null
           min_value: number
           multiplier: number
           options: Json
@@ -1005,6 +1008,7 @@ export type Database = {
         Insert: {
           created_at?: string
           default_value?: string
+          formula?: string | null
           help?: string
           id?: string
           input_type?: string
@@ -1013,6 +1017,8 @@ export type Database = {
           key: string
           label: string
           max_value?: number
+          media_type?: string
+          media_url?: string | null
           min_value?: number
           multiplier?: number
           options?: Json
@@ -1027,6 +1033,7 @@ export type Database = {
         Update: {
           created_at?: string
           default_value?: string
+          formula?: string | null
           help?: string
           id?: string
           input_type?: string
@@ -1035,6 +1042,8 @@ export type Database = {
           key?: string
           label?: string
           max_value?: number
+          media_type?: string
+          media_url?: string | null
           min_value?: number
           multiplier?: number
           options?: Json
@@ -1060,59 +1069,86 @@ export type Database = {
         Row: {
           allow_file: boolean
           allow_quantity: boolean
+          approval_threshold_cop: number
           base_price_cop: number
           created_at: string
           description: string
+          formula: string | null
           gastos_extra_cop: number
+          has_calculator: boolean
           icon: string
           id: string
           is_active: boolean
           margin_percent: number
           min_price_cop: number
           name: string
+          price_display: string
+          pricing_mode: string
+          requires_approval: boolean
           site_anchor: string
           slug: string
           sort_order: number
           tagline: string
           updated_at: string
+          uses_global_vars: boolean
+          volume_tiers: Json
+          whatsapp_custom_message: string | null
         }
         Insert: {
           allow_file?: boolean
           allow_quantity?: boolean
+          approval_threshold_cop?: number
           base_price_cop?: number
           created_at?: string
           description?: string
+          formula?: string | null
           gastos_extra_cop?: number
+          has_calculator?: boolean
           icon?: string
           id?: string
           is_active?: boolean
           margin_percent?: number
           min_price_cop?: number
           name: string
+          price_display?: string
+          pricing_mode?: string
+          requires_approval?: boolean
           site_anchor?: string
           slug: string
           sort_order?: number
           tagline?: string
           updated_at?: string
+          uses_global_vars?: boolean
+          volume_tiers?: Json
+          whatsapp_custom_message?: string | null
         }
         Update: {
           allow_file?: boolean
           allow_quantity?: boolean
+          approval_threshold_cop?: number
           base_price_cop?: number
           created_at?: string
           description?: string
+          formula?: string | null
           gastos_extra_cop?: number
+          has_calculator?: boolean
           icon?: string
           id?: string
           is_active?: boolean
           margin_percent?: number
           min_price_cop?: number
           name?: string
+          price_display?: string
+          pricing_mode?: string
+          requires_approval?: boolean
           site_anchor?: string
           slug?: string
           sort_order?: number
           tagline?: string
           updated_at?: string
+          uses_global_vars?: boolean
+          volume_tiers?: Json
+          whatsapp_custom_message?: string | null
         }
         Relationships: []
       }
@@ -1245,49 +1281,75 @@ export type Database = {
         Row: {
           bullets: Json
           color: string
+          contact_mode: string
           created_at: string
+          custom_buttons: Json
           icon: string
           id: string
           image_url: string | null
           is_active: boolean
           kiara_tip: string
           lead: string
+          media_type: string
+          quoter_service_id: string | null
+          requires_file: boolean
           slug: string
           sort_order: number
           title: string
           updated_at: string
+          whatsapp_template: string | null
         }
         Insert: {
           bullets?: Json
           color?: string
+          contact_mode?: string
           created_at?: string
+          custom_buttons?: Json
           icon?: string
           id?: string
           image_url?: string | null
           is_active?: boolean
           kiara_tip?: string
           lead?: string
+          media_type?: string
+          quoter_service_id?: string | null
+          requires_file?: boolean
           slug: string
           sort_order?: number
           title: string
           updated_at?: string
+          whatsapp_template?: string | null
         }
         Update: {
           bullets?: Json
           color?: string
+          contact_mode?: string
           created_at?: string
+          custom_buttons?: Json
           icon?: string
           id?: string
           image_url?: string | null
           is_active?: boolean
           kiara_tip?: string
           lead?: string
+          media_type?: string
+          quoter_service_id?: string | null
+          requires_file?: boolean
           slug?: string
           sort_order?: number
           title?: string
           updated_at?: string
+          whatsapp_template?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "site_services_quoter_service_id_fkey"
+            columns: ["quoter_service_id"]
+            isOneToOne: false
+            referencedRelation: "quoter_services"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

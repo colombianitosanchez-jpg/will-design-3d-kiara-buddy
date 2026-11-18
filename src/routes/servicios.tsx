@@ -55,7 +55,9 @@ export const Route = createFileRoute("/servicios")({
       { name: "description", content: seo.description },
       { property: "og:title", content: seo.title },
       { property: "og:description", content: seo.description },
-      { property: "og:url", content: "https://willdesign3d.com/servicios" },
+      { property: "og:url", content: "https://will-design-3d.lovable.app/servicios" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ];
 
     if (seo.image) {
@@ -67,7 +69,7 @@ export const Route = createFileRoute("/servicios")({
 
     return {
       meta: metaTags,
-      links: [{ rel: "canonical", href: "https://willdesign3d.com/servicios" }],
+      links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/servicios" }],
     };
   },
   component: ServiciosPage,
@@ -190,6 +192,7 @@ function ServiciosPage() {
           color: s.color || "orange",
           image_url: s.image_url,
           media_type: s.media_type || "image",
+          contact_mode: s.contact_mode,
           quoter_service_id: s.quoter_service_id,
           whatsapp_template: s.whatsapp_template,
           requires_file: Boolean(s.requires_file),
@@ -248,6 +251,7 @@ function ServiciosPage() {
             const primaryAction = resolveServicePrimaryAction({
               serviceTitle: s.title,
               serviceSlug: s.slug || s.id,
+              contactMode: s.contact_mode,
               quoterServiceId: s.quoter_service_id,
               whatsappTemplate: s.whatsapp_template,
               quoterServices: quoterServices ?? [],

@@ -1,0 +1,1 @@
+ALTER TABLE public.site_services ADD COLUMN IF NOT EXISTS contact_mode text NOT NULL DEFAULT 'auto';

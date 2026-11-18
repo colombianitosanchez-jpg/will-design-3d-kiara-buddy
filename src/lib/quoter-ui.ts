@@ -100,12 +100,11 @@ export function findLinkedQuoterService(
   quoterServices: QuoterService[],
 ): QuoterService | null {
   if (quoterServiceId) {
-    const byId = quoterServices.find((q) => q.id === quoterServiceId);
-    if (byId) return byId;
+    return quoterServices.find((q) => q.id === quoterServiceId && q.is_active) ?? null;
   }
   return (
     quoterServices.find(
-      (q) => q.slug === serviceSlugOrAnchor || q.site_anchor === serviceSlugOrAnchor,
+      (q) => q.is_active && (q.slug === serviceSlugOrAnchor || q.site_anchor === serviceSlugOrAnchor),
     ) ?? null
   );
 }
@@ -115,6 +114,7 @@ export function resolveServicePrimaryAction(params: {
   serviceSlug: string;
   quoterServiceId?: string | null;
   whatsappTemplate?: string | null;
+  contactMode?: string;
   quoterServices: QuoterService[];
   businessName?: string;
 }): ServicePrimaryAction {
@@ -123,7 +123,7 @@ export function resolveServicePrimaryAction(params: {
     params.quoterServiceId,
     params.quoterServices,
   );
-  const hasCalc = linked ? linked.has_calculator !== false : false;
+  const hasCalc = params.contactMode !== "whatsapp" && linked ? linked.has_calculator !== false : false;
   if (linked && hasCalc) {
     return {
       kind: "quoter",

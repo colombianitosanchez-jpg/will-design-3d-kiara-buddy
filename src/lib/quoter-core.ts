@@ -1,3 +1,5 @@
+import jsep from "jsep";
+
 // Motor del Cotizador (puro): tipos, normalización y matemática AST.
 // No importa Supabase, así puede usarse igual en el navegador y en el servidor.
 
@@ -125,40 +127,31 @@ export function evaluateFormula(
   let expr = expression.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, "$1").trim();
   if (!expr) return 0;
 
-  // Sustituir identificadores del contexto (ordenados por longitud descendente para evitar colisiones)
-  const keys = Object.keys(context).sort((a, b) => b.length - a.length);
-  for (const k of keys) {
-    if (!k) continue;
-    const val = Number(context[k]);
-    const numVal = Number.isFinite(val) ? val : 0;
-    const regex = new RegExp(`\\b${k}\\b`, "g");
-    expr = expr.replace(regex, String(numVal));
-  }
-
-  // Eliminar espacios en blanco
-  expr = expr.replace(/\s+/g, "");
-
-  // Reemplazar identificadores no resueltos por 0
-  expr = expr.replace(/\b[a-zA-Z_][a-zA-Z0-9_]*\b/g, "0");
-
-  // Validar caracteres permitidos: dígitos, operadores, paréntesis, puntos decimales
-  if (!/^[0-9+\-*/().%^ ]+$/.test(expr)) {
-    return 0;
-  }
-
   try {
-    // Reemplazar operador exponente ^ por **
-    const jsExpr = expr.replace(/\^/g, "**");
-
-    // Prevenir división directa por cero
-    if (/\/(0+(\.0+)?)(?![0-9])/.test(jsExpr)) {
-      return 0;
-    }
-
-    const fn = new Function(`"use strict"; return (${jsExpr});`);
-    const val = Number(fn());
-    if (!Number.isFinite(val) || Number.isNaN(val)) return 0;
-    return val;
+    type Node = { type: string; value?: unknown; name?: string; operator?: string; argument?: Node; left?: Node; right?: Node };
+    const visit = (node: Node): number => {
+      if (node.type === "Literal" && typeof node.value === "number") return node.value;
+      if (node.type === "Identifier") return num(context[node.name ?? ""]);
+      if (node.type === "UnaryExpression" && node.argument) {
+        const value = visit(node.argument);
+        if (node.operator === "-") return -value;
+        if (node.operator === "+") return value;
+      }
+      if (node.type === "BinaryExpression" && node.left && node.right) {
+        const a = visit(node.left), b = visit(node.right);
+        switch (node.operator) {
+          case "+": return a + b;
+          case "-": return a - b;
+          case "*": return a * b;
+          case "/": return b === 0 ? NaN : a / b;
+          case "%": return b === 0 ? NaN : a % b;
+          case "^": case "**": return Math.pow(a, b);
+        }
+      }
+      throw new Error("Expresión no permitida");
+    };
+    const value = visit(jsep(expr) as Node);
+    return Number.isFinite(value) ? value : 0;
   } catch {
     return 0;
   }
@@ -269,6 +262,43 @@ export function defaultValuesFor(service: QuoterService): QuoterValues {
   return out;
 }
 
+/** Canonical values used by simulation, public pricing and checkout. */
+export function normalizeQuoteValues(service: QuoterService, input: QuoterValues): QuoterValues {
+  const defaults = defaultValuesFor(service);
+  const out: QuoterValues = {};
+  for (const f of service.fields.filter((f) => f.is_active)) {
+    const raw = input[f.key] ?? defaults[f.key] ?? "";
+    if (f.input_type === "slider" || f.input_type === "number") {
+      const v = Math.min(f.max_value, Math.max(f.min_value, num(raw, f.min_value)));
+      const step = Math.max(0.000001, f.step_value);
+      out[f.key] = String(Math.min(f.max_value, Number((f.min_value + Math.round((v - f.min_value) / step) * step).toFixed(8))));
+    } else if (f.input_type === "select") {
+      out[f.key] = f.options.some((o) => o.value === raw) ? raw : f.options[0]?.value ?? "";
+    } else if (f.input_type === "toggle") out[f.key] = isOn(raw) ? "si" : "no";
+    else out[f.key] = raw.trim().slice(0, 300);
+  }
+  return out;
+}
+
+export function quoteAnswerErrors(service: QuoterService, values: QuoterValues): string[] {
+  return service.fields.filter((f) => f.is_active).flatMap((f) => {
+    const raw = values[f.key] ?? "";
+    if (f.is_required && !raw.trim()) return [`Completa ${f.label}`];
+    if ((f.input_type === "number" || f.input_type === "slider") && (!Number.isFinite(Number(raw)) || Number(raw) < f.min_value || Number(raw) > f.max_value)) return [`${f.label}: elige un valor entre ${f.min_value} y ${f.max_value}`];
+    if (f.input_type === "select" && !f.options.some((o) => o.value === raw)) return [`Selecciona una opción válida para ${f.label}`];
+    return [];
+  });
+}
+
+export function fieldConfigurationError(field: QuoterField, siblings: QuoterField[]): string | null {
+  if (!field.label.trim() || !/^[a-z][a-z0-9_]*$/.test(field.key)) return "Escribe una etiqueta y una clave válida";
+  if (siblings.some((f) => f.id !== field.id && f.key === field.key)) return "La clave ya pertenece a otra pregunta";
+  if ((field.input_type === "slider" || field.input_type === "number") && (field.max_value < field.min_value || field.step_value <= 0)) return "El máximo debe ser mayor o igual al mínimo y el paso debe ser positivo";
+  if (field.input_type === "select" && (!field.options.length || field.options.some((o) => !o.value.trim() || !o.label.trim()) || new Set(field.options.map((o) => o.value)).size !== field.options.length)) return "Las opciones necesitan títulos y valores únicos";
+  if (field.default_value && quoteAnswerErrors({ fields: [{ ...field, is_required: false }] } as QuoterService, { [field.key]: field.default_value }).length) return "El valor inicial no es válido para esta pregunta";
+  return null;
+}
+
 export type QuoterLine = { label: string; detail: string; amount: number };
 
 export type QuoterResult = {
@@ -303,7 +333,7 @@ export function unitCostFor(field: QuoterField, vars?: QuoterVars, context?: Rec
   if (src === "fixed" || !vars) return num(field.price_per_unit_cop);
 
   // Check in standard vars
-  let base = num((vars as unknown as Record<string, unknown>)[src], 0);
+  let base = context && src in context ? num(context[src]) : num((vars as unknown as Record<string, unknown>)[src], 0);
 
   // Check in custom vars
   if (base === 0 && vars.custom_vars) {
@@ -313,7 +343,7 @@ export function unitCostFor(field: QuoterField, vars?: QuoterVars, context?: Rec
     }
   }
 
-  if (base === 0) base = num(field.price_per_unit_cop);
+  if (!(context && src in context) && !(src in vars) && !vars.custom_vars?.some((v) => v.key === src)) base = num(field.price_per_unit_cop);
 
   const failure = num(vars.failure_rate_percentage);
   return base * (1 + failure / 100);
@@ -328,7 +358,8 @@ export function computeQuote(
 ): QuoterResult {
   const lines: QuoterLine[] = [];
   const answers: { label: string; value: string }[] = [];
-  const qty = Math.max(1, Math.round(num(quantity, 1)));
+  const qty = service.allow_quantity ? Math.max(1, Math.min(10000, Math.round(num(quantity, 1)))) : 1;
+  values = normalizeQuoteValues(service, values);
 
   // Construcción del contexto numérico completo para fórmulas
   const context: Record<string, number> = {
@@ -337,6 +368,10 @@ export function computeQuote(
     base_price: num(service.base_price_cop),
     precio_base: num(service.base_price_cop),
   };
+
+  for (const f of service.fields.filter((f) => f.is_active)) {
+    context[f.key] = f.input_type === "toggle" ? (isOn(values[f.key]) ? 1 : 0) : num(values[f.key]);
+  }
 
   // Agregar variables globales estándar al contexto
   if (vars) {
@@ -356,31 +391,6 @@ export function computeQuote(
     }
   }
 
-  // Agregar entradas numéricas del cliente al contexto
-  for (const f of service.fields) {
-    const raw = values[f.key] ?? "";
-    const n = num(raw);
-    context[f.key] = n;
-  }
-
-  // Si el servicio es de precio fijo
-  if (service.pricing_mode === "fixed") {
-    const unit = num(service.base_price_cop);
-    const total = round100(unit * qty);
-    return {
-      lines: [{ label: service.name, detail: `${qty} unidad(es)`, amount: total }],
-      multiplier: 1,
-      subtotal_cop: total,
-      margin_cop: 0,
-      unit_price_cop: unit,
-      quantity: qty,
-      total_cop: total,
-      min_applied: false,
-      requires_approval: false,
-      answers,
-    };
-  }
-
   let add = num(service.base_price_cop);
   let multiplier = 1;
 
@@ -392,7 +402,7 @@ export function computeQuote(
 
     if (f.input_type === "slider" || f.input_type === "number") {
       const v = num(raw);
-      const unitPrice = unitCostFor(f, vars, context);
+      const unitPrice = service.pricing_mode === "fixed" ? 0 : unitCostFor(f, vars, context);
       const amount = f.formula ? unitPrice : v * unitPrice;
 
       answers.push({ label: f.label, value: `${v}${f.unit ? ` ${f.unit}` : ""}` });
@@ -400,7 +410,7 @@ export function computeQuote(
         add += amount;
         lines.push({ label: f.label, detail: `${v}${f.unit ? ` ${f.unit}` : ""}`, amount });
       }
-      if (f.multiplier !== 1) multiplier *= f.multiplier;
+      if (service.pricing_mode !== "fixed" && f.multiplier !== 1) multiplier *= f.multiplier;
       continue;
     }
 
@@ -408,11 +418,11 @@ export function computeQuote(
       const opt = f.options.find((o) => o.value === raw) ?? null;
       if (!opt) continue;
       answers.push({ label: f.label, value: opt.label });
-      if (opt.add_cop) {
+      if (service.pricing_mode !== "fixed" && opt.add_cop) {
         add += opt.add_cop;
         lines.push({ label: f.label, detail: opt.label, amount: opt.add_cop });
       }
-      if (opt.multiplier && opt.multiplier !== 1) multiplier *= opt.multiplier;
+      if (service.pricing_mode !== "fixed" && opt.multiplier && opt.multiplier !== 1) multiplier *= opt.multiplier;
       continue;
     }
 
@@ -421,11 +431,11 @@ export function computeQuote(
       const opt = f.options[0];
       answers.push({ label: f.label, value: on ? (opt?.label ?? "Sí") : "No" });
       if (on && opt) {
-        if (opt.add_cop) {
+        if (service.pricing_mode !== "fixed" && opt.add_cop) {
           add += opt.add_cop;
           lines.push({ label: f.label, detail: opt.label, amount: opt.add_cop });
         }
-        if (opt.multiplier && opt.multiplier !== 1) multiplier *= opt.multiplier;
+        if (service.pricing_mode !== "fixed" && opt.multiplier && opt.multiplier !== 1) multiplier *= opt.multiplier;
       }
       continue;
     }
@@ -434,7 +444,7 @@ export function computeQuote(
   }
 
   // Evaluación de la Master Formula si el servicio tiene una definida
-  if (service.formula) {
+  if (service.formula && service.pricing_mode !== "fixed") {
     const computedMaster = evaluateFormula(service.formula, context);
     if (computedMaster > 0) {
       add = computedMaster;
@@ -444,7 +454,7 @@ export function computeQuote(
   }
 
   const subtotal = add * multiplier;
-  const margin = subtotal * (num(service.margin_percent) / 100);
+  const margin = service.pricing_mode === "fixed" ? 0 : subtotal * (num(service.margin_percent) / 100);
   const withMargin = subtotal + margin;
   const min = num(service.min_price_cop);
   const extra = num(service.gastos_extra_cop);
@@ -478,7 +488,8 @@ export function computeQuote(
     }
   }
 
-  const total = round100(unit * qty);
+  unit = Math.max(0, round100(unit));
+  const total = unit * qty;
 
   const reqApproval = Boolean(
     service.requires_approval ||

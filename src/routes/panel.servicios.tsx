@@ -23,6 +23,9 @@ import {
   AlertTriangle,
   RefreshCw,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { findLinkedQuoterService } from "@/lib/quoter-ui";
 import { quoterServicesQuery } from "@/lib/quoter";
 import { ProductButtonsEditor } from "@/components/ProductButtonsEditor";
 import { MediaDropZone } from "@/components/MediaDropZone";
@@ -47,6 +50,15 @@ import { CSS } from "@dnd-kit/utilities";
 
 export const Route = createFileRoute("/panel/servicios")({
   ssr: false,
+  head: () => ({ meta: [
+    { title: "Servicios web · Panel Will Design 3D" },
+    { name: "description", content: "Administración de servicios y sus cotizadores en Will Design 3D." },
+    { property: "og:title", content: "Servicios web · Panel Will Design 3D" },
+    { property: "og:description", content: "Presentación y contacto de los servicios del taller." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+    { name: "robots", content: "noindex, nofollow" },
+  ] }),
   component: ServiciosPanel,
 });
 
@@ -59,6 +71,7 @@ export type SiteServiceItem = {
   color: string;
   image_url: string | null;
   media_type: "image" | "gif" | "video";
+  contact_mode?: string;
   quoter_service_id: string | null;
   whatsapp_template: string | null;
   requires_file: boolean;
@@ -221,6 +234,7 @@ function mapRowToSiteService(item: any): SiteServiceItem {
     color: item.color || "orange",
     image_url: item.image_url || null,
     media_type: (item.media_type as any) || "image",
+    contact_mode: item.contact_mode || "auto",
     quoter_service_id: item.quoter_service_id || null,
     whatsapp_template: item.whatsapp_template || null,
     requires_file: Boolean(item.requires_file),
@@ -315,6 +329,7 @@ function ServiciosPanel() {
   }
 
   async function handleSeedDefaults() {
+    if (services.length || seeding) return;
     setSeeding(true);
     try {
       const listToInsert = DEFAULT_SITE_SERVICES.map((s, idx) => ({
@@ -366,6 +381,7 @@ function ServiciosPanel() {
         color: updated.color,
         image_url: updated.image_url || null,
         media_type: updated.media_type,
+        contact_mode: updated.contact_mode || "auto",
         quoter_service_id: updated.quoter_service_id || null,
         whatsapp_template: updated.whatsapp_template || null,
         requires_file: updated.requires_file,
@@ -470,7 +486,7 @@ function ServiciosPanel() {
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="quoter-workspace p-4 sm:p-6 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-black">Gestión de Servicios 3D</h1>
@@ -478,13 +494,13 @@ function ServiciosPanel() {
             Crea, edita, oculta u ordena servicios. Vincula cada servicio a su cotizador o configura mensajes de WhatsApp, archivos requeridos y botones personalizados.
           </p>
         </div>
-        <button
+        <Button variant="ghost"
           type="button"
           onClick={handleCreateNew}
-          className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-orange)] px-5 py-2.5 text-sm font-bold text-white hover:opacity-90 shadow whitespace-nowrap"
+          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 shadow whitespace-nowrap"
         >
           <Plus className="h-4 w-4" /> Crear nuevo servicio
-        </button>
+        </Button>
       </div>
 
       {/* Encabezado Principal de la Sección Servicios */}
@@ -498,15 +514,15 @@ function ServiciosPanel() {
               Define el título y subtítulo que se muestran en la sección de servicios del inicio y en /servicios.
             </p>
           </div>
-          <button
+          <Button variant="ghost"
             type="button"
             onClick={handleSaveHeader}
             disabled={savingHeader}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--brand-orange)] px-4 py-2 text-xs font-bold text-white hover:opacity-90 disabled:opacity-50 shadow-xs whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50 shadow-xs whitespace-nowrap"
           >
             {savingHeader ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
             Guardar Encabezado
-          </button>
+          </Button>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -516,6 +532,7 @@ function ServiciosPanel() {
             </label>
             <input
               type="text"
+              aria-label="Título de la sección servicios"
               value={sectionTitle}
               onChange={(e) => setSectionTitle(e.target.value)}
               placeholder="Ej: Nuestros servicios"
@@ -529,6 +546,7 @@ function ServiciosPanel() {
             </label>
             <input
               type="text"
+              aria-label="Subtítulo de la sección servicios"
               value={sectionSubtitle}
               onChange={(e) => setSectionSubtitle(e.target.value)}
               placeholder="Ej: Soluciones de impresión 3D, diseño y mantenimiento..."
@@ -541,19 +559,19 @@ function ServiciosPanel() {
       {loadError && (
         <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-900 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+            <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
             <div>
               <p className="font-bold">No se pudieron cargar los servicios de la base de datos</p>
               <p className="text-xs text-red-700 mt-0.5 font-mono">{loadError}</p>
             </div>
           </div>
-          <button
+          <Button variant="ghost"
             type="button"
             onClick={loadServices}
             className="inline-flex items-center gap-1.5 rounded-full border border-red-300 bg-white px-4 py-2 text-xs font-bold text-red-800 hover:bg-red-100"
           >
             <RefreshCw className="h-3.5 w-3.5" /> Reintentar
-          </button>
+          </Button>
         </div>
       )}
 
@@ -567,22 +585,22 @@ function ServiciosPanel() {
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <button
+            <Button variant="ghost"
               type="button"
               onClick={handleSeedDefaults}
               disabled={seeding}
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-teal-deep)] px-5 py-2.5 text-sm font-bold text-white hover:opacity-90 disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-60"
             >
               {seeding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
               Sembrar servicios iniciales ({DEFAULT_SITE_SERVICES.length})
-            </button>
-            <button
+            </Button>
+            <Button variant="ghost"
               type="button"
               onClick={handleCreateNew}
               className="inline-flex items-center gap-2 rounded-full border border-border px-5 py-2.5 text-sm font-semibold hover:bg-muted"
             >
               Crear servicio vacío
-            </button>
+            </Button>
           </div>
         </div>
       ) : (
@@ -641,7 +659,7 @@ function SortableServiceCard({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const assignedQuoter = quoterServices.find((q) => q.id === s.quoter_service_id || q.slug === s.slug);
+  const assignedQuoter = s.contact_mode === "whatsapp" ? null : findLinkedQuoterService(s.slug, s.quoter_service_id, quoterServices);
 
   return (
     <div
@@ -652,7 +670,7 @@ function SortableServiceCard({
       } p-4 shadow-xs`}
     >
       <div className="flex items-start gap-3 w-full sm:w-auto">
-        <button
+        <Button variant="ghost"
           type="button"
           {...attributes}
           {...listeners}
@@ -661,7 +679,7 @@ function SortableServiceCard({
           aria-label={`Reordenar ${s.title}`}
         >
           <GripVertical className="h-5 w-5" />
-        </button>
+        </Button>
 
         <div className="flex-1 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -670,7 +688,7 @@ function SortableServiceCard({
               Pos: {s.sort_order}
             </span>
             {assignedQuoter ? (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--brand-teal-deep)] bg-teal-50 dark:bg-teal-950/40 px-2 py-0.5 rounded-md border border-teal-200">
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-secondary bg-teal-50 dark:bg-teal-950/40 px-2 py-0.5 rounded-md border border-teal-200">
                 <Calculator className="h-3 w-3" /> Cotizador: {assignedQuoter.name}
               </span>
             ) : (
@@ -701,7 +719,7 @@ function SortableServiceCard({
       </div>
 
       <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-        <button
+        <Button variant="ghost"
           type="button"
           onClick={onToggleActive}
           className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
@@ -713,9 +731,9 @@ function SortableServiceCard({
         >
           {s.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
           {s.is_active ? "Visible" : "Oculto"}
-        </button>
+        </Button>
 
-        <button
+        <Button variant="ghost"
           type="button"
           onClick={onEdit}
           className="rounded-lg bg-muted p-2 text-xs font-semibold hover:bg-muted/80"
@@ -723,38 +741,38 @@ function SortableServiceCard({
           aria-label={`Editar ${s.title}`}
         >
           <Pencil className="h-4 w-4" />
-        </button>
+        </Button>
 
         {confirmDelete ? (
           <div className="flex items-center gap-1">
-            <button
+            <Button variant="ghost"
               type="button"
               onClick={() => {
                 setConfirmDelete(false);
                 onDelete();
               }}
-              className="rounded-lg bg-red-600 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-red-700"
+              className="rounded-lg bg-destructive px-2.5 py-1.5 text-xs font-bold text-primary-foreground hover:bg-destructive/90"
             >
               Confirmar
-            </button>
-            <button
+            </Button>
+            <Button variant="ghost"
               type="button"
               onClick={() => setConfirmDelete(false)}
               className="rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:bg-muted"
             >
               Cancelar
-            </button>
+            </Button>
           </div>
         ) : (
-          <button
+          <Button variant="ghost"
             type="button"
             onClick={() => setConfirmDelete(true)}
-            className="rounded-lg bg-red-50 p-2 text-xs font-semibold text-red-600 hover:bg-red-100 dark:bg-red-950/50 dark:text-red-400"
+            className="rounded-lg bg-red-50 p-2 text-xs font-semibold text-destructive hover:bg-red-100 dark:bg-red-950/50 dark:text-red-400"
             title="Eliminar servicio"
             aria-label={`Eliminar ${s.title}`}
           >
             <Trash2 className="h-4 w-4" />
-          </button>
+          </Button>
         )}
       </div>
     </div>
@@ -831,7 +849,7 @@ function SortableBulletRow({
 
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-2">
-      <button
+      <Button variant="ghost"
         type="button"
         {...attributes}
         {...listeners}
@@ -839,7 +857,7 @@ function SortableBulletRow({
         title="Arrastrar para reordenar"
       >
         <GripVertical className="h-4 w-4" />
-      </button>
+      </Button>
 
       <input
         value={text}
@@ -848,14 +866,14 @@ function SortableBulletRow({
         className={inputCls}
       />
 
-      <button
+      <Button variant="ghost"
         type="button"
         onClick={onRemove}
-        className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-red-600 shrink-0"
+        className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-destructive shrink-0"
         title="Eliminar viñeta"
       >
         <Trash2 className="h-4 w-4" />
-      </button>
+      </Button>
     </div>
   );
 }
@@ -873,13 +891,15 @@ function ServiceModal({
   onClose: () => void;
   onSave: (updated: SiteServiceItem) => void;
 }) {
-  const [form, setForm] = useState<SiteServiceItem>(service);
-  const [wantsQuoter, setWantsQuoter] = useState<boolean>(Boolean(service.quoter_service_id));
+  const [form, setForm] = useState<SiteServiceItem>({ ...service, quoter_service_id: service.quoter_service_id || findLinkedQuoterService(service.slug, service.quoter_service_id, quoterServices)?.id || null });
+  const [wantsQuoter, setWantsQuoter] = useState<boolean>(service.contact_mode !== "whatsapp" && Boolean(findLinkedQuoterService(service.slug, service.quoter_service_id, quoterServices)));
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (wantsQuoter && !form.quoter_service_id) { toast.error("Selecciona un cotizador para vincular el servicio"); return; }
     onSave({
       ...form,
+      contact_mode: wantsQuoter ? "quoter" : "whatsapp",
       quoter_service_id: wantsQuoter ? form.quoter_service_id : null,
     });
   }
@@ -888,18 +908,19 @@ function ServiceModal({
   const effectiveWaPreview = (form.whatsapp_template || "").trim() || defaultWaMsg;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4">
+    <Dialog open onOpenChange={(open) => { if (!open && !saving) onClose(); }}>
+      <DialogContent aria-describedby={undefined} className="quoter-workspace max-h-[90dvh] w-[calc(100%-2rem)] max-w-3xl overflow-y-auto">
       <form
         onSubmit={handleSubmit}
-        className="my-8 w-full max-w-2xl rounded-3xl bg-background p-6 shadow-2xl space-y-4 border border-border"
+        className="w-full min-w-0 space-y-5"
       >
         <div className="flex items-center justify-between border-b border-border pb-3">
-          <h2 className="text-xl font-black">
+          <DialogTitle className="pr-8 text-xl font-black">
             {service.id ? "Editar Servicio 3D" : "Crear Nuevo Servicio 3D"}
-          </h2>
-          <button type="button" onClick={onClose} aria-label="Cerrar modal" className="rounded-full p-2 hover:bg-muted">
+          </DialogTitle>
+          <Button variant="ghost" type="button" onClick={onClose} aria-label="Cerrar modal" className="rounded-full p-2 hover:bg-muted">
             <X className="h-5 w-5" />
-          </button>
+          </Button>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -996,6 +1017,7 @@ function ServiceModal({
                   onChange={(e) => setForm({ ...form, quoter_service_id: e.target.value || null })}
                   className={inputCls}
                 >
+                  <option value="">Selecciona un cotizador</option>
                   {quoterServices.map((q) => (
                     <option key={q.id} value={q.id}>
                       {q.name} ({q.slug})
@@ -1019,7 +1041,7 @@ function ServiceModal({
         ) : (
           <div className="rounded-2xl border-2 border-[var(--brand-orange)] bg-[color-mix(in_oklab,var(--brand-orange)_8%,white)] p-4 space-y-2.5">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-black uppercase tracking-wide text-[var(--brand-orange-deep)] flex items-center gap-1.5">
+              <span className="text-xs font-black uppercase tracking-wide text-primary flex items-center gap-1.5">
                 <MessageSquare className="h-4 w-4" />
                 Plantilla de Mensaje de WhatsApp Directo
               </span>
@@ -1028,6 +1050,7 @@ function ServiceModal({
               </span>
             </div>
             <textarea
+              aria-label="Mensaje de WhatsApp directo"
               rows={2}
               value={form.whatsapp_template || ""}
               onChange={(e) => setForm({ ...form, whatsapp_template: e.target.value })}
@@ -1103,13 +1126,13 @@ function ServiceModal({
             <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Puntos destacados (Bullets)
             </h4>
-            <button
+            <Button variant="ghost"
               type="button"
               onClick={() => setForm({ ...form, bullets: [...form.bullets, "Nuevo punto destacado"] })}
               className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary border border-primary/20 px-3 py-1 text-xs font-bold hover:bg-primary/20"
             >
               <Plus className="h-3.5 w-3.5" /> Agregar punto
-            </button>
+            </Button>
           </div>
 
           <BulletsListEditor
@@ -1139,23 +1162,24 @@ function ServiceModal({
         </div>
 
         <div className="mt-6 flex gap-3 pt-3 border-t border-border">
-          <button
+          <Button variant="ghost"
             type="submit"
             disabled={saving}
-            className="flex-1 rounded-full bg-[var(--brand-orange)] px-5 py-3 text-sm font-bold text-white hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 rounded-full bg-primary px-5 py-3 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
             Guardar servicio
-          </button>
-          <button
+          </Button>
+          <Button variant="ghost"
             type="button"
             onClick={onClose}
             className="rounded-full border border-border px-5 py-3 text-sm font-semibold hover:bg-muted"
           >
             Cancelar
-          </button>
+          </Button>
         </div>
       </form>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

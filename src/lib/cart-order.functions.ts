@@ -81,17 +81,21 @@ export const createCartOrder = createServerFn({ method: "POST" })
     // respuestas del cliente: nunca se confía en el precio enviado.
     if (serviceItems.length) {
       const { getQuoterServices, getQuotingVars } = await import("@/lib/quoter.server");
-      const { coerceAnswers, computeQuote } = await import("@/lib/quoter-core");
+      const { computeQuote, quoteAnswerErrors } = await import("@/lib/quoter-core");
       const [services, vars] = await Promise.all([getQuoterServices(), getQuotingVars()]);
       for (const item of serviceItems) {
         const svc = services.find((s) => s.slug === item.service_slug);
-        if (!svc) continue;
-        const values = coerceAnswers(svc, item.answers ?? {});
-        const quote = computeQuote(svc, values, 1, vars);
+        if (!svc || svc.has_calculator === false) throw new Error("El servicio ya no está disponible para comprar");
+        const values = item.answers ?? {};
+        const errors = quoteAnswerErrors(svc, values);
+        if (errors.length) throw new Error(errors[0]);
+        const quote = computeQuote(svc, values, item.quantity, vars);
+        if (quote.requires_approval) throw new Error(`${svc.name} requiere revisión previa. Solicita su cotización por WhatsApp.`);
+        if (quote.total_cop <= 0) throw new Error("El servicio necesita una tarifa configurada");
         lines.push({
           product_id: null,
           product_name: `Servicio: ${svc.name}`,
-          quantity: item.quantity,
+          quantity: quote.quantity,
           unit_price_cop: Math.round(quote.unit_price_cop),
         });
       }

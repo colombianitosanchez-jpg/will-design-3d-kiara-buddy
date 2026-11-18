@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowRight,
@@ -26,6 +26,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import kiaraAsset from "@/assets/kiara.asset.json";
 import { siteContentQuery, getContactInfo, waLink, buildWhatsAppQuoteMessage } from "@/lib/catalog";
 import { openExternalUrl } from "@/lib/whatsapp";
@@ -38,6 +40,7 @@ import { createQuoteRequest, createQuoteUploadUrl } from "@/lib/quotes.functions
 import {
   quoterServicesQuery,
   defaultValuesFor,
+  quoteAnswerErrors,
   formatCOP,
   isOn,
   type QuoterService,
@@ -106,7 +109,7 @@ function ParametricSlider({
     <div className="rounded-2xl border border-border bg-background/60 p-4 space-y-2.5">
       <div className="flex items-center justify-between gap-3">
         <span className="text-sm font-bold text-foreground">{label}</span>
-        <span className="inline-flex items-center rounded-lg bg-[var(--brand-teal-deep)] px-2.5 py-1 text-xs font-black text-white tabular-nums">
+        <span className="inline-flex items-center rounded-lg bg-secondary px-2.5 py-1 text-xs font-black text-primary-foreground tabular-nums">
           {clamped}
           {unitSuffix}
         </span>
@@ -117,7 +120,7 @@ function ParametricSlider({
         <div
           aria-hidden="true"
           style={{ left: `clamp(1.75rem, ${pct}%, calc(100% - 1.75rem))` }}
-          className={`pointer-events-none absolute -top-1 -translate-x-1/2 rounded-md bg-[var(--brand-wine)] px-2 py-0.5 text-[11px] font-black text-white shadow-sm tabular-nums transition-opacity duration-150 motion-reduce:transition-none ${
+          className={`pointer-events-none absolute -top-1 -translate-x-1/2 rounded-md bg-accent px-2 py-0.5 text-[11px] font-black text-primary-foreground shadow-sm tabular-nums transition-opacity duration-150 motion-reduce:transition-none ${
             dragging ? "opacity-100" : "opacity-0"
           }`}
         >
@@ -141,7 +144,7 @@ function ParametricSlider({
           style={{
             background: `linear-gradient(to right, var(--brand-orange) 0%, var(--brand-orange) ${pct}%, var(--border) ${pct}%, var(--border) 100%)`,
           }}
-          className="h-2.5 w-full cursor-pointer appearance-none rounded-full accent-[var(--brand-orange)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-orange)] focus-visible:ring-offset-2"
+          className="min-h-11 w-full cursor-pointer appearance-none rounded-full accent-[var(--brand-orange)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-orange)] focus-visible:ring-offset-2"
         />
       </div>
 
@@ -156,6 +159,10 @@ function ParametricSlider({
         </span>
       </div>
 
+      <label className="flex items-center gap-3 text-xs text-muted-foreground">
+        Valor exacto
+        <input type="number" min={min} max={max} step={step} value={clamped} aria-label={`${label}: valor exacto`} onChange={(e) => onChange(clampSliderValue(e.target.value, min, max, step))} className="min-h-11 w-28 rounded-lg border border-input bg-background px-3 text-sm text-foreground" />
+      </label>
       {help && <p className="text-xs text-muted-foreground leading-relaxed">{help}</p>}
     </div>
   );
@@ -258,7 +265,7 @@ function FieldControl({
           </div>
         )}
 
-        <div className="grid gap-2.5 sm:grid-cols-2" role="radiogroup" aria-label={field.label}>
+        <RadioGroup value={value} onValueChange={onChange} className="grid gap-2.5 sm:grid-cols-2" aria-label={field.label}>
           {field.options.map((o, idx) => {
             const active = o.value === value;
             const priceBadge = formatOptionPriceBadge(o);
@@ -271,24 +278,21 @@ function FieldControl({
 
             const checkBg =
               idx % 3 === 1
-                ? "bg-[var(--brand-teal-deep)]"
+                ? "bg-secondary"
                 : idx % 3 === 2
-                  ? "bg-[var(--brand-wine)]"
-                  : "bg-[var(--brand-orange)]";
+                  ? "bg-accent"
+                  : "bg-primary";
 
             return (
-              <button
-                type="button"
+              <label
                 key={o.value}
-                role="radio"
-                aria-checked={active}
-                onClick={() => onChange(o.value)}
-                className={`group relative flex flex-col gap-2.5 rounded-2xl border-2 p-3.5 text-left text-sm transition ${
+                className={`group has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring relative flex flex-col gap-2.5 rounded-2xl border-2 p-3.5 text-left text-sm transition ${
                   active
                     ? `${activeAccent} shadow-xs`
                     : "border-border bg-background hover:border-muted-foreground/40 hover:bg-muted/40"
                 }`}
               >
+                <RadioGroupItem value={o.value} aria-label={o.label} className="sr-only peer" />
                 {o.media?.url && (
                   <SelectOptionMedia url={o.media.url} type={o.media.type} alt={o.label} />
                 )}
@@ -302,7 +306,7 @@ function FieldControl({
                       <p className="text-xs text-muted-foreground leading-snug">{o.description}</p>
                     )}
                     {priceBadge && (
-                      <span className="mt-1 inline-block text-xs font-bold text-[var(--brand-teal-deep)] tabular-nums">
+                      <span className="mt-1 inline-block text-xs font-bold text-secondary tabular-nums">
                         {priceBadge}
                       </span>
                     )}
@@ -312,17 +316,17 @@ function FieldControl({
                     aria-hidden="true"
                     className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition ${
                       active
-                        ? `${checkBg} border-transparent text-white`
+                        ? `${checkBg} border-transparent text-primary-foreground`
                         : "border-border bg-background"
                     }`}
                   >
                     {active && <Check className="h-3 w-3 stroke-[3]" />}
                   </span>
                 </div>
-              </button>
+              </label>
             );
           })}
-        </div>
+        </RadioGroup>
 
         {field.help && <p className="text-xs text-muted-foreground">{field.help}</p>}
       </div>
@@ -350,7 +354,7 @@ function FieldControl({
           <span className="text-sm">
             <span className="font-bold text-foreground">{field.label}</span>
             {toggleBadge && (
-              <span className="ml-2 text-xs font-bold text-[var(--brand-teal-deep)] tabular-nums">
+              <span className="ml-2 text-xs font-bold text-secondary tabular-nums">
                 ({toggleBadge})
               </span>
             )}
@@ -374,6 +378,7 @@ function FieldControl({
           max={field.max_value}
           step={field.step_value || 1}
           value={value}
+          required={field.is_required}
           onChange={(e) => onChange(e.target.value)}
           className={`mt-2 tabular-nums ${inputCls}`}
         />
@@ -394,7 +399,7 @@ function FieldControl({
 /* --------------------------------- Cotizador -------------------------------- */
 
 export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } = {}) {
-  const { data: services, isLoading } = useQuery(quoterServicesQuery());
+  const { data: services, isLoading, error: servicesError } = useQuery(quoterServicesQuery());
   const { data: content } = useQuery(siteContentQuery());
   const { getText } = useSiteContent();
 
@@ -423,14 +428,27 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
     [services, serviceId],
   );
 
-  const { data: serverResult } = useQuery({
-    queryKey: ["quoter", "public-quote", service?.id ?? null, values, quantity],
-    queryFn: () =>
-      computeQuoteFn({ data: { service_id: service!.id, values, quantity } }),
-    enabled: !!service,
-    placeholderData: keepPreviousData,
+  const [debouncedValues, setDebouncedValues] = useState(values);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedValues(values), 200);
+    return () => window.clearTimeout(timer);
+  }, [values]);
+  const { data: serverResult, isFetching: pricingBusy, error: pricingError } = useQuery({
+    queryKey: ["quoter", "public-quote", service?.id ?? null, debouncedValues, quantity],
+    queryFn: () => {
+      if (!service || service.has_calculator === false) return null;
+      return computeQuoteFn({ data: { service_id: service.id, values: debouncedValues, quantity } });
+    },
+    enabled: Boolean(service && service.has_calculator !== false),
+    retry: 1,
   });
-  const result = service ? (serverResult ?? null) : null;
+  const [displayResult, setDisplayResult] = useState<typeof serverResult>(null);
+  useEffect(() => { setDisplayResult(null); }, [serviceId]);
+  useEffect(() => { if (serverResult) setDisplayResult(serverResult); }, [serverResult]);
+  const result = service ? displayResult : null;
+  const answerErrors = service ? quoteAnswerErrors(service, values) : [];
+  const pricePending = pricingBusy || debouncedValues !== values || !serverResult;
+  const priceReady = Boolean(result && !pricePending && !pricingError && !answerErrors.length && result.total_cop > 0);
 
   // Animación sutil en el total cuando el precio cambia
   useEffect(() => {
@@ -442,7 +460,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
 
   /** Agrega el servicio cotizado al carrito como una línea de servicio. */
   function addQuoteToCart() {
-    if (!service || !result) return;
+    if (!service || !result || !priceReady || result.requires_approval) return;
     const answers: Record<string, string> = { ...values };
     const key = `svc:${service.slug}:${JSON.stringify(answers)}`;
     addItem(
@@ -466,6 +484,9 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
     setServiceId(s.id);
     setValues(defaultValuesFor(s));
     setQuantity(1);
+    setFile(null);
+    setFileError(null);
+    setNotes("");
     setSent(false);
     setSendError(null);
   }
@@ -493,7 +514,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!service || !result || fileError) return;
+    if (!service || !result || !priceReady || fileError) return;
     const data = new FormData(e.currentTarget);
 
     setSending(true);
@@ -501,7 +522,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
     try {
       let file_path: string | null = null;
       let file_name: string | null = null;
-      if (file) {
+      if (file && service.allow_file) {
         const { path, token } = await getUploadUrl({ data: { file_name: file.name } });
         const up = await supabase.storage.from("quote-files").uploadToSignedUrl(path, token, file);
         if (up.error) throw new Error("No pudimos subir el archivo: " + up.error.message);
@@ -519,6 +540,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
           service_id: service.id,
           service_name: service.name,
           answers: result.answers,
+          values,
           quantity: result.quantity,
           estimated_total_cop: result.total_cop,
           design_state: service.name,
@@ -532,7 +554,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
       });
 
       const msgText = buildWhatsAppQuoteMessage(
-        contact.whatsapp_quote_template,
+        service.whatsapp_custom_message || contact.whatsapp_quote_template,
         {
           servicio: service.name,
           cliente: String(data.get("name") ?? ""),
@@ -581,7 +603,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
           : "sm:grid-cols-2 lg:grid-cols-4";
 
   return (
-    <section id="cotizador" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
+    <section id="cotizador" className="quoter-workspace mx-auto max-w-7xl px-4 py-10 sm:px-6 md:py-14">
       <div className="mx-auto max-w-3xl text-center">
         <span className="chip-teal">{badgeText}</span>
         <h2 className="mt-3 text-3xl font-black sm:text-4xl md:text-5xl">
@@ -604,6 +626,8 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
                 />
               ))}
             </div>
+          ) : servicesError ? (
+            <p role="alert" className="py-8 text-center text-destructive">No pudimos cargar los servicios. Inténtalo de nuevo en unos momentos.</p>
           ) : activeServices.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-border bg-card p-10 text-center">
               <Printer className="mx-auto h-9 w-9 text-muted-foreground" />
@@ -620,21 +644,21 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
                 const Icon = ICONS[s.icon] ?? Printer;
                 const isDirectWa = s.has_calculator === false;
                 return (
-                  <button
+                  <Button variant="ghost"
                     key={s.id}
                     type="button"
                     onClick={() => pick(s)}
                     className="group flex flex-col justify-between rounded-3xl border border-border bg-card p-6 text-left shadow-xs transition hover:-translate-y-0.5 hover:border-[var(--brand-orange)] hover:shadow-md"
                   >
                     <div>
-                      <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[color-mix(in_oklab,var(--brand-orange)_14%,white)] text-[var(--brand-orange-deep)]">
+                      <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[color-mix(in_oklab,var(--brand-orange)_14%,white)] text-primary">
                         <Icon className="h-6 w-6" />
                       </div>
                       <h3 className="mt-4 text-lg font-black leading-tight text-foreground">
                         {s.name}
                       </h3>
                       {s.tagline && (
-                        <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[var(--brand-teal-deep)]">
+                        <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-secondary">
                           {s.tagline}
                         </p>
                       )}
@@ -646,7 +670,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
                     </div>
 
                     <div className="mt-5 flex items-center justify-between pt-3 border-t border-border/60">
-                      <span className="inline-flex items-center gap-1 text-sm font-bold text-[var(--brand-wine)]">
+                      <span className="inline-flex items-center gap-1 text-sm font-bold text-accent">
                         {isDirectWa ? "Consultar" : "Cotizar"}{" "}
                         <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
                       </span>
@@ -656,7 +680,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
                         </span>
                       )}
                     </div>
-                  </button>
+                  </Button>
                 );
               })}
             </div>
@@ -667,13 +691,13 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
       {/* Paso 2: servicio sin calculadora (WhatsApp directo) */}
       {service && service.has_calculator === false && (
         <div className="mx-auto mt-10 max-w-2xl rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-sm space-y-5">
-          <button
+          <Button variant="ghost"
             type="button"
             onClick={() => setServiceId(null)}
             className="inline-flex items-center gap-1 text-sm font-bold text-muted-foreground hover:text-foreground"
           >
             <ChevronLeft className="h-4 w-4" /> Cambiar servicio
-          </button>
+          </Button>
 
           <div className="space-y-2">
             <h3 className="text-2xl font-black">{service.name}</h3>
@@ -734,18 +758,20 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
         </div>
       )}
 
+      {service && service.has_calculator !== false && !result && !pricingError && <p role="status" className="mt-8 flex items-center justify-center gap-2"><Loader2 className="size-5 animate-spin" /> Calculando cotización…</p>}
+      {pricingError && <div role="alert" className="mt-8 text-center text-destructive"><p>No pudimos calcular el precio. Inténtalo nuevamente.</p><Button variant="outline" onClick={() => setServiceId(null)}>Cambiar servicio</Button></div>}
       {/* Paso 2: configurar calculadora */}
       {service && service.has_calculator !== false && result && (
         <div className="mt-10 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
           <div className="rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
             <div className="flex flex-wrap items-center gap-3">
-              <button
+              <Button variant="ghost"
                 type="button"
                 onClick={() => setServiceId(null)}
                 className="inline-flex items-center gap-1 text-sm font-bold text-muted-foreground hover:text-foreground"
               >
                 <ChevronLeft className="h-4 w-4" /> Cambiar servicio
-              </button>
+              </Button>
               <label className="ml-auto flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
                 <span>Servicio</span>
                 <select
@@ -793,7 +819,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
             </div>
 
             <form onSubmit={onSubmit} className="mt-6 grid gap-5">
-              {service.fields.map((f) => (
+              {service.fields.filter((f) => f.is_active).map((f) => (
                 <FieldControl
                   key={f.id}
                   field={f}
@@ -807,42 +833,42 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-bold text-foreground">Cantidad de unidades</span>
                     <div className="flex items-center gap-2">
-                      <button
+                      <Button variant="ghost"
                         type="button"
                         onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                         aria-label="Quitar una unidad"
                         className="rounded-full border border-border bg-background p-1.5 hover:bg-muted"
                       >
                         <Minus className="h-3.5 w-3.5" />
-                      </button>
+                      </Button>
                       <span className="min-w-10 text-center text-sm font-black tabular-nums">
                         {quantity}
                       </span>
-                      <button
+                      <Button variant="ghost"
                         type="button"
-                        onClick={() => setQuantity((q) => q + 1)}
+                        onClick={() => setQuantity((q) => Math.min(99, q + 1))}
                         aria-label="Agregar una unidad"
                         className="rounded-full border border-border bg-background p-1.5 hover:bg-muted"
                       >
                         <Plus className="h-3.5 w-3.5" />
-                      </button>
+                      </Button>
                     </div>
                   </div>
                   <input
                     type="range"
                     min={1}
-                    max={100}
-                    value={Math.min(quantity, 100)}
+                    max={99}
+                    value={quantity}
                     onChange={(e) => setQuantity(Number(e.target.value))}
                     aria-label="Cantidad"
                     style={{
                       background: `linear-gradient(to right, var(--brand-orange) 0%, var(--brand-orange) ${sliderPercentage(Math.min(quantity, 100), 1, 100)}%, var(--border) ${sliderPercentage(Math.min(quantity, 100), 1, 100)}%, var(--border) 100%)`,
                     }}
-                    className="h-2.5 w-full cursor-pointer appearance-none rounded-full accent-[var(--brand-orange)]"
+                    className="min-h-11 w-full cursor-pointer appearance-none rounded-full accent-[var(--brand-orange)]"
                   />
                   <div className="flex justify-between text-[11px] font-medium text-muted-foreground tabular-nums">
                     <span>1 unidad</span>
-                    <span>100+ unidades</span>
+                    <span>99 unidades</span>
                   </div>
                 </div>
               )}
@@ -868,13 +894,13 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
                     <Upload className="mx-auto h-6 w-6 text-muted-foreground" />
                     <p className="mt-2 text-sm">
                       Arrastra tu archivo o{" "}
-                      <button
+                      <Button variant="ghost"
                         type="button"
                         onClick={() => inputRef.current?.click()}
-                        className="font-bold text-[var(--brand-wine)] underline"
+                        className="font-bold text-accent underline"
                       >
                         búscalo en tu equipo
-                      </button>
+                      </Button>
                     </p>
                     <p className="mt-1 text-[11px] text-muted-foreground">
                       .stl .obj .3mf .step .pdf .jpg .png — hasta 50 MB
@@ -889,14 +915,14 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
                     {file && (
                       <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs font-semibold">
                         <CheckCircle2 className="h-4 w-4 text-green-600" /> {file.name}
-                        <button type="button" onClick={() => setFile(null)} aria-label="Quitar archivo">
+                        <Button variant="ghost" type="button" onClick={() => setFile(null)} aria-label="Quitar archivo">
                           <X className="h-3.5 w-3.5" />
-                        </button>
+                        </Button>
                       </p>
                     )}
                   </div>
                   {fileError && (
-                    <p className="mt-2 inline-flex items-center gap-2 text-xs font-semibold text-red-600">
+                    <p className="mt-2 inline-flex items-center gap-2 text-xs font-semibold text-destructive">
                       <AlertTriangle className="h-4 w-4" /> {fileError}
                     </p>
                   )}
@@ -930,17 +956,18 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
                 </label>
               </div>
 
-              <button
+              <Button variant="ghost"
                 type="submit"
-                disabled={sending}
+                disabled={sending || !priceReady}
                 className="btn-primary w-full justify-center py-3.5 text-base font-black disabled:opacity-60 tabular-nums"
               >
                 {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <MessageSquare className="h-5 w-5" />}
                 Cotizar por WhatsApp ({formatCOP(result.total_cop)})
-              </button>
+              </Button>
 
+              {answerErrors.map((error) => <p key={error} role="alert" className="text-sm text-destructive">{error}</p>)}
               {sendError && (
-                <p className="inline-flex items-center gap-2 text-sm font-semibold text-red-600">
+                <p className="inline-flex items-center gap-2 text-sm font-semibold text-destructive">
                   <AlertTriangle className="h-4 w-4" /> {sendError}
                 </p>
               )}
@@ -972,17 +999,20 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
           </div>
 
           {/* Resumen en vivo */}
-          <aside className="h-fit rounded-3xl border-2 border-[var(--brand-orange)] bg-card p-6 shadow-sm lg:sticky lg:top-24">
-            <p className="text-xs font-bold uppercase tracking-wide text-[var(--brand-wine)]">
+          <aside aria-label="Resumen de cotización" aria-busy={pricePending} className="min-w-0 h-fit rounded-3xl border-2 border-[var(--brand-orange)] bg-card p-6 shadow-sm lg:sticky lg:top-24">
+            <p className="text-xs font-bold uppercase tracking-wide text-accent">
               Tu precio estimado
             </p>
             <p
-              className={`mt-1 text-4xl font-black leading-none tabular-nums transition-transform duration-200 motion-reduce:transition-none ${
-                pricePulse ? "scale-[1.03] text-[var(--brand-orange-deep)]" : "scale-100 text-foreground"
+              role="status" aria-live="polite"
+              className={`mt-1 break-words text-3xl sm:text-4xl font-black leading-none tabular-nums transition-transform duration-200 motion-reduce:transition-none ${
+                pricePulse ? "scale-[1.03] text-primary" : "scale-100 text-foreground"
               }`}
             >
               {formatCOP(result.total_cop)}
             </p>
+            {pricePending && <p className="mt-2 text-xs text-muted-foreground" role="status">Actualizando precio…</p>}
+            {result.total_cop <= 0 && <p role="alert" className="mt-2 text-sm text-destructive">Este servicio necesita una tarifa configurada antes de comprar.</p>}
             {result.quantity > 1 && (
               <p className="mt-1.5 text-xs text-muted-foreground tabular-nums">
                 {formatCOP(result.unit_price_cop)} por unidad × {result.quantity}
@@ -1012,7 +1042,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
                 </div>
               )}
               {result.min_applied && (
-                <p className="pt-1 text-[11px] font-medium text-[var(--brand-teal-deep)]">
+                <p className="pt-1 text-[11px] font-medium text-secondary">
                   Se aplicó el valor mínimo de este servicio.
                 </p>
               )}
@@ -1021,17 +1051,18 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
             {result.requires_approval && (
               <div className="mt-3 rounded-2xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
                 <span className="font-bold block">⚠️ Requiere revisión previa:</span>
-                Esta cotización supera el umbral automático. Tras enviarla por WhatsApp, nuestro equipo la aprobará formalmente.
+                Nuestro equipo debe revisar esta cotización antes de confirmar el precio y recibir el pago.
               </div>
             )}
 
-            <button
+            <Button variant="ghost"
               type="button"
+              disabled={!priceReady || result.requires_approval}
               onClick={addQuoteToCart}
-              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-[var(--brand-teal-deep)] px-5 py-2.5 text-sm font-black text-[var(--brand-teal-deep)] transition hover:bg-[color-mix(in_oklab,var(--brand-teal)_10%,white)]"
+              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-secondary px-5 py-2.5 text-sm font-black text-foreground transition hover:bg-secondary/10"
             >
-              <ShoppingCart className="h-4 w-4" /> Agregar al carrito
-            </button>
+              <ShoppingCart className="h-4 w-4" /> {result.requires_approval ? "Pendiente de revisión" : "Agregar al carrito"}
+            </Button>
 
             {cartItems.length > 0 && (
               <div className="mt-3 rounded-2xl border border-border bg-muted/30 p-3 text-center">

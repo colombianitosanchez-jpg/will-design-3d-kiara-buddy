@@ -1,4 +1,9 @@
 # Roadmap
+- [x] Completar guardado de servicios, preguntas y opciones del cotizador sin borrar configuraciones.
+- [x] Unificar cálculos y simulación, validar respuestas y evitar precios desactualizados o compras que necesitan revisión.
+- [x] Mejorar edición, teclado y presentación móvil de servicios y cotizadores.
+- [x] Verificar guardado real, vista cliente y pruebas de regresión (207 pruebas).
+- [ ] Configurar tarifas reales de FDM: esperando precio por gramo, mínimo y margen del propietario.
 - [x] Limpiar controles de productos y variantes sin perder opciones comerciales ni configuraciones existentes.
 - [x] Mostrar descripciones cortas y completas, extractos y variante activa en tienda y vista rápida.
 - [x] Corregir stock heredado y verificar edición, guardado y lectura pública con sesión real (texto de prueba restaurado).

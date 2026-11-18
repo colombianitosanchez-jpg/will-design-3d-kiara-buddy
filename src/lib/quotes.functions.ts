@@ -26,6 +26,7 @@ const schema = z.object({
   customer_phone: z.string().trim().max(40).optional().default(""),
   service_id: z.string().uuid().nullable().optional().default(null),
   service_name: z.string().trim().max(160).optional().default(""),
+  values: z.record(z.string().max(80), z.string().max(300)).optional(),
   answers: z.array(answerSchema).max(60).optional().default([]),
   quantity: z.number().int().min(1).max(10000).optional().default(1),
   estimated_total_cop: z.number().min(0).max(1_000_000_000).optional().default(0),
@@ -45,6 +46,19 @@ const schema = z.object({
 export const createQuoteRequest = createServerFn({ method: "POST" })
   .validator((data: unknown) => schema.parse(data))
   .handler(async ({ data }) => {
+    let trusted = { service_name: data.service_name, quantity: data.quantity, answers: data.answers, estimated_total_cop: data.estimated_total_cop };
+    if (data.service_id && data.values) {
+      const { getQuoterServices, getQuotingVars } = await import("@/lib/quoter.server");
+      const { computeQuote, quoteAnswerErrors } = await import("@/lib/quoter-core");
+      const [services, vars] = await Promise.all([getQuoterServices(), getQuotingVars()]);
+      const service = services.find((s) => s.id === data.service_id);
+      if (!service || service.has_calculator === false) throw new Error("El cotizador ya no está disponible");
+      const errors = quoteAnswerErrors(service, data.values);
+      if (errors.length) throw new Error(errors[0]);
+      const result = computeQuote(service, data.values, data.quantity, vars);
+      if (result.total_cop <= 0) throw new Error("El servicio necesita una tarifa configurada");
+      trusted = { service_name: service.name, quantity: result.quantity, answers: result.answers, estimated_total_cop: result.total_cop };
+    }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: row, error } = await supabaseAdmin
@@ -54,10 +68,10 @@ export const createQuoteRequest = createServerFn({ method: "POST" })
         customer_email: data.customer_email,
         customer_phone: data.customer_phone || null,
         service_id: data.service_id,
-        service_name: data.service_name,
-        answers: data.answers,
-        quantity: data.quantity,
-        estimated_total_cop: data.estimated_total_cop,
+        service_name: trusted.service_name,
+        answers: trusted.answers,
+        quantity: trusted.quantity,
+        estimated_total_cop: trusted.estimated_total_cop,
         design_state: data.design_state,
         size_label: data.size_label,
         length_cm: data.length_cm,

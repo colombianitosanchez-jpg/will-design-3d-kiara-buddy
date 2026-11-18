@@ -57,6 +57,20 @@
       "when": 1794595412765,
       "tag": "0007_product_moves_undo",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794978892680,
+      "tag": "0008_complete_service_quoter_configuration",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794979387385,
+      "tag": "0009_explicit_service_contact_mode",
+      "breakpoints": true
     }
   ]
 }

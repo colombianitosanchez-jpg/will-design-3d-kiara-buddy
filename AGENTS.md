@@ -18,3 +18,6 @@
 - Use `firstStaticShareImage` for share-image selection across WhatsApp payloads and public metadata; galleries retain their original animated media.
 - Product editors group legacy fallback actions separately and keep inheritance freezing internal; optional commercial booleans use explicit overrides while heavyweight variant editors mount only in expanded sections to preserve behavior without crowding the editor.
 - Use `productSummary` for plain-text card and quick-view excerpts; product details render short and full descriptions independently so either field remains visible.
+- Use the shared quote engine and canonical field validation for simulation, public quote requests and service checkout; recalculate with the actual quantity and block review-required checkout to keep displayed and charged prices consistent.
+- Evaluate quote formulas through the restricted jsep arithmetic tree, never dynamic JavaScript execution, so formulas also work in the published Worker runtime.
+- Use Radix dialogs and radio groups for service editing and quote selections to preserve keyboard navigation and focus management.

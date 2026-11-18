@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
+  fieldConfigurationError,
   type QuoterField,
   type QuoterOption,
 } from "@/lib/quoter";
@@ -88,7 +89,7 @@ function SortableOptionRow({
       className="rounded-xl border border-border bg-background p-3 space-y-3"
     >
       <div className="flex items-start gap-2">
-        <button
+        <Button variant="ghost"
           type="button"
           {...attributes}
           {...listeners}
@@ -97,7 +98,7 @@ function SortableOptionRow({
           aria-label={`Reordenar opción ${option.label || "sin nombre"}`}
         >
           <GripVertical className="h-4 w-4" />
-        </button>
+        </Button>
 
         <div className="grid flex-1 gap-2.5 sm:grid-cols-12">
           <label className="sm:col-span-4 block">
@@ -165,28 +166,28 @@ function SortableOptionRow({
         </div>
 
         <div className="flex flex-col gap-1 pt-5">
-          <button
+          <Button variant="ghost"
             type="button"
             onClick={() => setMediaOpen((v) => !v)}
             className={`rounded-lg p-1.5 transition ${
               option.media?.url || mediaOpen
-                ? "bg-primary/15 text-[var(--brand-orange-deep)]"
+                ? "bg-primary/15 text-primary"
                 : "text-muted-foreground hover:bg-muted"
             }`}
             title="Imagen o video de muestra"
             aria-label={`Imagen de muestra para ${option.label || "opción"}`}
           >
             <ImageIcon className="h-4 w-4" />
-          </button>
-          <button
+          </Button>
+          <Button variant="ghost"
             type="button"
             onClick={onRemove}
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600"
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
             title="Eliminar opción"
             aria-label={`Eliminar opción ${option.label || "sin nombre"}`}
           >
             <Trash2 className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -237,6 +238,7 @@ function SortableOptionRow({
           />
 
           <input
+            aria-label="Dirección de la imagen o video de muestra"
             value={option.media?.url ?? ""}
             onChange={(e) => {
               const url = e.target.value.trim();
@@ -264,6 +266,7 @@ export function QuoterFieldEditor({
   siblings,
   quotingVars,
   onChanged,
+  onDraftChange,
   onMsg,
 }: {
   field: QuoterField;
@@ -272,6 +275,7 @@ export function QuoterFieldEditor({
   siblings: QuoterField[];
   quotingVars?: QuotingVars;
   onChanged: () => void;
+  onDraftChange?: (field: QuoterField) => void;
   onMsg: (m: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -297,6 +301,8 @@ export function QuoterFieldEditor({
   useEffect(() => {
     setD(field);
   }, [field]);
+
+  useEffect(() => { onDraftChange?.(d); }, [d]);
 
   function set<K extends keyof QuoterField>(k: K, v: QuoterField[K]) {
     setD((prev) => ({ ...prev, [k]: v }));
@@ -350,6 +356,8 @@ export function QuoterFieldEditor({
       toast.error("La pregunta debe tener una etiqueta visible");
       return;
     }
+    const invalid = fieldConfigurationError(d, siblings);
+    if (invalid) { toast.error(invalid); return; }
     setSaving(true);
     const cleanKey = slugifyKey(d.key || d.label) || d.key;
     const { error } = await supabase
@@ -368,6 +376,8 @@ export function QuoterFieldEditor({
         price_source: d.price_source ?? "fixed",
         multiplier: Number(d.multiplier) || 1,
         formula: d.formula?.trim() || null,
+        media_url: d.media_url || null,
+        media_type: d.media_type || "image",
         options: d.options as any,
         is_required: Boolean(d.is_required),
         is_active: d.is_active !== false,
@@ -410,7 +420,7 @@ export function QuoterFieldEditor({
       }`}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <button
+        <Button variant="ghost"
           type="button"
           {...attributes}
           {...listeners}
@@ -419,9 +429,9 @@ export function QuoterFieldEditor({
           aria-label={`Reordenar ${field.label}`}
         >
           <GripVertical className="h-4 w-4" />
-        </button>
+        </Button>
 
-        <button
+        <Button variant="ghost"
           type="button"
           onClick={() => setOpen(!open)}
           aria-expanded={open}
@@ -444,35 +454,35 @@ export function QuoterFieldEditor({
               Inactiva
             </span>
           )}
-        </button>
+        </Button>
 
         {confirmDelete ? (
           <div className="flex items-center gap-1.5">
-            <button
+            <Button variant="ghost"
               type="button"
               onClick={remove}
-              className="rounded-lg bg-red-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-red-700"
+              className="rounded-lg bg-destructive px-2.5 py-1 text-xs font-bold text-primary-foreground hover:bg-destructive/90"
             >
               Confirmar
-            </button>
-            <button
+            </Button>
+            <Button variant="ghost"
               type="button"
               onClick={() => setConfirmDelete(false)}
               className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-muted"
             >
               Cancelar
-            </button>
+            </Button>
           </div>
         ) : (
-          <button
+          <Button variant="ghost"
             type="button"
             onClick={() => setConfirmDelete(true)}
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600"
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
             title="Eliminar pregunta"
             aria-label={`Eliminar ${field.label}`}
           >
             <Trash2 className="h-4 w-4" />
-          </button>
+          </Button>
         )}
       </div>
 
@@ -525,6 +535,7 @@ export function QuoterFieldEditor({
             <label className="flex items-center gap-2.5 text-xs font-semibold cursor-pointer">
               <Switch
                 checked={d.is_active}
+                aria-label="Pregunta activa en la web"
                 onCheckedChange={(checked) => set("is_active", checked)}
               />
               <span>Pregunta activa en la web</span>
@@ -532,6 +543,7 @@ export function QuoterFieldEditor({
             <label className="flex items-center gap-2.5 text-xs font-semibold cursor-pointer">
               <Switch
                 checked={d.is_required}
+                aria-label="Campo obligatorio"
                 onCheckedChange={(checked) => set("is_required", checked)}
               />
               <span>Campo obligatorio</span>
@@ -831,7 +843,7 @@ export function QuoterFieldEditor({
               type="button"
               onClick={save}
               disabled={saving}
-              className="rounded-full bg-[var(--brand-teal-deep)] text-white hover:opacity-90 font-bold"
+              className="rounded-full bg-secondary text-primary-foreground hover:opacity-90 font-bold"
             >
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               Guardar pregunta

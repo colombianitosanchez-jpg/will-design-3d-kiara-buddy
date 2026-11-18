@@ -270,3 +270,20 @@
 .theme-anim-festive_sparkle {
   animation: festive-sparkle-glow 2s infinite ease-in-out !important;
 }
+
+/* Cotizadores: compact controls, clear focus and stable mobile layouts. */
+.quoter-workspace { min-width: 0; }
+.quoter-workspace h1, .quoter-workspace h2, .quoter-workspace h3 { letter-spacing: 0; }
+.quoter-workspace input, .quoter-workspace select, .quoter-workspace textarea { max-width: 100%; min-height: 44px; }
+.quoter-workspace button { min-height: 44px; white-space: normal; height: auto; }
+.quoter-workspace button:has(> svg:only-child) { min-width: 44px; }
+.quoter-workspace button:focus-visible, .quoter-workspace summary:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
+.quoter-workspace label, .quoter-workspace button { overflow-wrap: anywhere; }
+.quoter-workspace .rounded-3xl, .quoter-workspace .rounded-2xl { border-radius: 8px; }
+.quoter-workspace input[type="range"] { accent-color: var(--secondary); }
+@media (max-width: 640px) {
+  .quoter-workspace .sm\:col-span-12 { min-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .quoter-workspace * { animation: none !important; transition: none !important; }
+}

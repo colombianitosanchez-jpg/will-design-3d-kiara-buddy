@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { useMemo } from "react";
 import {
   computeQuote,
@@ -37,7 +38,7 @@ export function QuoterSimulatorAside({
   const activeFields = service.fields.filter((f) => f.is_active !== false);
 
   return (
-    <aside className="h-fit rounded-3xl border border-border bg-background p-5 lg:sticky lg:top-6 space-y-4">
+    <aside className="min-w-0 h-fit border-l border-border bg-background p-4 xl:sticky xl:top-6 space-y-4">
       <div className="flex items-center justify-between gap-2">
         <h3 className="flex items-center gap-2 text-lg font-bold">
           <Calculator className="h-5 w-5 text-[var(--brand-orange)]" />
@@ -59,16 +60,16 @@ export function QuoterSimulatorAside({
         </div>
       )}
 
-      <div className="space-y-4">
+      {service.has_calculator !== false && <div className="space-y-4">
         {activeFields.map((f) => {
           const current = values[f.key] ?? "";
           if (f.input_type === "slider") {
-            const val = Number(current) || f.min_value;
+            const val = Number.isFinite(Number(current)) ? Number(current) : f.min_value;
             return (
               <div key={f.id} className="space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-bold text-foreground">{f.label}</span>
-                  <span className="rounded-md bg-[var(--brand-teal-deep)] px-2 py-0.5 text-xs font-bold text-white tabular-nums">
+                  <span className="rounded-md bg-secondary px-2 py-0.5 text-xs font-bold text-primary-foreground tabular-nums">
                     {val}
                     {f.unit ? ` ${f.unit}` : ""}
                   </span>
@@ -106,7 +107,7 @@ export function QuoterSimulatorAside({
                     const active = current === opt.value;
                     const priceBadge = formatOptionPriceBadge(opt);
                     return (
-                      <button
+                      <Button variant="ghost"
                         key={opt.value}
                         type="button"
                         onClick={() => onValueChange(f.key, opt.value)}
@@ -122,7 +123,7 @@ export function QuoterSimulatorAside({
                             {priceBadge}
                           </div>
                         )}
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>
@@ -139,6 +140,7 @@ export function QuoterSimulatorAside({
               >
                 <span className="text-xs font-bold text-foreground">{f.label}</span>
                 <Switch
+                  aria-label={`Simulador ${f.label}`}
                   checked={checked}
                   onCheckedChange={(on) => onValueChange(f.key, on ? "si" : "no")}
                 />
@@ -166,28 +168,30 @@ export function QuoterSimulatorAside({
           <div className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-3 py-2">
             <span className="text-xs font-bold text-foreground">Cantidad</span>
             <div className="flex items-center gap-2">
-              <button
+              <Button variant="ghost"
                 type="button"
                 onClick={() => onQuantityChange(Math.max(1, quantity - 1))}
                 aria-label="Disminuir cantidad"
                 className="rounded-full border border-border p-1 hover:bg-muted"
               >
                 <Minus className="h-3.5 w-3.5" />
-              </button>
+              </Button>
               <span className="w-8 text-center text-sm font-black tabular-nums">{quantity}</span>
-              <button
+              <Button variant="ghost"
                 type="button"
                 onClick={() => onQuantityChange(quantity + 1)}
                 aria-label="Aumentar cantidad"
                 className="rounded-full border border-border p-1 hover:bg-muted"
               >
                 <Plus className="h-3.5 w-3.5" />
-              </button>
+              </Button>
             </div>
           </div>
         )}
       </div>
 
+      }
+      {service.has_calculator !== false && <>
       {/* Desglose calculado */}
       <div className="space-y-1.5 border-t border-dashed border-border pt-3 text-xs">
         {preview.lines.map((line, idx) => (
@@ -212,7 +216,7 @@ export function QuoterSimulatorAside({
           </div>
         )}
         {preview.min_applied && (
-          <p className="text-[11px] font-medium text-[var(--brand-teal-deep)]">
+          <p className="text-[11px] font-medium text-secondary">
             Se aplicó el precio mínimo ({formatCOP(service.min_price_cop)}).
           </p>
         )}
@@ -227,10 +231,11 @@ export function QuoterSimulatorAside({
             </p>
           )}
         </div>
-        <span className="text-2xl font-black text-[var(--brand-orange-deep)] tabular-nums">
+        <span role="status" aria-live="polite" className="break-words text-xl font-black text-primary tabular-nums">
           {formatCOP(preview.total_cop)}
         </span>
       </div>
+      </>}
     </aside>
   );
 }
