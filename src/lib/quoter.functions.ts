@@ -16,5 +16,14 @@ export const computePublicQuote = createServerFn({ method: "POST" })
     const [services, vars] = await Promise.all([getQuoterServices(), getQuotingVars()]);
     const service = services.find((s) => s.id === data.service_id);
     if (!service) return null;
-    return computeQuote(service, data.values, data.quantity, vars);
+    const full = computeQuote(service, data.values, data.quantity, vars);
+    // Solo se expone el precio final: el desglose de costos, el multiplicador y
+    // el margen revelarían las variables internas de precios.
+    return {
+      ...full,
+      lines: [],
+      multiplier: 1,
+      subtotal_cop: 0,
+      margin_cop: 0,
+    };
   });

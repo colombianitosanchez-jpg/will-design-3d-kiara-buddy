@@ -136,9 +136,6 @@ export const Route = createFileRoute("/api/kiara")({
         // nunca se reenvían mensajes con rol "assistant". Todo el historial previo
         // se entrega como transcripción citada dentro de un único mensaje de usuario.
         const historyMessages: { role: "user" | "assistant"; content: string }[] = (() => {
-          if (isInternalTeam) {
-            return parsed.messages.map((m) => ({ role: m.role, content: m.content }));
-          }
           const msgs = parsed.messages;
           const last = msgs[msgs.length - 1];
           const prior = msgs.slice(0, -1);
