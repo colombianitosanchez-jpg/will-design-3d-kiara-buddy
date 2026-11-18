@@ -1,27 +1,27 @@
-import { createFileRoute, useSearch } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, useRef } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   quoterServicesQuery,
-  computeQuote,
   defaultValuesFor,
-  formatCOP,
-  type QuoterService,
   type QuoterField,
-  type QuoterOption,
+  type QuoterPricingMode,
+  type QuoterService,
   type QuoterValues,
 } from "@/lib/quoter";
+import { normalizeSiteAnchor } from "@/lib/quoter-ui";
 import {
   DEFAULT_QUOTING_VARS,
-  getDynamicPriceSourceOptions,
   quotingVarsQuery,
   saveQuotingVars,
   type QuotingVars,
   type CustomQuotingVar,
 } from "@/lib/quoting-vars";
-import { calcQuote, DEFAULT_RULES, type PricingRules } from "@/lib/pricing";
-import { FormulaEditor } from "@/components/FormulaEditor";
+import { FormulaEditor, type FormulaVarTag } from "@/components/FormulaEditor";
+import { QuoterFieldEditor } from "@/components/QuoterFieldEditor";
+import { QuoterSimulatorAside } from "@/components/QuoterSimulatorAside";
 import {
   Loader2,
   Plus,
@@ -34,10 +34,11 @@ import {
   Calculator,
   GripVertical,
   Sliders,
-  DollarSign,
   FileText,
   Boxes,
-  Check,
+  MessageSquare,
+  Info,
+  X,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -45,6 +46,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   DndContext,
   closestCenter,
@@ -77,16 +79,8 @@ export const Route = createFileRoute("/panel/cotizador")({
 const inputCls =
   "w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring";
 
-const INPUT_TYPES: { value: QuoterField["input_type"]; label: string }[] = [
-  { value: "slider", label: "Deslizador (rango)" },
-  { value: "select", label: "Opciones (tarjetas)" },
-  { value: "toggle", label: "Sí / No" },
-  { value: "number", label: "Número" },
-  { value: "text", label: "Texto libre" },
-];
-
-const PRICING_MODES = [
-  { value: "formula", label: "Fórmula / Operaciones matemáticas" },
+const PRICING_MODES: { value: QuoterPricingMode; label: string }[] = [
+  { value: "formula", label: "Fórmula / Campos paramétricos" },
   { value: "fixed", label: "Precio Fijo (ej. Cursos, consulta)" },
   { value: "weight_material", label: "Por Material / Peso (Gramos/ML)" },
   { value: "hours", label: "Por Horas (Máquina / Mano de obra)" },
@@ -94,14 +88,14 @@ const PRICING_MODES = [
 ];
 
 const ICON_OPTIONS = [
-  "printer",
-  "sparkles",
-  "package",
-  "pencil-ruler",
-  "scan",
-  "paintbrush",
-  "boxes",
-  "graduation-cap",
+  { value: "printer", label: "Impresora 3D" },
+  { value: "pencil-ruler", label: "Modelado / Diseño" },
+  { value: "sparkles", label: "Acabados / Post-procesado" },
+  { value: "scan", label: "Escaneo 3D" },
+  { value: "package", label: "Paquete / Producción" },
+  { value: "paintbrush", label: "Pintura" },
+  { value: "boxes", label: "Lotes / Volumen" },
+  { value: "graduation-cap", label: "Cursos / Capacitación" },
 ];
 
 function slugify(s: string) {
@@ -125,23 +119,20 @@ function QuoterUnifiedAdmin() {
             Cotizador Unificado
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Gestión completa de servicios cotizables, variables dinámicas globales, reglas de precios base y textos públicos del cotizador.
+            Configura servicios cotizables, variables dinámicas globales y textos públicos del cotizador en línea.
           </p>
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="flex h-auto w-full flex-wrap justify-start border-b border-border bg-transparent p-0">
-          <TabsTrigger value="servicios" className="flex items-center gap-2 py-2.5">
+        <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 border-b border-border bg-transparent p-0">
+          <TabsTrigger value="servicios" className="flex items-center gap-2 py-2.5 whitespace-nowrap">
             <Boxes className="h-4 w-4" /> Servicios Cotizables
           </TabsTrigger>
-          <TabsTrigger value="variables" className="flex items-center gap-2 py-2.5">
+          <TabsTrigger value="variables" className="flex items-center gap-2 py-2.5 whitespace-nowrap">
             <Sliders className="h-4 w-4" /> Variables Globales
           </TabsTrigger>
-          <TabsTrigger value="reglas" className="flex items-center gap-2 py-2.5">
-            <DollarSign className="h-4 w-4" /> Reglas de Precios Base
-          </TabsTrigger>
-          <TabsTrigger value="textos" className="flex items-center gap-2 py-2.5">
+          <TabsTrigger value="textos" className="flex items-center gap-2 py-2.5 whitespace-nowrap">
             <FileText className="h-4 w-4" /> Textos y Plantillas
           </TabsTrigger>
         </TabsList>
@@ -152,10 +143,6 @@ function QuoterUnifiedAdmin() {
 
         <TabsContent value="variables" className="mt-6">
           <TabVariablesGlobales />
-        </TabsContent>
-
-        <TabsContent value="reglas" className="mt-6">
-          <TabReglasPreciosBase />
         </TabsContent>
 
         <TabsContent value="textos" className="mt-6">
@@ -171,28 +158,53 @@ function QuoterUnifiedAdmin() {
 // =============================================================================
 function TabServiciosCotizables() {
   const qc = useQueryClient();
-  const { data: services, isLoading } = useQuery(quoterServicesQuery(true));
+  const { data: services, isLoading, error: loadError } = useQuery(quoterServicesQuery(true));
   const { data: qVars } = useQuery(quotingVarsQuery());
   const [openId, setOpenId] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [creatingBusy, setCreatingBusy] = useState(false);
 
   const reload = () => qc.invalidateQueries({ queryKey: ["quoter-services"] });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  async function addService() {
-    const name = window.prompt("Nombre del nuevo servicio a cotizar");
-    if (!name?.trim()) return;
-    const { error } = await supabase.from("quoter_services").insert({
-      slug: slugify(name) || `servicio-${Date.now()}`,
-      name: name.trim(),
-      sort_order: (services?.length ?? 0) + 1,
-    });
-    setMsg(error ? `Error: ${error.message}` : "Servicio creado.");
-    reload();
+  async function handleCreateService(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newName.trim()) {
+      toast.error("Escribe un nombre para el servicio");
+      return;
+    }
+    setCreatingBusy(true);
+    const baseSlug = slugify(newName) || `servicio-${Date.now()}`;
+    const { data: inserted, error } = await supabase
+      .from("quoter_services")
+      .insert({
+        slug: baseSlug,
+        site_anchor: baseSlug,
+        name: newName.trim(),
+        sort_order: (services?.length ?? 0) + 1,
+        has_calculator: true,
+      })
+      .select("id")
+      .maybeSingle();
+    setCreatingBusy(false);
+
+    if (error) {
+      toast.error(`Error al crear servicio: ${error.message}`);
+      setMsg(`Error: ${error.message}`);
+      return;
+    }
+    toast.success(`Servicio "${newName.trim()}" creado`);
+    setMsg("Servicio creado.");
+    setNewName("");
+    setCreating(false);
+    await reload();
+    if (inserted?.id) setOpenId(inserted.id);
   }
 
   async function handleServiceDragEnd(event: DragEndEvent) {
@@ -204,11 +216,17 @@ function TabServiciosCotizables() {
     if (oldIndex === -1 || newIndex === -1) return;
 
     const reordered = arrayMove(services, oldIndex, newIndex);
-    await Promise.all(
+    const results = await Promise.all(
       reordered.map((svc, idx) =>
-        supabase.from("quoter_services").update({ sort_order: idx + 1 }).eq("id", svc.id)
-      )
+        supabase.from("quoter_services").update({ sort_order: idx + 1 }).eq("id", svc.id),
+      ),
     );
+    const firstErr = results.find((r) => r.error)?.error;
+    if (firstErr) {
+      toast.error(`Error al reordenar: ${firstErr.message}`);
+    } else {
+      toast.success("Orden de servicios actualizado");
+    }
     reload();
   }
 
@@ -220,24 +238,77 @@ function TabServiciosCotizables() {
     );
   }
 
+  if (loadError) {
+    return (
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-800 space-y-2">
+        <p className="font-bold">Error al consultar servicios del cotizador</p>
+        <p className="text-xs">{(loadError as Error).message}</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold">Servicios y Preguntas del Cotizador</h2>
           <p className="text-xs text-muted-foreground">
-            Configura los servicios que el cliente puede cotizar online y sus campos de entrada.
+            Arrastra para reordenar los servicios en la web y haz clic en cualquiera para editar tarifas, preguntas y probar el simulador.
           </p>
         </div>
-        <Button
-          onClick={addService}
-          className="bg-[var(--brand-wine)] hover:opacity-90 text-white font-bold rounded-full"
-        >
-          <Plus className="mr-2 h-4 w-4" /> Nuevo Servicio
-        </Button>
+        {!creating && (
+          <Button
+            type="button"
+            onClick={() => setCreating(true)}
+            className="bg-[var(--brand-wine)] hover:opacity-90 text-white font-bold rounded-full whitespace-nowrap"
+          >
+            <Plus className="mr-2 h-4 w-4" /> Nuevo Servicio
+          </Button>
+        )}
       </div>
 
-      {msg && <p className="text-xs font-semibold text-primary">{msg}</p>}
+      {creating && (
+        <form
+          onSubmit={handleCreateService}
+          className="flex flex-wrap items-end gap-3 rounded-2xl border border-border bg-card p-4 shadow-xs"
+        >
+          <label className="flex-1 min-w-[220px] block">
+            <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+              Nombre del nuevo servicio
+            </span>
+            <input
+              autoFocus
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Ej: Impresión en Resina Alta Resolución"
+              className={`mt-1 ${inputCls}`}
+            />
+          </label>
+          <div className="flex items-center gap-2">
+            <Button
+              type="submit"
+              disabled={creatingBusy}
+              className="rounded-full bg-[var(--brand-wine)] text-white font-bold"
+            >
+              {creatingBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-1.5 h-4 w-4" />}
+              Crear servicio
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setCreating(false);
+                setNewName("");
+              }}
+              className="rounded-full"
+            >
+              Cancelar
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {msg && <p className="text-xs font-semibold text-muted-foreground">{msg}</p>}
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleServiceDragEnd}>
         <SortableContext items={(services ?? []).map((s) => s.id)} strategy={verticalListSortingStrategy}>
@@ -254,9 +325,9 @@ function TabServiciosCotizables() {
               />
             ))}
             {(services ?? []).length === 0 && (
-              <p className="rounded-2xl bg-muted p-6 text-sm text-muted-foreground">
-                Aún no hay servicios. Crea el primero con “Nuevo servicio”.
-              </p>
+              <div className="rounded-2xl border border-dashed border-border bg-muted/30 p-8 text-center text-sm text-muted-foreground">
+                Aún no hay servicios en el cotizador. Crea el primero con “Nuevo Servicio”.
+              </div>
             )}
           </div>
         </SortableContext>
@@ -266,13 +337,16 @@ function TabServiciosCotizables() {
 }
 
 // =============================================================================
-// TAB 2: VARIABLES GLOBALES
+// TAB 2: VARIABLES GLOBALES (Fuente única de verdad para tarifas)
 // =============================================================================
 function TabVariablesGlobales() {
   const qc = useQueryClient();
   const { data } = useQuery(quotingVarsQuery());
   const [draft, setDraft] = useState<QuotingVars>(DEFAULT_QUOTING_VARS);
   const [saving, setSaving] = useState(false);
+  const [addingVar, setAddingVar] = useState(false);
+  const [newVarLabel, setNewVarLabel] = useState("");
+  const [confirmDeleteKey, setConfirmDeleteKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (data) setDraft(data.vars);
@@ -280,29 +354,40 @@ function TabVariablesGlobales() {
 
   async function save() {
     if (!data?.id) {
-      alert("Error: no encontramos la fila de ajustes de variables.");
+      toast.error("No encontramos la fila de ajustes de variables en admin_settings.");
       return;
     }
     setSaving(true);
     try {
       await saveQuotingVars(data.id, draft);
-      alert("Variables globales guardadas con éxito.");
+      toast.success("Variables globales guardadas con éxito");
       void qc.invalidateQueries({ queryKey: ["admin_settings", "quoting_vars"] });
     } catch (err) {
-      alert(`Error al guardar variables: ${(err as Error).message}`);
+      toast.error(`Error al guardar variables: ${(err as Error).message}`);
     } finally {
       setSaving(false);
     }
   }
 
-  function handleAddCustomVar() {
-    const keyName = window.prompt("Identificador de la variable (ej: comision_disenador, costo_impuesto)");
-    if (!keyName?.trim()) return;
-    const cleanKey = slugify(keyName).replace(/-/g, "_");
+  function handleAddCustomVar(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newVarLabel.trim()) {
+      toast.error("Escribe un nombre o identificador para la variable");
+      return;
+    }
+    const cleanKey = slugify(newVarLabel).replace(/-/g, "_");
+    if (!cleanKey) {
+      toast.error("El nombre debe incluir letras o números");
+      return;
+    }
+    if ((draft.custom_vars || []).some((v) => v.key === cleanKey)) {
+      toast.error(`Ya existe una variable con clave "${cleanKey}"`);
+      return;
+    }
 
     const newVar: CustomQuotingVar = {
       key: cleanKey,
-      label: keyName.trim(),
+      label: newVarLabel.trim(),
       value: 0,
       unit: "COP",
       formula: "",
@@ -314,30 +399,83 @@ function TabVariablesGlobales() {
       ...prev,
       custom_vars: [...(prev.custom_vars || []), newVar],
     }));
+    setNewVarLabel("");
+    setAddingVar(false);
+    toast.success(`Variable "${cleanKey}" agregada (recuerda guardar los cambios)`);
   }
 
   function handleDeleteCustomVar(keyToDelete: string) {
-    if (!confirm(`¿Eliminar la variable global "${keyToDelete}"?`)) return;
     setDraft((prev) => ({
       ...prev,
       custom_vars: (prev.custom_vars || []).filter((v) => v.key !== keyToDelete),
     }));
+    setConfirmDeleteKey(null);
   }
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-wrap flex-row items-center justify-between gap-3">
         <div>
           <CardTitle>Variables Globales Dinámicas del Taller</CardTitle>
           <CardDescription className="max-w-3xl">
-            Variables compartidas entre servicios para cálculos de costos y fórmulas.
+            Fuente única de costos compartidos entre servicios (gramo FDM, ml de resina, horas, márgenes y variables personalizadas).
           </CardDescription>
         </div>
-        <Button variant="outline" size="sm" onClick={handleAddCustomVar} className="rounded-full font-bold">
-          <Plus className="mr-2 h-4 w-4" /> Agregar Variable
-        </Button>
+        {!addingVar && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setAddingVar(true)}
+            className="rounded-full font-bold whitespace-nowrap"
+          >
+            <Plus className="mr-2 h-4 w-4" /> Agregar Variable
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="flex items-start gap-2.5 rounded-2xl border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
+          <Info className="h-4 w-4 shrink-0 mt-0.5 text-[var(--brand-teal-deep)]" />
+          <p>
+            El cotizador web calcula los precios únicamente a partir de estas <strong>Variables Globales</strong> y la configuración de cada servicio (las antiguas reglas de precios base ya no se usan en la tienda pública).
+          </p>
+        </div>
+
+        {addingVar && (
+          <form
+            onSubmit={handleAddCustomVar}
+            className="flex flex-wrap items-end gap-3 rounded-2xl border border-border bg-muted/20 p-3"
+          >
+            <label className="flex-1 min-w-[200px] block">
+              <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                Nombre o clave de la nueva variable
+              </span>
+              <input
+                autoFocus
+                value={newVarLabel}
+                onChange={(e) => setNewVarLabel(e.target.value)}
+                placeholder="Ej: Comisión diseñador, Costo envío base"
+                className={`mt-1 ${inputCls}`}
+              />
+            </label>
+            <Button type="submit" size="sm" className="rounded-full bg-[var(--brand-teal-deep)] text-white font-bold">
+              Agregar
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setAddingVar(false);
+                setNewVarLabel("");
+              }}
+              className="rounded-full"
+            >
+              Cancelar
+            </Button>
+          </form>
+        )}
+
         <div className="space-y-3">
           {(draft.custom_vars || []).map((v, idx) => (
             <div
@@ -354,7 +492,7 @@ function TabVariablesGlobales() {
                       next[idx] = { ...v, key: clean };
                       setDraft({ ...draft, custom_vars: next });
                     }}
-                    className={inputCls}
+                    className={`font-mono text-xs ${inputCls}`}
                   />
                 </L>
               </div>
@@ -385,7 +523,7 @@ function TabVariablesGlobales() {
                       next[idx] = { ...v, value: numVal };
                       setDraft({ ...draft, custom_vars: next });
                     }}
-                    className={inputCls}
+                    className={`tabular-nums ${inputCls}`}
                   />
                 </L>
               </div>
@@ -405,15 +543,36 @@ function TabVariablesGlobales() {
                 </L>
               </div>
 
-              <div className="sm:col-span-2 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => handleDeleteCustomVar(v.key)}
-                  className="rounded-lg p-2 text-muted-foreground hover:bg-red-50 hover:text-red-600"
-                  title="Eliminar variable"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+              <div className="sm:col-span-2 flex justify-end pt-5">
+                {confirmDeleteKey === v.key ? (
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteCustomVar(v.key)}
+                      className="rounded-lg bg-red-600 px-2 py-1 text-xs font-bold text-white hover:bg-red-700"
+                    >
+                      Confirmar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDeleteKey(null)}
+                      className="rounded-lg border border-border p-1 text-muted-foreground hover:bg-muted"
+                      aria-label="Cancelar eliminación"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDeleteKey(v.key)}
+                    className="rounded-lg p-2 text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                    title="Eliminar variable"
+                    aria-label={`Eliminar variable ${v.label || v.key}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
               </div>
 
               <div className="sm:col-span-12">
@@ -433,16 +592,14 @@ function TabVariablesGlobales() {
               </div>
 
               <div className="sm:col-span-12 flex flex-wrap items-center gap-4 text-xs">
-                <label className="inline-flex items-center gap-1.5 font-semibold cursor-pointer">
-                  <input
-                    type="checkbox"
+                <label className="inline-flex items-center gap-2 font-semibold cursor-pointer">
+                  <Switch
                     checked={v.show_in_breakdown}
-                    onChange={(e) => {
+                    onCheckedChange={(checked) => {
                       const next = [...draft.custom_vars];
-                      next[idx] = { ...v, show_in_breakdown: e.target.checked };
+                      next[idx] = { ...v, show_in_breakdown: checked };
                       setDraft({ ...draft, custom_vars: next });
                     }}
-                    className="h-4 w-4 rounded accent-primary"
                   />
                   Mostrar en desglose al cliente
                 </label>
@@ -455,7 +612,7 @@ function TabVariablesGlobales() {
                     setDraft({ ...draft, custom_vars: next });
                   }}
                   placeholder="Descripción o nota interna..."
-                  className="flex-1 rounded-lg border border-input bg-background px-2 py-1 text-xs"
+                  className="flex-1 min-w-[200px] rounded-lg border border-input bg-background px-2.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
             </div>
@@ -467,6 +624,7 @@ function TabVariablesGlobales() {
         </div>
 
         <Button
+          type="button"
           onClick={save}
           disabled={saving}
           className="bg-[var(--brand-wine)] text-white font-bold rounded-full"
@@ -480,238 +638,7 @@ function TabVariablesGlobales() {
 }
 
 // =============================================================================
-// TAB 3: REGLAS DE PRECIOS BASE (Desde panel.cotizaciones.tsx)
-// =============================================================================
-type PricingRow = PricingRules & { id: string };
-
-function TabReglasPreciosBase() {
-  const [rules, setRules] = useState<PricingRow | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [test, setTest] = useState({ grams: 120, hours: 4, material: "PLA", finish: "Basico", quantity: 1 });
-
-  async function load() {
-    setLoading(true);
-    const { data } = await supabase
-      .from("pricing_rules")
-      .select("*")
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    if (data) {
-      setRules({
-        id: data.id,
-        name: data.name,
-        base_price_per_gram_cop: Number(data.base_price_per_gram_cop),
-        machine_hour_cop: Number(data.machine_hour_cop),
-        setup_fee_cop: Number(data.setup_fee_cop),
-        margin_percent: Number(data.margin_percent),
-        min_price_cop: Number(data.min_price_cop),
-        material_multipliers: (data.material_multipliers as Record<string, number>) ?? {},
-        finish_multipliers: (data.finish_multipliers as Record<string, number>) ?? {},
-        is_active: data.is_active,
-      });
-    } else {
-      const ins = await supabase
-        .from("pricing_rules")
-        .insert({ ...DEFAULT_RULES, is_active: true })
-        .select("id")
-        .single();
-      if (ins.data) setRules({ ...DEFAULT_RULES, id: ins.data.id, is_active: true });
-    }
-    setLoading(false);
-  }
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  const preview = useMemo(
-    () => (rules ? calcQuote(rules, test) : null),
-    [rules, test],
-  );
-
-  async function save() {
-    if (!rules) return;
-    setSaving(true);
-    const { error } = await supabase
-      .from("pricing_rules")
-      .update({
-        name: rules.name,
-        base_price_per_gram_cop: rules.base_price_per_gram_cop,
-        machine_hour_cop: rules.machine_hour_cop,
-        setup_fee_cop: rules.setup_fee_cop,
-        margin_percent: rules.margin_percent,
-        min_price_cop: rules.min_price_cop,
-        material_multipliers: rules.material_multipliers,
-        finish_multipliers: rules.finish_multipliers,
-        is_active: rules.is_active ?? true,
-      })
-      .eq("id", rules.id);
-    setSaving(false);
-    if (error) alert("Error: " + error.message);
-    else alert("Reglas de precios guardadas.");
-  }
-
-  function setNum(key: keyof PricingRules, value: string) {
-    setRules((r) => (r ? { ...r, [key]: Number(value) || 0 } : r));
-  }
-
-  function setMult(field: "material_multipliers" | "finish_multipliers", key: string, value: string) {
-    setRules((r) => (r ? { ...r, [field]: { ...r[field], [key]: Number(value) || 0 } } : r));
-  }
-
-  function addMult(field: "material_multipliers" | "finish_multipliers") {
-    const name = window.prompt(field === "material_multipliers" ? "Nombre del material" : "Nombre del acabado");
-    if (!name?.trim()) return;
-    setRules((r) => (r ? { ...r, [field]: { ...r[field], [name.trim()]: 1 } } : r));
-  }
-
-  function removeMult(field: "material_multipliers" | "finish_multipliers", key: string) {
-    setRules((r) => {
-      if (!r) return r;
-      const next = { ...r[field] };
-      delete next[key];
-      return { ...r, [field]: next };
-    });
-  }
-
-  if (loading || !rules) {
-    return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground p-8">
-        <Loader2 className="h-4 w-4 animate-spin" /> Cargando reglas de precios…
-      </div>
-    );
-  }
-
-  const numFields: [keyof PricingRules, string, string][] = [
-    ["base_price_per_gram_cop", "Precio por gramo (COP)", "Costo base del material por gramo."],
-    ["machine_hour_cop", "Hora de máquina (COP)", "Cuánto cobras por cada hora de impresión."],
-    ["setup_fee_cop", "Costo de preparación (COP)", "Valor fijo por preparar el archivo y la máquina."],
-    ["margin_percent", "Margen de ganancia (%)", "Porcentaje que se suma al costo."],
-    ["min_price_cop", "Precio mínimo (COP)", "Ninguna cotización quedará por debajo de este valor."],
-  ];
-
-  return (
-    <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Valores Base de Precios</CardTitle>
-            <CardDescription>
-              Valores globales por defecto para cálculos directos de impresión.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {numFields.map(([key, label, help]) => (
-                <label key={key} className="block">
-                  <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                    {label}
-                  </span>
-                  <input
-                    type="number"
-                    min={0}
-                    value={String(rules[key] ?? 0)}
-                    onChange={(e) => setNum(key, e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                  />
-                  <span className="mt-1 block text-[11px] text-muted-foreground">{help}</span>
-                </label>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {(
-          [
-            ["material_multipliers", "Multiplicadores por material"],
-            ["finish_multipliers", "Multiplicadores por acabado"],
-          ] as const
-        ).map(([field, title]) => (
-          <Card key={field}>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>{title}</CardTitle>
-              <Button size="sm" variant="outline" onClick={() => addMult(field)} className="rounded-full font-bold">
-                <Plus className="mr-1 h-3.5 w-3.5" /> Agregar
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {Object.entries(rules[field]).map(([key, val]) => (
-                  <div key={key} className="flex items-center gap-2">
-                    <span className="flex-1 text-sm font-semibold">{key}</span>
-                    <input
-                      type="number"
-                      step="0.05"
-                      min={0}
-                      value={String(val)}
-                      onChange={(e) => setMult(field, key, e.target.value)}
-                      className="w-24 rounded-lg border border-input bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
-                    />
-                    <button
-                      onClick={() => removeMult(field, key)}
-                      className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-red-600"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-
-        <Button onClick={save} disabled={saving} className="bg-[var(--brand-wine)] text-white font-bold rounded-full">
-          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-          Guardar Reglas de Precios
-        </Button>
-      </div>
-
-      <aside className="h-fit rounded-3xl border border-border bg-card p-5 lg:sticky lg:top-6">
-        <h2 className="flex items-center gap-2 text-lg font-bold">
-          <Calculator className="h-5 w-5 text-[var(--brand-orange)]" /> Simulador de Reglas
-        </h2>
-        <div className="mt-4 space-y-3">
-          <label className="block">
-            <span className="text-xs font-bold uppercase text-muted-foreground">Gramos</span>
-            <input
-              type="number"
-              min={0}
-              value={test.grams}
-              onChange={(e) => setTest((t) => ({ ...t, grams: Number(e.target.value) || 0 }))}
-              className={inputCls}
-            />
-          </label>
-          <label className="block">
-            <span className="text-xs font-bold uppercase text-muted-foreground">Horas</span>
-            <input
-              type="number"
-              min={0}
-              step="0.5"
-              value={test.hours}
-              onChange={(e) => setTest((t) => ({ ...t, hours: Number(e.target.value) || 0 }))}
-              className={inputCls}
-            />
-          </label>
-        </div>
-
-        {preview && (
-          <div className="mt-4 space-y-1 border-t border-dashed border-border pt-3 text-xs">
-            <div className="flex justify-between border-t border-border pt-2 text-base font-black">
-              <span>Total Estimado</span>
-              <span>{formatCOP(preview.total_cop)}</span>
-            </div>
-          </div>
-        )}
-      </aside>
-    </div>
-  );
-}
-
-// =============================================================================
-// TAB 4: TEXTOS Y PLANTILLAS DEL COTIZADOR
+// TAB 3: TEXTOS Y PLANTILLAS DEL COTIZADOR
 // =============================================================================
 function TabTextosPlantillas() {
   const queryClient = useQueryClient();
@@ -731,10 +658,13 @@ function TabTextosPlantillas() {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("site_content")
         .select("key, value")
         .in("key", keys);
+      if (error) {
+        toast.error(`Error al cargar textos: ${error.message}`);
+      }
       const map: Record<string, string> = {};
       ((data ?? []) as { key: string; value: string }[]).forEach((r) => (map[r.key] = r.value ?? ""));
       setValues(map);
@@ -754,9 +684,9 @@ function TabTextosPlantillas() {
       const { error } = await supabase.from("site_content").upsert(rows, { onConflict: "key" });
       if (error) throw error;
       await queryClient.invalidateQueries({ queryKey: ["site_content"] });
-      alert("Textos del cotizador guardados correctamente.");
+      toast.success("Textos del cotizador guardados correctamente");
     } catch (e) {
-      alert("Error al guardar: " + (e as Error).message);
+      toast.error("Error al guardar: " + (e as Error).message);
     } finally {
       setSaving(false);
     }
@@ -836,6 +766,7 @@ function TabTextosPlantillas() {
         </div>
 
         <Button
+          type="button"
           onClick={handleSave}
           disabled={saving}
           className="bg-[var(--brand-wine)] text-white font-bold rounded-full"
@@ -848,9 +779,9 @@ function TabTextosPlantillas() {
   );
 }
 
-// -----------------------------------------------------------------------------
-// HELPER COMPONENTS FROM ORIGINAL PANEL.COTIZADOR
-// -----------------------------------------------------------------------------
+// =============================================================================
+// TARJETA DE SERVICIO COTIZABLE
+// =============================================================================
 function ServiceCard({
   service,
   quotingVars,
@@ -878,20 +809,39 @@ function ServiceCard({
 
   const fieldSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
   const [draft, setDraft] = useState(service);
   const [saving, setSaving] = useState(false);
   const [test, setTest] = useState<QuoterValues>(() => defaultValuesFor(service));
   const [qty, setQty] = useState(1);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [addingField, setAddingField] = useState(false);
+  const [newFieldLabel, setNewFieldLabel] = useState("");
+  const [newFieldType, setNewFieldType] = useState<QuoterField["input_type"]>("slider");
+  const [addingFieldBusy, setAddingFieldBusy] = useState(false);
 
   useEffect(() => {
     setDraft(service);
     setTest(defaultValuesFor(service));
   }, [service]);
 
-  const preview = useMemo(() => computeQuote(draft, test, qty), [draft, test, qty]);
+  const masterFormulaVars = useMemo<FormulaVarTag[]>(() => {
+    const vars: FormulaVarTag[] = [
+      { key: "quantity", label: "Cantidad" },
+      { key: "base_price", label: "Precio base" },
+    ];
+    for (const f of draft.fields) {
+      if (f.key) vars.push({ key: f.key, label: f.label || f.key });
+    }
+    if (quotingVars?.custom_vars) {
+      for (const cv of quotingVars.custom_vars) {
+        if (cv.key) vars.push({ key: cv.key, label: cv.label || cv.key });
+      }
+    }
+    return vars;
+  }, [draft.fields, quotingVars]);
 
   function set<K extends keyof QuoterService>(key: K, value: QuoterService[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
@@ -906,11 +856,17 @@ function ServiceCard({
     if (oldIndex === -1 || newIndex === -1) return;
 
     const reordered = arrayMove(service.fields, oldIndex, newIndex);
-    await Promise.all(
+    const results = await Promise.all(
       reordered.map((f, idx) =>
-        supabase.from("quoter_fields").update({ sort_order: idx + 1 }).eq("id", f.id)
-      )
+        supabase.from("quoter_fields").update({ sort_order: idx + 1 }).eq("id", f.id),
+      ),
     );
+    const firstErr = results.find((r) => r.error)?.error;
+    if (firstErr) {
+      toast.error(`Error al reordenar preguntas: ${firstErr.message}`);
+    } else {
+      toast.success("Orden de preguntas actualizado");
+    }
     onChanged();
   }
 
@@ -923,113 +879,236 @@ function ServiceCard({
         tagline: draft.tagline,
         description: draft.description,
         icon: draft.icon,
-        base_price_cop: draft.base_price_cop,
-        gastos_extra_cop: draft.gastos_extra_cop,
-        min_price_cop: draft.min_price_cop,
-        margin_percent: draft.margin_percent,
-        pricing_mode: draft.pricing_mode || "",
+        base_price_cop: Number(draft.base_price_cop) || 0,
+        gastos_extra_cop: Number(draft.gastos_extra_cop) || 0,
+        min_price_cop: Number(draft.min_price_cop) || 0,
+        margin_percent: Number(draft.margin_percent) || 0,
+        pricing_mode: draft.pricing_mode || "formula",
         uses_global_vars: draft.uses_global_vars ?? false,
-        price_display: draft.price_display || "",
-        formula: draft.formula || null,
+        price_display: draft.price_display || "final",
+        formula: draft.formula?.trim() || null,
         allow_quantity: draft.allow_quantity,
         allow_file: draft.allow_file,
         requires_approval: draft.requires_approval,
         approval_threshold_cop: draft.approval_threshold_cop,
         is_active: draft.is_active,
         sort_order: draft.sort_order,
-        site_anchor: draft.site_anchor.trim(),
+        site_anchor: normalizeSiteAnchor(draft.site_anchor),
         has_calculator: draft.has_calculator !== false,
-        whatsapp_custom_message: draft.whatsapp_custom_message || null,
+        whatsapp_custom_message: draft.whatsapp_custom_message?.trim() || null,
         volume_tiers: draft.volume_tiers || [],
       })
       .eq("id", draft.id);
     setSaving(false);
-    onMsg(error ? `Error: ${error.message}` : `“${draft.name}” guardado.`);
+
+    if (error) {
+      toast.error(`Error al guardar "${draft.name}": ${error.message}`);
+      onMsg(`Error: ${error.message}`);
+    } else {
+      toast.success(`Servicio "${draft.name}" guardado`);
+      onMsg(`“${draft.name}” guardado.`);
+    }
     onChanged();
   }
 
   async function toggleActive() {
-    await supabase
+    const { error } = await supabase
       .from("quoter_services")
       .update({ is_active: !service.is_active })
       .eq("id", service.id);
+    if (error) {
+      toast.error(`Error al cambiar visibilidad: ${error.message}`);
+      return;
+    }
+    toast.success(service.is_active ? "Servicio ocultado en la web" : "Servicio visible en la web");
     onChanged();
   }
 
   async function removeService() {
-    if (!window.confirm(`¿Eliminar “${service.name}” y todas sus preguntas?`)) return;
-    await supabase.from("quoter_services").delete().eq("id", service.id);
+    const { error } = await supabase.from("quoter_services").delete().eq("id", service.id);
+    if (error) {
+      toast.error(`No se pudo eliminar: ${error.message}`);
+      return;
+    }
+    toast.success(`Servicio "${service.name}" eliminado`);
     onMsg("Servicio eliminado.");
     onChanged();
   }
 
-  async function addField() {
-    const label = window.prompt("Nombre de la pregunta (ej: Peso de la pieza)");
-    if (!label?.trim()) return;
-    const key = slugify(label).replace(/-/g, "_") || `campo_${Date.now()}`;
+  async function handleAddField(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newFieldLabel.trim()) {
+      toast.error("Escribe la etiqueta de la pregunta");
+      return;
+    }
+    setAddingFieldBusy(true);
+    const key = slugify(newFieldLabel).replace(/-/g, "_") || `campo_${Date.now()}`;
     const { error } = await supabase.from("quoter_fields").insert({
       service_id: service.id,
       key,
-      label: label.trim(),
-      input_type: "slider",
+      label: newFieldLabel.trim(),
+      input_type: newFieldType,
       min_value: 0,
       max_value: 100,
       step_value: 1,
-      default_value: "",
+      default_value: newFieldType === "toggle" ? "no" : "",
+      options:
+        newFieldType === "select"
+          ? [{ label: "Opción 1", value: "opcion_1", add_cop: 0, multiplier: 1 }]
+          : [],
       sort_order: service.fields.length + 1,
     });
-    onMsg(error ? `Error: ${error.message}` : "Pregunta agregada.");
+    setAddingFieldBusy(false);
+
+    if (error) {
+      toast.error(`Error al agregar pregunta: ${error.message}`);
+      onMsg(`Error: ${error.message}`);
+      return;
+    }
+    toast.success(`Pregunta "${newFieldLabel.trim()}" agregada`);
+    onMsg("Pregunta agregada.");
+    setNewFieldLabel("");
+    setAddingField(false);
     onChanged();
   }
 
+  const calcEnabled = draft.has_calculator !== false;
+
   return (
-    <section ref={setNodeRef} style={style} className="rounded-3xl border border-border bg-card shadow-sm">
+    <section ref={setNodeRef} style={style} className="rounded-3xl border border-border bg-card shadow-xs">
       <div className="flex flex-wrap items-center gap-3 p-5">
         <button
+          type="button"
           {...attributes}
           {...listeners}
           className="cursor-grab touch-none text-muted-foreground hover:text-foreground p-1"
           title="Arrastrar para reordenar servicio"
+          aria-label={`Reordenar ${service.name}`}
         >
           <GripVertical className="h-5 w-5" />
         </button>
 
-        <button onClick={onToggle} className="flex flex-1 items-center gap-2 text-left">
-          {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          className="flex flex-1 flex-wrap items-center gap-2 text-left"
+        >
+          {open ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
           <span className="text-lg font-black">{service.name}</span>
           <span className="text-xs text-muted-foreground">
             {service.fields.length} pregunta{service.fields.length === 1 ? "" : "s"}
           </span>
+          <span
+            className={`rounded-md px-2 py-0.5 text-[11px] font-bold ${
+              service.has_calculator !== false
+                ? "bg-teal-50 text-[var(--brand-teal-deep)] border border-teal-200"
+                : "bg-amber-50 text-amber-800 border border-amber-200"
+            }`}
+          >
+            {service.has_calculator !== false ? "Calculadora activa" : "Solo WhatsApp"}
+          </span>
           {!service.is_active && (
-            <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-bold text-muted-foreground">
+            <span className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-bold text-muted-foreground">
               Oculto
             </span>
           )}
         </button>
+
         <button
+          type="button"
           onClick={toggleActive}
           className="rounded-lg p-2 text-muted-foreground hover:bg-muted"
           title={service.is_active ? "Ocultar en la web" : "Mostrar en la web"}
+          aria-label={service.is_active ? `Ocultar ${service.name}` : `Mostrar ${service.name}`}
         >
           {service.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
         </button>
-        <button
-          onClick={removeService}
-          className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-red-600"
-          title="Eliminar servicio"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
+
+        {confirmDelete ? (
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={removeService}
+              className="rounded-lg bg-red-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-red-700"
+            >
+              Confirmar
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(false)}
+              className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-muted"
+            >
+              Cancelar
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            className="rounded-lg p-2 text-muted-foreground hover:bg-red-50 hover:text-red-600"
+            title="Eliminar servicio"
+            aria-label={`Eliminar ${service.name}`}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       {open && (
         <div className="grid gap-6 border-t border-border p-5 lg:grid-cols-[1.5fr_1fr]">
           <div className="space-y-6">
+            {/* Modo de operación: Calculadora interactiva vs WhatsApp Directo */}
+            <div
+              className={`rounded-2xl border p-4 space-y-3 transition ${
+                !calcEnabled
+                  ? "border-amber-300 bg-amber-50/60"
+                  : "border-border bg-muted/20"
+              }`}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <span className="text-sm font-bold text-foreground block">
+                    Cotizador interactivo activo en la web
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {calcEnabled
+                      ? "Los clientes ajustan las preguntas y calculan su precio en tiempo real."
+                      : "Desactivado: en /servicios se mostrará el botón directo a WhatsApp con tu mensaje."}
+                  </span>
+                </div>
+                <Switch
+                  checked={calcEnabled}
+                  onCheckedChange={(checked) => set("has_calculator", checked)}
+                  aria-label="Activar o desactivar cotizador interactivo"
+                />
+              </div>
+
+              <div>
+                <label className="block">
+                  <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                    <MessageSquare className="h-3.5 w-3.5 text-[var(--brand-orange)]" />
+                    {!calcEnabled
+                      ? "Mensaje de WhatsApp directo (Activo al estar sin calculadora)"
+                      : "Mensaje personalizado de WhatsApp (opcional)"}
+                  </span>
+                  <Textarea
+                    rows={2}
+                    value={draft.whatsapp_custom_message ?? ""}
+                    onChange={(e) => set("whatsapp_custom_message", e.target.value)}
+                    placeholder={`Hola Will Design 3D! Me interesa solicitar información y cotización sobre el servicio: *${draft.name}*`}
+                    className="mt-1.5 bg-background"
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Datos generales */}
             <div className="grid gap-4 sm:grid-cols-2">
-              <L label="Nombre">
+              <L label="Nombre del servicio">
                 <input value={draft.name} onChange={(e) => set("name", e.target.value)} className={inputCls} />
               </L>
-              <L label="Frase corta">
+              <L label="Frase corta (tagline)">
                 <input
                   value={draft.tagline}
                   onChange={(e) => set("tagline", e.target.value)}
@@ -1044,52 +1123,220 @@ function ServiceCard({
                   className={inputCls}
                 />
               </L>
+
               <L label="Precio base (COP)">
                 <input
                   type="number"
                   min={0}
+                  step={500}
                   value={draft.base_price_cop}
                   onChange={(e) => set("base_price_cop", Number(e.target.value) || 0)}
-                  className={inputCls}
+                  className={`tabular-nums ${inputCls}`}
                 />
               </L>
               <L label="Precio mínimo (COP)">
                 <input
                   type="number"
                   min={0}
+                  step={500}
                   value={draft.min_price_cop}
                   onChange={(e) => set("min_price_cop", Number(e.target.value) || 0)}
-                  className={inputCls}
+                  className={`tabular-nums ${inputCls}`}
                 />
+              </L>
+
+              <L label="Gastos extra fijos (COP)">
+                <input
+                  type="number"
+                  min={0}
+                  step={500}
+                  value={draft.gastos_extra_cop}
+                  onChange={(e) => set("gastos_extra_cop", Number(e.target.value) || 0)}
+                  className={`tabular-nums ${inputCls}`}
+                />
+              </L>
+              <L label="Margen de servicio (%)">
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={draft.margin_percent}
+                  onChange={(e) => set("margin_percent", Number(e.target.value) || 0)}
+                  className={`tabular-nums ${inputCls}`}
+                />
+              </L>
+
+              <L label="Modo de cálculo">
+                <select
+                  value={draft.pricing_mode ?? "formula"}
+                  onChange={(e) => set("pricing_mode", e.target.value as QuoterPricingMode)}
+                  className={inputCls}
+                >
+                  {PRICING_MODES.map((m) => (
+                    <option key={m.value} value={m.value}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+              </L>
+
+              <L label="Ícono y Ancla en /servicios">
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={draft.icon}
+                    onChange={(e) => set("icon", e.target.value)}
+                    aria-label="Ícono del servicio"
+                    className={inputCls}
+                  >
+                    {ICON_OPTIONS.map((ic) => (
+                      <option key={ic.value} value={ic.value}>
+                        {ic.label}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    value={draft.site_anchor ?? ""}
+                    onChange={(e) => set("site_anchor", e.target.value)}
+                    placeholder="slug-ancla"
+                    aria-label="Ancla del sitio"
+                    className={`font-mono text-xs ${inputCls}`}
+                  />
+                </div>
               </L>
             </div>
 
+            {/* Opciones de flujo del cliente */}
+            <div className="flex flex-wrap items-center gap-6 rounded-2xl border border-border bg-muted/15 px-4 py-3">
+              <label className="flex items-center gap-2.5 text-xs font-semibold cursor-pointer">
+                <Switch
+                  checked={draft.allow_quantity}
+                  onCheckedChange={(checked) => set("allow_quantity", checked)}
+                />
+                <span>Permitir selector de cantidad</span>
+              </label>
+              <label className="flex items-center gap-2.5 text-xs font-semibold cursor-pointer">
+                <Switch
+                  checked={draft.allow_file}
+                  onCheckedChange={(checked) => set("allow_file", checked)}
+                />
+                <span>Permitir subir archivo (.STL/.OBJ/imagen)</span>
+              </label>
+              <label className="flex items-center gap-2.5 text-xs font-semibold cursor-pointer">
+                <Switch
+                  checked={Boolean(draft.uses_global_vars)}
+                  onCheckedChange={(checked) => set("uses_global_vars", checked)}
+                />
+                <span>Usa variables globales</span>
+              </label>
+            </div>
+
+            <FormulaEditor
+              value={draft.formula ?? ""}
+              onChange={(val) => set("formula", val)}
+              availableVars={masterFormulaVars}
+              label="Fórmula maestra del servicio (Opcional — reemplaza la suma de campos si devuelve > 0)"
+              placeholder="Ej: (peso_gramos * fdm_gram_cost) + base_price"
+            />
+
             <div className="flex flex-wrap items-center gap-2">
               <button
+                type="button"
                 onClick={save}
                 disabled={saving}
-                className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-wine)] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60 shadow"
+                className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-wine)] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60 shadow-sm hover:opacity-90"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Guardar servicio
+                Guardar configuración del servicio
               </button>
             </div>
 
-            <div>
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold">Preguntas del cliente</h3>
-                <button
-                  onClick={addField}
-                  className="inline-flex items-center gap-1 rounded-full bg-[var(--brand-teal-deep)] px-3 py-1.5 text-xs font-bold text-white"
-                >
-                  <Plus className="h-3.5 w-3.5" /> Agregar pregunta
-                </button>
+            {/* Preguntas del servicio */}
+            <div className="border-t border-border pt-5 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-lg font-bold">Preguntas y parámetros del cliente</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Arrastra las tarjetas para definir el orden en el cotizador público.
+                  </p>
+                </div>
+                {!addingField && (
+                  <button
+                    type="button"
+                    onClick={() => setAddingField(true)}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-[var(--brand-teal-deep)] px-3.5 py-2 text-xs font-bold text-white hover:opacity-90 whitespace-nowrap"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Agregar pregunta
+                  </button>
+                )}
               </div>
-              <DndContext sensors={fieldSensors} collisionDetection={closestCenter} onDragEnd={handleFieldDragEnd}>
+
+              {addingField && (
+                <form
+                  onSubmit={handleAddField}
+                  className="grid gap-3 sm:grid-cols-12 items-end rounded-2xl border border-border bg-muted/20 p-3"
+                >
+                  <label className="sm:col-span-5 block">
+                    <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                      Etiqueta de la pregunta
+                    </span>
+                    <input
+                      autoFocus
+                      value={newFieldLabel}
+                      onChange={(e) => setNewFieldLabel(e.target.value)}
+                      placeholder="Ej: Peso estimado, Material, Acabado"
+                      className={`mt-1 ${inputCls}`}
+                    />
+                  </label>
+                  <label className="sm:col-span-4 block">
+                    <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                      Tipo de control
+                    </span>
+                    <select
+                      value={newFieldType}
+                      onChange={(e) => setNewFieldType(e.target.value as QuoterField["input_type"])}
+                      className={`mt-1 ${inputCls}`}
+                    >
+                      <option value="slider">Deslizador (rango)</option>
+                      <option value="select">Opciones (tarjetas)</option>
+                      <option value="toggle">Sí / No</option>
+                      <option value="number">Número</option>
+                      <option value="text">Texto libre</option>
+                    </select>
+                  </label>
+                  <div className="sm:col-span-3 flex items-center gap-2">
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={addingFieldBusy}
+                      className="rounded-full bg-[var(--brand-teal-deep)] text-white font-bold"
+                    >
+                      {addingFieldBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Crear"}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setAddingField(false);
+                        setNewFieldLabel("");
+                      }}
+                      className="rounded-full"
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </form>
+              )}
+
+              <DndContext
+                sensors={fieldSensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleFieldDragEnd}
+              >
                 <SortableContext items={service.fields.map((f) => f.id)} strategy={verticalListSortingStrategy}>
-                  <div className="mt-3 space-y-3">
+                  <div className="space-y-3">
                     {service.fields.map((f, i) => (
-                      <FieldEditor
+                      <QuoterFieldEditor
                         key={f.id}
                         field={f}
                         index={i}
@@ -1100,140 +1347,28 @@ function ServiceCard({
                         onMsg={onMsg}
                       />
                     ))}
+                    {service.fields.length === 0 && (
+                      <p className="rounded-2xl border border-dashed border-border p-5 text-center text-xs text-muted-foreground">
+                        Este servicio no tiene preguntas aún. Agrega una para configurar sliders, opciones o interruptores.
+                      </p>
+                    )}
                   </div>
                 </SortableContext>
               </DndContext>
             </div>
           </div>
 
-          <aside className="h-fit rounded-3xl border border-border bg-background p-5 lg:sticky lg:top-6">
-            <h3 className="flex items-center gap-2 text-lg font-bold">
-              <Calculator className="h-5 w-5 text-[var(--brand-orange)]" /> Simulador
-            </h3>
-            <div className="mt-4 space-y-3">
-              {draft.fields.map((f) => (
-                <div key={f.id}>
-                  <span className="text-xs font-bold uppercase text-muted-foreground">{f.label}</span>
-                  <input
-                    type="number"
-                    value={test[f.key] ?? ""}
-                    onChange={(e) => setTest((t) => ({ ...t, [f.key]: e.target.value }))}
-                    className={inputCls}
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 border-t border-border pt-2 text-base font-black flex justify-between">
-              <span>Total</span>
-              <span>{formatCOP(preview.total_cop)}</span>
-            </div>
-          </aside>
+          <QuoterSimulatorAside
+            service={draft}
+            quotingVars={quotingVars}
+            values={test}
+            onValueChange={(key, val) => setTest((prev) => ({ ...prev, [key]: val }))}
+            quantity={qty}
+            onQuantityChange={setQty}
+          />
         </div>
       )}
     </section>
-  );
-}
-
-function FieldEditor({
-  field,
-  quotingVars,
-  onChanged,
-  onMsg,
-}: {
-  field: QuoterField;
-  index: number;
-  total: number;
-  siblings: QuoterField[];
-  quotingVars?: QuotingVars;
-  onChanged: () => void;
-  onMsg: (m: string) => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: field.id,
-  });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  const [d, setD] = useState(field);
-  const [open, setOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => setD(field), [field]);
-
-  function set<K extends keyof QuoterField>(k: K, v: QuoterField[K]) {
-    setD((prev) => ({ ...prev, [k]: v }));
-  }
-
-  async function save() {
-    setSaving(true);
-    const { error } = await supabase
-      .from("quoter_fields")
-      .update({
-        label: d.label,
-        help: d.help,
-        input_type: d.input_type,
-        min_value: d.min_value,
-        max_value: d.max_value,
-        step_value: d.step_value || 1,
-        default_value: d.default_value,
-        unit: d.unit,
-        price_per_unit_cop: d.price_per_unit_cop,
-        price_source: d.price_source ?? "fixed",
-        multiplier: d.multiplier || 1,
-        formula: d.formula || null,
-        options: d.options,
-        is_active: d.is_active,
-        sort_order: d.sort_order,
-      })
-      .eq("id", d.id);
-    setSaving(false);
-    onMsg(error ? `Error: ${error.message}` : `“${d.label}” guardada.`);
-    onChanged();
-  }
-
-  async function remove() {
-    if (!window.confirm(`¿Eliminar la pregunta “${field.label}”?`)) return;
-    await supabase.from("quoter_fields").delete().eq("id", field.id);
-    onChanged();
-  }
-
-  return (
-    <div ref={setNodeRef} style={style} className="rounded-2xl border border-border p-4 bg-card shadow-sm">
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          {...attributes}
-          {...listeners}
-          className="cursor-grab touch-none text-muted-foreground hover:text-foreground p-1"
-          title="Arrastrar"
-        >
-          <GripVertical className="h-4 w-4" />
-        </button>
-
-        <button onClick={() => setOpen(!open)} className="flex flex-1 items-center gap-2 text-left">
-          {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-          <span className="font-bold">{field.label}</span>
-        </button>
-
-        <button onClick={remove} className="rounded-lg p-1.5 text-muted-foreground hover:text-red-600">
-          <Trash2 className="h-4 w-4" />
-        </button>
-      </div>
-
-      {open && (
-        <div className="mt-4 space-y-3">
-          <L label="Etiqueta">
-            <input value={d.label} onChange={(e) => set("label", e.target.value)} className={inputCls} />
-          </L>
-          <Button onClick={save} disabled={saving} size="sm" className="bg-[var(--brand-teal-deep)] text-white">
-            Guardar pregunta
-          </Button>
-        </div>
-      )}
-    </div>
   );
 }
 

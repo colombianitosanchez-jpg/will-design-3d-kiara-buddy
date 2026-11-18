@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,8 +6,6 @@ import { toast } from "sonner";
 import {
   Wrench,
   Printer,
-  Sparkles,
-  PencilRuler,
   Plus,
   Pencil,
   Trash2,
@@ -20,14 +18,14 @@ import {
   GripVertical,
   Eye,
   EyeOff,
-  ScanLine,
-  ShoppingBag,
-  GraduationCap,
   FileUp,
   MessageSquare,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 import { quoterServicesQuery } from "@/lib/quoter";
 import { ProductButtonsEditor } from "@/components/ProductButtonsEditor";
+import { MediaDropZone } from "@/components/MediaDropZone";
 import { parseProductButtons, type ProductButton } from "@/lib/product-buttons";
 import {
   DndContext,
@@ -213,12 +211,35 @@ const DEFAULT_SITE_SERVICES: Omit<SiteServiceItem, "id">[] = [
 const inputCls =
   "mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring";
 
+function mapRowToSiteService(item: any): SiteServiceItem {
+  return {
+    id: item.id,
+    slug: item.slug || `svc-${item.id}`,
+    title: item.title || "Servicio sin título",
+    lead: item.lead || "",
+    icon: item.icon || "printer",
+    color: item.color || "orange",
+    image_url: item.image_url || null,
+    media_type: (item.media_type as any) || "image",
+    quoter_service_id: item.quoter_service_id || null,
+    whatsapp_template: item.whatsapp_template || null,
+    requires_file: Boolean(item.requires_file),
+    bullets: Array.isArray(item.bullets) ? item.bullets : [],
+    kiara_tip: item.kiara_tip || "",
+    custom_buttons: parseProductButtons(item.custom_buttons),
+    is_active: item.is_active ?? true,
+    sort_order: item.sort_order ?? 0,
+  };
+}
+
 function ServiciosPanel() {
   const qc = useQueryClient();
   const { data: quoterSvcs } = useQuery(quoterServicesQuery(true));
 
   const [services, setServices] = useState<SiteServiceItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [seeding, setSeeding] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState<SiteServiceItem | null>(null);
 
@@ -232,10 +253,15 @@ function ServiciosPanel() {
   );
 
   async function loadHeaderSettings() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("site_content")
       .select("key, value")
       .in("key", ["services_section_title", "services_section_subtitle"]);
+
+    if (error) {
+      toast.error(`Error al cargar encabezado: ${error.message}`);
+      return;
+    }
 
     if (data) {
       const map = Object.fromEntries(data.map((r: any) => [r.key, r.value]));
@@ -256,7 +282,7 @@ function ServiciosPanel() {
       toast.success("Título y subtítulo de la sección servicios guardados");
       qc.invalidateQueries({ queryKey: ["site_content"] });
     } catch (e: any) {
-      toast.error("Error al guardar encabezado: " + (e.message || ""));
+      toast.error("Error al guardar encabezado: " + (e?.message || "desconocido"));
     } finally {
       setSavingHeader(false);
     }
@@ -264,6 +290,7 @@ function ServiciosPanel() {
 
   async function loadServices() {
     setLoading(true);
+    setLoadError(null);
     try {
       const { data, error } = await supabase
         .from("site_services")
@@ -271,78 +298,43 @@ function ServiciosPanel() {
         .order("sort_order", { ascending: true });
 
       if (error) {
-        console.warn("Could not fetch site_services directly:", error.message);
-      }
-
-      if (data && data.length > 0) {
-        const formatted: SiteServiceItem[] = data.map((item: any) => ({
-          id: item.id,
-          slug: item.slug || `svc-${item.id}`,
-          title: item.title || "Servicio sin título",
-          lead: item.lead || "",
-          icon: item.icon || "printer",
-          color: item.color || "orange",
-          image_url: item.image_url || null,
-          media_type: (item.media_type as any) || "image",
-          quoter_service_id: item.quoter_service_id || null,
-          whatsapp_template: item.whatsapp_template || null,
-          requires_file: Boolean(item.requires_file),
-          bullets: Array.isArray(item.bullets) ? item.bullets : [],
-          kiara_tip: item.kiara_tip || "",
-          custom_buttons: parseProductButtons(item.custom_buttons),
-          is_active: item.is_active ?? true,
-          sort_order: item.sort_order ?? 0,
-        }));
-        setServices(formatted);
-        setLoading(false);
+        setLoadError(error.message);
+        toast.error(`Error al consultar servicios: ${error.message}`);
+        setServices([]);
         return;
       }
 
-      // If database table is empty, seed defaults
-      const seeded = await seedDefaultServices();
-      setServices(seeded);
-    } catch (e) {
-      toast.error("Error al cargar los servicios");
+      setServices((data ?? []).map(mapRowToSiteService));
+    } catch (e: any) {
+      const msg = e?.message || "Error inesperado al cargar servicios";
+      setLoadError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
   }
 
-  async function seedDefaultServices(): Promise<SiteServiceItem[]> {
-    const listToInsert = DEFAULT_SITE_SERVICES.map((s, idx) => ({
-      ...s,
-      bullets: s.bullets as any,
-      custom_buttons: s.custom_buttons as any,
-      sort_order: (idx + 1) * 10,
-    }));
-
-    const { data, error } = await supabase.from("site_services").insert(listToInsert).select();
-    if (error || !data || data.length === 0) {
-      return DEFAULT_SITE_SERVICES.map((s, idx) => ({
+  async function handleSeedDefaults() {
+    setSeeding(true);
+    try {
+      const listToInsert = DEFAULT_SITE_SERVICES.map((s, idx) => ({
         ...s,
-        id: `svc_temp_${idx}`,
+        bullets: s.bullets as any,
+        custom_buttons: s.custom_buttons as any,
         sort_order: (idx + 1) * 10,
       }));
-    }
 
-    return data.map((item: any) => ({
-      id: item.id,
-      slug: item.slug,
-      title: item.title,
-      lead: item.lead,
-      icon: item.icon,
-      color: item.color,
-      image_url: item.image_url,
-      media_type: item.media_type as any,
-      quoter_service_id: item.quoter_service_id,
-      whatsapp_template: item.whatsapp_template,
-      requires_file: Boolean(item.requires_file),
-      bullets: Array.isArray(item.bullets) ? item.bullets : [],
-      kiara_tip: item.kiara_tip || "",
-      custom_buttons: parseProductButtons(item.custom_buttons),
-      is_active: item.is_active,
-      sort_order: item.sort_order,
-    }));
+      const { data, error } = await supabase.from("site_services").insert(listToInsert).select();
+      if (error) throw error;
+      const inserted = (data ?? []).map(mapRowToSiteService);
+      setServices(inserted);
+      toast.success(`Se sembraron ${inserted.length} servicios iniciales en la base de datos`);
+      qc.invalidateQueries({ queryKey: ["site-services-public"] });
+    } catch (e: any) {
+      toast.error(`No se pudieron sembrar los servicios: ${e?.message || "Error de permisos o conexión"}`);
+    } finally {
+      setSeeding(false);
+    }
   }
 
   useEffect(() => {
@@ -355,11 +347,11 @@ function ServiciosPanel() {
     setServices((prev) => prev.map((s) => (s.id === svc.id ? { ...s, is_active: nextActive } : s)));
     const { error } = await supabase.from("site_services").update({ is_active: nextActive }).eq("id", svc.id);
     if (error) {
-      toast.error("Error al actualizar visibilidad");
+      toast.error(`Error al actualizar visibilidad: ${error.message}`);
       loadServices();
     } else {
       toast.success(nextActive ? "Servicio visible" : "Servicio oculto");
-      qc.invalidateQueries({ queryKey: ["site-services"] });
+      qc.invalidateQueries({ queryKey: ["site-services-public"] });
     }
   }
 
@@ -384,7 +376,7 @@ function ServiciosPanel() {
         sort_order: updated.sort_order,
       };
 
-      if (updated.id && !updated.id.startsWith("svc_temp_")) {
+      if (updated.id) {
         const { error } = await supabase.from("site_services").update(payload).eq("id", updated.id);
         if (error) throw error;
       } else {
@@ -395,24 +387,23 @@ function ServiciosPanel() {
       toast.success("Servicio guardado correctamente");
       setEditing(null);
       await loadServices();
-      await qc.invalidateQueries({ queryKey: ["site-services"] });
+      await qc.invalidateQueries({ queryKey: ["site-services-public"] });
     } catch (e: any) {
-      toast.error("Error al guardar servicio: " + (e.message || ""));
+      toast.error("Error al guardar servicio: " + (e?.message || "desconocido"));
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("¿Seguro que deseas eliminar este servicio?")) return;
     try {
       const { error } = await supabase.from("site_services").delete().eq("id", id);
       if (error) throw error;
       setServices((prev) => prev.filter((s) => s.id !== id));
       toast.success("Servicio eliminado");
-      await qc.invalidateQueries({ queryKey: ["site-services"] });
+      await qc.invalidateQueries({ queryKey: ["site-services-public"] });
     } catch (e: any) {
-      toast.error("Error al eliminar servicio");
+      toast.error(`Error al eliminar servicio: ${e?.message || "desconocido"}`);
     }
   }
 
@@ -446,6 +437,7 @@ function ServiciosPanel() {
     const newIndex = services.findIndex((s) => s.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
 
+    const previous = services;
     const reordered = arrayMove(services, oldIndex, newIndex).map((item, index) => ({
       ...item,
       sort_order: (index + 1) * 10,
@@ -453,17 +445,19 @@ function ServiciosPanel() {
 
     setServices(reordered);
 
-    // Save order
     try {
-      await Promise.all(
+      const results = await Promise.all(
         reordered.map((s) =>
           supabase.from("site_services").update({ sort_order: s.sort_order }).eq("id", s.id)
         )
       );
+      const firstError = results.find((r) => r.error)?.error;
+      if (firstError) throw firstError;
       toast.success("Orden de servicios actualizado");
-      qc.invalidateQueries({ queryKey: ["site-services"] });
-    } catch {
-      toast.error("Error al guardar el nuevo orden");
+      qc.invalidateQueries({ queryKey: ["site-services-public"] });
+    } catch (e: any) {
+      setServices(previous);
+      toast.error(`Error al guardar el nuevo orden: ${e?.message || "desconocido"}`);
     }
   }
 
@@ -485,14 +479,15 @@ function ServiciosPanel() {
           </p>
         </div>
         <button
+          type="button"
           onClick={handleCreateNew}
-          className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-orange)] px-5 py-2.5 text-sm font-bold text-white hover:opacity-90 shadow"
+          className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-orange)] px-5 py-2.5 text-sm font-bold text-white hover:opacity-90 shadow whitespace-nowrap"
         >
           <Plus className="h-4 w-4" /> Crear nuevo servicio
         </button>
       </div>
 
-      {/* Encabezado Principal de la Sección Servicios (Fuente de Verdad Concentrada) */}
+      {/* Encabezado Principal de la Sección Servicios */}
       <div className="rounded-2xl border border-border bg-card p-5 shadow-xs space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-2">
           <div>
@@ -507,7 +502,7 @@ function ServiciosPanel() {
             type="button"
             onClick={handleSaveHeader}
             disabled={savingHeader}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--brand-orange)] px-4 py-2 text-xs font-bold text-white hover:opacity-90 disabled:opacity-50 shadow-xs"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--brand-orange)] px-4 py-2 text-xs font-bold text-white hover:opacity-90 disabled:opacity-50 shadow-xs whitespace-nowrap"
           >
             {savingHeader ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
             Guardar Encabezado
@@ -543,22 +538,71 @@ function ServiciosPanel() {
         </div>
       </div>
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={services.map((s) => s.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-4">
-            {services.map((s) => (
-              <SortableServiceCard
-                key={s.id}
-                service={s}
-                quoterServices={quoterSvcs ?? []}
-                onEdit={() => setEditing(s)}
-                onToggleActive={() => handleToggleActive(s)}
-                onDelete={() => handleDelete(s.id)}
-              />
-            ))}
+      {loadError && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-900 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold">No se pudieron cargar los servicios de la base de datos</p>
+              <p className="text-xs text-red-700 mt-0.5 font-mono">{loadError}</p>
+            </div>
           </div>
-        </SortableContext>
-      </DndContext>
+          <button
+            type="button"
+            onClick={loadServices}
+            className="inline-flex items-center gap-1.5 rounded-full border border-red-300 bg-white px-4 py-2 text-xs font-bold text-red-800 hover:bg-red-100"
+          >
+            <RefreshCw className="h-3.5 w-3.5" /> Reintentar
+          </button>
+        </div>
+      )}
+
+      {!loadError && services.length === 0 ? (
+        <div className="rounded-3xl border border-dashed border-border bg-card p-10 text-center space-y-4">
+          <Printer className="mx-auto h-10 w-10 text-muted-foreground" />
+          <div className="space-y-1">
+            <h3 className="text-lg font-bold">La tabla de servicios está vacía</h3>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto">
+              Puedes sembrar los 8 servicios predeterminados de Will Design 3D en tu base de datos o crear uno desde cero.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={handleSeedDefaults}
+              disabled={seeding}
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-teal-deep)] px-5 py-2.5 text-sm font-bold text-white hover:opacity-90 disabled:opacity-60"
+            >
+              {seeding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              Sembrar servicios iniciales ({DEFAULT_SITE_SERVICES.length})
+            </button>
+            <button
+              type="button"
+              onClick={handleCreateNew}
+              className="inline-flex items-center gap-2 rounded-full border border-border px-5 py-2.5 text-sm font-semibold hover:bg-muted"
+            >
+              Crear servicio vacío
+            </button>
+          </div>
+        </div>
+      ) : (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={services.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-4">
+              {services.map((s) => (
+                <SortableServiceCard
+                  key={s.id}
+                  service={s}
+                  quoterServices={quoterSvcs ?? []}
+                  onEdit={() => setEditing(s)}
+                  onToggleActive={() => handleToggleActive(s)}
+                  onDelete={() => handleDelete(s.id)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
 
       {editing && (
         <ServiceModal
@@ -586,6 +630,7 @@ function SortableServiceCard({
   onToggleActive: () => void;
   onDelete: () => void;
 }) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: s.id,
   });
@@ -604,14 +649,16 @@ function SortableServiceCard({
       style={style}
       className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border ${
         s.is_active ? "border-border bg-card" : "border-dashed border-muted bg-muted/30 opacity-75"
-      } p-4 shadow-sm`}
+      } p-4 shadow-xs`}
     >
       <div className="flex items-start gap-3 w-full sm:w-auto">
         <button
+          type="button"
           {...attributes}
           {...listeners}
           className="mt-1 cursor-grab touch-none text-muted-foreground hover:text-foreground p-1"
           title="Arrastrar para reordenar"
+          aria-label={`Reordenar ${s.title}`}
         >
           <GripVertical className="h-5 w-5" />
         </button>
@@ -619,20 +666,20 @@ function SortableServiceCard({
         <div className="flex-1 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-lg font-bold">{s.title}</h3>
-            <span className="text-xs px-2 py-0.5 rounded-full font-semibold border border-border bg-muted">
+            <span className="text-xs px-2 py-0.5 rounded-md font-semibold border border-border bg-muted tabular-nums">
               Pos: {s.sort_order}
             </span>
             {assignedQuoter ? (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--brand-teal-deep)] bg-teal-50 dark:bg-teal-950/40 px-2 py-0.5 rounded-full border border-teal-200">
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--brand-teal-deep)] bg-teal-50 dark:bg-teal-950/40 px-2 py-0.5 rounded-md border border-teal-200">
                 <Calculator className="h-3 w-3" /> Cotizador: {assignedQuoter.name}
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
                 <MessageSquare className="h-3 w-3" /> WhatsApp Directo
               </span>
             )}
             {s.requires_file && (
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full border border-amber-200">
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-800 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-200">
                 <FileUp className="h-3 w-3" /> Requiere archivo
               </span>
             )}
@@ -655,6 +702,7 @@ function SortableServiceCard({
 
       <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
         <button
+          type="button"
           onClick={onToggleActive}
           className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
             s.is_active
@@ -668,20 +716,46 @@ function SortableServiceCard({
         </button>
 
         <button
+          type="button"
           onClick={onEdit}
           className="rounded-lg bg-muted p-2 text-xs font-semibold hover:bg-muted/80"
           title="Editar servicio"
+          aria-label={`Editar ${s.title}`}
         >
           <Pencil className="h-4 w-4" />
         </button>
 
-        <button
-          onClick={onDelete}
-          className="rounded-lg bg-red-50 p-2 text-xs font-semibold text-red-600 hover:bg-red-100 dark:bg-red-950/50 dark:text-red-400"
-          title="Eliminar servicio"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
+        {confirmDelete ? (
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                setConfirmDelete(false);
+                onDelete();
+              }}
+              className="rounded-lg bg-red-600 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-red-700"
+            >
+              Confirmar
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(false)}
+              className="rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:bg-muted"
+            >
+              Cancelar
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            className="rounded-lg bg-red-50 p-2 text-xs font-semibold text-red-600 hover:bg-red-100 dark:bg-red-950/50 dark:text-red-400"
+            title="Eliminar servicio"
+            aria-label={`Eliminar ${s.title}`}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -800,11 +874,18 @@ function ServiceModal({
   onSave: (updated: SiteServiceItem) => void;
 }) {
   const [form, setForm] = useState<SiteServiceItem>(service);
+  const [wantsQuoter, setWantsQuoter] = useState<boolean>(Boolean(service.quoter_service_id));
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    onSave(form);
+    onSave({
+      ...form,
+      quoter_service_id: wantsQuoter ? form.quoter_service_id : null,
+    });
   }
+
+  const defaultWaMsg = `Hola Will Design 3D! Me interesa solicitar información y cotización sobre el servicio: *${form.title}*`;
+  const effectiveWaPreview = (form.whatsapp_template || "").trim() || defaultWaMsg;
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4">
@@ -816,7 +897,7 @@ function ServiceModal({
           <h2 className="text-xl font-black">
             {service.id ? "Editar Servicio 3D" : "Crear Nuevo Servicio 3D"}
           </h2>
-          <button type="button" onClick={onClose} className="rounded-full p-2 hover:bg-muted">
+          <button type="button" onClick={onClose} aria-label="Cerrar modal" className="rounded-full p-2 hover:bg-muted">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -838,7 +919,7 @@ function ServiceModal({
               required
               value={form.slug}
               onChange={(e) => setForm({ ...form, slug: e.target.value })}
-              className={inputCls}
+              className={`font-mono text-xs ${inputCls}`}
             />
           </label>
         </div>
@@ -857,9 +938,10 @@ function ServiceModal({
           <label className="text-xs font-semibold block">
             ¿Requiere Cotizador Dinámico?
             <select
-              value={form.quoter_service_id ? "yes" : "no"}
+              value={wantsQuoter ? "yes" : "no"}
               onChange={(e) => {
                 const needs = e.target.value === "yes";
+                setWantsQuoter(needs);
                 setForm({
                   ...form,
                   quoter_service_id: needs ? (form.quoter_service_id || quoterServices[0]?.id || null) : null,
@@ -873,42 +955,90 @@ function ServiceModal({
           </label>
 
           <label className="text-xs font-semibold block">
-            Posición / Orden
-            <input
-              type="number"
-              value={form.sort_order}
-              onChange={(e) => setForm({ ...form, sort_order: parseInt(e.target.value) || 0 })}
-              className={inputCls}
-            />
+            Color de acento e ícono
+            <div className="grid grid-cols-2 gap-2">
+              <select
+                value={form.color}
+                onChange={(e) => setForm({ ...form, color: e.target.value })}
+                aria-label="Color de acento"
+                className={inputCls}
+              >
+                <option value="orange">Naranja Marca</option>
+                <option value="teal">Turquesa Marca</option>
+                <option value="wine">Vino Marca</option>
+              </select>
+              <select
+                value={form.icon}
+                onChange={(e) => setForm({ ...form, icon: e.target.value })}
+                aria-label="Ícono del servicio"
+                className={inputCls}
+              >
+                <option value="printer">Impresora</option>
+                <option value="pencil-ruler">Diseño CAD</option>
+                <option value="wrench">Servicio Técnico</option>
+                <option value="scan-line">Escaneo 3D</option>
+                <option value="sparkles">Acabados</option>
+                <option value="graduation-cap">Cursos</option>
+                <option value="boxes">Volumen</option>
+                <option value="shopping-bag">Producto</option>
+              </select>
+            </div>
           </label>
         </div>
 
-        {form.quoter_service_id ? (
-          <label className="text-xs font-semibold block">
-            Cotizador Vinculado
-            <select
-              value={form.quoter_service_id}
-              onChange={(e) => setForm({ ...form, quoter_service_id: e.target.value || null })}
-              className={inputCls}
-            >
-              {quoterServices.map((q) => (
-                <option key={q.id} value={q.id}>
-                  {q.name} ({q.slug})
-                </option>
-              ))}
-            </select>
-          </label>
+        {wantsQuoter ? (
+          <div className="rounded-2xl border border-teal-200 bg-teal-50/40 p-4 space-y-2">
+            {quoterServices.length > 0 ? (
+              <label className="text-xs font-semibold block">
+                Cotizador Vinculado
+                <select
+                  value={form.quoter_service_id ?? ""}
+                  onChange={(e) => setForm({ ...form, quoter_service_id: e.target.value || null })}
+                  className={inputCls}
+                >
+                  {quoterServices.map((q) => (
+                    <option key={q.id} value={q.id}>
+                      {q.name} ({q.slug})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <div className="text-xs text-amber-900 space-y-1">
+                <p className="font-bold">Aún no hay servicios creados en el Cotizador.</p>
+                <p>
+                  Crea primero una calculadora en{" "}
+                  <Link to="/panel/cotizador" className="underline font-bold">
+                    Cotizador Unificado
+                  </Link>{" "}
+                  o selecciona “No — Mensaje WhatsApp” para usar contacto directo.
+                </p>
+              </div>
+            )}
+          </div>
         ) : (
-          <label className="text-xs font-semibold block">
-            Plantilla de Mensaje de WhatsApp Directo
+          <div className="rounded-2xl border-2 border-[var(--brand-orange)] bg-[color-mix(in_oklab,var(--brand-orange)_8%,white)] p-4 space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-black uppercase tracking-wide text-[var(--brand-orange-deep)] flex items-center gap-1.5">
+                <MessageSquare className="h-4 w-4" />
+                Plantilla de Mensaje de WhatsApp Directo
+              </span>
+              <span className="text-[11px] font-semibold text-muted-foreground">
+                Modo directo activo
+              </span>
+            </div>
             <textarea
               rows={2}
               value={form.whatsapp_template || ""}
               onChange={(e) => setForm({ ...form, whatsapp_template: e.target.value })}
-              placeholder="Hola Will Design 3D! Quisiera consultar acerca del servicio..."
-              className={inputCls}
+              placeholder={defaultWaMsg}
+              className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
             />
-          </label>
+            <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2 text-[11px] text-muted-foreground">
+              <span className="font-bold text-foreground block mb-0.5">Vista previa del mensaje que enviará el cliente:</span>
+              “{effectiveWaPreview}”
+            </div>
+          </div>
         )}
 
         <div className="flex items-center gap-3 rounded-xl border border-border p-3 bg-muted/20">
@@ -924,28 +1054,47 @@ function ServiceModal({
           </label>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-2xl border border-border bg-muted/15 p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Multimedia de portada del servicio
+            </span>
+            <select
+              value={form.media_type}
+              onChange={(e) => setForm({ ...form, media_type: e.target.value as any })}
+              aria-label="Tipo de multimedia"
+              className="rounded-lg border border-input bg-background px-2.5 py-1 text-xs font-semibold"
+            >
+              <option value="image">Imagen estática</option>
+              <option value="gif">GIF Animado</option>
+              <option value="video">Vídeo Corto MP4/WebM</option>
+            </select>
+          </div>
+
+          <MediaDropZone
+            value={form.image_url || ""}
+            onChange={(url, detected) =>
+              setForm({
+                ...form,
+                image_url: url || null,
+                media_type:
+                  detected === "videoFill"
+                    ? "video"
+                    : form.media_type === "gif"
+                      ? "gif"
+                      : "image",
+              })
+            }
+          />
+
           <label className="text-xs font-semibold block">
-            URL Multimedia (GIF / Video MP4 / Imagen)
+            O URL directa (GIF / Video MP4 / Imagen)
             <input
               value={form.image_url || ""}
               onChange={(e) => setForm({ ...form, image_url: e.target.value || null })}
               placeholder="https://... .gif, .mp4 o imagen"
               className={inputCls}
             />
-          </label>
-
-          <label className="text-xs font-semibold block">
-            Tipo de Multimedia
-            <select
-              value={form.media_type}
-              onChange={(e) => setForm({ ...form, media_type: e.target.value as any })}
-              className={inputCls}
-            >
-              <option value="image">Imagen estática</option>
-              <option value="gif">GIF Animado</option>
-              <option value="video">Vídeo Corto MP4/WebM</option>
-            </select>
           </label>
         </div>
 

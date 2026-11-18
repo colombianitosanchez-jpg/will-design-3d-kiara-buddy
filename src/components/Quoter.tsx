@@ -19,9 +19,12 @@ import {
   ChevronLeft,
   Minus,
   Plus,
+  ShoppingCart,
+  Image as ImageIcon,
+  Check,
+  MessageSquare,
   type LucideIcon,
 } from "lucide-react";
-import { ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import kiaraAsset from "@/assets/kiara.asset.json";
 import { siteContentQuery, getContactInfo, waLink, buildWhatsAppQuoteMessage } from "@/lib/catalog";
@@ -30,7 +33,6 @@ import { useSiteContent } from "@/hooks/use-site-content";
 import { useCart } from "@/lib/cart";
 import { computePublicQuote } from "@/lib/quoter.functions";
 import { Link } from "@tanstack/react-router";
-
 import { supabase } from "@/integrations/supabase/client";
 import { createQuoteRequest, createQuoteUploadUrl } from "@/lib/quotes.functions";
 import {
@@ -42,6 +44,11 @@ import {
   type QuoterField,
   type QuoterValues,
 } from "@/lib/quoter";
+import {
+  clampSliderValue,
+  formatOptionPriceBadge,
+  sliderPercentage,
+} from "@/lib/quoter-ui";
 
 const ICONS: Record<string, LucideIcon> = {
   printer: Printer,
@@ -69,6 +76,139 @@ function validateFile(file: File): string | null {
 const inputCls =
   "w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring";
 
+/* -------------------------- Deslizador paramétrico -------------------------- */
+
+function ParametricSlider({
+  label,
+  min,
+  max,
+  step,
+  value,
+  unit,
+  help,
+  onChange,
+}: {
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  unit?: string;
+  help?: string;
+  onChange: (val: number) => void;
+}) {
+  const [dragging, setDragging] = useState(false);
+  const clamped = clampSliderValue(value, min, max, step);
+  const pct = sliderPercentage(clamped, min, max);
+  const unitSuffix = unit ? ` ${unit}` : "";
+
+  return (
+    <div className="rounded-2xl border border-border bg-background/60 p-4 space-y-2.5">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm font-bold text-foreground">{label}</span>
+        <span className="inline-flex items-center rounded-lg bg-[var(--brand-teal-deep)] px-2.5 py-1 text-xs font-black text-white tabular-nums">
+          {clamped}
+          {unitSuffix}
+        </span>
+      </div>
+
+      <div className="relative pt-5 pb-1">
+        {/* Indicador flotante sobre el pulgar al arrastrar o enfocar */}
+        <div
+          aria-hidden="true"
+          style={{ left: `clamp(1.75rem, ${pct}%, calc(100% - 1.75rem))` }}
+          className={`pointer-events-none absolute -top-1 -translate-x-1/2 rounded-md bg-[var(--brand-wine)] px-2 py-0.5 text-[11px] font-black text-white shadow-sm tabular-nums transition-opacity duration-150 motion-reduce:transition-none ${
+            dragging ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          {clamped}
+          {unitSuffix}
+        </div>
+
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step || 1}
+          value={clamped}
+          aria-label={label}
+          onPointerDown={() => setDragging(true)}
+          onPointerUp={() => setDragging(false)}
+          onPointerCancel={() => setDragging(false)}
+          onFocus={() => setDragging(true)}
+          onBlur={() => setDragging(false)}
+          onChange={(e) => onChange(Number(e.target.value))}
+          style={{
+            background: `linear-gradient(to right, var(--brand-orange) 0%, var(--brand-orange) ${pct}%, var(--border) ${pct}%, var(--border) 100%)`,
+          }}
+          className="h-2.5 w-full cursor-pointer appearance-none rounded-full accent-[var(--brand-orange)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-orange)] focus-visible:ring-offset-2"
+        />
+      </div>
+
+      <div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground tabular-nums">
+        <span>
+          Mín: {min}
+          {unitSuffix}
+        </span>
+        <span>
+          Máx: {max}
+          {unitSuffix}
+        </span>
+      </div>
+
+      {help && <p className="text-xs text-muted-foreground leading-relaxed">{help}</p>}
+    </div>
+  );
+}
+
+/* ------------------------ Tarjeta de opción con media ----------------------- */
+
+function SelectOptionMedia({
+  url,
+  type,
+  alt,
+}: {
+  url: string;
+  type?: "image" | "video" | "gif";
+  alt: string;
+}) {
+  const [failed, setFailed] = useState(false);
+
+  if (failed) {
+    return (
+      <div className="flex h-28 w-full items-center justify-center rounded-xl bg-muted/60 text-muted-foreground">
+        <ImageIcon className="h-6 w-6 opacity-50" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl bg-muted border border-border/60">
+      {type === "video" ? (
+        <video
+          src={url}
+          autoPlay
+          loop
+          muted
+          playsInline
+          onError={() => setFailed(true)}
+          className="h-28 w-full object-cover"
+        />
+      ) : (
+        <img
+          src={url}
+          alt={alt}
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          onError={() => setFailed(true)}
+          className="h-28 w-full object-cover aspect-video"
+        />
+      )}
+    </div>
+  );
+}
+
 /* ------------------------------- Campo dinámico ------------------------------ */
 
 function FieldControl({
@@ -81,113 +221,142 @@ function FieldControl({
   onChange: (v: string) => void;
 }) {
   if (field.input_type === "slider") {
-    const v = Number(value) || field.min_value;
+    const v = Number(value);
     return (
-      <div>
-        <div className="flex items-baseline justify-between">
-          <span className="text-sm font-bold">{field.label}</span>
-          <span className="rounded-full bg-[var(--brand-teal-deep)] px-3 py-0.5 text-xs font-black text-white">
-            {v}
-            {field.unit ? ` ${field.unit}` : ""}
-          </span>
-        </div>
-        <input
-          type="range"
-          min={field.min_value}
-          max={field.max_value}
-          step={field.step_value}
-          value={v}
-          onChange={(e) => onChange(e.target.value)}
-          aria-label={field.label}
-          className="mt-3 w-full accent-[var(--brand-orange)]"
-        />
-        <div className="flex justify-between text-[11px] text-muted-foreground">
-          <span>
-            {field.min_value}
-            {field.unit ? ` ${field.unit}` : ""}
-          </span>
-          <span>
-            {field.max_value}
-            {field.unit ? ` ${field.unit}` : ""}
-          </span>
-        </div>
-        {field.help && <p className="mt-1 text-xs text-muted-foreground">{field.help}</p>}
-      </div>
+      <ParametricSlider
+        label={field.label}
+        min={field.min_value}
+        max={field.max_value}
+        step={field.step_value || 1}
+        value={Number.isFinite(v) ? v : field.min_value}
+        unit={field.unit}
+        help={field.help}
+        onChange={(next) => onChange(String(next))}
+      />
     );
   }
 
   if (field.input_type === "select") {
     return (
-      <div>
-        <span className="text-sm font-bold">{field.label}</span>
+      <div className="space-y-2.5">
+        <span className="text-sm font-bold text-foreground block">{field.label}</span>
+
         {field.media_url && (
-          <div className="mt-2 overflow-hidden rounded-2xl border border-border bg-muted/20">
+          <div className="overflow-hidden rounded-2xl border border-border bg-muted/20">
             {field.media_type === "video" ? (
               <video src={field.media_url} autoPlay loop muted playsInline className="h-40 w-full object-cover" />
             ) : (
-              <img src={field.media_url} alt={field.label} loading="lazy" decoding="async" className="h-40 w-full object-cover aspect-video" />
+              <img
+                src={field.media_url}
+                alt={field.label}
+                loading="lazy"
+                decoding="async"
+                referrerPolicy="no-referrer"
+                className="h-40 w-full object-cover aspect-video"
+              />
             )}
           </div>
         )}
-        <div className="mt-2 grid gap-2 sm:grid-cols-2">
-          {field.options.map((o) => {
+
+        <div className="grid gap-2.5 sm:grid-cols-2" role="radiogroup" aria-label={field.label}>
+          {field.options.map((o, idx) => {
             const active = o.value === value;
+            const priceBadge = formatOptionPriceBadge(o);
+            const activeAccent =
+              idx % 3 === 1
+                ? "border-[var(--brand-teal)] bg-[color-mix(in_oklab,var(--brand-teal)_10%,white)]"
+                : idx % 3 === 2
+                  ? "border-[var(--brand-wine)] bg-[color-mix(in_oklab,var(--brand-wine)_8%,white)]"
+                  : "border-[var(--brand-orange)] bg-[color-mix(in_oklab,var(--brand-orange)_10%,white)]";
+
+            const checkBg =
+              idx % 3 === 1
+                ? "bg-[var(--brand-teal-deep)]"
+                : idx % 3 === 2
+                  ? "bg-[var(--brand-wine)]"
+                  : "bg-[var(--brand-orange)]";
+
             return (
               <button
                 type="button"
                 key={o.value}
+                role="radio"
+                aria-checked={active}
                 onClick={() => onChange(o.value)}
-                className={`flex flex-col gap-2 rounded-xl border p-3 text-left text-sm transition ${
+                className={`group relative flex flex-col gap-2.5 rounded-2xl border-2 p-3.5 text-left text-sm transition ${
                   active
-                    ? "border-[var(--brand-orange)] bg-[color-mix(in_oklab,var(--brand-orange)_10%,white)] font-bold"
-                    : "border-border hover:bg-muted"
+                    ? `${activeAccent} shadow-xs`
+                    : "border-border bg-background hover:border-muted-foreground/40 hover:bg-muted/40"
                 }`}
               >
                 {o.media?.url && (
-                  <div className="overflow-hidden rounded-lg bg-muted">
-                    {o.media.type === "video" ? (
-                      <video src={o.media.url} autoPlay loop muted playsInline className="h-24 w-full object-cover" />
-                    ) : (
-                      <img src={o.media.url} alt={o.label} loading="lazy" decoding="async" className="h-24 w-full object-cover aspect-video" />
+                  <SelectOptionMedia url={o.media.url} type={o.media.type} alt={o.label} />
+                )}
+
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-0.5">
+                    <div className={active ? "font-bold text-foreground" : "font-semibold text-foreground"}>
+                      {o.label}
+                    </div>
+                    {o.description && (
+                      <p className="text-xs text-muted-foreground leading-snug">{o.description}</p>
+                    )}
+                    {priceBadge && (
+                      <span className="mt-1 inline-block text-xs font-bold text-[var(--brand-teal-deep)] tabular-nums">
+                        {priceBadge}
+                      </span>
                     )}
                   </div>
-                )}
-                <div>
-                  <div>{o.label}</div>
-                  {o.add_cop ? (
-                    <span className="mt-0.5 block text-[11px] text-muted-foreground font-normal">
-                      +{formatCOP(o.add_cop)}
-                    </span>
-                  ) : null}
+
+                  <span
+                    aria-hidden="true"
+                    className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition ${
+                      active
+                        ? `${checkBg} border-transparent text-white`
+                        : "border-border bg-background"
+                    }`}
+                  >
+                    {active && <Check className="h-3 w-3 stroke-[3]" />}
+                  </span>
                 </div>
               </button>
             );
           })}
         </div>
-        {field.help && <p className="mt-1 text-xs text-muted-foreground">{field.help}</p>}
+
+        {field.help && <p className="text-xs text-muted-foreground">{field.help}</p>}
       </div>
     );
   }
 
   if (field.input_type === "toggle") {
     const on = isOn(value);
+    const toggleBadge = field.options[0] ? formatOptionPriceBadge(field.options[0]) : null;
     return (
-      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-3 hover:bg-muted">
-        <input
-          type="checkbox"
-          checked={on}
-          onChange={(e) => onChange(e.target.checked ? "si" : "no")}
-          className="mt-0.5 h-4 w-4 accent-[var(--brand-orange)]"
-        />
-        <span className="text-sm">
-          <span className="font-bold">{field.label}</span>
-          {field.options[0]?.add_cop ? (
-            <span className="ml-1 text-xs text-muted-foreground">
-              (+{formatCOP(field.options[0].add_cop)})
-            </span>
-          ) : null}
-          {field.help && <span className="block text-xs text-muted-foreground">{field.help}</span>}
-        </span>
+      <label
+        className={`flex cursor-pointer items-start justify-between gap-3 rounded-2xl border-2 p-4 transition ${
+          on
+            ? "border-[var(--brand-orange)] bg-[color-mix(in_oklab,var(--brand-orange)_8%,white)]"
+            : "border-border bg-background hover:bg-muted/40"
+        }`}
+      >
+        <div className="flex items-start gap-3">
+          <input
+            type="checkbox"
+            checked={on}
+            onChange={(e) => onChange(e.target.checked ? "si" : "no")}
+            className="mt-0.5 h-4 w-4 accent-[var(--brand-orange)]"
+          />
+          <span className="text-sm">
+            <span className="font-bold text-foreground">{field.label}</span>
+            {toggleBadge && (
+              <span className="ml-2 text-xs font-bold text-[var(--brand-teal-deep)] tabular-nums">
+                ({toggleBadge})
+              </span>
+            )}
+            {field.help && <span className="mt-0.5 block text-xs text-muted-foreground">{field.help}</span>}
+          </span>
+        </div>
       </label>
     );
   }
@@ -195,15 +364,18 @@ function FieldControl({
   if (field.input_type === "number") {
     return (
       <label className="block">
-        <span className="text-sm font-bold">{field.label}</span>
+        <span className="text-sm font-bold text-foreground">
+          {field.label}
+          {field.unit ? ` (${field.unit})` : ""}
+        </span>
         <input
           type="number"
           min={field.min_value}
           max={field.max_value}
-          step={field.step_value}
+          step={field.step_value || 1}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`mt-2 ${inputCls}`}
+          className={`mt-2 tabular-nums ${inputCls}`}
         />
         {field.help && <p className="mt-1 text-xs text-muted-foreground">{field.help}</p>}
       </label>
@@ -212,7 +384,7 @@ function FieldControl({
 
   return (
     <label className="block">
-      <span className="text-sm font-bold">{field.label}</span>
+      <span className="text-sm font-bold text-foreground">{field.label}</span>
       <input value={value} onChange={(e) => onChange(e.target.value)} className={`mt-2 ${inputCls}`} />
       {field.help && <p className="mt-1 text-xs text-muted-foreground">{field.help}</p>}
     </label>
@@ -232,7 +404,6 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
   const computeQuoteFn = useServerFn(computePublicQuote);
   const { items: cartItems, addItem } = useCart();
 
-
   const [serviceId, setServiceId] = useState<string | null>(null);
   const [values, setValues] = useState<QuoterValues>({});
   const [quantity, setQuantity] = useState(1);
@@ -243,6 +414,8 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const [pricePulse, setPricePulse] = useState(false);
+  const [kiaraImgFailed, setKiaraImgFailed] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const service = useMemo(
@@ -258,6 +431,14 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
     placeholderData: keepPreviousData,
   });
   const result = service ? (serverResult ?? null) : null;
+
+  // Animación sutil en el total cuando el precio cambia
+  useEffect(() => {
+    if (!result) return;
+    setPricePulse(true);
+    const id = window.setTimeout(() => setPricePulse(false), 260);
+    return () => window.clearTimeout(id);
+  }, [result?.total_cop]);
 
   /** Agrega el servicio cotizado al carrito como una línea de servicio. */
   function addQuoteToCart() {
@@ -342,8 +523,8 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
           estimated_total_cop: result.total_cop,
           design_state: service.name,
           size_label: resumen.slice(0, 160),
-          material: String(values['material'] ?? values['tipo'] ?? ""),
-          finish: String(values['acabado'] ?? values['trabajo'] ?? ""),
+          material: String(values["material"] ?? values["tipo"] ?? ""),
+          finish: String(values["acabado"] ?? values["trabajo"] ?? ""),
           notes: notes.slice(0, 1000),
           file_name,
           file_path,
@@ -357,7 +538,9 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
           cliente: String(data.get("name") ?? ""),
           email: String(data.get("email") ?? ""),
           telefono: String(data.get("phone") ?? ""),
-          resumen: result.answers.map((a) => `• ${a.label}: ${a.value}`).join("\n") + `\n• Cantidad: ${result.quantity}`,
+          resumen:
+            result.answers.map((a) => `• ${a.label}: ${a.value}`).join("\n") +
+            `\n• Cantidad: ${result.quantity}`,
           total: formatCOP(result.total_cop),
           notas: notes.trim(),
           mediaUrl: file_name ? file_name : null,
@@ -378,21 +561,36 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
     }
   }
 
+  const badgeText = getText("quoter_badge") || "Cotizador";
+  const titleText = getText("quoter_title") || "Cotiza tu proyecto 3D en un minuto";
+  const subtitleText =
+    getText("quoter_subtitle") ||
+    "Elige qué necesitas, mueve los deslizadores y verás el precio estimado al instante.";
+  const disclaimerText =
+    getText("quoter_disclaimer") ||
+    "Es un estimado automático. Confirmamos el precio final al revisar tu archivo o idea.";
+
+  const activeServices = services ?? [];
+  const serviceGridCols =
+    activeServices.length === 1
+      ? "mx-auto max-w-md grid-cols-1"
+      : activeServices.length === 2
+        ? "mx-auto max-w-2xl sm:grid-cols-2"
+        : activeServices.length === 3
+          ? "sm:grid-cols-2 lg:grid-cols-3"
+          : "sm:grid-cols-2 lg:grid-cols-4";
+
   return (
     <section id="cotizador" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
       <div className="mx-auto max-w-3xl text-center">
-        <span className="chip-teal">{getText("quoter_badge", "Cotizador")}</span>
+        <span className="chip-teal">{badgeText}</span>
         <h2 className="mt-3 text-3xl font-black sm:text-4xl md:text-5xl">
-          {getText("quoter_title", "Cotiza tu proyecto 3D en un minuto")}
+          {titleText}
         </h2>
         <p className="mt-3 text-muted-foreground">
-          {getText(
-            "quoter_subtitle",
-            "Elige qué necesitas, mueve los deslizadores y verás el precio estimado al instante.",
-          )}
+          {subtitleText}
         </p>
       </div>
-
 
       {/* Paso 1: elegir servicio */}
       {!service && (
@@ -402,35 +600,62 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
               {[0, 1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="h-36 animate-pulse rounded-3xl border border-border bg-card/50"
+                  className="h-44 animate-pulse rounded-3xl border border-border bg-card/50"
                 />
               ))}
             </div>
-          ) : (services ?? []).length === 0 ? (
-            <p className="text-center text-sm text-muted-foreground">
-              Aún no hay servicios configurados en el cotizador.
-            </p>
+          ) : activeServices.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-border bg-card p-10 text-center">
+              <Printer className="mx-auto h-9 w-9 text-muted-foreground" />
+              <p className="mt-3 text-sm font-semibold text-foreground">
+                Aún no hay servicios configurados en el cotizador.
+              </p>
+              <Link to="/servicios" className="btn-outline mt-4 inline-flex text-xs">
+                Ver catálogo de servicios
+              </Link>
+            </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {(services ?? []).map((s) => {
+            <div className={`grid gap-4 ${serviceGridCols}`}>
+              {activeServices.map((s) => {
                 const Icon = ICONS[s.icon] ?? Printer;
+                const isDirectWa = s.has_calculator === false;
                 return (
                   <button
                     key={s.id}
+                    type="button"
                     onClick={() => pick(s)}
-                    className="group rounded-3xl border border-border bg-card p-5 text-left transition hover:-translate-y-0.5 hover:border-[var(--brand-orange)] hover:shadow-lg"
+                    className="group flex flex-col justify-between rounded-3xl border border-border bg-card p-6 text-left shadow-xs transition hover:-translate-y-0.5 hover:border-[var(--brand-orange)] hover:shadow-md"
                   >
-                    <Icon className="h-7 w-7 text-[var(--brand-orange)]" />
-                    <h3 className="mt-3 text-lg font-black leading-tight">{s.name}</h3>
-                    {s.tagline && (
-                      <p className="text-xs font-bold uppercase tracking-wide text-[var(--brand-teal-deep)]">
-                        {s.tagline}
-                      </p>
-                    )}
-                    <p className="mt-2 text-sm text-muted-foreground">{s.description}</p>
-                    <span className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-[var(--brand-wine)]">
-                      Cotizar <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
-                    </span>
+                    <div>
+                      <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[color-mix(in_oklab,var(--brand-orange)_14%,white)] text-[var(--brand-orange-deep)]">
+                        <Icon className="h-6 w-6" />
+                      </div>
+                      <h3 className="mt-4 text-lg font-black leading-tight text-foreground">
+                        {s.name}
+                      </h3>
+                      {s.tagline && (
+                        <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[var(--brand-teal-deep)]">
+                          {s.tagline}
+                        </p>
+                      )}
+                      {s.description && (
+                        <p className="mt-2 text-sm text-muted-foreground line-clamp-3">
+                          {s.description}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="mt-5 flex items-center justify-between pt-3 border-t border-border/60">
+                      <span className="inline-flex items-center gap-1 text-sm font-bold text-[var(--brand-wine)]">
+                        {isDirectWa ? "Consultar" : "Cotizar"}{" "}
+                        <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                      </span>
+                      {!isDirectWa && s.min_price_cop > 0 && (
+                        <span className="text-[11px] font-semibold text-muted-foreground tabular-nums">
+                          Desde {formatCOP(s.min_price_cop)}
+                        </span>
+                      )}
+                    </div>
                   </button>
                 );
               })}
@@ -439,19 +664,90 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
         </div>
       )}
 
-      {/* Paso 2: configurar */}
-      {service && result && (
+      {/* Paso 2: servicio sin calculadora (WhatsApp directo) */}
+      {service && service.has_calculator === false && (
+        <div className="mx-auto mt-10 max-w-2xl rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-sm space-y-5">
+          <button
+            type="button"
+            onClick={() => setServiceId(null)}
+            className="inline-flex items-center gap-1 text-sm font-bold text-muted-foreground hover:text-foreground"
+          >
+            <ChevronLeft className="h-4 w-4" /> Cambiar servicio
+          </button>
+
+          <div className="space-y-2">
+            <h3 className="text-2xl font-black">{service.name}</h3>
+            {service.description && (
+              <p className="text-sm text-muted-foreground">{service.description}</p>
+            )}
+          </div>
+
+          <div className="flex items-start gap-3">
+            {kiaraImgFailed ? (
+              <div
+                aria-hidden="true"
+                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_oklab,var(--brand-orange)_18%,white)] text-xl ring-2 ring-[var(--brand-orange)]"
+              >
+                🐾
+              </div>
+            ) : (
+              <img
+                src={kiaraAsset.url}
+                alt="Kiara, la mascota de Will Design 3D"
+                width={56}
+                height={56}
+                onError={() => setKiaraImgFailed(true)}
+                className="h-14 w-14 shrink-0 rounded-full object-cover ring-2 ring-[var(--brand-orange)]"
+              />
+            )}
+            <div
+              className="rounded-2xl border border-border px-4 py-3 text-sm"
+              style={{ background: "color-mix(in oklab, var(--brand-orange) 10%, white)" }}
+            >
+              Este servicio se cotiza de forma personalizada por WhatsApp para darte el mejor precio según tu caso 🐾
+            </div>
+          </div>
+
+          {(() => {
+            const msg =
+              service.whatsapp_custom_message?.trim() ||
+              `Hola Will Design 3D! Me interesa solicitar información y cotización sobre el servicio: *${service.name}*`;
+            const href = waLink(contact.whatsapp, msg);
+            return (
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => {
+                  if (typeof window !== "undefined" && window.self !== window.top) {
+                    e.preventDefault();
+                    openExternalUrl(href);
+                  }
+                }}
+                className="btn-primary w-full justify-center text-base"
+              >
+                <MessageSquare className="h-5 w-5" />
+                Cotizar por WhatsApp
+              </a>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* Paso 2: configurar calculadora */}
+      {service && service.has_calculator !== false && result && (
         <div className="mt-10 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
           <div className="rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
             <div className="flex flex-wrap items-center gap-3">
               <button
+                type="button"
                 onClick={() => setServiceId(null)}
                 className="inline-flex items-center gap-1 text-sm font-bold text-muted-foreground hover:text-foreground"
               >
                 <ChevronLeft className="h-4 w-4" /> Cambiar servicio
               </button>
               <label className="ml-auto flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                Selecciona el servicio
+                <span>Servicio</span>
                 <select
                   value={service.id}
                   onChange={(e) => {
@@ -470,13 +766,23 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
             </div>
 
             <div className="mt-4 flex items-start gap-3">
-              <img
-                src={kiaraAsset.url}
-                alt="Kiara, la mascota de Will Design 3D"
-                width={56}
-                height={56}
-                className="h-14 w-14 shrink-0 rounded-full object-cover ring-2 ring-[var(--brand-orange)]"
-              />
+              {kiaraImgFailed ? (
+                <div
+                  aria-hidden="true"
+                  className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_oklab,var(--brand-orange)_18%,white)] text-xl ring-2 ring-[var(--brand-orange)]"
+                >
+                  🐾
+                </div>
+              ) : (
+                <img
+                  src={kiaraAsset.url}
+                  alt="Kiara, la mascota de Will Design 3D"
+                  width={56}
+                  height={56}
+                  onError={() => setKiaraImgFailed(true)}
+                  className="h-14 w-14 shrink-0 rounded-full object-cover ring-2 ring-[var(--brand-orange)]"
+                />
+              )}
               <div
                 className="rounded-2xl border border-border px-4 py-3 text-sm"
                 style={{ background: "color-mix(in oklab, var(--brand-orange) 10%, white)" }}
@@ -486,7 +792,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
               </div>
             </div>
 
-            <form onSubmit={onSubmit} className="mt-6 grid gap-6">
+            <form onSubmit={onSubmit} className="mt-6 grid gap-5">
               {service.fields.map((f) => (
                 <FieldControl
                   key={f.id}
@@ -497,42 +803,53 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
               ))}
 
               {service.allow_quantity && (
-                <div>
-                  <span className="text-sm font-bold">Cantidad</span>
-                  <div className="mt-2 flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                      aria-label="Quitar una unidad"
-                      className="rounded-full border border-border p-2 hover:bg-muted"
-                    >
-                      <Minus className="h-4 w-4" />
-                    </button>
-                    <input
-                      type="range"
-                      min={1}
-                      max={100}
-                      value={Math.min(quantity, 100)}
-                      onChange={(e) => setQuantity(Number(e.target.value))}
-                      aria-label="Cantidad"
-                      className="flex-1 accent-[var(--brand-orange)]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setQuantity((q) => q + 1)}
-                      aria-label="Agregar una unidad"
-                      className="rounded-full border border-border p-2 hover:bg-muted"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                    <span className="w-14 text-center text-sm font-black">{quantity}</span>
+                <div className="rounded-2xl border border-border bg-background/60 p-4 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-bold text-foreground">Cantidad de unidades</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                        aria-label="Quitar una unidad"
+                        className="rounded-full border border-border bg-background p-1.5 hover:bg-muted"
+                      >
+                        <Minus className="h-3.5 w-3.5" />
+                      </button>
+                      <span className="min-w-10 text-center text-sm font-black tabular-nums">
+                        {quantity}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setQuantity((q) => q + 1)}
+                        aria-label="Agregar una unidad"
+                        className="rounded-full border border-border bg-background p-1.5 hover:bg-muted"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  <input
+                    type="range"
+                    min={1}
+                    max={100}
+                    value={Math.min(quantity, 100)}
+                    onChange={(e) => setQuantity(Number(e.target.value))}
+                    aria-label="Cantidad"
+                    style={{
+                      background: `linear-gradient(to right, var(--brand-orange) 0%, var(--brand-orange) ${sliderPercentage(Math.min(quantity, 100), 1, 100)}%, var(--border) ${sliderPercentage(Math.min(quantity, 100), 1, 100)}%, var(--border) 100%)`,
+                    }}
+                    className="h-2.5 w-full cursor-pointer appearance-none rounded-full accent-[var(--brand-orange)]"
+                  />
+                  <div className="flex justify-between text-[11px] font-medium text-muted-foreground tabular-nums">
+                    <span>1 unidad</span>
+                    <span>100+ unidades</span>
                   </div>
                 </div>
               )}
 
               {service.allow_file && (
                 <div>
-                  <span className="text-sm font-bold">Archivo (opcional)</span>
+                  <span className="text-sm font-bold text-foreground">Archivo 3D o referencia (opcional)</span>
                   <div
                     onDragOver={(e) => {
                       e.preventDefault();
@@ -587,7 +904,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
               )}
 
               <label className="block">
-                <span className="text-sm font-bold">Cuéntanos más (opcional)</span>
+                <span className="text-sm font-bold text-foreground">Cuéntanos más (opcional)</span>
                 <textarea
                   rows={3}
                   value={notes}
@@ -600,15 +917,15 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
 
               <div className="grid gap-3 sm:grid-cols-3">
                 <label className="block">
-                  <span className="text-sm font-bold">Nombre</span>
+                  <span className="text-sm font-bold text-foreground">Nombre</span>
                   <input name="name" required minLength={2} maxLength={120} className={`mt-2 ${inputCls}`} />
                 </label>
                 <label className="block">
-                  <span className="text-sm font-bold">Correo</span>
+                  <span className="text-sm font-bold text-foreground">Correo</span>
                   <input name="email" type="email" required maxLength={160} className={`mt-2 ${inputCls}`} />
                 </label>
                 <label className="block">
-                  <span className="text-sm font-bold">WhatsApp</span>
+                  <span className="text-sm font-bold text-foreground">WhatsApp</span>
                   <input name="phone" required maxLength={40} className={`mt-2 ${inputCls}`} />
                 </label>
               </div>
@@ -616,10 +933,10 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
               <button
                 type="submit"
                 disabled={sending}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--brand-orange)] px-7 py-3.5 text-base font-black text-white shadow-lg disabled:opacity-60"
+                className="btn-primary w-full justify-center py-3.5 text-base font-black disabled:opacity-60 tabular-nums"
               >
-                {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
-                Enviar cotización por {formatCOP(result.total_cop)}
+                {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <MessageSquare className="h-5 w-5" />}
+                Cotizar por WhatsApp ({formatCOP(result.total_cop)})
               </button>
 
               {sendError && (
@@ -655,41 +972,47 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
           </div>
 
           {/* Resumen en vivo */}
-          <aside className="h-fit rounded-3xl border-2 border-[var(--brand-orange)] bg-card p-6 lg:sticky lg:top-24">
+          <aside className="h-fit rounded-3xl border-2 border-[var(--brand-orange)] bg-card p-6 shadow-sm lg:sticky lg:top-24">
             <p className="text-xs font-bold uppercase tracking-wide text-[var(--brand-wine)]">
               Tu precio estimado
             </p>
-            <p className="mt-1 text-4xl font-black leading-none">{formatCOP(result.total_cop)}</p>
+            <p
+              className={`mt-1 text-4xl font-black leading-none tabular-nums transition-transform duration-200 motion-reduce:transition-none ${
+                pricePulse ? "scale-[1.03] text-[var(--brand-orange-deep)]" : "scale-100 text-foreground"
+              }`}
+            >
+              {formatCOP(result.total_cop)}
+            </p>
             {result.quantity > 1 && (
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1.5 text-xs text-muted-foreground tabular-nums">
                 {formatCOP(result.unit_price_cop)} por unidad × {result.quantity}
               </p>
             )}
 
-            <div className="mt-4 space-y-1 border-t border-dashed border-border pt-3 text-xs">
+            <div className="mt-4 space-y-1.5 border-t border-dashed border-border pt-3 text-xs">
               {result.lines.map((l, i) => (
                 <div key={`${l.label}-${i}`} className="flex justify-between gap-3 text-muted-foreground">
                   <span>
                     {l.label}
                     {l.detail ? ` · ${l.detail}` : ""}
                   </span>
-                  <span className="whitespace-nowrap">{formatCOP(l.amount)}</span>
+                  <span className="whitespace-nowrap tabular-nums">{formatCOP(l.amount)}</span>
                 </div>
               ))}
               {result.multiplier !== 1 && (
                 <div className="flex justify-between text-muted-foreground">
                   <span>Ajuste por opciones</span>
-                  <span>×{result.multiplier.toFixed(2)}</span>
+                  <span className="tabular-nums">×{result.multiplier.toFixed(2)}</span>
                 </div>
               )}
               {result.margin_cop > 0 && (
                 <div className="flex justify-between text-muted-foreground">
                   <span>Servicio y garantía</span>
-                  <span>{formatCOP(result.margin_cop)}</span>
+                  <span className="tabular-nums">{formatCOP(result.margin_cop)}</span>
                 </div>
               )}
               {result.min_applied && (
-                <p className="pt-1 text-[11px] text-muted-foreground">
+                <p className="pt-1 text-[11px] font-medium text-[var(--brand-teal-deep)]">
                   Se aplicó el valor mínimo de este servicio.
                 </p>
               )}
@@ -705,7 +1028,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
             <button
               type="button"
               onClick={addQuoteToCart}
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-[var(--brand-teal-deep)] px-5 py-2.5 text-sm font-black text-[var(--brand-teal-deep)] transition hover:bg-muted"
+              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-[var(--brand-teal-deep)] px-5 py-2.5 text-sm font-black text-[var(--brand-teal-deep)] transition hover:bg-[color-mix(in_oklab,var(--brand-teal)_10%,white)]"
             >
               <ShoppingCart className="h-4 w-4" /> Agregar al carrito
             </button>
@@ -725,8 +1048,8 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
               </div>
             )}
 
-            <p className="mt-4 text-[11px] text-muted-foreground">
-              Es un estimado automático. Confirmamos el precio final al revisar tu archivo o idea.
+            <p className="mt-4 text-[11px] text-muted-foreground leading-relaxed">
+              {disclaimerText}
             </p>
           </aside>
         </div>

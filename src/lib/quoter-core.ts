@@ -9,6 +9,7 @@ export type QuoterOptionMedia = {
 export type QuoterOption = {
   label: string;
   value: string;
+  description?: string;
   multiplier?: number;
   add_cop?: number;
   media?: QuoterOptionMedia;
@@ -188,6 +189,7 @@ export function normalizeField(row: Record<string, unknown>): QuoterField {
         return {
           label: String(o['label'] ?? o['value'] ?? ""),
           value: String(o['value'] ?? o['label'] ?? ""),
+          description: o['description'] ? String(o['description']) : undefined,
           multiplier: num(o['multiplier'], 1) || 1,
           add_cop: num(o['add_cop']),
           media: media.url ? { url: String(media.url), type: (media.type as any) || "image" } : undefined,

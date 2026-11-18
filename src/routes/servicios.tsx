@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { ShareButton } from "@/components/ShareButton";
 import { useQuery, queryOptions } from "@tanstack/react-query";
 import {
@@ -14,11 +15,13 @@ import {
   GraduationCap,
   Printer,
   FileUp,
+  MessageSquare,
 } from "lucide-react";
 import { KiaraTip } from "@/components/KiaraTip";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 import { openExternalUrl } from "@/lib/whatsapp";
 import { quoterServicesQuery, formatCOP } from "@/lib/quoter";
+import { accentTokensFor, resolveServicePrimaryAction } from "@/lib/quoter-ui";
 import { supabase } from "@/integrations/supabase/client";
 import { parseProductButtons } from "@/lib/product-buttons";
 import { ProductButtons } from "@/components/ProductButtons";
@@ -41,9 +44,10 @@ export const Route = createFileRoute("/servicios")({
           : siteContent?.site_title
             ? `Servicios 3D · ${siteContent.site_title}`
             : "Servicios 3D — Will Design 3D",
-        description: siteContent?.services_section_subtitle || siteContent?.services_page_description,
+        description:
+          siteContent?.services_section_subtitle || siteContent?.services_page_description,
       },
-      siteContent
+      siteContent,
     );
 
     const metaTags: Array<Record<string, string>> = [
@@ -57,7 +61,7 @@ export const Route = createFileRoute("/servicios")({
     if (seo.image) {
       metaTags.push(
         { property: "og:image", content: seo.image },
-        { name: "twitter:image", content: seo.image }
+        { name: "twitter:image", content: seo.image },
       );
     }
 
@@ -84,13 +88,6 @@ export const siteServicesQuery = () =>
     staleTime: 60_000,
   });
 
-const colorFor = (a: string) =>
-  a === "orange"
-    ? "var(--brand-orange)"
-    : a === "teal"
-      ? "var(--brand-teal)"
-      : "var(--brand-wine)";
-
 const iconMap: Record<string, any> = {
   printer: Printer,
   boxes: Boxes,
@@ -102,6 +99,63 @@ const iconMap: Record<string, any> = {
   "shopping-bag": ShoppingBag,
   "graduation-cap": GraduationCap,
 };
+
+function ServiceMediaFrame({
+  url,
+  mediaType,
+  title,
+  color,
+  IconComp,
+}: {
+  url: string | null;
+  mediaType: string;
+  title: string;
+  color: string;
+  IconComp: any;
+}) {
+  const [broken, setBroken] = useState(false);
+  const tokens = accentTokensFor(color);
+
+  if (url && !broken) {
+    return (
+      <div className="mb-4 aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border bg-muted">
+        {mediaType === "video" ? (
+          <video
+            src={url}
+            autoPlay
+            loop
+            muted
+            playsInline
+            onError={() => setBroken(true)}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <img
+            src={url}
+            alt={title}
+            loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
+            onError={() => setBroken(true)}
+            className="h-full w-full object-cover"
+          />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="mb-4 flex aspect-[4/3] w-full items-center justify-center rounded-2xl border border-border/60"
+      style={{
+        background: `linear-gradient(135deg, color-mix(in oklab, ${tokens.cssVar} 18%, white), color-mix(in oklab, ${tokens.cssVar} 42%, white))`,
+        color: tokens.deepVar,
+      }}
+    >
+      <IconComp className="h-14 w-14 opacity-70" />
+    </div>
+  );
+}
 
 function ServiciosPage() {
   const loaderData = Route.useLoaderData();
@@ -116,35 +170,34 @@ function ServiciosPage() {
   const { data: quoterServices } = useQuery(quoterServicesQuery());
   const contact = getContactInfo(siteContent);
 
-  const servicesHeaderTitle = siteContent?.services_page_title || "Un servicio integral de impresión 3D";
-  const servicesHeaderDesc = siteContent?.services_page_description || "";
+  const servicesHeaderTitle =
+    siteContent?.services_page_title ||
+    siteContent?.services_section_title ||
+    "Un servicio integral de impresión 3D";
+  const servicesHeaderDesc =
+    siteContent?.services_page_description ||
+    siteContent?.services_section_subtitle ||
+    "";
 
-  const quoterFor = (idOrSlug: string, quoterId?: string | null) => {
-    if (quoterId) {
-      const found = (quoterServices ?? []).find((q) => q.id === quoterId);
-      if (found) return found;
-    }
-    return (quoterServices ?? []).find((s) => s.slug === idOrSlug || s.site_anchor === idOrSlug) ?? null;
-  };
-
-  const servicesList = (dbServices && dbServices.length > 0)
-    ? dbServices.map((s: any) => ({
-        id: s.slug || s.id,
-        slug: s.slug,
-        title: s.title,
-        lead: s.lead,
-        icon: iconMap[s.icon] || Printer,
-        color: s.color || "orange",
-        image_url: s.image_url,
-        media_type: s.media_type || "image",
-        quoter_service_id: s.quoter_service_id,
-        whatsapp_template: s.whatsapp_template,
-        requires_file: Boolean(s.requires_file),
-        bullets: Array.isArray(s.bullets) ? (s.bullets as string[]) : [],
-        kiaraTip: s.kiara_tip,
-        custom_buttons: parseProductButtons(s.custom_buttons),
-      }))
-    : [];
+  const servicesList =
+    dbServices && dbServices.length > 0
+      ? dbServices.map((s: any) => ({
+          id: s.slug || s.id,
+          slug: s.slug,
+          title: s.title,
+          lead: s.lead,
+          icon: iconMap[s.icon] || Printer,
+          color: s.color || "orange",
+          image_url: s.image_url,
+          media_type: s.media_type || "image",
+          quoter_service_id: s.quoter_service_id,
+          whatsapp_template: s.whatsapp_template,
+          requires_file: Boolean(s.requires_file),
+          bullets: Array.isArray(s.bullets) ? (s.bullets as string[]) : [],
+          kiaraTip: s.kiara_tip,
+          custom_buttons: parseProductButtons(s.custom_buttons),
+        }))
+      : [];
 
   return (
     <>
@@ -159,13 +212,19 @@ function ServiciosPage() {
               {servicesHeaderDesc}
             </p>
           )}
-          <ShareButton
-            title={`Servicios — ${siteContent?.site_business_name || "Will Design 3D"}`}
-            text="Mira nuestros servicios"
-            url="https://will-design-3d.lovable.app/servicios"
-            label="Compartir"
-            className="mt-4 gap-2 text-muted-foreground"
-          />
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <Link to="/cotizador" className="btn-primary text-sm">
+              Abrir cotizador en línea
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <ShareButton
+              title={`Servicios — ${siteContent?.site_business_name || "Will Design 3D"}`}
+              text="Mira nuestros servicios"
+              url="https://will-design-3d.lovable.app/servicios"
+              label="Compartir"
+              className="gap-2 text-muted-foreground"
+            />
+          </div>
         </div>
       </section>
 
@@ -173,148 +232,137 @@ function ServiciosPage() {
         {servicesList.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-border bg-card p-10 text-center">
             <Printer className="mx-auto h-10 w-10 text-muted-foreground" />
-            <h3 className="mt-4 text-lg font-bold">No hay servicios configurados</h3>
+            <h2 className="mt-4 text-lg font-bold">No hay servicios configurados</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Los servicios se administran desde el panel de control.
+              Los servicios se administran desde el panel de control o puedes ir directamente al cotizador.
             </p>
+            <Link to="/cotizador" className="btn-outline mt-5 inline-flex text-sm">
+              Ir al cotizador en línea
+            </Link>
           </div>
         ) : (
           servicesList.map((s: any, i: number) => {
-          const c = colorFor(s.color);
-          const flip = i % 2 === 1;
-          const IconComp = s.icon || Printer;
+            const tokens = accentTokensFor(s.color);
+            const flip = i % 2 === 1;
+            const IconComp = s.icon || Printer;
+            const primaryAction = resolveServicePrimaryAction({
+              serviceTitle: s.title,
+              serviceSlug: s.slug || s.id,
+              quoterServiceId: s.quoter_service_id,
+              whatsappTemplate: s.whatsapp_template,
+              quoterServices: quoterServices ?? [],
+              businessName: siteContent?.site_business_name,
+            });
 
-          return (
-            <article
-              key={s.id}
-              id={s.id}
-              className={`scroll-mt-24 grid items-start gap-8 md:grid-cols-2 ${flip ? "md:[&>div:first-child]:order-2" : ""}`}
-            >
-              <div>
-                <div
-                  className="grid h-14 w-14 place-items-center rounded-2xl"
-                  style={{
-                    background: `color-mix(in oklab, ${c} 15%, white)`,
-                    color: c,
-                  }}
-                >
-                  <IconComp className="h-7 w-7" />
-                </div>
-                <h2 className="mt-4 text-2xl font-black sm:text-3xl">
-                  {s.title}
-                </h2>
-                <p className="mt-3 text-muted-foreground">{s.lead}</p>
-
-                {s.bullets.length > 0 && (
-                  <ul className="mt-5 space-y-2">
-                    {s.bullets.map((b: string) => (
-                      <li key={b} className="flex items-start gap-2 text-sm">
-                        <CheckCircle2
-                          className="mt-0.5 h-4 w-4 shrink-0"
-                          style={{ color: c }}
-                        />
-                        <span>{b}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                {s.requires_file && (
-                  <div className="mt-4 inline-flex items-center gap-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 px-3 py-2 text-xs font-semibold text-amber-800 dark:text-amber-300">
-                    <FileUp className="h-4 w-4 shrink-0 text-amber-600" />
-                    <span>Puedes enviar o adjuntar tus archivos (STL, imágenes o bocetos) al contactarnos.</span>
+            return (
+              <article
+                key={s.id}
+                id={s.id}
+                className={`scroll-mt-24 grid items-start gap-8 md:grid-cols-2 ${
+                  flip ? "md:[&>div:first-child]:order-2" : ""
+                }`}
+              >
+                <div>
+                  <div
+                    className="grid h-14 w-14 place-items-center rounded-2xl border"
+                    style={{
+                      background: tokens.softBg,
+                      color: tokens.deepVar,
+                      borderColor: tokens.borderSoft,
+                    }}
+                  >
+                    <IconComp className="h-7 w-7" />
                   </div>
-                )}
+                  <h2 className="mt-4 text-2xl font-black sm:text-3xl text-foreground">
+                    {s.title}
+                  </h2>
+                  <p className="mt-3 text-muted-foreground leading-relaxed">{s.lead}</p>
 
-                {s.custom_buttons && s.custom_buttons.length > 0 ? (
-                  <div className="mt-6">
-                    <ProductButtons buttons={s.custom_buttons} />
-                  </div>
-                ) : (
-                  (() => {
-                    const q = quoterFor(s.slug || s.id, s.quoter_service_id);
-                    const hasCalc = q ? q.has_calculator !== false : false;
-                    if (q && hasCalc) {
+                  {s.bullets.length > 0 && (
+                    <ul className="mt-5 space-y-2.5">
+                      {s.bullets.map((b: string) => (
+                        <li key={b} className="flex items-start gap-2.5 text-sm text-foreground">
+                          <CheckCircle2
+                            className="mt-0.5 h-4 w-4 shrink-0"
+                            style={{ color: tokens.deepVar }}
+                          />
+                          <span>{b}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {s.requires_file && (
+                    <div className="mt-5 inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2 text-xs font-semibold text-amber-900">
+                      <FileUp className="h-4 w-4 shrink-0 text-amber-700" />
+                      <span>
+                        Puedes enviar o adjuntar tus archivos (STL, imágenes o bocetos) al contactarnos.
+                      </span>
+                    </div>
+                  )}
+
+                  {s.custom_buttons && s.custom_buttons.length > 0 ? (
+                    <div className="mt-6">
+                      <ProductButtons buttons={s.custom_buttons} />
+                    </div>
+                  ) : primaryAction.kind === "quoter" ? (
+                    <div className="mt-6 flex flex-wrap items-center gap-3">
+                      <Link
+                        to="/cotizador"
+                        search={{ servicio: primaryAction.quoterSlug }}
+                        className="btn-primary text-sm"
+                      >
+                        {primaryAction.label}
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                      {primaryAction.minPriceCop > 0 && (
+                        <span className="text-xs font-semibold text-muted-foreground tabular-nums">
+                          Desde {formatCOP(primaryAction.minPriceCop)}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    (() => {
+                      const waHref = waLink(contact.whatsapp, primaryAction.message);
                       return (
                         <div className="mt-6 flex flex-wrap items-center gap-3">
-                          <Link
-                            to="/cotizador"
-                            search={{ servicio: q.slug }}
-                            className="btn-primary text-sm"
+                          <a
+                            href={waHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => {
+                              if (typeof window !== "undefined" && window.self !== window.top) {
+                                e.preventDefault();
+                                openExternalUrl(waHref);
+                              }
+                            }}
+                            className="btn-primary inline-flex items-center gap-2 text-sm"
                           >
-                            Cotizar en línea
+                            <MessageSquare className="h-4 w-4" />
+                            {primaryAction.label}
                             <ArrowRight className="h-4 w-4" />
-                          </Link>
-                          {q.min_price_cop > 0 && (
-                            <span className="text-xs font-semibold text-muted-foreground">
-                              Desde {formatCOP(q.min_price_cop)}
-                            </span>
-                          )}
+                          </a>
                         </div>
                       );
-                    }
-                    const customMsg = s.whatsapp_template || q?.whatsapp_custom_message ||
-                      `Hola ${siteContent?.site_business_name || "Will Design 3D"}! Me interesa solicitar información y cotización sobre el servicio: *${s.title}*`;
-                    const waHref = waLink(contact.whatsapp, customMsg);
-                    return (
-                      <a
-                        href={waHref}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => {
-                          if (typeof window !== "undefined" && window.self !== window.top) {
-                            e.preventDefault();
-                            openExternalUrl(waHref);
-                          }
-                        }}
-                        className="btn-primary mt-6 text-sm inline-flex items-center gap-2"
-                      >
-                        Cotizar por WhatsApp
-                        <ArrowRight className="h-4 w-4" />
-                      </a>
-                    );
-                  })()
-                )}
-              </div>
+                    })()
+                  )}
+                </div>
 
-              <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-                {s.image_url ? (
-                  <div className="mb-4 aspect-[4/3] w-full overflow-hidden rounded-2xl bg-muted border border-border">
-                    {s.media_type === "video" ? (
-                      <video
-                        src={s.image_url}
-                        autoPlay
-                        loop
-                        muted
-                        playsInline
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <img
-                        src={s.image_url}
-                        alt={s.title}
-                        loading="lazy"
-                        decoding="async"
-                        className="h-full w-full object-cover"
-                      />
-                    )}
-                  </div>
-                ) : (
-                  <div
-                    className="mb-4 aspect-[4/3] w-full rounded-2xl"
-                    style={{
-                      background: `linear-gradient(135deg, color-mix(in oklab, ${c} 30%, white), color-mix(in oklab, ${c} 70%, white))`,
-                    }}
+                <div className="rounded-3xl border border-border bg-card p-5 shadow-xs">
+                  <ServiceMediaFrame
+                    url={s.image_url}
+                    mediaType={s.media_type}
+                    title={s.title}
+                    color={s.color}
+                    IconComp={IconComp}
                   />
-                )}
-                <KiaraTip tip={s.kiaraTip} />
-              </div>
-            </article>
-          );
-        })
+                  <KiaraTip tip={s.kiaraTip} />
+                </div>
+              </article>
+            );
+          })
         )}
       </section>
-
     </>
   );
 }
