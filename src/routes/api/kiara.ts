@@ -66,6 +66,7 @@ export const Route = createFileRoute("/api/kiara")({
         const { isInternalTeam } = await resolveAuthBoundary(
           request.headers.get("authorization"),
         );
+        let quotaKey = "";
 
         // ── Guardia del modo público: solo desde el propio sitio y con cupo por visitante ──
         if (!isInternalTeam) {
@@ -80,6 +81,7 @@ export const Route = createFileRoute("/api/kiara")({
             request.headers.get("cf-connecting-ip") ??
             request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
             "anon";
+          quotaKey = ip;
           if (!takePublicQuota(ip)) {
             return Response.json(
               { error: "Kiara está atendiendo muchas consultas. Intenta en un minuto." },
@@ -190,7 +192,7 @@ export const Route = createFileRoute("/api/kiara")({
                 messages: buildMessages(p.system_prompt),
                 stream: true,
                 temperature: temp,
-                ...(p.max_tokens ? { max_tokens: p.max_tokens } : {}),
+                ...(isInternalTeam ? (p.max_tokens ? { max_tokens: p.max_tokens } : {}) : { max_tokens: Math.min(p.max_tokens || 800, 800) }),
                 tools: KIARA_TOOLS,
                 tool_choice: "auto",
               }),
@@ -211,6 +213,10 @@ export const Route = createFileRoute("/api/kiara")({
             const stream = interceptToolStream(upstream.body, {
               onFinish: () => clearTimeout(timer),
               followUp: async (call, resultJson) => {
+                // La 2a pasada pública también consume cupo del visitante.
+                if (!isInternalTeam && !takePublicQuota(quotaKey)) {
+                  throw new Error("Cupo público agotado");
+                }
                 const res = await fetch(endpoint, {
                   method: "POST",
                   headers: authHeaders,
@@ -218,7 +224,7 @@ export const Route = createFileRoute("/api/kiara")({
                     model: p.model,
                     stream: true,
                     temperature: temp,
-                    ...(p.max_tokens ? { max_tokens: p.max_tokens } : {}),
+                    ...(isInternalTeam ? (p.max_tokens ? { max_tokens: p.max_tokens } : {}) : { max_tokens: Math.min(p.max_tokens || 800, 800) }),
                     messages: [
                       { role: "system", content: followUpSystem },
                       { role: "user", content: lastUser },

@@ -71,6 +71,13 @@
       "when": 1794979387385,
       "tag": "0009_explicit_service_contact_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795025092002,
+      "tag": "0010_tighten_public_catalog_reads",
+      "breakpoints": true
     }
   ]
 }
