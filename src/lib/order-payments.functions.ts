@@ -30,15 +30,32 @@ export const confirmPayment = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertTeam(context as never);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin
+    const { data: order, error } = await supabaseAdmin
       .from("orders")
       .update({
         payment_status: "pagado",
         payment_confirmed_at: new Date().toISOString(),
         payment_note: null,
       })
-      .eq("id", data.order_id);
+      .eq("id", data.order_id)
+      .select("id, customer_name, total_cop, payment_method_name, payment_reference")
+      .single();
     if (error) throw new Error(error.message);
+
+    try {
+      const { notifyTelegramPaymentConfirmed } = await import("@/lib/telegram.server");
+      await notifyTelegramPaymentConfirmed({
+        orderId: order?.id ?? data.order_id,
+        customerName: order?.customer_name ?? null,
+        totalCop: order?.total_cop ?? null,
+        paymentMethodName: order?.payment_method_name ?? null,
+        reference: order?.payment_reference ?? null,
+        gateway: "Confirmado en Panel",
+      });
+    } catch (err) {
+      console.error("[Telegram] Error notificando pago confirmado:", err);
+    }
+
     return { ok: true as const };
   });
 

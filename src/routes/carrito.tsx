@@ -17,6 +17,7 @@ import { commonMethods, methodsForLine } from "@/lib/payment-rules";
 import { saveQuote } from "@/lib/saved-quotes.functions";
 import {
   listPublicPaymentMethods,
+  type PublicPaymentMethod,
 } from "@/lib/payment-methods.functions";
 import {
   PAYMENT_GROUPS,
@@ -50,6 +51,7 @@ export const Route = createFileRoute("/carrito")({
 
 const inputCls =
   "mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring";
+const EMPTY_METHODS: PublicPaymentMethod[] = [];
 
 function CarritoPage() {
   const { items, total, count, setQuantity, removeItem, clear } = useCart();
@@ -88,7 +90,7 @@ function CarritoPage() {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  const { data: methods = [] } = useQuery({
+  const { data: methods = EMPTY_METHODS } = useQuery({
     queryKey: ["public_payment_methods"],
     queryFn: () => loadMethodsFn({}),
     staleTime: 5 * 60_000,
@@ -638,12 +640,45 @@ function CarritoPage() {
                     </div>
                   ))}
                 </RadioGroup>
-                {usesQr(selectedMethod?.type) && selectedMethod?.qr_image_url && (
-                  <img
-                    src={selectedMethod.qr_image_url}
-                    alt={`Código QR para pagar con ${selectedMethod.name}`}
-                    className="mx-auto mt-3 w-full max-w-[250px] rounded-xl border border-border object-contain shadow-sm"
-                  />
+                {(usesQr(selectedMethod?.type) || selectedMethod?.type === "crypto") &&
+                  selectedMethod?.qr_image_url && (
+                    <img
+                      src={selectedMethod.qr_image_url}
+                      alt={`Código QR para pagar con ${selectedMethod.name}`}
+                      className="mx-auto mt-3 w-full max-w-[250px] rounded-xl border border-border object-contain shadow-sm"
+                    />
+                  )}
+                {selectedMethod?.type === "manual_transfer" &&
+                  (selectedMethod.config?.account_number ||
+                    selectedMethod.config?.account_holder ||
+                    selectedMethod.config?.bank_name) && (
+                    <div className="mt-2 space-y-1 rounded-xl border border-border bg-muted/40 p-3 text-xs">
+                      {selectedMethod.config.bank_name && (
+                        <p>
+                          <strong>Entidad:</strong> {selectedMethod.config.bank_name}
+                        </p>
+                      )}
+                      {selectedMethod.config.account_number && (
+                        <p>
+                          <strong>Número / Cuenta:</strong> {selectedMethod.config.account_number}
+                        </p>
+                      )}
+                      {selectedMethod.config.account_holder && (
+                        <p>
+                          <strong>Titular:</strong> {selectedMethod.config.account_holder}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                {selectedMethod?.type === "crypto" && selectedMethod.config?.wallet_address && (
+                  <div className="mt-2 space-y-1 rounded-xl border border-border bg-muted/40 p-3 text-xs">
+                    <p>
+                      <strong>Red:</strong> {selectedMethod.config.crypto_network ?? "TRC20"}
+                    </p>
+                    <p className="break-all font-mono">
+                      <strong>Wallet:</strong> {selectedMethod.config.wallet_address}
+                    </p>
+                  </div>
                 )}
                 {selectedMethod?.instructions && (
                   <p className="mt-2 whitespace-pre-line rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
@@ -658,7 +693,7 @@ function CarritoPage() {
                       : ""}
                   </p>
                 )}
-                {isRedirectFlow(selectedMethod?.type) && (
+                {isRedirectFlow(selectedMethod?.type) && selectedMethod?.config?.payment_url && (
                   <p className="mt-2 rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
                     Al confirmar el pedido te llevaremos a {selectedMethod?.name} para completar el
                     pago de forma segura.

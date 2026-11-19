@@ -1,6 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import {
+  sanitizePublicPaymentConfig,
+  type ExtendedPaymentMethodConfig,
+} from "@/lib/payment-config";
 
 export type PaymentMethodType =
   | "manual_transfer"
@@ -11,10 +15,7 @@ export type PaymentMethodType =
   | "crypto";
 
 /** Ajustes variables según el tipo de método. Nunca guarda secretos. */
-export type PaymentMethodConfig = {
-  payment_url?: string;
-  allowed_zones?: string;
-};
+export type PaymentMethodConfig = ExtendedPaymentMethodConfig;
 
 export type PublicPaymentMethod = {
   id: string;
@@ -52,6 +53,15 @@ const upsertSchema = z
       .object({
         payment_url: z.string().trim().url().max(500).optional(),
         allowed_zones: z.string().trim().max(300).optional(),
+        is_wompi: z.boolean().optional(),
+        wompi_public_key: z.string().trim().max(200).optional(),
+        wompi_env: z.enum(["sandbox", "production"]).optional(),
+        bank_name: z.string().trim().max(120).optional(),
+        account_number: z.string().trim().max(120).optional(),
+        account_holder: z.string().trim().max(120).optional(),
+        require_proof: z.boolean().optional(),
+        wallet_address: z.string().trim().max(200).optional(),
+        crypto_network: z.enum(["TRC20", "BEP20", "ERC20", "Polygon"]).optional(),
       })
       .partial()
       .optional()
@@ -64,13 +74,20 @@ const upsertSchema = z
       .default([]),
   })
   .superRefine((val, ctx) => {
-    const needsUrl =
-      val.type === "gateway" || val.type === "gateway_redirect" || val.type === "crypto";
-    if (needsUrl && !val.config?.payment_url) {
+    const isGateway = val.type === "gateway" || val.type === "gateway_redirect";
+    const hasWompiKey = Boolean(val.config?.is_wompi && val.config?.wompi_public_key?.trim());
+    if (isGateway && !val.config?.payment_url && !hasWompiKey) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["config", "payment_url"],
-        message: "Indica la URL de pago / link de checkout",
+        message: "Indica la URL de pago / link de checkout o tu Llave Pública de Wompi",
+      });
+    }
+    if (val.type === "crypto" && !val.config?.payment_url && !val.config?.wallet_address?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["config", "wallet_address"],
+        message: "Indica la dirección de billetera (wallet) o el enlace de pago cripto",
       });
     }
   });
@@ -124,7 +141,7 @@ export const listPublicPaymentMethods = createServerFn({ method: "GET" }).handle
   if (error) return [] as PublicPaymentMethod[];
   return (data ?? []).map((m) => ({
     ...m,
-    config: (m.config ?? {}) as PaymentMethodConfig,
+    config: sanitizePublicPaymentConfig((m.config ?? {}) as Record<string, unknown>),
   })) as PublicPaymentMethod[];
 });
 
@@ -146,7 +163,7 @@ export const listAdminPaymentMethods = createServerFn({ method: "GET" })
       const { credentials: _drop, ...rest } = m as typeof m & { credentials?: unknown };
       return {
         ...rest,
-        config: (m.config ?? {}) as PaymentMethodConfig,
+        config: sanitizePublicPaymentConfig((m.config ?? {}) as Record<string, unknown>),
         has_credentials: Object.keys(creds).length > 0,
       } as AdminPaymentMethod;
     });
@@ -163,9 +180,7 @@ export const savePaymentMethod = createServerFn({ method: "POST" })
     const creds: Record<string, string> = {};
     for (const c of data.credentials) if (c.value.trim()) creds[c.key] = c.value.trim();
 
-    const cfg: PaymentMethodConfig = {};
-    if (data.config?.payment_url) cfg.payment_url = data.config.payment_url;
-    if (data.config?.allowed_zones) cfg.allowed_zones = data.config.allowed_zones;
+    const cfg = sanitizePublicPaymentConfig((data.config ?? {}) as Record<string, unknown>);
 
     const base = {
       name: data.name,
@@ -178,10 +193,19 @@ export const savePaymentMethod = createServerFn({ method: "POST" })
     };
 
     if (data.id) {
-      const patch = Object.keys(creds).length ? { ...base, credentials: creds } : base;
+      let mergedCreds: Record<string, string> | undefined;
+      if (Object.keys(creds).length) {
+        const { data: existing } = await supabaseAdmin
+          .from("payment_methods")
+          .select("credentials")
+          .eq("id", data.id)
+          .maybeSingle();
+        const prevCreds = ((existing?.credentials ?? {}) as Record<string, string>) || {};
+        mergedCreds = { ...prevCreds, ...creds };
+      }
       const { error } = await supabaseAdmin
         .from("payment_methods")
-        .update(patch)
+        .update(mergedCreds ? { ...base, credentials: mergedCreds } : base)
         .eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true as const, id: data.id };
@@ -209,6 +233,25 @@ export const togglePaymentMethod = createServerFn({ method: "POST" })
       .update({ is_active: data.is_active })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+export const reorderPaymentMethods = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) =>
+    z.object({ ordered_ids: z.array(z.string().uuid()).min(1).max(100) }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertSuperAdmin(context as never);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await Promise.all(
+      data.ordered_ids.map((id, index) =>
+        supabaseAdmin
+          .from("payment_methods")
+          .update({ display_order: index })
+          .eq("id", id),
+      ),
+    );
     return { ok: true as const };
   });
 

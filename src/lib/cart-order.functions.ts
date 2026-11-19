@@ -161,6 +161,24 @@ export const createCartOrder = createServerFn({ method: "POST" })
       .insert(lines.map((l) => ({ ...l, order_id: order.id })));
     if (iErr) throw new Error(iErr.message);
 
+    try {
+      const { notifyTelegramNewOrder } = await import("@/lib/telegram.server");
+      await notifyTelegramNewOrder({
+        orderId: order.id,
+        customerName: data.customer_name,
+        customerPhone: data.customer_phone || null,
+        customerEmail: data.customer_email,
+        shippingAddress: data.shipping_address,
+        shippingCity: data.shipping_city || null,
+        totalCop: total,
+        paymentMethodName: paymentMethod?.name ?? null,
+        items: lines,
+        sourceLabel: "Carrito Web",
+      });
+    } catch (err) {
+      console.error("[Telegram] Error notificando nuevo pedido de carrito:", err);
+    }
+
     return {
       ok: true as const,
       order_id: order.id,

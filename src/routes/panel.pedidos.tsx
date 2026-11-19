@@ -1,9 +1,32 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import { Loader2, ChevronDown, ChevronRight, MessageCircle, Send } from "lucide-react";
 import { confirmPayment, rejectPayment } from "@/lib/order-payments.functions";
+import {
+  getNotificationTemplatesForOrders,
+  updateOrderStatusAdmin,
+} from "@/lib/notifications.functions";
+import {
+  buildCustomerWhatsAppUrl,
+  DEFAULT_ORDER_TEMPLATES,
+  expandNotificationTemplate,
+  formatOrderCode,
+} from "@/lib/notification-templates";
+import { openExternalUrl } from "@/lib/whatsapp";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/panel/pedidos")({
   ssr: false,
@@ -29,10 +52,10 @@ type Order = {
 };
 
 const paymentColors: Record<Order["payment_status"], string> = {
-  esperando_pago: "bg-yellow-100 text-yellow-800",
-  comprobante_enviado: "bg-orange-100 text-orange-800",
-  pagado: "bg-green-100 text-green-800",
-  rechazado: "bg-red-100 text-red-800",
+  esperando_pago: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-300",
+  comprobante_enviado: "bg-orange-500/15 text-orange-700 dark:text-orange-300",
+  pagado: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+  rechazado: "bg-destructive/15 text-destructive",
 };
 
 const paymentLabels: Record<Order["payment_status"], string> = {
@@ -53,11 +76,11 @@ type Item = {
 const STATUSES: Order["status"][] = ["pendiente", "empacando", "enviado", "entregado", "cancelado"];
 
 const statusColors: Record<Order["status"], string> = {
-  pendiente: "bg-yellow-100 text-yellow-800",
-  empacando: "bg-blue-100 text-blue-800",
-  enviado: "bg-purple-100 text-purple-800",
-  entregado: "bg-green-100 text-green-800",
-  cancelado: "bg-red-100 text-red-800",
+  pendiente: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-300",
+  empacando: "bg-blue-500/15 text-blue-700 dark:text-blue-300",
+  enviado: "bg-purple-500/15 text-purple-700 dark:text-purple-300",
+  entregado: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+  cancelado: "bg-destructive/15 text-destructive",
 };
 
 function formatCOP(n: number) {
@@ -72,9 +95,10 @@ function PedidosAdmin() {
         {(["pedidos", "cotizaciones"] as const).map((t) => (
           <button
             key={t}
+            type="button"
             onClick={() => setTab(t)}
-            className={`rounded-full px-4 py-2 text-sm font-bold capitalize ${
-              tab === t ? "bg-[var(--brand-wine)] text-white" : "bg-muted"
+            className={`cursor-pointer rounded-full px-4 py-2 text-sm font-bold capitalize transition ${
+              tab === t ? "bg-[var(--brand-wine)] text-white" : "bg-muted text-foreground"
             }`}
           >
             {t === "pedidos" ? "Pedidos de tienda" : "Cotizaciones 3D"}
@@ -114,10 +138,10 @@ type Quote = {
 const QUOTE_STATUSES = ["nueva", "cotizada", "aprobada", "rechazada"] as const;
 
 const quoteStatusColors: Record<string, string> = {
-  nueva: "bg-yellow-100 text-yellow-800",
-  cotizada: "bg-blue-100 text-blue-800",
-  aprobada: "bg-green-100 text-green-800",
-  rechazada: "bg-red-100 text-red-800",
+  nueva: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-300",
+  cotizada: "bg-blue-500/15 text-blue-700 dark:text-blue-300",
+  aprobada: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+  rechazada: "bg-destructive/15 text-destructive",
 };
 
 function QuotesTab() {
@@ -139,8 +163,9 @@ function QuotesTab() {
 
   async function updateStatus(id: string, status: string) {
     const { error } = await supabase.from("quotes").update({ status }).eq("id", id);
-    if (error) return alert(error.message);
+    if (error) return toast.error(error.message);
     setQuotes((qs) => qs.map((q) => (q.id === id ? { ...q, status } : q)));
+    toast.success("Estado de cotización actualizado");
   }
 
   async function download(q: Quote) {
@@ -148,8 +173,8 @@ function QuotesTab() {
     const { data, error } = await supabase.storage
       .from("quote-files")
       .createSignedUrl(q.file_path, 60 * 10, { download: q.file_name ?? true });
-    if (error || !data) return alert("No se pudo generar el enlace: " + error?.message);
-    window.open(data.signedUrl, "_blank");
+    if (error || !data) return toast.error("No se pudo generar el enlace: " + error?.message);
+    openExternalUrl(data.signedUrl);
   }
 
   const filtered = filter === "todos" ? quotes : quotes.filter((q) => q.status === filter);
@@ -197,6 +222,7 @@ function QuotesTab() {
                 <li key={q.id} className="p-4 sm:p-5">
                   <div className="flex flex-wrap items-center gap-3">
                     <button
+                      type="button"
                       onClick={() => setOpen((s) => ({ ...s, [q.id]: !s[q.id] }))}
                       className="rounded-lg p-1 hover:bg-muted"
                       aria-label="Ver detalle"
@@ -233,6 +259,7 @@ function QuotesTab() {
                     </select>
                     {q.file_path && (
                       <button
+                        type="button"
                         onClick={() => download(q)}
                         className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted"
                       >
@@ -307,54 +334,118 @@ function QuotesTab() {
 function OrdersTab() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [items, setItems] = useState<Item[]>([]);
+  const [templates, setTemplates] = useState<Record<string, string>>(DEFAULT_ORDER_TEMPLATES);
   const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [filter, setFilter] = useState<"todos" | Order["status"]>("todos");
+
+  // Modal de WhatsApp personalizado al cliente
+  const [waTarget, setWaTarget] = useState<Order | null>(null);
+  const [waGuia, setWaGuia] = useState("");
+  const [waMessage, setWaMessage] = useState("");
+
+  // Modal de rechazo de comprobante (reemplaza window.prompt)
+  const [rejectTargetId, setRejectTargetId] = useState<string | null>(null);
+  const [rejectNote, setRejectNote] = useState("No encontramos ese pago. Verifica la referencia.");
+
   const doConfirm = useServerFn(confirmPayment);
   const doReject = useServerFn(rejectPayment);
+  const doUpdateStatus = useServerFn(updateOrderStatusAdmin);
+  const loadTemplatesFn = useServerFn(getNotificationTemplatesForOrders);
 
   async function load() {
     setLoading(true);
-    const [o, i] = await Promise.all([
+    const [o, i, tpl] = await Promise.all([
       supabase.from("orders").select("*").order("created_at", { ascending: false }),
       supabase.from("order_items").select("*"),
+      loadTemplatesFn({}).catch(() => DEFAULT_ORDER_TEMPLATES),
     ]);
     setOrders((o.data as Order[]) ?? []);
     setItems((i.data as Item[]) ?? []);
+    setTemplates(tpl ?? DEFAULT_ORDER_TEMPLATES);
     setLoading(false);
   }
 
   useEffect(() => {
-    load();
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function updateStatus(id: string, status: Order["status"]) {
-    const { error } = await supabase.from("orders").update({ status }).eq("id", id);
-    if (error) return alert(error.message);
-    setOrders((os) => os.map((o) => (o.id === id ? { ...o, status } : o)));
+    setUpdatingId(id);
+    try {
+      const res = await doUpdateStatus({ data: { order_id: id, status } });
+      setOrders((os) => os.map((o) => (o.id === id ? { ...o, status } : o)));
+      toast.success(
+        res.whatsappDispatched
+          ? `Estado cambiado a "${status}". Notificación enviada por WhatsApp y Telegram.`
+          : `Estado cambiado a "${status}" y notificado en Telegram.`,
+      );
+    } catch (err) {
+      toast.error((err as Error).message || "No se pudo actualizar el estado");
+    } finally {
+      setUpdatingId(null);
+    }
   }
 
   async function onConfirmPayment(id: string) {
     try {
       await doConfirm({ data: { order_id: id } });
+      toast.success("Pago confirmado y notificado por Telegram");
       await load();
     } catch (err) {
-      alert((err as Error).message);
+      toast.error((err as Error).message);
     }
   }
 
-  async function onRejectPayment(id: string) {
-    const note = prompt("¿Qué mensaje verá el cliente?", "No encontramos ese pago. Verifica la referencia.");
-    if (note === null) return;
+  async function onSubmitReject(e: React.FormEvent) {
+    e.preventDefault();
+    if (!rejectTargetId) return;
     try {
-      await doReject({ data: { order_id: id, note } });
+      await doReject({ data: { order_id: rejectTargetId, note: rejectNote } });
+      toast.success("Comprobante marcado como rechazado");
+      setRejectTargetId(null);
       await load();
     } catch (err) {
-      alert((err as Error).message);
+      toast.error((err as Error).message);
+    }
+  }
+
+  function buildOrderWaPreview(order: Order, guiaValue: string) {
+    const rawTpl =
+      templates[order.status] ||
+      DEFAULT_ORDER_TEMPLATES[order.status] ||
+      "¡Hola {{nombre}}! Tu pedido {{pedido}} se encuentra en estado: {{estado}}.";
+    return expandNotificationTemplate(rawTpl, {
+      customerName: order.customer_name,
+      orderId: order.id,
+      status: order.status,
+      totalCop: order.total_cop,
+      guia: guiaValue,
+      note: order.payment_note ?? "",
+    });
+  }
+
+  function openWhatsAppModal(order: Order) {
+    if (!order.customer_phone?.trim()) {
+      toast.error("Este pedido no tiene número de celular registrado.");
+      return;
+    }
+    setWaTarget(order);
+    setWaGuia("");
+    setWaMessage(buildOrderWaPreview(order, ""));
+  }
+
+  function handleGuiaChange(nextGuia: string) {
+    setWaGuia(nextGuia);
+    if (waTarget) {
+      setWaMessage(buildOrderWaPreview(waTarget, nextGuia));
     }
   }
 
   const filtered = filter === "todos" ? orders : orders.filter((o) => o.status === filter);
+  const waCustomerUrl = waTarget ? buildCustomerWhatsAppUrl(waTarget.customer_phone, waMessage) : null;
 
   return (
     <>
@@ -393,18 +484,27 @@ function OrdersTab() {
             {filtered.map((o) => {
               const orderItems = items.filter((it) => it.order_id === o.id);
               const isOpen = !!open[o.id];
+              const code = formatOrderCode(o.id);
               return (
                 <li key={o.id} className="p-4 sm:p-5">
                   <div className="flex flex-wrap items-center gap-3">
                     <button
+                      type="button"
                       onClick={() => setOpen((s) => ({ ...s, [o.id]: !s[o.id] }))}
                       className="rounded-lg p-1 hover:bg-muted"
+                      aria-label={`Ver detalle del pedido ${code}`}
                     >
                       {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                     </button>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold">{o.customer_name}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-md bg-muted px-2 py-0.5 font-mono text-[11px] font-bold text-foreground">
+                          {code}
+                        </span>
+                        <p className="truncate font-semibold">{o.customer_name}</p>
+                      </div>
                       <p className="truncate text-xs text-muted-foreground">
+                        {o.customer_phone ? `${o.customer_phone} · ` : ""}
                         {o.customer_email} · {new Date(o.created_at).toLocaleString("es-CO")}
                       </p>
                     </div>
@@ -419,8 +519,10 @@ function OrdersTab() {
                     </span>
                     <select
                       value={o.status}
+                      disabled={updatingId === o.id}
                       onChange={(e) => updateStatus(o.id, e.target.value as Order["status"])}
-                      className="rounded-full border border-input bg-background px-3 py-1.5 text-xs font-semibold"
+                      aria-label={`Estado de ${code}`}
+                      className="rounded-full border border-input bg-background px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
                     >
                       {STATUSES.map((s) => (
                         <option key={s} value={s}>
@@ -428,6 +530,22 @@ function OrdersTab() {
                         </option>
                       ))}
                     </select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openWhatsAppModal(o)}
+                      disabled={!o.customer_phone}
+                      title={
+                        o.customer_phone
+                          ? "Enviar mensaje de WhatsApp al cliente"
+                          : "Sin celular registrado"
+                      }
+                      className="gap-1.5 rounded-full text-xs font-bold text-[var(--brand-teal-deep)]"
+                    >
+                      <MessageCircle className="h-3.5 w-3.5" />
+                      💬 Enviar WhatsApp al cliente
+                    </Button>
                   </div>
 
                   {isOpen && (
@@ -463,14 +581,19 @@ function OrdersTab() {
                         {o.payment_status !== "pagado" && (
                           <div className="mt-3 flex flex-wrap gap-2">
                             <button
+                              type="button"
                               onClick={() => onConfirmPayment(o.id)}
-                              className="rounded-full bg-green-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-green-700"
+                              className="cursor-pointer rounded-full bg-emerald-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-emerald-700"
                             >
                               Confirmar pago
                             </button>
                             <button
-                              onClick={() => onRejectPayment(o.id)}
-                              className="rounded-full border border-input px-4 py-1.5 text-xs font-bold hover:bg-muted"
+                              type="button"
+                              onClick={() => {
+                                setRejectNote("No encontramos ese pago. Verifica la referencia.");
+                                setRejectTargetId(o.id);
+                              }}
+                              className="cursor-pointer rounded-full border border-input px-4 py-1.5 text-xs font-bold hover:bg-muted"
                             >
                               Rechazar pago
                             </button>
@@ -502,6 +625,97 @@ function OrdersTab() {
           </ul>
         )}
       </div>
+
+      {/* Modal para enviar WhatsApp personalizado al cliente */}
+      <Dialog open={Boolean(waTarget)} onOpenChange={(openNow) => !openNow && setWaTarget(null)}>
+        <DialogContent className="max-w-lg rounded-3xl border-border bg-card p-6">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-black">
+              Enviar WhatsApp a {waTarget?.customer_name}
+            </DialogTitle>
+            <DialogDescription>
+              Pedido {waTarget ? formatOrderCode(waTarget.id) : ""} · Estado:{" "}
+              <strong className="capitalize">{waTarget?.status}</strong> · Tel:{" "}
+              <strong>{waTarget?.customer_phone}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="wa-guia" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Número de guía / rastreo (opcional para {"{{guia}}"})
+              </Label>
+              <Input
+                id="wa-guia"
+                value={waGuia}
+                onChange={(e) => handleGuiaChange(e.target.value)}
+                placeholder="Ej: Servientrega 914520144"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="wa-preview" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Mensaje personalizado
+              </Label>
+              <Textarea
+                id="wa-preview"
+                rows={4}
+                value={waMessage}
+                onChange={(e) => setWaMessage(e.target.value)}
+              />
+            </div>
+
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button type="button" variant="outline" onClick={() => setWaTarget(null)}>
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                disabled={!waCustomerUrl || !waMessage.trim()}
+                onClick={() => {
+                  if (!waCustomerUrl) {
+                    toast.error("El celular del cliente no es válido para WhatsApp");
+                    return;
+                  }
+                  openExternalUrl(waCustomerUrl);
+                  setWaTarget(null);
+                }}
+                className="gap-2 bg-[var(--brand-teal-deep)] text-white hover:brightness-95"
+              >
+                <Send className="h-4 w-4" />
+                Abrir WhatsApp del cliente
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal para rechazar comprobante con nota visible */}
+      <Dialog open={Boolean(rejectTargetId)} onOpenChange={(o) => !o && setRejectTargetId(null)}>
+        <DialogContent className="max-w-md rounded-3xl border-border bg-card p-6">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-black">Rechazar comprobante</DialogTitle>
+            <DialogDescription>
+              Este mensaje se mostrará al cliente en la página de seguimiento de su pedido.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={onSubmitReject} className="space-y-4">
+            <Textarea
+              rows={3}
+              required
+              value={rejectNote}
+              onChange={(e) => setRejectNote(e.target.value)}
+            />
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setRejectTargetId(null)}>
+                Cancelar
+              </Button>
+              <Button type="submit" variant="destructive">
+                Confirmar rechazo
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

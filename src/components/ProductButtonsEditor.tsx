@@ -561,6 +561,18 @@ function SortableButtonCard({
                 onChange={(url) => onUpdate({ whatsapp_image_url: url })}
               />
             </div>
+            <label className="flex items-center justify-between gap-3 rounded-xl border border-emerald-500/30 bg-background/60 p-3 text-xs">
+              <span>
+                <span className="font-semibold">Capturar datos y crear pedido antes de abrir WhatsApp</span>
+                <span className="block text-muted-foreground">
+                  Pide nombre y celular al cliente, registra el pedido en el panel y envía alerta por Telegram.
+                </span>
+              </span>
+              <Switch
+                checked={b.capture_order !== false}
+                onCheckedChange={(c) => onUpdate({ capture_order: c })}
+              />
+            </label>
             {b.whatsapp_image_url ? (
               <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 flex items-start gap-2.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 mt-0.5 shrink-0" />

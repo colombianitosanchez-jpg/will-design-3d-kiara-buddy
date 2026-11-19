@@ -94,6 +94,8 @@ export type ProductButton = {
   icon_shape?: ButtonIconShape;
   /** Mostrar también en la tarjeta del catálogo (/tienda). Por defecto sí. */
   show_on_card?: boolean;
+  /** En botones WhatsApp de producto, capturar datos y crear pedido en BD antes de abrir WhatsApp. Por defecto sí. */
+  capture_order?: boolean;
 };
 
 export const VARIANT_LABELS: Record<ButtonVariant, string> = {
@@ -209,6 +211,7 @@ export function parseProductButtons(raw: unknown): ProductButton[] {
       opacity: typeof b.opacity === "number" ? b.opacity : undefined,
       shade: typeof b.shade === "number" ? b.shade : undefined,
       show_on_card: b.show_on_card !== false,
+      capture_order: b.capture_order !== false,
       media_fit: (b.media_fit === "contain" || b.media_fit === "fill" || b.media_fit === "cover" ? b.media_fit : "cover") as "cover" | "contain" | "fill",
     }))
     .filter((b) => !!b.text);

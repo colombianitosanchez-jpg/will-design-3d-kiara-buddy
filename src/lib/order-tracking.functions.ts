@@ -92,7 +92,7 @@ export const reportPayment = createServerFn({ method: "POST" })
 
     const { data: order, error: findErr } = await supabaseAdmin
       .from("orders")
-      .select("id, payment_status")
+      .select("id, customer_name, total_cop, payment_method_name, payment_status")
       .eq("public_token", data.token)
       .maybeSingle();
     if (findErr) throw new Error(findErr.message);
@@ -111,5 +111,19 @@ export const reportPayment = createServerFn({ method: "POST" })
       })
       .eq("id", order.id);
     if (error) throw new Error(error.message);
+
+    try {
+      const { notifyTelegramVoucher } = await import("@/lib/telegram.server");
+      await notifyTelegramVoucher({
+        orderId: order.id,
+        customerName: order.customer_name,
+        totalCop: order.total_cop,
+        paymentReference: data.payment_reference,
+        paymentMethodName: order.payment_method_name,
+      });
+    } catch (err) {
+      console.error("[Telegram] Error notificando comprobante:", err);
+    }
+
     return { ok: true as const };
   });

@@ -50,11 +50,29 @@ export const Route = createFileRoute("/api/public/hooks/payment-webhook")({
                 payment_note: "La pasarela rechazó el pago.",
               };
 
-        const { error } = await supabaseAdmin
+        const { data: order, error } = await supabaseAdmin
           .from("orders")
           .update(patch)
-          .eq("id", parsed.order_id);
+          .eq("id", parsed.order_id)
+          .select("id, customer_name, total_cop, payment_method_name")
+          .maybeSingle();
         if (error) return new Response("Update failed", { status: 500 });
+
+        if (parsed.status === "paid") {
+          try {
+            const { notifyTelegramPaymentConfirmed } = await import("@/lib/telegram.server");
+            await notifyTelegramPaymentConfirmed({
+              orderId: order?.id ?? parsed.order_id,
+              customerName: order?.customer_name ?? null,
+              totalCop: order?.total_cop ?? null,
+              paymentMethodName: order?.payment_method_name ?? null,
+              reference: parsed.reference ?? null,
+              gateway: "Webhook Pasarela",
+            });
+          } catch (err) {
+            console.error("[Telegram] Error notificando webhook pago:", err);
+          }
+        }
 
         return Response.json({ ok: true });
       },

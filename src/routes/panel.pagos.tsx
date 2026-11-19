@@ -2,12 +2,48 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Eye, EyeOff, Loader2, Plus, Trash2, UploadCloud, X } from "lucide-react";
+import {
+  Check,
+  Coins,
+  Copy,
+  CreditCard,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  GripVertical,
+  Loader2,
+  Plus,
+  ShieldCheck,
+  Trash2,
+  Truck,
+  UploadCloud,
+  Wallet,
+  X,
+} from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +58,7 @@ import {
   listAdminPaymentMethods,
   savePaymentMethod,
   togglePaymentMethod,
+  reorderPaymentMethods,
   deletePaymentMethod,
   type AdminPaymentMethod,
   type PaymentMethodType,
@@ -32,6 +69,14 @@ import {
   paymentTypeLabel,
   usesQr,
 } from "@/lib/payment-types";
+import {
+  getCryptoExplorerUrl,
+  getWompiWebhookUrl,
+  PAYMENT_CATEGORIES,
+  paymentCategoryForType,
+  paymentCategoryLabel,
+  type CryptoNetwork,
+} from "@/lib/payment-config";
 
 export const Route = createFileRoute("/panel/pagos")({
   ssr: false,
@@ -57,6 +102,17 @@ type FormState = {
   qr_image_url: string;
   payment_url: string;
   allowed_zones: string;
+  is_wompi: boolean;
+  wompi_public_key: string;
+  wompi_env: "sandbox" | "production";
+  wompi_events_secret: string;
+  wompi_integrity_secret: string;
+  bank_name: string;
+  account_number: string;
+  account_holder: string;
+  require_proof: boolean;
+  wallet_address: string;
+  crypto_network: CryptoNetwork;
   display_order: number;
   is_active: boolean;
   credentials: CredRow[];
@@ -69,14 +125,24 @@ const emptyForm: FormState = {
   qr_image_url: "",
   payment_url: "",
   allowed_zones: "",
+  is_wompi: false,
+  wompi_public_key: "",
+  wompi_env: "production",
+  wompi_events_secret: "",
+  wompi_integrity_secret: "",
+  bank_name: "",
+  account_number: "",
+  account_holder: "",
+  require_proof: true,
+  wallet_address: "",
+  crypto_network: "TRC20",
   display_order: 0,
   is_active: false,
-  credentials: [{ key: "numero", value: "" }],
+  credentials: [],
 };
 
 const QR_BUCKET = "site-media";
 
-/** Sube la imagen del QR al almacenamiento del sitio y devuelve una URL de larga duración. */
 async function uploadQrImage(file: File): Promise<string> {
   if (!file.type.startsWith("image/")) throw new Error("El archivo debe ser una imagen");
   if (file.size > 5 * 1024 * 1024) throw new Error("La imagen pesa más de 5 MB");
@@ -94,11 +160,124 @@ async function uploadQrImage(file: File): Promise<string> {
   return signed.data.signedUrl;
 }
 
+function categoryIcon(type: PaymentMethodType) {
+  const cat = paymentCategoryForType(type);
+  switch (cat) {
+    case "automatic":
+      return <CreditCard className="h-4 w-4 text-[var(--brand-orange)]" />;
+    case "crypto":
+      return <Coins className="h-4 w-4 text-[var(--brand-teal-deep)]" />;
+    case "cash":
+      return <Truck className="h-4 w-4 text-[var(--brand-wine)]" />;
+    default:
+      return <Wallet className="h-4 w-4 text-primary" />;
+  }
+}
+
+function SortablePaymentRow({
+  m,
+  onToggle,
+  onEdit,
+  onDelete,
+}: {
+  m: AdminPaymentMethod;
+  onToggle: (m: AdminPaymentMethod, v: boolean) => void;
+  onEdit: (m: AdminPaymentMethod) => void;
+  onDelete: (m: AdminPaymentMethod) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: m.id,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-background p-3.5 shadow-2xs"
+    >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        aria-label={`Arrastrar ${m.name}`}
+        className="cursor-grab touch-none rounded-xl p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+
+      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-muted">
+        {categoryIcon(m.type)}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-bold">{m.name}</p>
+          <Badge variant="outline" className="text-[10px]">
+            {paymentCategoryLabel(m.type)}
+          </Badge>
+          {m.config?.is_wompi && (
+            <Badge variant="secondary" className="text-[10px]">
+              Wompi {m.config.wompi_env === "sandbox" ? "Sandbox" : "Producción"}
+            </Badge>
+          )}
+        </div>
+        <p className="truncate text-xs text-muted-foreground">
+          {paymentTypeLabel(m.type)}
+          {m.config?.account_number ? ` · Cuenta: ${m.config.account_number}` : ""}
+          {m.config?.wallet_address
+            ? ` · ${m.config.crypto_network ?? "TRC20"}: ${m.config.wallet_address.slice(0, 12)}…`
+            : ""}
+          {m.config?.allowed_zones ? ` · ${m.config.allowed_zones}` : ""}
+          {!m.config?.account_number && !m.config?.wallet_address && !m.config?.allowed_zones && m.instructions
+            ? ` · ${m.instructions}`
+            : ""}
+        </p>
+      </div>
+
+      {m.qr_image_url && <Badge variant="secondary">Con QR</Badge>}
+      {m.config?.require_proof && m.type === "manual_transfer" && (
+        <Badge variant="secondary">Exige comprobante</Badge>
+      )}
+      {m.has_credentials ? (
+        <Badge variant="secondary" className="gap-1">
+          <ShieldCheck className="h-3 w-3" /> Credenciales guardadas
+        </Badge>
+      ) : (
+        <Badge variant="outline">Sin credenciales</Badge>
+      )}
+
+      <Switch
+        checked={m.is_active}
+        onCheckedChange={(v) => onToggle(m, v)}
+        aria-label={`Activar ${m.name}`}
+      />
+      <Button type="button" variant="outline" size="sm" onClick={() => onEdit(m)}>
+        Editar
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        aria-label={`Eliminar ${m.name}`}
+        onClick={() => onDelete(m)}
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
 function PagosPage() {
   const { isSuperAdmin, loading: authLoading } = useAuth();
   const load = useServerFn(listAdminPaymentMethods);
   const save = useServerFn(savePaymentMethod);
   const toggle = useServerFn(togglePaymentMethod);
+  const reorder = useServerFn(reorderPaymentMethods);
   const remove = useServerFn(deletePaymentMethod);
 
   const [rows, setRows] = useState<AdminPaymentMethod[]>([]);
@@ -107,7 +286,18 @@ function PagosPage() {
   const [saving, setSaving] = useState(false);
   const [showCreds, setShowCreds] = useState(false);
   const [uploadingQr, setUploadingQr] = useState(false);
+  const [copiedWebhook, setCopiedWebhook] = useState(false);
   const qrInputRef = useRef<HTMLInputElement>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const webhookUrl = getWompiWebhookUrl(
+    typeof window !== "undefined" ? window.location.origin : undefined,
+  );
 
   async function handleQrUpload(file: File) {
     if (!form) return;
@@ -164,24 +354,63 @@ function PagosPage() {
     if (!form) return;
     setSaving(true);
     try {
+      const extraCreds: CredRow[] = [...form.credentials];
+      if (form.is_wompi && form.wompi_events_secret.trim()) {
+        extraCreds.push({ key: "wompi_events_secret", value: form.wompi_events_secret.trim() });
+      }
+      if (form.is_wompi && form.wompi_integrity_secret.trim()) {
+        extraCreds.push({
+          key: "wompi_integrity_secret",
+          value: form.wompi_integrity_secret.trim(),
+        });
+      }
+
+      const category = paymentCategoryForType(form.type);
       await save({
         data: {
           ...(form.id ? { id: form.id } : {}),
           name: form.name,
           type: form.type,
           instructions: form.instructions,
-          qr_image_url: usesQr(form.type) ? form.qr_image_url : "",
+          qr_image_url: usesQr(form.type) || form.type === "crypto" ? form.qr_image_url : "",
           config: {
-            ...(isRedirectFlow(form.type) && form.payment_url.trim()
-              ? { payment_url: form.payment_url.trim() }
-              : {}),
-            ...(form.type === "cash_on_delivery" && form.allowed_zones.trim()
+            ...(form.payment_url.trim() ? { payment_url: form.payment_url.trim() } : {}),
+            ...(category === "cash" && form.allowed_zones.trim()
               ? { allowed_zones: form.allowed_zones.trim() }
               : {}),
+            ...(category === "automatic"
+              ? {
+                  is_wompi: form.is_wompi,
+                  wompi_env: form.wompi_env,
+                  ...(form.wompi_public_key.trim()
+                    ? { wompi_public_key: form.wompi_public_key.trim() }
+                    : {}),
+                }
+              : {}),
+            ...(category === "manual"
+              ? {
+                  ...(form.bank_name.trim() ? { bank_name: form.bank_name.trim() } : {}),
+                  ...(form.account_number.trim()
+                    ? { account_number: form.account_number.trim() }
+                    : {}),
+                  ...(form.account_holder.trim()
+                    ? { account_holder: form.account_holder.trim() }
+                    : {}),
+                  require_proof: form.require_proof,
+                }
+              : {}),
+            ...(category === "crypto"
+              ? {
+                  crypto_network: form.crypto_network,
+                  ...(form.wallet_address.trim()
+                    ? { wallet_address: form.wallet_address.trim() }
+                    : {}),
+                }
+              : {}),
           },
-          display_order: form.display_order,
+          display_order: form.id ? form.display_order : rows.length,
           is_active: form.is_active,
-          credentials: form.credentials.filter((c) => c.key.trim() && c.value.trim()),
+          credentials: extraCreds.filter((c) => c.key.trim() && c.value.trim()),
         },
       });
       toast.success("Método de pago guardado");
@@ -216,6 +445,27 @@ function PagosPage() {
     }
   }
 
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = rows.findIndex((r) => r.id === active.id);
+    const newIndex = rows.findIndex((r) => r.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+
+    const reordered = arrayMove(rows, oldIndex, newIndex).map((item, idx) => ({
+      ...item,
+      display_order: idx,
+    }));
+    setRows(reordered);
+    try {
+      await reorder({ data: { ordered_ids: reordered.map((r) => r.id) } });
+      toast.success("Orden de métodos actualizado");
+    } catch (err) {
+      toast.error((err as Error).message);
+      await refresh();
+    }
+  }
+
   function edit(m: AdminPaymentMethod) {
     setForm({
       id: m.id,
@@ -225,56 +475,97 @@ function PagosPage() {
       qr_image_url: m.qr_image_url ?? "",
       payment_url: m.config?.payment_url ?? "",
       allowed_zones: m.config?.allowed_zones ?? "",
+      is_wompi: Boolean(m.config?.is_wompi),
+      wompi_public_key: m.config?.wompi_public_key ?? "",
+      wompi_env: m.config?.wompi_env ?? "production",
+      wompi_events_secret: "",
+      wompi_integrity_secret: "",
+      bank_name: m.config?.bank_name ?? "",
+      account_number: m.config?.account_number ?? "",
+      account_holder: m.config?.account_holder ?? "",
+      require_proof: m.config?.require_proof ?? true,
+      wallet_address: m.config?.wallet_address ?? "",
+      crypto_network: m.config?.crypto_network ?? "TRC20",
       display_order: m.display_order,
       is_active: m.is_active,
-      credentials: [{ key: isRedirectFlow(m.type) ? "api_key" : "numero", value: "" }],
+      credentials: [],
     });
     setShowCreds(false);
   }
+
+  const activeCategory = form ? paymentCategoryForType(form.type) : null;
+  const explorerUrl = form ? getCryptoExplorerUrl(form.crypto_network, form.wallet_address) : null;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black">Métodos de pago</h1>
+          <h1 className="text-3xl font-black tracking-tight">Métodos de pago</h1>
           <p className="text-sm text-muted-foreground">
-            Configura cómo pueden pagarte tus clientes. Solo los métodos activos aparecen en el
-            carrito.
+            Configura pasarelas automáticas, transferencias manuales, criptomonedas y pago contra
+            entrega. Arrastra para cambiar el orden en el carrito.
           </p>
         </div>
-        <Button onClick={() => setForm({ ...emptyForm })}>
+        <Button
+          type="button"
+          onClick={() => setForm({ ...emptyForm, display_order: rows.length })}
+          className="rounded-full"
+        >
           <Plus className="mr-2 h-4 w-4" /> Nuevo método
         </Button>
       </div>
 
+      {/* Tarjetas de resumen por categoría */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {PAYMENT_CATEGORIES.map((cat) => {
+          const count = rows.filter((r) => cat.types.includes(r.type)).length;
+          return (
+            <div key={cat.key} className="rounded-2xl border border-border bg-card p-3.5">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-black uppercase tracking-wider text-foreground">
+                  {cat.label}
+                </p>
+                <Badge variant="secondary">{count}</Badge>
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">{cat.description}</p>
+            </div>
+          );
+        })}
+      </div>
+
       {form && (
-        <Card>
+        <Card className="rounded-3xl border-border bg-card">
           <CardHeader>
-            <CardTitle>{form.id ? "Editar método" : "Nuevo método"}</CardTitle>
+            <CardTitle>{form.id ? `Editar: ${form.name}` : "Nuevo método de pago"}</CardTitle>
             <CardDescription>
-              Las credenciales se guardan cifradas en el servidor y nunca se muestran de vuelta. Si
-              las dejas vacías al editar, se conservan las actuales.
+              Las llaves secretas se guardan en <code>credentials</code> en el servidor y jamás se
+              exponen al navegador en texto plano. Si las dejas vacías al editar, se conservan las
+              actuales.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={submit} className="grid gap-4 md:grid-cols-2">
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Nombre
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Nombre visible
+                </Label>
                 <Input
                   required
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Nequi, Bancolombia, Wompi…"
-                  className="mt-1"
+                  placeholder="Wompi, Nequi, Bancolombia, USDT TRC20…"
                 />
-              </label>
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Tipo
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Categoría / Tipo
+                </Label>
                 <Select
                   value={form.type}
                   onValueChange={(v) => setForm({ ...form, type: v as PaymentMethodType })}
                 >
-                  <SelectTrigger className="mt-1">
+                  <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -288,114 +579,332 @@ function PagosPage() {
                     )}
                   </SelectContent>
                 </Select>
-              </label>
-              <label className="md:col-span-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Instrucciones para el cliente {!usesQr(form.type) && "(opcional)"}
+              </div>
+
+              {/* CAMPOS ESPECÍFICOS: PASARELAS AUTOMÁTICAS (WOMPI) */}
+              {activeCategory === "automatic" && (
+                <div className="md:col-span-2 space-y-4 rounded-2xl border border-border bg-muted/20 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-bold">Pasarela Automática / Wompi</p>
+                      <p className="text-xs text-muted-foreground">
+                        Configura Wompi para recibir confirmaciones automáticas de pago por webhook.
+                      </p>
+                    </div>
+                    <label className="flex items-center gap-2 text-xs font-semibold">
+                      <Switch
+                        checked={form.is_wompi}
+                        onCheckedChange={(v) => setForm({ ...form, is_wompi: v })}
+                      />
+                      Integración Wompi
+                    </label>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-1 md:col-span-2">
+                      <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                        URL de pago / Link de checkout {!form.is_wompi ? "*" : "(opcional si usas Widget Wompi)"}
+                      </Label>
+                      <Input
+                        type="url"
+                        required={!form.is_wompi}
+                        value={form.payment_url}
+                        onChange={(e) => setForm({ ...form, payment_url: e.target.value })}
+                        placeholder="https://checkout.wompi.co/l/xxxxx"
+                      />
+                    </div>
+
+                    {form.is_wompi && (
+                      <>
+                        <div className="space-y-1">
+                          <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                            Llave Pública Wompi
+                          </Label>
+                          <Input
+                            value={form.wompi_public_key}
+                            onChange={(e) => setForm({ ...form, wompi_public_key: e.target.value })}
+                            placeholder="pub_prod_... o pub_test_..."
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                            Entorno
+                          </Label>
+                          <Select
+                            value={form.wompi_env}
+                            onValueChange={(v) =>
+                              setForm({ ...form, wompi_env: v as "sandbox" | "production" })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="production">Producción</SelectItem>
+                              <SelectItem value="sandbox">Sandbox (Pruebas)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                            Secreto de Eventos Wompi (solo escritura)
+                          </Label>
+                          <Input
+                            type={showCreds ? "text" : "password"}
+                            value={form.wompi_events_secret}
+                            onChange={(e) =>
+                              setForm({ ...form, wompi_events_secret: e.target.value })
+                            }
+                            placeholder={form.id ? "•••••• (dejar vacío para conservar)" : "prod_events_..."}
+                            autoComplete="new-password"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                            Secreto de Integridad Wompi (solo escritura)
+                          </Label>
+                          <Input
+                            type={showCreds ? "text" : "password"}
+                            value={form.wompi_integrity_secret}
+                            onChange={(e) =>
+                              setForm({ ...form, wompi_integrity_secret: e.target.value })
+                            }
+                            placeholder={form.id ? "•••••• (dejar vacío para conservar)" : "prod_integrity_..."}
+                            autoComplete="new-password"
+                          />
+                        </div>
+
+                        <div className="md:col-span-2 rounded-xl border border-border bg-background p-3">
+                          <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                            URL de Webhook para registrar en el Dashboard de Wompi
+                          </p>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                            <code className="flex-1 truncate rounded-lg bg-muted px-2.5 py-1.5 font-mono text-xs">
+                              {webhookUrl}
+                            </code>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={async () => {
+                                await navigator.clipboard?.writeText(webhookUrl);
+                                setCopiedWebhook(true);
+                                toast.success("URL de webhook copiada");
+                                setTimeout(() => setCopiedWebhook(false), 2000);
+                              }}
+                              className="gap-1.5"
+                            >
+                              {copiedWebhook ? (
+                                <Check className="h-3.5 w-3.5 text-emerald-600" />
+                              ) : (
+                                <Copy className="h-3.5 w-3.5" />
+                              )}
+                              Copiar URL
+                            </Button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* CAMPOS ESPECÍFICOS: TRANSFERENCIAS MANUALES */}
+              {activeCategory === "manual" && (
+                <div className="md:col-span-2 grid gap-4 rounded-2xl border border-border bg-muted/20 p-4 md:grid-cols-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                      Banco / Billetera
+                    </Label>
+                    <Input
+                      value={form.bank_name}
+                      onChange={(e) => setForm({ ...form, bank_name: e.target.value })}
+                      placeholder="Nequi / Bancolombia / Daviplata"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                      Número de cuenta o celular
+                    </Label>
+                    <Input
+                      value={form.account_number}
+                      onChange={(e) => setForm({ ...form, account_number: e.target.value })}
+                      placeholder="300 000 0000 / 123-456789-00"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                      Titular
+                    </Label>
+                    <Input
+                      value={form.account_holder}
+                      onChange={(e) => setForm({ ...form, account_holder: e.target.value })}
+                      placeholder="Will Design 3D SAS"
+                    />
+                  </div>
+                  <label className="md:col-span-3 flex items-center justify-between gap-3 rounded-xl border border-border bg-background p-3">
+                    <div>
+                      <p className="text-sm font-bold">Exigir comprobante de pago</p>
+                      <p className="text-xs text-muted-foreground">
+                        Solicita al cliente subir/reportar la referencia en el enlace de seguimiento.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={form.require_proof}
+                      onCheckedChange={(v) => setForm({ ...form, require_proof: v })}
+                    />
+                  </label>
+                </div>
+              )}
+
+              {/* CAMPOS ESPECÍFICOS: CRIPTO */}
+              {activeCategory === "crypto" && (
+                <div className="md:col-span-2 grid gap-4 rounded-2xl border border-border bg-muted/20 p-4 md:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                      Red Blockchain
+                    </Label>
+                    <Select
+                      value={form.crypto_network}
+                      onValueChange={(v) => setForm({ ...form, crypto_network: v as CryptoNetwork })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="TRC20">USDT (TRC20 — Tron)</SelectItem>
+                        <SelectItem value="BEP20">USDT (BEP20 — BNB Smart Chain)</SelectItem>
+                        <SelectItem value="Polygon">USDT (Polygon)</SelectItem>
+                        <SelectItem value="ERC20">USDT (ERC20 — Ethereum)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                      Dirección de Billetera (Wallet)
+                    </Label>
+                    <Input
+                      value={form.wallet_address}
+                      onChange={(e) => setForm({ ...form, wallet_address: e.target.value })}
+                      placeholder="TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE"
+                    />
+                    {explorerUrl && (
+                      <a
+                        href={explorerUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-[var(--brand-teal-deep)] hover:underline"
+                      >
+                        Verificar wallet en explorador ({form.crypto_network})
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                  </div>
+                  <div className="md:col-span-2 space-y-1">
+                    <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                      Enlace de pago externo (opcional, si usas Binance Pay / Coinbase Commerce)
+                    </Label>
+                    <Input
+                      type="url"
+                      value={form.payment_url}
+                      onChange={(e) => setForm({ ...form, payment_url: e.target.value })}
+                      placeholder="https://..."
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* CAMPOS ESPECÍFICOS: CONTRA ENTREGA / TALLER */}
+              {activeCategory === "cash" && (
+                <div className="md:col-span-2 space-y-1">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Zonas permitidas / Dirección de taller
+                  </Label>
+                  <Input
+                    value={form.allowed_zones}
+                    onChange={(e) => setForm({ ...form, allowed_zones: e.target.value })}
+                    placeholder="Ej: Solo Bogotá y Soacha / Recoger en taller Chapinero"
+                  />
+                </div>
+              )}
+
+              <div className="md:col-span-2 space-y-1">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Instrucciones para el cliente {!usesQr(form.type) && "(opcional)"}
+                </Label>
                 <Textarea
                   rows={3}
                   value={form.instructions}
                   onChange={(e) => setForm({ ...form, instructions: e.target.value })}
                   placeholder="Transfiere a Nequi 300 000 0000 a nombre de Will Design 3D y envíanos el comprobante."
-                  className="mt-1"
                 />
-              </label>
+              </div>
 
-              {isRedirectFlow(form.type) && (
-                <label className="md:col-span-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  URL de pago / Link de checkout
-                  <Input
-                    required
-                    type="url"
-                    value={form.payment_url}
-                    onChange={(e) => setForm({ ...form, payment_url: e.target.value })}
-                    placeholder="https://checkout.wompi.co/l/xxxxx"
-                    className="mt-1"
-                  />
-                  <span className="mt-1 block text-xs font-normal normal-case tracking-normal text-muted-foreground">
-                    Al confirmar el pedido, el cliente se abrirá automáticamente en esta página para
-                    completar el pago.
-                  </span>
-                </label>
-              )}
-
-              {form.type === "cash_on_delivery" && (
-                <label className="md:col-span-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Zonas permitidas
-                  <Input
-                    value={form.allowed_zones}
-                    onChange={(e) => setForm({ ...form, allowed_zones: e.target.value })}
-                    placeholder="Ej: Solo Bogotá"
-                    className="mt-1"
-                  />
-                </label>
-              )}
-
-              {usesQr(form.type) && (
-              <div className="md:col-span-2">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Código QR (opcional)
-                </p>
-                <div className="mt-1 flex flex-wrap items-center gap-2">
-                  <Input
-                    value={form.qr_image_url}
-                    onChange={(e) => setForm({ ...form, qr_image_url: e.target.value })}
-                    placeholder="Pega una URL pública de la imagen del QR…"
-                    className="min-w-[240px] flex-1"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={uploadingQr}
-                    onClick={() => qrInputRef.current?.click()}
-                  >
-                    {uploadingQr ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <UploadCloud className="mr-2 h-4 w-4" />
-                    )}
-                    Subir imagen
-                  </Button>
-                  {form.qr_image_url && (
+              {(usesQr(form.type) || activeCategory === "crypto") && (
+                <div className="md:col-span-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Código QR (opcional)
+                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <Input
+                      value={form.qr_image_url}
+                      onChange={(e) => setForm({ ...form, qr_image_url: e.target.value })}
+                      placeholder="Pega una URL pública de la imagen del QR…"
+                      className="min-w-[240px] flex-1"
+                    />
                     <Button
                       type="button"
                       variant="outline"
-                      size="icon"
-                      aria-label="Quitar QR"
-                      onClick={() => setForm({ ...form, qr_image_url: "" })}
+                      disabled={uploadingQr}
+                      onClick={() => qrInputRef.current?.click()}
                     >
-                      <X className="h-4 w-4" />
+                      {uploadingQr ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <UploadCloud className="mr-2 h-4 w-4" />
+                      )}
+                      Subir imagen
                     </Button>
+                    {form.qr_image_url && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        aria-label="Quitar QR"
+                        onClick={() => setForm({ ...form, qr_image_url: "" })}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  {form.qr_image_url && (
+                    <img
+                      src={form.qr_image_url}
+                      alt="Vista previa del código QR"
+                      className="mt-2 h-32 w-32 rounded-xl border border-border object-contain shadow-sm"
+                    />
                   )}
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Sube la imagen o pega la URL (por ejemplo de Imgur). El cliente la verá en el
-                  carrito al elegir este método.
-                </p>
-                {form.qr_image_url && (
-                  <img
-                    src={form.qr_image_url}
-                    alt="Vista previa del código QR"
-                    className="mt-2 h-32 w-32 rounded-xl border border-border object-contain shadow-sm"
+                  <input
+                    ref={qrInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      e.target.value = "";
+                      if (f) void handleQrUpload(f);
+                    }}
                   />
-                )}
-                <input
-                  ref={qrInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    e.target.value = "";
-                    if (f) void handleQrUpload(f);
-                  }}
-                />
-              </div>
+                </div>
               )}
 
               <div className="md:col-span-2">
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Credenciales privadas
+                    Credenciales privadas adicionales (opcional)
                   </p>
                   <button
                     type="button"
@@ -416,8 +925,8 @@ function PagosPage() {
                           next[i] = { ...c, key: e.target.value };
                           setForm({ ...form, credentials: next });
                         }}
-                        placeholder="numero / api_key"
-                        className="w-40"
+                        placeholder="api_key / merchant_id"
+                        className="w-44"
                       />
                       <Input
                         type={showCreds ? "text" : "password"}
@@ -429,6 +938,7 @@ function PagosPage() {
                         }}
                         placeholder="valor secreto"
                         className="flex-1"
+                        autoComplete="new-password"
                       />
                       <Button
                         type="button"
@@ -454,35 +964,23 @@ function PagosPage() {
                       setForm({ ...form, credentials: [...form.credentials, { key: "", value: "" }] })
                     }
                   >
-                    <Plus className="mr-2 h-4 w-4" /> Añadir credencial
+                    <Plus className="mr-2 h-4 w-4" /> Añadir credencial privada
                   </Button>
                 </div>
               </div>
 
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Orden
-                <Input
-                  type="number"
-                  min={0}
-                  value={form.display_order}
-                  onChange={(e) =>
-                    setForm({ ...form, display_order: Number(e.target.value) || 0 })
-                  }
-                  className="mt-1 w-28"
-                />
-              </label>
-              <div className="flex items-end gap-3">
+              <div className="flex items-center gap-3 md:col-span-2">
                 <Switch
                   checked={form.is_active}
                   onCheckedChange={(v) => setForm({ ...form, is_active: v })}
-                  aria-label="Activo"
+                  aria-label="Visible en el carrito"
                 />
-                <span className="text-sm">Visible en el carrito</span>
+                <span className="text-sm font-semibold">Visible y activo en el carrito</span>
               </div>
 
               <div className="md:col-span-2 flex gap-2">
                 <Button type="submit" disabled={saving}>
-                  {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Guardar
+                  {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Guardar método
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setForm(null)}>
                   Cancelar
@@ -493,54 +991,35 @@ function PagosPage() {
         </Card>
       )}
 
-      <Card>
+      <Card className="rounded-3xl border-border bg-card">
         <CardHeader>
           <CardTitle>Métodos configurados ({rows.length})</CardTitle>
-          <CardDescription>Activa o desactiva cada método en cualquier momento.</CardDescription>
+          <CardDescription>
+            Arrastra desde el ícono izquierdo para definir el orden en que aparecen en el carrito.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {rows.length === 0 && (
+          {rows.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Aún no hay métodos de pago. Crea el primero (por ejemplo Nequi).
+              Aún no hay métodos de pago. Crea el primero (por ejemplo Nequi o Wompi).
             </p>
+          ) : (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={rows.map((r) => r.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-2.5">
+                  {rows.map((m) => (
+                    <SortablePaymentRow
+                      key={m.id}
+                      m={m}
+                      onToggle={onToggle}
+                      onEdit={edit}
+                      onDelete={onDelete}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           )}
-          {rows.map((m) => (
-            <div
-              key={m.id}
-              className="flex flex-wrap items-center gap-3 rounded-2xl border border-border p-3"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="font-bold">{m.name}</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {paymentTypeLabel(m.type)} ·{" "}
-                  {m.config?.allowed_zones || m.instructions || "sin instrucciones"}
-                </p>
-              </div>
-              {m.qr_image_url && <Badge variant="secondary">Con QR</Badge>}
-              {m.config?.payment_url && <Badge variant="secondary">Con enlace de pago</Badge>}
-              {m.has_credentials ? (
-                <Badge variant="secondary">Credenciales guardadas</Badge>
-              ) : (
-                <Badge variant="outline">Sin credenciales</Badge>
-              )}
-              <Switch
-                checked={m.is_active}
-                onCheckedChange={(v) => onToggle(m, v)}
-                aria-label={`Activar ${m.name}`}
-              />
-              <Button variant="outline" size="sm" onClick={() => edit(m)}>
-                Editar
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                aria-label={`Eliminar ${m.name}`}
-                onClick={() => onDelete(m)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
         </CardContent>
       </Card>
     </div>

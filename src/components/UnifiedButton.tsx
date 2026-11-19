@@ -8,6 +8,7 @@ import { useSiteContent } from "@/hooks/use-site-content";
 import { getContactInfo, waLink, formatCOP, type Product } from "@/lib/catalog";
 import { openExternalUrl } from "@/lib/whatsapp";
 import { cartLineKey } from "@/lib/payment-rules";
+import { OrderQuickCaptureModal } from "@/components/OrderQuickCaptureModal";
 import {
   buildButtonWhatsappText,
   ICON_SHAPE_CLIP_PATHS,
@@ -50,16 +51,21 @@ export function getIconShapeStyle(shape?: ButtonIconShape): { className: string;
   }
 }
 
+type LottieComponentType = React.ComponentType<{ animationData: unknown; loop?: boolean; className?: string }>;
+
 function LottiePlayer({ url, className }: { url: string; className?: string }) {
-  const [data, setData] = useState<any>(null);
-  const [LottieComp, setLottieComp] = useState<any>(null);
+  const [data, setData] = useState<unknown>(null);
+  const [LottieComp, setLottieComp] = useState<LottieComponentType | null>(null);
 
   useEffect(() => {
     if (!url) return;
     let isMounted = true;
     Promise.all([
       fetch(url).then((res) => res.json()),
-      import("lottie-react").then((m: any) => m.Lottie || m.default),
+      import("lottie-react").then((m) => {
+        const mod = m as unknown as { default?: LottieComponentType; Lottie?: LottieComponentType };
+        return mod.Lottie || mod.default || null;
+      }),
     ])
       .then(([json, Comp]) => {
         if (isMounted) {
@@ -120,6 +126,7 @@ export function UnifiedButton({
   const globalDefaultMessage = getText("whatsapp_default_message", "");
 
   const [mediaFailed, setMediaFailed] = useState(false);
+  const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
 
   // Fusionar estilo legado con estilo unificado y override de accesibilidad
   const baseUnified = productButtonToUnified(button);
@@ -178,6 +185,16 @@ export function UnifiedButton({
         const hasValidDigits =
           Boolean(button.action_value && button.action_value.replace(/\D/g, "").length >= 7);
         const number = hasValidDigits ? button.action_value.trim() : fallbackWhatsapp;
+
+        if (product && !quoteOnly && button.capture_order !== false) {
+          if (!number) {
+            toast.error("Configura WhatsApp en /panel/marca");
+            return;
+          }
+          setQuickCaptureOpen(true);
+          return;
+        }
+
         const text = buildButtonWhatsappText(
           button,
           {
@@ -233,7 +250,7 @@ export function UnifiedButton({
       : "";
 
   // Construcción de estilos dinámicos de fondo
-  let bgStyle: React.CSSProperties = {};
+  const bgStyle: React.CSSProperties = {};
   {
     if (unifiedStyle.type === "gradient" && unifiedStyle.gradientFrom) {
       const angle = unifiedStyle.gradientAngle ?? 135;
@@ -350,6 +367,22 @@ export function UnifiedButton({
           )}
         </span>
       </button>
+      {product && !quoteOnly && button.action_type === "whatsapp" && button.capture_order !== false && (
+        <OrderQuickCaptureModal
+          open={quickCaptureOpen}
+          onOpenChange={setQuickCaptureOpen}
+          product={product}
+          variantId={variantId}
+          variantName={variantName}
+          whatsappNumber={
+            button.action_value && button.action_value.replace(/\D/g, "").length >= 7
+              ? button.action_value.trim()
+              : fallbackWhatsapp
+          }
+          shareUrl={productShareLink(shareProduct ?? product, variantId ?? null, button.id)}
+          customNote={extraWhatsappNote}
+        />
+      )}
     </motion.div>
   );
 }

@@ -21,6 +21,7 @@ import { resolveVariantProduct, type ProductVariant } from "@/lib/product-varian
 import { productShareLink, productShareUrl } from "@/lib/product-share";
 import { buildButtonWhatsappText } from "@/lib/product-buttons";
 import { productSummary } from "@/lib/product-description";
+import { OrderQuickCaptureModal } from "@/components/OrderQuickCaptureModal";
 
 
 const GRADIENTS: Record<string, string> = {
@@ -48,9 +49,12 @@ export const ProductCard = memo(function ProductCard({ product: parentProduct, v
   );
   const actionText = product.btn_text?.trim() || "Ver más";
   const [quickOpen, setQuickOpen] = useState(false);
+  const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
   const cardButtons = product.custom_buttons.filter((b) => b.show_on_card !== false);
   const vIdx = variant && product.variants ? product.variants.findIndex((v) => v.id === variant.id) : -1;
   const variantIndex = vIdx >= 0 ? vIdx : null;
+  const shareUrl = productShareLink(parentProduct, variant?.id, "");
+  const contactWhatsapp = getContactInfo(content).whatsapp;
 
   const handleQuickView = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -141,27 +145,47 @@ export const ProductCard = memo(function ProductCard({ product: parentProduct, v
               <ArrowRight className="h-3 w-3 shrink-0" />
             </Link>
             {product.show_whatsapp && (
-              <a
-                href={whatsappUrl || "#"}
-                onClick={(e) => {
-                  if (!whatsappUrl) {
+              product.quote_only ? (
+                <a
+                  href={whatsappUrl || "#"}
+                  onClick={(e) => {
+                    if (!whatsappUrl) {
+                      e.preventDefault();
+                      toast.error("Configura WhatsApp en /panel/marca");
+                      return;
+                    }
+                    if (typeof window !== "undefined" && window.self !== window.top) {
+                      e.preventDefault();
+                      openExternalUrl(whatsappUrl);
+                    }
+                  }}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Consultar ${product.name} por WhatsApp`}
+                  title="Consultar por WhatsApp"
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[var(--brand-teal-deep)] transition hover:bg-muted"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={(e) => {
                     e.preventDefault();
-                    toast.error("Configura WhatsApp en /panel/marca");
-                    return;
-                  }
-                  if (typeof window !== "undefined" && window.self !== window.top) {
-                    e.preventDefault();
-                    openExternalUrl(whatsappUrl);
-                  }
-                }}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`Consultar ${product.name} por WhatsApp`}
-                title="Consultar por WhatsApp"
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[var(--brand-teal-deep)] transition hover:bg-muted"
-              >
-                <MessageCircle className="h-4 w-4" />
-              </a>
+                    e.stopPropagation();
+                    if (!contactWhatsapp) {
+                      toast.error("Configura WhatsApp en /panel/marca");
+                      return;
+                    }
+                    setQuickCaptureOpen(true);
+                  }}
+                  aria-label={`Comprar ${product.name} por WhatsApp`}
+                  title="Comprar por WhatsApp"
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[var(--brand-teal-deep)] transition hover:bg-muted cursor-pointer"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                </button>
+              )
             )}
           </div>
         )}
@@ -180,6 +204,17 @@ export const ProductCard = memo(function ProductCard({ product: parentProduct, v
       {cardButtons.length === 0 && <div className="pb-2" />}
 
       <ProductQuickView product={parentProduct} initialVariant={variant} open={quickOpen} onOpenChange={setQuickOpen} />
+      {!product.quote_only && product.show_whatsapp && (
+        <OrderQuickCaptureModal
+          open={quickCaptureOpen}
+          onOpenChange={setQuickCaptureOpen}
+          product={product}
+          variantId={variant?.id}
+          variantName={variant?.name}
+          whatsappNumber={contactWhatsapp}
+          shareUrl={shareUrl}
+        />
+      )}
     </article>
   );
 });
