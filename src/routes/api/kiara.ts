@@ -33,14 +33,21 @@ function shouldFallback(status: number) {
 const PUBLIC_WINDOW_MS = 60_000;
 const PUBLIC_MAX_PER_WINDOW = 12;
 const publicHits = new Map<string, number[]>();
+// Tope global de consultas públicas: acota el gasto total aunque se roten IPs u orígenes.
+const GLOBAL_WINDOW_MS = 60 * 60_000;
+const GLOBAL_MAX_PER_WINDOW = 300;
+let globalHits: number[] = [];
 function takePublicQuota(key: string) {
   const now = Date.now();
+  globalHits = globalHits.filter((t) => now - t < GLOBAL_WINDOW_MS);
+  if (globalHits.length >= GLOBAL_MAX_PER_WINDOW) return false;
   const hits = (publicHits.get(key) ?? []).filter((t) => now - t < PUBLIC_WINDOW_MS);
   if (hits.length >= PUBLIC_MAX_PER_WINDOW) {
     publicHits.set(key, hits);
     return false;
   }
   hits.push(now);
+  globalHits.push(now);
   publicHits.set(key, hits);
   if (publicHits.size > 5000) publicHits.clear();
   return true;
@@ -74,7 +81,14 @@ export const Route = createFileRoute("/api/kiara")({
           const origin = request.headers.get("origin") ?? request.headers.get("referer") ?? "";
           let originHost = "";
           try { originHost = new URL(origin).host; } catch { /* sin origen */ }
-          if (!originHost || originHost !== host) {
+          const fetchSite = request.headers.get("sec-fetch-site");
+          const contentType = request.headers.get("content-type") ?? "";
+          if (
+            !originHost ||
+            originHost !== host ||
+            (fetchSite && fetchSite !== "same-origin") ||
+            !contentType.includes("application/json")
+          ) {
             return Response.json({ error: "Origen no permitido" }, { status: 403 });
           }
           const ip =
