@@ -1,9 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Target, Eye, Heart, MapPin, ArrowRight, MessageCircle, PawPrint, Factory } from "lucide-react";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { Target, Eye, Heart, MapPin, MessageCircle, PawPrint, Factory } from "lucide-react";
 import kiaraAsset from "@/assets/kiara.asset.json";
 import { siteContentQuery, getContactInfo, waLink, pickWhatsapp } from "@/lib/catalog";
 import { openExternalUrl } from "@/lib/whatsapp";
 import { getWhatsAppPayloadForButton } from "@/lib/whatsapp-buttons";
+import { parseAboutButtons, type AboutButtonItem } from "@/lib/about-buttons";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { StatCollection } from "@/components/StatCollection";
 import { ProductMedia } from "@/components/ProductMedia";
@@ -90,6 +91,7 @@ function AboutMedia({
 }
 
 function NosotrosPage() {
+  const router = useRouter();
   const { content, getText } = useSiteContent();
 
   const chip = getText("about_chip") || "Nuestra historia";
@@ -103,6 +105,7 @@ function NosotrosPage() {
   const businessName = content?.site_business_name?.trim() || "Will Design 3D";
   const fallbackWhatsapp = getContactInfo(content).whatsapp;
   const globalDefaultMessage = getText("whatsapp_default_message", "");
+  const aboutButtons = parseAboutButtons(content);
 
   const parseNum = (val: string) => {
     const n = Number(val);
@@ -159,6 +162,21 @@ function NosotrosPage() {
     getText("about_values_text") ||
     "Cercanía, honestidad técnica, y ese cariño que solo un taller familiar (con perro incluido) puede ofrecer.";
   const valuesMedia = getText("about_values_image_url", "");
+  const valuesCtaText = getText("about_values_cta_text", "");
+  const valuesCtaUrl = getText("about_values_cta_url", "");
+  const valuesCtaMedia = getText("about_values_cta_media_url", "");
+  const valuesCtaMediaMode = getText("about_values_cta_media_mode") || "fill";
+  const valuesCtaMediaFit = getText("about_values_cta_media_fit") || "cover";
+  const valuesCtaIconUrl = getText("about_values_cta_icon_url", "");
+  const valuesCtaIconPos = getText("about_values_cta_icon_position") || "none";
+  const valuesCtaIconShape = getText("about_values_cta_icon_shape") || "circle";
+  const valuesCtaTextColor = getText("about_values_cta_text_color", "");
+  const valuesCtaCustomHex = getText("about_values_cta_custom_hex", "");
+  const valuesCtaShade = parseNum(getText("about_values_cta_shade", ""));
+  const valuesCtaWidth = (getText("about_values_cta_width") || "auto") as "auto" | "full";
+  const valuesActionType = getText("about_values_cta_action_type") || "whatsapp";
+  const valuesWaMsg = getText("about_values_cta_whatsapp_message", "");
+  const valuesWaImg = getText("about_values_cta_whatsapp_image_url", "");
 
   // Kiara
   const kiaraTitle = getText("about_kiara_title") || "Kiara, nuestra directora de operaciones 🐾";
@@ -167,6 +185,21 @@ function NosotrosPage() {
     getText("about_kiara_text") ||
     "Pastora alemana de pura raza, aficionada a robar filamento y certificada en levantar el ánimo del equipo. Supervisa cada impresión, aunque su método favorito de control de calidad sea olfatear las piezas al terminar.";
   const kiaraMedia = getText("about_kiara_image_url") || kiaraAsset.url;
+  const kiaraCtaText = getText("about_kiara_cta_text", "");
+  const kiaraCtaUrl = getText("about_kiara_cta_url", "");
+  const kiaraCtaMedia = getText("about_kiara_cta_media_url", "");
+  const kiaraCtaMediaMode = getText("about_kiara_cta_media_mode") || "fill";
+  const kiaraCtaMediaFit = getText("about_kiara_cta_media_fit") || "cover";
+  const kiaraCtaIconUrl = getText("about_kiara_cta_icon_url", "");
+  const kiaraCtaIconPos = getText("about_kiara_cta_icon_position") || "none";
+  const kiaraCtaIconShape = getText("about_kiara_cta_icon_shape") || "circle";
+  const kiaraCtaTextColor = getText("about_kiara_cta_text_color", "");
+  const kiaraCtaCustomHex = getText("about_kiara_cta_custom_hex", "");
+  const kiaraCtaShade = parseNum(getText("about_kiara_cta_shade", ""));
+  const kiaraCtaWidth = (getText("about_kiara_cta_width") || "auto") as "auto" | "full";
+  const kiaraActionType = getText("about_kiara_cta_action_type") || "whatsapp";
+  const kiaraWaMsg = getText("about_kiara_cta_whatsapp_message", "");
+  const kiaraWaImg = getText("about_kiara_cta_whatsapp_image_url", "");
 
   // Taller
   const workshopTitle = getText("about_workshop_title") || "Equipo profesional en Bogotá";
@@ -175,7 +208,62 @@ function NosotrosPage() {
   const workshopMedia = getText("about_workshop_image_url", "");
   const workshopAddress =
     getText("about_workshop_address") || "Bogotá, Colombia · Atención por cita previa.";
+  const workshopCtaText = getText("about_workshop_cta_text", "");
+  const workshopCtaUrl = getText("about_workshop_cta_url", "");
+  const workshopCtaMedia = getText("about_workshop_cta_media_url", "");
+  const workshopCtaMediaMode = getText("about_workshop_cta_media_mode") || "fill";
+  const workshopCtaMediaFit = getText("about_workshop_cta_media_fit") || "cover";
+  const workshopCtaIconUrl = getText("about_workshop_cta_icon_url", "");
+  const workshopCtaIconPos = getText("about_workshop_cta_icon_position") || "none";
+  const workshopCtaIconShape = getText("about_workshop_cta_icon_shape") || "circle";
+  const workshopCtaTextColor = getText("about_workshop_cta_text_color", "");
+  const workshopCtaCustomHex = getText("about_workshop_cta_custom_hex", "");
+  const workshopCtaShade = parseNum(getText("about_workshop_cta_shade", ""));
+  const workshopCtaWidth = (getText("about_workshop_cta_width") || "auto") as "auto" | "full";
+  const workshopActionType = getText("about_workshop_cta_action_type") || "link";
+  const workshopWaMsg = getText("about_workshop_cta_whatsapp_message", "");
+  const workshopWaImg = getText("about_workshop_cta_whatsapp_image_url", "");
 
+  function handleAboutButtonClick(btn: AboutButtonItem, index: number) {
+    const actionType = btn.action_type || "link";
+    const actionVal = btn.action_value || "";
+
+    if (actionType === "whatsapp") {
+      const effectiveFallback = btn.whatsapp_message?.trim()
+        ? undefined
+        : "Hola Will Design 3D, me interesa conocer más sobre ustedes.";
+      const shortKey = index === 0 ? "nosotros" : `n${index + 1}`;
+      const payload = getWhatsAppPayloadForButton(
+        {
+          whatsapp_message: btn.whatsapp_message,
+          whatsapp_image_logic: btn.whatsapp_image_logic || "auto",
+          whatsapp_image_url: btn.whatsapp_image_url,
+          whatsapp_image_key: shortKey,
+        },
+        btn.media_url || imageUrl,
+        content?.site_logo_url,
+        effectiveFallback,
+        globalDefaultMessage
+      );
+      const targetPhone = pickWhatsapp(btn.whatsapp_number || actionVal, fallbackWhatsapp);
+      const waUrl = waLink(targetPhone, payload.formattedText);
+      if (!waUrl) {
+        toast.error("Configura WhatsApp en /panel/marca");
+        return;
+      }
+      openExternalUrl(waUrl);
+    } else if (actionType === "cotizador" || actionVal === "/cotizador") {
+      router.navigate({ to: "/cotizador" });
+    } else {
+      const val = actionVal.trim();
+      if (!val) return;
+      if (/^https?:\/\//i.test(val)) {
+        window.open(val, "_blank", "noopener,noreferrer");
+      } else {
+        router.navigate({ to: val.startsWith("/") ? (val as any) : (`/${val}` as any) });
+      }
+    }
+  }
 
   function handleSectionWaClick(itemTitle: string, itemBody: string, customMsg?: string, customMedia?: string, logic?: string, phone?: string, imageKey?: string) {
     const payload = getWhatsAppPayloadForButton(
@@ -216,6 +304,43 @@ function NosotrosPage() {
               <p className="mt-4 max-w-2xl text-base text-muted-foreground whitespace-pre-line leading-relaxed">
                 {about}
               </p>
+            )}
+            {aboutButtons.length > 0 && (
+              <div className="mt-6 flex flex-wrap gap-3">
+                {aboutButtons.map((btn, idx) =>
+                  btn.text?.trim() ? (
+                    <UnifiedButton
+                      key={btn.id || `nosotros-header-btn-${idx}`}
+                      button={{
+                        id: btn.id || `nosotros-header-btn-${idx}`,
+                        text: btn.text,
+                        action_type: btn.action_type === "cotizador" ? "link" : (btn.action_type as any),
+                        action_value: btn.action_value || (btn.action_type === "cotizador" ? "/cotizador" : ""),
+                        whatsapp_message: btn.whatsapp_message || "",
+                        text_color: btn.text_color || undefined,
+                        custom_hex: btn.custom_hex || (idx === 0 ? "var(--brand-orange)" : "var(--brand-teal)"),
+                        media_url: (btn.media_mode || "fill") === "fill" ? btn.media_url : undefined,
+                        media_mode: (btn.media_mode || "fill") as any,
+                        icon_url: btn.icon_url || (btn.media_mode === "icon" ? btn.media_url : undefined),
+                        icon_position:
+                          btn.icon_position !== "none"
+                            ? (btn.icon_position as any)
+                            : btn.media_mode === "icon"
+                              ? "left"
+                              : "none",
+                        variant: idx === 0 ? "default" : "secondary",
+                        width: btn.width || "auto",
+                        position: "left",
+                        opacity: 100,
+                        shade: btn.shade,
+                        media_fit: btn.media_fit || "cover",
+                        icon_shape: btn.icon_shape || "circle",
+                      }}
+                      onClick={() => handleAboutButtonClick(btn, idx)}
+                    />
+                  ) : null
+                )}
+              </div>
             )}
           </div>
           {imageUrl && (
@@ -406,15 +531,74 @@ function NosotrosPage() {
             <div className="mt-4"><StatCollection collection="about_values_items" /></div>
           </div>
           <div className="mt-6 pt-2">
-            <button
-              type="button"
-              onClick={() => handleSectionWaClick(valuesTitle, valuesText, "", valuesMedia)}
-              className="inline-flex items-center gap-1.5 text-xs font-bold transition hover:opacity-80 cursor-pointer"
-              style={{ color: "var(--brand-wine)" }}
-            >
-              <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
-              Consultar por WhatsApp
-            </button>
+            {valuesCtaText ? (
+              <UnifiedButton
+                button={{
+                  id: "values_btn",
+                  text: valuesCtaText,
+                  action_type: valuesActionType === "cotizador" ? "link" : (valuesActionType as any),
+                  action_value:
+                    valuesActionType === "whatsapp"
+                      ? valuesCtaUrl || ""
+                      : valuesActionType === "cotizador"
+                        ? "/cotizador"
+                        : valuesCtaUrl || "/cotizador",
+                  whatsapp_message: valuesWaMsg,
+                  whatsapp_image_url: valuesWaImg,
+                  text_color: valuesCtaTextColor || undefined,
+                  custom_hex: valuesCtaCustomHex || "var(--brand-wine)",
+                  media_url: valuesCtaMediaMode === "fill" ? valuesCtaMedia : undefined,
+                  media_mode: valuesCtaMediaMode as any,
+                  media_fit: valuesCtaMediaFit as any,
+                  icon_url: valuesCtaIconUrl || (valuesCtaMediaMode === "icon" ? valuesCtaMedia : undefined),
+                  icon_position:
+                    valuesCtaIconPos !== "none"
+                      ? (valuesCtaIconPos as any)
+                      : valuesCtaMediaMode === "icon"
+                        ? "left"
+                        : "none",
+                  icon_shape: valuesCtaIconShape as any,
+                  shade: valuesCtaShade,
+                  variant: "default",
+                  width: valuesCtaWidth,
+                  position: "left",
+                }}
+                onClick={
+                  valuesActionType === "whatsapp"
+                    ? () =>
+                        handleSectionWaClick(
+                          valuesTitle,
+                          valuesText,
+                          valuesWaMsg,
+                          valuesWaImg,
+                          content?.about_values_cta_whatsapp_image_logic,
+                          valuesCtaUrl,
+                          "about_values_cta_whatsapp_image_url",
+                        )
+                    : undefined
+                }
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() =>
+                  handleSectionWaClick(
+                    valuesTitle,
+                    valuesText,
+                    valuesWaMsg,
+                    valuesWaImg || valuesCtaMedia || valuesMedia,
+                    content?.about_values_cta_whatsapp_image_logic,
+                    valuesCtaUrl,
+                    "about_values_cta_whatsapp_image_url",
+                  )
+                }
+                className="inline-flex items-center gap-1.5 text-xs font-bold transition hover:opacity-80 cursor-pointer"
+                style={{ color: "var(--brand-wine)" }}
+              >
+                <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
+                Consultar por WhatsApp
+              </button>
+            )}
           </div>
         </article>
       </section>
@@ -443,6 +627,56 @@ function NosotrosPage() {
             <p className="mt-3 text-muted-foreground leading-relaxed whitespace-pre-line">
               {kiaraText}
             </p>
+            {kiaraCtaText && (
+              <div className="mt-6">
+                <UnifiedButton
+                  button={{
+                    id: "kiara_btn",
+                    text: kiaraCtaText,
+                    action_type: kiaraActionType === "cotizador" ? "link" : (kiaraActionType as any),
+                    action_value:
+                      kiaraActionType === "whatsapp"
+                        ? kiaraCtaUrl || ""
+                        : kiaraActionType === "cotizador"
+                          ? "/cotizador"
+                          : kiaraCtaUrl || "/contacto",
+                    whatsapp_message: kiaraWaMsg,
+                    whatsapp_image_url: kiaraWaImg,
+                    text_color: kiaraCtaTextColor || undefined,
+                    custom_hex: kiaraCtaCustomHex || "var(--brand-orange)",
+                    media_url: kiaraCtaMediaMode === "fill" ? kiaraCtaMedia : undefined,
+                    media_mode: kiaraCtaMediaMode as any,
+                    media_fit: kiaraCtaMediaFit as any,
+                    icon_url: kiaraCtaIconUrl || (kiaraCtaMediaMode === "icon" ? kiaraCtaMedia : undefined),
+                    icon_position:
+                      kiaraCtaIconPos !== "none"
+                        ? (kiaraCtaIconPos as any)
+                        : kiaraCtaMediaMode === "icon"
+                          ? "left"
+                          : "none",
+                    icon_shape: kiaraCtaIconShape as any,
+                    shade: kiaraCtaShade,
+                    variant: "default",
+                    width: kiaraCtaWidth,
+                    position: "left",
+                  }}
+                  onClick={
+                    kiaraActionType === "whatsapp"
+                      ? () =>
+                          handleSectionWaClick(
+                            kiaraTitle,
+                            kiaraText,
+                            kiaraWaMsg,
+                            kiaraWaImg,
+                            content?.about_kiara_cta_whatsapp_image_logic,
+                            kiaraCtaUrl,
+                            "about_kiara_cta_whatsapp_image_url",
+                          )
+                      : undefined
+                  }
+                />
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -469,10 +703,54 @@ function NosotrosPage() {
               </li>
             </ul>
 
-            <Link to="/contacto" className="btn-primary mt-6 text-sm">
-              Agenda una visita
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+            <div className="mt-6">
+              <UnifiedButton
+                button={{
+                  id: "workshop_btn",
+                  text: workshopCtaText || "Agenda una visita",
+                  action_type: workshopActionType === "cotizador" ? "link" : (workshopActionType as any),
+                  action_value:
+                    workshopActionType === "whatsapp"
+                      ? workshopCtaUrl || ""
+                      : workshopActionType === "cotizador"
+                        ? "/cotizador"
+                        : workshopCtaUrl || "/contacto",
+                  whatsapp_message: workshopWaMsg,
+                  whatsapp_image_url: workshopWaImg,
+                  text_color: workshopCtaTextColor || undefined,
+                  custom_hex: workshopCtaCustomHex || "var(--brand-orange)",
+                  media_url: workshopCtaMediaMode === "fill" ? workshopCtaMedia : undefined,
+                  media_mode: workshopCtaMediaMode as any,
+                  media_fit: workshopCtaMediaFit as any,
+                  icon_url: workshopCtaIconUrl || (workshopCtaMediaMode === "icon" ? workshopCtaMedia : undefined),
+                  icon_position:
+                    workshopCtaIconPos !== "none"
+                      ? (workshopCtaIconPos as any)
+                      : workshopCtaMediaMode === "icon"
+                        ? "left"
+                        : "none",
+                  icon_shape: workshopCtaIconShape as any,
+                  shade: workshopCtaShade,
+                  variant: "default",
+                  width: workshopCtaWidth,
+                  position: "left",
+                }}
+                onClick={
+                  workshopActionType === "whatsapp"
+                    ? () =>
+                        handleSectionWaClick(
+                          workshopTitle,
+                          workshopText || workshopAddress,
+                          workshopWaMsg,
+                          workshopWaImg,
+                          content?.about_workshop_cta_whatsapp_image_logic,
+                          workshopCtaUrl,
+                          "about_workshop_cta_whatsapp_image_url",
+                        )
+                    : undefined
+                }
+              />
+            </div>
           </div>
 
           <div className="relative min-h-64 h-full w-full overflow-hidden rounded-3xl border border-border bg-card shadow-xl flex items-center justify-center p-4">

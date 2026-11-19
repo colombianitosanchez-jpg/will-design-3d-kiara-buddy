@@ -23,6 +23,7 @@ import { siteServicesQuery } from "./servicios";
 import { menuItemsQuery } from "@/lib/menu";
 import { parseHeroStats, contrastText, type HeroStatItem } from "@/lib/hero-stats";
 import { parseHeroButtons, type HeroButtonItem } from "@/lib/hero-buttons";
+import { parseAboutButtons, type AboutButtonItem } from "@/lib/about-buttons";
 import { getActiveTheme } from "@/lib/theme";
 import { getWhatsAppPayloadForButton } from "@/lib/whatsapp-buttons";
 import { getSeo } from "@/lib/seo";
@@ -569,45 +570,42 @@ function AboutPreview() {
   const image = getText("about_image_url", "");
 
 
-  const ctaText = getText("about_cta_text") || "Conoce más sobre nosotros";
-  const ctaUrl = getText("about_cta_url") || "/nosotros";
-  const ctaActionType = getText("about_cta_action_type") || "link";
-  const ctaWhatsappMsg = getText("about_cta_whatsapp_message", "");
-  const ctaWhatsappLogic = getText("about_cta_whatsapp_image_logic", "auto");
-  const ctaWhatsappImg = getText("about_cta_whatsapp_image_url", "");
-  const ctaMediaUrl = getText("about_cta_media_url", "");
-  const ctaMediaMode = getText("about_cta_media_mode", "fill");
-  const ctaIconUrl = getText("about_cta_icon_url", "");
-  const ctaIconPos = getText("about_cta_icon_position", "none");
-  const ctaTextColor = getText("about_cta_text_color", "");
-  const ctaCustomHex = getText("about_cta_custom_hex", "");
+  const aboutButtons = parseAboutButtons(content);
   const fallbackWhatsapp = getContactInfo(content).whatsapp;
   const globalDefaultMessage = getText("whatsapp_default_message", "");
 
-  function handleAboutCtaClick() {
-    if (ctaActionType === "whatsapp") {
+  function handleAboutButtonClick(btn: AboutButtonItem, index: number) {
+    const actionType = btn.action_type || "link";
+    const actionVal = btn.action_value || "";
+
+    if (actionType === "whatsapp") {
+      const effectiveFallback = btn.whatsapp_message?.trim()
+        ? undefined
+        : "Hola Will Design 3D, me interesa conocer más sobre ustedes.";
+      const shortKey = index === 0 ? "nosotros" : `n${index + 1}`;
       const payload = getWhatsAppPayloadForButton(
         {
-          whatsapp_message: ctaWhatsappMsg || globalDefaultMessage,
-          whatsapp_image_logic: ctaWhatsappLogic,
-          whatsapp_image_url: ctaWhatsappImg,
-          whatsapp_image_key: "about_cta_whatsapp_image_url",
+          whatsapp_message: btn.whatsapp_message,
+          whatsapp_image_logic: btn.whatsapp_image_logic || "auto",
+          whatsapp_image_url: btn.whatsapp_image_url,
+          whatsapp_image_key: shortKey,
         },
-        ctaMediaUrl,
+        btn.media_url || image,
         content?.site_logo_url,
-        "Hola Will Design 3D, me interesa conocer más sobre ustedes.",
+        effectiveFallback,
         globalDefaultMessage
       );
-      const url = waLink(pickWhatsapp(ctaUrl, fallbackWhatsapp), payload.formattedText);
-      if (!url) {
+      const targetPhone = pickWhatsapp(btn.whatsapp_number || actionVal, fallbackWhatsapp);
+      const waUrl = waLink(targetPhone, payload.formattedText);
+      if (!waUrl) {
         toast.error("Configura WhatsApp en /panel/marca");
         return;
       }
-      openExternalUrl(url);
-    } else if (ctaActionType === "cotizador") {
+      openExternalUrl(waUrl);
+    } else if (actionType === "cotizador" || actionVal === "/cotizador") {
       router.navigate({ to: "/cotizador" });
     } else {
-      const val = ctaUrl.trim();
+      const val = actionVal.trim();
       if (!val) return;
       if (/^https?:\/\//i.test(val)) {
         window.open(val, "_blank", "noopener,noreferrer");
@@ -685,27 +683,43 @@ function AboutPreview() {
             </p>
           )}
 
-          <div className="mt-6 flex flex-wrap items-center justify-center md:justify-start gap-3">
-            <UnifiedButton
-              button={{
-                id: "about-cta-btn",
-                text: ctaText,
-                action_type: ctaActionType === "cotizador" ? "link" : (ctaActionType as any),
-                action_value: ctaUrl,
-                whatsapp_message: ctaWhatsappMsg,
-                text_color: ctaTextColor || undefined,
-                custom_hex: ctaCustomHex || undefined,
-                media_url: (ctaMediaMode || "fill") === "fill" ? ctaMediaUrl : undefined,
-                media_mode: (ctaMediaMode || "fill") as any,
-                icon_url: ctaIconUrl || (ctaMediaMode === "icon" ? ctaMediaUrl : undefined),
-                icon_position: ctaIconPos !== "none" ? (ctaIconPos as any) : (ctaMediaMode === "icon" ? "left" : "none"),
-                variant: "default",
-                width: "auto",
-                position: "left",
-              }}
-              onClick={handleAboutCtaClick}
-            />
-          </div>
+          {aboutButtons.length > 0 && (
+            <div className="mt-6 flex flex-wrap items-center justify-center md:justify-start gap-3">
+              {aboutButtons.map((btn, idx) =>
+                btn.text?.trim() ? (
+                  <UnifiedButton
+                    key={btn.id || `about-btn-${idx}`}
+                    button={{
+                      id: btn.id || `about-btn-${idx}`,
+                      text: btn.text,
+                      action_type: btn.action_type === "cotizador" ? "link" : (btn.action_type as any),
+                      action_value: btn.action_value || (btn.action_type === "cotizador" ? "/cotizador" : ""),
+                      whatsapp_message: btn.whatsapp_message || "",
+                      text_color: btn.text_color || undefined,
+                      custom_hex: btn.custom_hex || (idx === 0 ? "var(--brand-orange)" : "var(--brand-teal)"),
+                      media_url: (btn.media_mode || "fill") === "fill" ? btn.media_url : undefined,
+                      media_mode: (btn.media_mode || "fill") as any,
+                      icon_url: btn.icon_url || (btn.media_mode === "icon" ? btn.media_url : undefined),
+                      icon_position:
+                        btn.icon_position !== "none"
+                          ? (btn.icon_position as any)
+                          : btn.media_mode === "icon"
+                            ? "left"
+                            : "none",
+                      variant: idx === 0 ? "default" : "secondary",
+                      width: btn.width || "auto",
+                      position: "left",
+                      opacity: 100,
+                      shade: btn.shade,
+                      media_fit: btn.media_fit || "cover",
+                      icon_shape: btn.icon_shape || "circle",
+                    }}
+                    onClick={() => handleAboutButtonClick(btn, idx)}
+                  />
+                ) : null
+              )}
+            </div>
+          )}
         </div>
       </div>
     </section>

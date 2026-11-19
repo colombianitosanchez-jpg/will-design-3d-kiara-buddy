@@ -32,7 +32,7 @@ export const ABOUT_BLOCKS: readonly AboutBlockDef[] = [
   {
     id: "story",
     title: "Historia y Presentación Principal",
-    subtitle: "Etiqueta, título, textos de inicio y /nosotros, multimedia y botón principal.",
+    subtitle: "Etiqueta, título, textos de inicio y /nosotros, multimedia y botones de acción.",
     icon: "book",
     fieldKeys: [
       "about_chip",
@@ -41,7 +41,7 @@ export const ABOUT_BLOCKS: readonly AboutBlockDef[] = [
       "about_short",
       "about_long",
       "about_image_url",
-      "about_cta_text",
+      "about_buttons",
     ],
     checkKeys: [
       "about_chip",
@@ -50,6 +50,7 @@ export const ABOUT_BLOCKS: readonly AboutBlockDef[] = [
       "about_short",
       "about_long",
       "about_image_url",
+      "about_buttons",
       "about_cta_text",
       "about_cta_url",
       "about_cta_media_url",
@@ -122,43 +123,61 @@ export const ABOUT_BLOCKS: readonly AboutBlockDef[] = [
   {
     id: "values",
     title: "Nuestros Valores",
-    subtitle: "Título, introducción, lista ordenable de valores e ilustración.",
+    subtitle: "Título, introducción, lista ordenable de valores, ilustración y botón.",
     icon: "heart",
     fieldKeys: [
       "about_values_title",
       "about_values_text",
       "about_values_items",
       "about_values_image_url",
+      "about_values_cta_text",
     ],
     checkKeys: [
       "about_values_title",
       "about_values_text",
       "about_values_image_url",
+      "about_values_cta_text",
+      "about_values_cta_url",
+      "about_values_cta_media_url",
+      "about_values_cta_icon_url",
+      "about_values_cta_custom_hex",
+      "about_values_cta_text_color",
+      "about_values_cta_whatsapp_message",
+      "about_values_cta_whatsapp_image_url",
     ],
     collectionKey: "about_values_items",
   },
   {
     id: "kiara",
     title: "Kiara (Directora de Operaciones)",
-    subtitle: "Título, cargo, historia y foto, GIF o video de nuestra embajadora.",
+    subtitle: "Título, cargo, historia, multimedia y botón de acción de Kiara.",
     icon: "paw",
     fieldKeys: [
       "about_kiara_title",
       "about_kiara_subtitle",
       "about_kiara_text",
       "about_kiara_image_url",
+      "about_kiara_cta_text",
     ],
     checkKeys: [
       "about_kiara_title",
       "about_kiara_subtitle",
       "about_kiara_text",
       "about_kiara_image_url",
+      "about_kiara_cta_text",
+      "about_kiara_cta_url",
+      "about_kiara_cta_media_url",
+      "about_kiara_cta_icon_url",
+      "about_kiara_cta_custom_hex",
+      "about_kiara_cta_text_color",
+      "about_kiara_cta_whatsapp_message",
+      "about_kiara_cta_whatsapp_image_url",
     ],
   },
   {
     id: "workshop",
     title: "Taller y Equipamiento",
-    subtitle: "Capacidades técnicas, máquinas ordenables, foto o video y dirección.",
+    subtitle: "Capacidades técnicas, máquinas ordenables, foto o video, dirección y botón.",
     icon: "factory",
     fieldKeys: [
       "about_workshop_title",
@@ -166,12 +185,21 @@ export const ABOUT_BLOCKS: readonly AboutBlockDef[] = [
       "about_workshop_items",
       "about_workshop_image_url",
       "about_workshop_address",
+      "about_workshop_cta_text",
     ],
     checkKeys: [
       "about_workshop_title",
       "about_workshop_text",
       "about_workshop_image_url",
       "about_workshop_address",
+      "about_workshop_cta_text",
+      "about_workshop_cta_url",
+      "about_workshop_cta_media_url",
+      "about_workshop_cta_icon_url",
+      "about_workshop_cta_custom_hex",
+      "about_workshop_cta_text_color",
+      "about_workshop_cta_whatsapp_message",
+      "about_workshop_cta_whatsapp_image_url",
     ],
     collectionKey: "about_workshop_items",
   },
@@ -195,7 +223,12 @@ export function getAboutBlockStatus(
   block: AboutBlockDef,
   values: Record<string, string | undefined>,
 ): AboutBlockStatus {
-  const filledKeys = block.checkKeys.filter((k) => Boolean(values[k]?.trim())).length;
+  const filledKeys = block.checkKeys.filter((k) => {
+    const raw = values[k]?.trim();
+    if (!raw) return false;
+    if (k === "about_buttons" && raw === "[]") return false;
+    return true;
+  }).length;
   const items = block.collectionKey
     ? parseStatItems(values[block.collectionKey]).filter(
         (it) => Boolean(it.k?.trim() || it.v?.trim()),

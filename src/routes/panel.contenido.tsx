@@ -30,6 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { sanitizeWidgetId, parsePhotos, type PortfolioPhoto } from "@/components/InstagramFeed";
 import { HomeSectionsOrder } from "@/components/HomeSectionsOrder";
 import { AboutSectionEditor } from "@/components/panel/AboutSectionEditor";
+import { AboutButtonsEditor } from "@/components/panel/AboutButtonsEditor";
 import { FeaturedProductsOrder } from "@/components/FeaturedProductsOrder";
 import { parseHomeOrder, type HomeSectionKey } from "@/lib/home-sections";
 import { SECTION_GROUPS, getHomeEditorGroups } from "@/lib/home-editor-groups";
@@ -293,14 +294,19 @@ const FIELDS: FieldDef[] = [
   { key: "about_long", label: "Historia Detallada", type: "textarea", help: "Aparece en /nosotros.", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_image_url", label: "Imagen Principal 'Nosotros'", type: "media", help: "Imagen destacada del taller o equipo.", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_stats", label: "Métricas y Logros Destacados 'Nosotros'", type: "hero_stats", help: "Añade logros y estadísticas para mostrar en la sección Nosotros.", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_buttons", label: "Botones de Acción 'Nosotros'", type: "text", help: "JSON con la lista de botones ilimitados para Inicio (#nosotros) y /nosotros.", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_cta_text", label: "Texto del Botón 'Nosotros'", type: "text", help: "Ej: Conoce más sobre nosotros", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_cta_url", label: "Enlace del Botón 'Nosotros'", type: "text", help: "Ej: /nosotros o https://...", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_cta_media_url", label: "Multimedia Botón 'Nosotros'", type: "media", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_cta_media_mode", label: "Modo multimedia Botón 'Nosotros'", type: "text", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_cta_media_fit", label: "Ajuste fondo animado Botón 'Nosotros'", type: "text", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_cta_icon_url", label: "Ícono Botón 'Nosotros'", type: "media", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_cta_icon_position", label: "Posición Ícono Botón 'Nosotros'", type: "text", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_cta_icon_shape", label: "Forma ícono Botón 'Nosotros'", type: "text", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_cta_text_color", label: "Color Texto Botón 'Nosotros'", type: "text", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_cta_custom_hex", label: "Color Personalizado HEX Botón 'Nosotros'", type: "text", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_cta_shade", label: "Sombreado Botón 'Nosotros'", type: "text", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_cta_width", label: "Ancho Botón 'Nosotros'", type: "text", section: "Inicio", group: "Sección Nosotros" },
   {
     key: "about_cta_action_type",
     label: "Acción Botón 'Nosotros'",
@@ -350,10 +356,14 @@ const FIELDS: FieldDef[] = [
   { key: "about_mission_cta_url", label: "Enlace Botón Misión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_mission_cta_media_url", label: "Multimedia Botón Misión", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_mission_cta_media_mode", label: "Modo multimedia Botón Misión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_mission_cta_media_fit", label: "Ajuste fondo animado Botón Misión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_mission_cta_icon_url", label: "Ícono Botón Misión", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_mission_cta_icon_position", label: "Posición Ícono Botón Misión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_mission_cta_icon_shape", label: "Forma ícono Botón Misión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_mission_cta_text_color", label: "Color Texto Botón Misión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_mission_cta_custom_hex", label: "Color Personalizado HEX Botón Misión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_mission_cta_shade", label: "Sombreado Botón Misión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_mission_cta_width", label: "Ancho Botón Misión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
   {
     key: "about_mission_cta_action_type",
     label: "Acción Botón Misión",
@@ -389,10 +399,14 @@ const FIELDS: FieldDef[] = [
   { key: "about_vision_cta_url", label: "Enlace Botón Visión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_vision_cta_media_url", label: "Multimedia Botón Visión", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_vision_cta_media_mode", label: "Modo multimedia Botón Visión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_vision_cta_media_fit", label: "Ajuste fondo animado Botón Visión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_vision_cta_icon_url", label: "Ícono Botón Visión", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_vision_cta_icon_position", label: "Posición Ícono Botón Visión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_vision_cta_icon_shape", label: "Forma ícono Botón Visión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_vision_cta_text_color", label: "Color Texto Botón Visión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_vision_cta_custom_hex", label: "Color Personalizado HEX Botón Visión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_vision_cta_shade", label: "Sombreado Botón Visión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_vision_cta_width", label: "Ancho Botón Visión", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
   {
     key: "about_vision_cta_action_type",
     label: "Acción Botón Visión",
@@ -425,17 +439,134 @@ const FIELDS: FieldDef[] = [
   { key: "about_values_text", label: "Texto / Descripción Valores", type: "textarea", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_values_items", label: "Lista de Valores (Drag & Drop)", type: "hero_stats", help: "Define cada valor con título, descripción e icono/multimedia.", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_values_image_url", label: "Multimedia Fondo / Ilustración Valores", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_values_cta_text", label: "Texto Botón Valores", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_values_cta_url", label: "Enlace Botón Valores", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_values_cta_media_url", label: "Multimedia Botón Valores", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_values_cta_media_mode", label: "Modo multimedia Botón Valores", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_values_cta_media_fit", label: "Ajuste fondo animado Botón Valores", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_values_cta_icon_url", label: "Ícono Botón Valores", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_values_cta_icon_position", label: "Posición Ícono Botón Valores", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_values_cta_icon_shape", label: "Forma ícono Botón Valores", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_values_cta_text_color", label: "Color Texto Botón Valores", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_values_cta_custom_hex", label: "Color Personalizado HEX Botón Valores", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_values_cta_shade", label: "Sombreado Botón Valores", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_values_cta_width", label: "Ancho Botón Valores", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  {
+    key: "about_values_cta_action_type",
+    label: "Acción Botón Valores",
+    type: "select",
+    section: "Inicio",
+    group: "Nosotros Página Misión Visión",
+    options: [
+      { value: "link", label: "Abrir Enlace / Ruta Interna" },
+      { value: "whatsapp", label: "Abrir Chat de WhatsApp" },
+      { value: "cotizador", label: "Abrir Cotizador Interactivo" },
+    ],
+  },
+  { key: "about_values_cta_whatsapp_message", label: "Mensaje WhatsApp Botón Valores", type: "textarea", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_values_cta_whatsapp_image_url", label: "Imagen Específica WhatsApp Botón Valores", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  {
+    key: "about_values_cta_whatsapp_image_logic",
+    label: "Lógica Imagen/Logo WhatsApp Botón Valores",
+    type: "select",
+    section: "Inicio",
+    group: "Nosotros Página Misión Visión",
+    options: [
+      { value: "auto", label: "Automático (Reglas CEO: Logo si es video, Imagen si existe)" },
+      { value: "none", label: "Solo texto (mensaje limpio, sin enlace ni imagen)" },
+      { value: "logo", label: "Forzar Enviar Logo de la Empresa" },
+      { value: "product_image", label: "Enviar Imagen de la Sección / Producto" },
+    ],
+  },
 
   { key: "about_kiara_title", label: "Título Sección Kiara", type: "text", help: "Default: Kiara, nuestra directora de operaciones 🐾", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_kiara_subtitle", label: "Etiqueta / Bajada Kiara", type: "text", help: "Default: La verdadera jefa", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_kiara_text", label: "Historia / Descripción de Kiara", type: "textarea", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_kiara_image_url", label: "Foto / GIF / Video de Kiara", type: "media", help: "Reemplaza la foto estática kiara.jpg", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_kiara_cta_text", label: "Texto Botón Kiara", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_kiara_cta_url", label: "Enlace Botón Kiara", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_kiara_cta_media_url", label: "Multimedia Botón Kiara", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_kiara_cta_media_mode", label: "Modo multimedia Botón Kiara", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_kiara_cta_media_fit", label: "Ajuste fondo animado Botón Kiara", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_kiara_cta_icon_url", label: "Ícono Botón Kiara", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_kiara_cta_icon_position", label: "Posición Ícono Botón Kiara", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_kiara_cta_icon_shape", label: "Forma ícono Botón Kiara", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_kiara_cta_text_color", label: "Color Texto Botón Kiara", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_kiara_cta_custom_hex", label: "Color Personalizado HEX Botón Kiara", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_kiara_cta_shade", label: "Sombreado Botón Kiara", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_kiara_cta_width", label: "Ancho Botón Kiara", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  {
+    key: "about_kiara_cta_action_type",
+    label: "Acción Botón Kiara",
+    type: "select",
+    section: "Inicio",
+    group: "Nosotros Página Misión Visión",
+    options: [
+      { value: "link", label: "Abrir Enlace / Ruta Interna" },
+      { value: "whatsapp", label: "Abrir Chat de WhatsApp" },
+      { value: "cotizador", label: "Abrir Cotizador Interactivo" },
+    ],
+  },
+  { key: "about_kiara_cta_whatsapp_message", label: "Mensaje WhatsApp Botón Kiara", type: "textarea", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_kiara_cta_whatsapp_image_url", label: "Imagen Específica WhatsApp Botón Kiara", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  {
+    key: "about_kiara_cta_whatsapp_image_logic",
+    label: "Lógica Imagen/Logo WhatsApp Botón Kiara",
+    type: "select",
+    section: "Inicio",
+    group: "Nosotros Página Misión Visión",
+    options: [
+      { value: "auto", label: "Automático (Reglas CEO: Logo si es video, Imagen si existe)" },
+      { value: "none", label: "Solo texto (mensaje limpio, sin enlace ni imagen)" },
+      { value: "logo", label: "Forzar Enviar Logo de la Empresa" },
+      { value: "product_image", label: "Enviar Imagen de la Sección / Producto" },
+    ],
+  },
 
   { key: "about_workshop_title", label: "Título Sección Taller", type: "text", help: "Default: Equipo profesional en Bogotá", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_workshop_text", label: "Texto Sección Taller", type: "textarea", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_workshop_items", label: "Equipamiento del Taller (Drag & Drop)", type: "hero_stats", help: "Lista de máquinas y capacidades del taller.", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_workshop_image_url", label: "Foto / GIF / Video del Taller", type: "media", help: "Reemplaza el degradado por multimedia del taller o logo", section: "Inicio", group: "Nosotros Página Misión Visión" },
   { key: "about_workshop_address", label: "Ubicación / Dirección del Taller", type: "text", help: "Default: Bogotá, Colombia · Atención por cita previa.", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_workshop_cta_text", label: "Texto Botón Taller", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_workshop_cta_url", label: "Enlace Botón Taller", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_workshop_cta_media_url", label: "Multimedia Botón Taller", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_workshop_cta_media_mode", label: "Modo multimedia Botón Taller", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_workshop_cta_media_fit", label: "Ajuste fondo animado Botón Taller", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_workshop_cta_icon_url", label: "Ícono Botón Taller", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_workshop_cta_icon_position", label: "Posición Ícono Botón Taller", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_workshop_cta_icon_shape", label: "Forma ícono Botón Taller", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_workshop_cta_text_color", label: "Color Texto Botón Taller", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_workshop_cta_custom_hex", label: "Color Personalizado HEX Botón Taller", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_workshop_cta_shade", label: "Sombreado Botón Taller", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_workshop_cta_width", label: "Ancho Botón Taller", type: "text", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  {
+    key: "about_workshop_cta_action_type",
+    label: "Acción Botón Taller",
+    type: "select",
+    section: "Inicio",
+    group: "Nosotros Página Misión Visión",
+    options: [
+      { value: "link", label: "Abrir Enlace / Ruta Interna" },
+      { value: "whatsapp", label: "Abrir Chat de WhatsApp" },
+      { value: "cotizador", label: "Abrir Cotizador Interactivo" },
+    ],
+  },
+  { key: "about_workshop_cta_whatsapp_message", label: "Mensaje WhatsApp Botón Taller", type: "textarea", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  { key: "about_workshop_cta_whatsapp_image_url", label: "Imagen Específica WhatsApp Botón Taller", type: "media", section: "Inicio", group: "Nosotros Página Misión Visión" },
+  {
+    key: "about_workshop_cta_whatsapp_image_logic",
+    label: "Lógica Imagen/Logo WhatsApp Botón Taller",
+    type: "select",
+    section: "Inicio",
+    group: "Nosotros Página Misión Visión",
+    options: [
+      { value: "auto", label: "Automático (Reglas CEO: Logo si es video, Imagen si existe)" },
+      { value: "none", label: "Solo texto (mensaje limpio, sin enlace ni imagen)" },
+      { value: "logo", label: "Forzar Enviar Logo de la Empresa" },
+      { value: "product_image", label: "Enviar Imagen de la Sección / Producto" },
+    ],
+  },
 
   { key: "whatsapp_default_message", label: "Mensaje WhatsApp Global Por Defecto", type: "textarea", help: "Mensaje enviado si un botón de WhatsApp no especifica mensaje personalizado.", section: "Tienda", group: "Configuración Mensajes WhatsApp" },
 
@@ -1590,7 +1721,15 @@ function CTAButtonGroup({
   onDuplicate,
   onDelete,
 }: {
-  prefix: "hero_cta_" | "hero_secondary_cta_" | "about_cta_" | "about_mission_cta_" | "about_vision_cta_";
+  prefix:
+    | "hero_cta_"
+    | "hero_secondary_cta_"
+    | "about_cta_"
+    | "about_mission_cta_"
+    | "about_vision_cta_"
+    | "about_values_cta_"
+    | "about_kiara_cta_"
+    | "about_workshop_cta_";
   values: Record<string, string>;
   setValues: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   uploadingKey: string | null;
@@ -1612,7 +1751,16 @@ function CTAButtonGroup({
   const waImageKey = `${prefix}whatsapp_image_url`;
 
   const ctaText = values[textKey] || "";
-  const actionType = values[actionTypeKey] || (prefix.includes("cta_") && !prefix.includes("secondary") ? "cotizador" : "link");
+  const defaultActionType =
+    prefix === "hero_cta_"
+      ? "cotizador"
+      : prefix === "about_mission_cta_" ||
+          prefix === "about_vision_cta_" ||
+          prefix === "about_values_cta_" ||
+          prefix === "about_kiara_cta_"
+        ? "whatsapp"
+        : "link";
+  const actionType = values[actionTypeKey] || defaultActionType;
   const whatsappMsg = values[messageKey] || "";
   const whatsappLogic = values[logicKey] || "auto";
   const whatsappImageUrl = values[waImageKey] || "";
@@ -1754,13 +1902,17 @@ function CTAButtonGroup({
                 id: prefix,
                 text: ctaText || "Vista Previa",
                 action_type: actionType === "cotizador" ? "link" : (actionType as any),
-                action_value: values[urlKey] || "/cotizador",
+                action_value:
+                  values[urlKey] ||
+                  (prefix === "about_workshop_cta_" ? "/contacto" : "/cotizador"),
                 whatsapp_message: whatsappMsg,
                 text_color: textColor || undefined,
                 custom_hex: customHex || (prefix.includes("mission")
                   ? "var(--brand-orange)"
                   : prefix.includes("vision")
                   ? "var(--brand-teal)"
+                  : prefix.includes("values")
+                  ? "var(--brand-wine)"
                   : prefix.includes("secondary")
                   ? "var(--brand-wine)"
                   : "var(--brand-orange)"),
@@ -3233,19 +3385,19 @@ function ContenidoAdmin() {
       return null;
     }
 
-    if (f.key === "about_cta_text") {
+    if (f.key === "about_buttons" || f.key === "about_cta_text") {
+      if (f.key !== "about_buttons") {
+        return null;
+      }
       return (
-        <CTAButtonGroup
-          key="about_cta_group"
-          prefix="about_cta_"
+        <AboutButtonsEditor
+          key="about_buttons_editor"
           values={values}
           setValues={setValues}
-          uploadingKey={uploadingKey}
-          uploadImage={uploadImage}
         />
       );
     }
-    if (f.key.startsWith("about_cta_") && f.key !== "about_cta_text") {
+    if (f.key.startsWith("about_cta_")) {
       return null;
     }
 
@@ -3278,6 +3430,54 @@ function ContenidoAdmin() {
       );
     }
     if (f.key.startsWith("about_vision_cta_") && f.key !== "about_vision_cta_text") {
+      return null;
+    }
+
+    if (f.key === "about_values_cta_text") {
+      return (
+        <CTAButtonGroup
+          key="about_values_cta_group"
+          prefix="about_values_cta_"
+          values={values}
+          setValues={setValues}
+          uploadingKey={uploadingKey}
+          uploadImage={uploadImage}
+        />
+      );
+    }
+    if (f.key.startsWith("about_values_cta_") && f.key !== "about_values_cta_text") {
+      return null;
+    }
+
+    if (f.key === "about_kiara_cta_text") {
+      return (
+        <CTAButtonGroup
+          key="about_kiara_cta_group"
+          prefix="about_kiara_cta_"
+          values={values}
+          setValues={setValues}
+          uploadingKey={uploadingKey}
+          uploadImage={uploadImage}
+        />
+      );
+    }
+    if (f.key.startsWith("about_kiara_cta_") && f.key !== "about_kiara_cta_text") {
+      return null;
+    }
+
+    if (f.key === "about_workshop_cta_text") {
+      return (
+        <CTAButtonGroup
+          key="about_workshop_cta_group"
+          prefix="about_workshop_cta_"
+          values={values}
+          setValues={setValues}
+          uploadingKey={uploadingKey}
+          uploadImage={uploadImage}
+        />
+      );
+    }
+    if (f.key.startsWith("about_workshop_cta_") && f.key !== "about_workshop_cta_text") {
       return null;
     }
 

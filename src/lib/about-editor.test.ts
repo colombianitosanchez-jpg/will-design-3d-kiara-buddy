@@ -21,7 +21,7 @@ describe("about-editor metadata y resumen de estado", () => {
       "about_short",
       "about_long",
       "about_image_url",
-      "about_cta_text",
+      "about_buttons",
       "about_stats",
       "about_mission_title",
       "about_mission_text",
@@ -35,21 +35,25 @@ describe("about-editor metadata y resumen de estado", () => {
       "about_values_text",
       "about_values_items",
       "about_values_image_url",
+      "about_values_cta_text",
       "about_kiara_title",
       "about_kiara_subtitle",
       "about_kiara_text",
       "about_kiara_image_url",
+      "about_kiara_cta_text",
       "about_workshop_title",
       "about_workshop_text",
       "about_workshop_items",
       "about_workshop_image_url",
       "about_workshop_address",
+      "about_workshop_cta_text",
     ]);
   });
 
   it("marca todos los bloques como predeterminados cuando site_content está vacío o solo tiene espacios", () => {
     const summary = getAboutBlocksSummary({
       about_title: "   ",
+      about_buttons: "[]",
       about_stats: "[]",
       about_values_items: "",
       about_workshop_items: "invalid-json",
@@ -60,19 +64,17 @@ describe("about-editor metadata y resumen de estado", () => {
     expect(summary.blocks.every((b) => !b.isCustomized)).toBe(true);
   });
 
-  it("detecta bloques personalizados por campos de texto/multimedia y colecciones parseadas con parseStatItems", () => {
+  it("detecta bloques personalizados por campos de texto/multimedia, botones CTA y colecciones", () => {
     const summary = getAboutBlocksSummary({
-      about_title: "Taller 3D Will",
+      about_buttons: JSON.stringify([{ id: "b1", text: "Ver más", action_type: "link" }]),
       about_stats: JSON.stringify([{ id: "a1", k: "50x50", v: "cm" }]),
       about_mission_cta_whatsapp_message: "Hola misión",
-      about_values_items: JSON.stringify([
-        { id: "v1", k: "Calidad", v: "Piezas revisadas" },
-        { id: "v2", k: "Cercanía", v: "Trato directo" },
-      ]),
-      about_workshop_address: "Bogotá",
+      about_values_cta_text: "Consultar valores",
+      about_kiara_cta_whatsapp_message: "Hola Kiara",
+      about_workshop_cta_url: "/cotizador",
     });
 
-    expect(summary.customizedCount).toBe(5);
+    expect(summary.customizedCount).toBe(6);
     const byId = Object.fromEntries(summary.blocks.map((b) => [b.id, b]));
     expect(byId.story.isCustomized).toBe(true);
     expect(byId.stats.isCustomized).toBe(true);
@@ -80,8 +82,7 @@ describe("about-editor metadata y resumen de estado", () => {
     expect(byId.mission.isCustomized).toBe(true);
     expect(byId.vision.isCustomized).toBe(false);
     expect(byId.values.isCustomized).toBe(true);
-    expect(byId.values.itemCount).toBe(2);
-    expect(byId.kiara.isCustomized).toBe(false);
+    expect(byId.kiara.isCustomized).toBe(true);
     expect(byId.workshop.isCustomized).toBe(true);
   });
 

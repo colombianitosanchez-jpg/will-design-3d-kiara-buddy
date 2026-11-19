@@ -19,6 +19,9 @@ export const WHATSAPP_REF_ALIASES: Record<string, string> = {
   about_mission_cta_whatsapp_image_url: "mision",
   vision_whatsapp_image_url: "vision",
   about_vision_cta_whatsapp_image_url: "vision",
+  about_values_cta_whatsapp_image_url: "valores",
+  about_kiara_cta_whatsapp_image_url: "kiara",
+  about_workshop_cta_whatsapp_image_url: "taller",
   site_logo_url: "logo",
 };
 
@@ -30,6 +33,9 @@ export const REVERSE_REF_ALIASES: Record<string, string> = {
   nosotros: "nosotros_whatsapp_image_url",
   mision: "mision_whatsapp_image_url",
   vision: "vision_whatsapp_image_url",
+  valores: "about_values_cta_whatsapp_image_url",
+  kiara: "about_kiara_cta_whatsapp_image_url",
+  taller: "about_workshop_cta_whatsapp_image_url",
   logo: "site_logo_url",
 };
 

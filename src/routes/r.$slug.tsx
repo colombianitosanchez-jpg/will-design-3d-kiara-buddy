@@ -72,7 +72,58 @@ export const Route = createFileRoute("/r/$slug")({
 
     if (isHeroAlias) return { img: firstStaticShareImage([img]), title: "Will Design 3D", desc: "" };
 
-    // 3. Si no se resolvió como estadística ni botón Hero, resolver por alias de botones o claves directas
+    // 2b. Botones de Nosotros: formato nosotros, nosotrosN, nN (ej: nosotros, n2, n3)
+    const aboutBtnMatch = lowerSlug.match(/^(?:n|nosotros)(\d+)$/i);
+    const isAboutAlias = lowerSlug === "nosotros" || Boolean(aboutBtnMatch);
+
+    if (!img && isAboutAlias) {
+      const targetIndex = aboutBtnMatch ? parseInt(aboutBtnMatch[1], 10) - 1 : 0;
+      if (targetIndex >= 0) {
+        const { data } = await supabase
+          .from("site_content")
+          .select("key, value")
+          .in("key", [
+            "about_buttons",
+            "about_cta_whatsapp_image_url",
+            "nosotros_whatsapp_image_url",
+          ]);
+
+        const contentMap: Record<string, string> = {};
+        for (const row of data || []) {
+          if (row.key && row.value) {
+            contentMap[row.key] = String(row.value);
+          }
+        }
+
+        let hasModernButtons = false;
+        if (contentMap.about_buttons) {
+          try {
+            const arr = JSON.parse(contentMap.about_buttons);
+            hasModernButtons = Array.isArray(arr) && arr.length > 0;
+            if (Array.isArray(arr) && targetIndex < arr.length) {
+              const btn = arr[targetIndex];
+              if (btn && typeof btn === "object" && btn.whatsapp_image_url) {
+                img = String(btn.whatsapp_image_url).trim();
+              }
+            }
+          } catch {
+            /* ignore */
+          }
+        }
+
+        if (!img && !hasModernButtons && targetIndex === 0) {
+          img = (
+            contentMap.about_cta_whatsapp_image_url ||
+            contentMap.nosotros_whatsapp_image_url ||
+            ""
+          ).trim();
+        }
+      }
+    }
+
+    if (isAboutAlias) return { img: firstStaticShareImage([img]), title: "Will Design 3D", desc: "" };
+
+    // 3. Si no se resolvió como estadística ni botón Hero/Nosotros, resolver por alias de botones o claves directas
     if (!img) {
       const key = REVERSE_REF_ALIASES[lowerSlug] || lowerSlug;
       const candidateKeys = [key];
@@ -91,6 +142,15 @@ export const Route = createFileRoute("/r/$slug")({
       }
       if (lowerSlug === "vision") {
         candidateKeys.push("about_vision_cta_whatsapp_image_url", "vision_whatsapp_image_url");
+      }
+      if (lowerSlug === "valores") {
+        candidateKeys.push("about_values_cta_whatsapp_image_url");
+      }
+      if (lowerSlug === "kiara") {
+        candidateKeys.push("about_kiara_cta_whatsapp_image_url");
+      }
+      if (lowerSlug === "taller") {
+        candidateKeys.push("about_workshop_cta_whatsapp_image_url");
       }
       if (lowerSlug === "logo") {
         candidateKeys.push("site_logo_url");
