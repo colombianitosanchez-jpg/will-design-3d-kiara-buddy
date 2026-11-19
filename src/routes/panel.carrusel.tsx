@@ -79,7 +79,7 @@ function CarruselAdmin() {
     if (up.error) throw up.error;
     const signed = await supabase.storage
       .from(HERO_MEDIA_BUCKET)
-      .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+      .createSignedUrl(path, 60 * 60 * 24 * 365);
     if (signed.error) throw signed.error;
     return { url: signed.data.signedUrl, kind };
   }
@@ -187,6 +187,10 @@ function CarruselAdmin() {
     if (error) {
       toast.error("No pudimos eliminar", { description: error.message });
       return;
+    }
+    const match = slide.media_url.match(/\/object\/(?:sign|public)\/site-media\/([^?]+)/);
+    if (match) {
+      await supabase.storage.from(HERO_MEDIA_BUCKET).remove([decodeURIComponent(match[1])]);
     }
     toast.success("Elemento eliminado");
     await load();
