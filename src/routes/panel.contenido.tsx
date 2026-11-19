@@ -29,6 +29,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { sanitizeWidgetId, parsePhotos, type PortfolioPhoto } from "@/components/InstagramFeed";
 import { HomeSectionsOrder } from "@/components/HomeSectionsOrder";
+import { AboutSectionEditor } from "@/components/panel/AboutSectionEditor";
 import { FeaturedProductsOrder } from "@/components/FeaturedProductsOrder";
 import { parseHomeOrder, type HomeSectionKey } from "@/lib/home-sections";
 import { SECTION_GROUPS, getHomeEditorGroups } from "@/lib/home-editor-groups";
@@ -288,8 +289,8 @@ const FIELDS: FieldDef[] = [
   { key: "about_chip", label: "Etiqueta / Chip 'Nosotros'", type: "text", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_title", label: "Título Principal 'Nosotros'", type: "text", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_subtitle", label: "Subtítulo / Bajada 'Nosotros'", type: "textarea", section: "Inicio", group: "Sección Nosotros" },
-  { key: "about_short", label: "Descripción Corta 'Nosotros'", type: "textarea", help: "Resumen que se muestra en la página principal.", section: "Inicio", group: "Sección Nosotros" },
-  { key: "about_long", label: "Descripción Detallada 'Nosotros'", type: "textarea", help: "Texto extendido que se muestra en la página /nosotros.", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_short", label: "Resumen para el Inicio", type: "textarea", help: "Aparece en la página principal.", section: "Inicio", group: "Sección Nosotros" },
+  { key: "about_long", label: "Historia Detallada", type: "textarea", help: "Aparece en /nosotros.", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_image_url", label: "Imagen Principal 'Nosotros'", type: "media", help: "Imagen destacada del taller o equipo.", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_stats", label: "Métricas y Logros Destacados 'Nosotros'", type: "hero_stats", help: "Añade logros y estadísticas para mostrar en la sección Nosotros.", section: "Inicio", group: "Sección Nosotros" },
   { key: "about_cta_text", label: "Texto del Botón 'Nosotros'", type: "text", help: "Ej: Conoce más sobre nosotros", section: "Inicio", group: "Sección Nosotros" },
@@ -3428,6 +3429,11 @@ function ContenidoAdmin() {
     (group) => group !== "Orden de Secciones" && !homeGroupSet.has(group),
   );
 
+  function renderFieldByKey(key: string) {
+    const field = FIELDS.find((f) => f.key === key);
+    return field ? renderField(field) : null;
+  }
+
   function renderSectionBody(sectionKey: HomeSectionKey) {
     if (sectionKey === "services") {
       return (
@@ -3451,6 +3457,14 @@ function ContenidoAdmin() {
             <Link to="/panel/cotizador">Editar cotizador</Link>
           </Button>
         </div>
+      );
+    }
+    if (sectionKey === "about") {
+      return (
+        <AboutSectionEditor
+          values={values}
+          renderFieldByKey={renderFieldByKey}
+        />
       );
     }
 

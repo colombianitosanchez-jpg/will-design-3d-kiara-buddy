@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Target, Eye, Heart, MapPin, Wrench, ArrowRight, MessageCircle } from "lucide-react";
+import { Target, Eye, Heart, MapPin, ArrowRight, MessageCircle, PawPrint, Factory } from "lucide-react";
 import kiaraAsset from "@/assets/kiara.asset.json";
 import { siteContentQuery, getContactInfo, waLink, pickWhatsapp } from "@/lib/catalog";
 import { openExternalUrl } from "@/lib/whatsapp";
@@ -62,91 +62,119 @@ function AboutMedia({
   fallbackIcon?: any;
   color?: string;
 }) {
+  const iconBox = FallbackIcon ? (
+    <div
+      className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-border/60"
+      style={{
+        background: `color-mix(in oklab, ${color} 15%, transparent)`,
+        color,
+      }}
+    >
+      <FallbackIcon className="h-6 w-6" aria-hidden="true" />
+    </div>
+  ) : null;
+
   if (src && src.trim()) {
     return (
-      <div className="relative overflow-hidden rounded-2xl h-12 w-12 shrink-0 border border-border shadow-xs">
-        <ProductMedia src={src.trim()} alt={alt} className="h-full w-full object-cover" />
+      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-2xl border border-border shadow-xs">
+        <ProductMedia
+          src={src.trim()}
+          alt={alt}
+          className="h-full w-full object-cover"
+          fallback={iconBox}
+        />
       </div>
     );
   }
-  if (FallbackIcon) {
-    return (
-      <div
-        className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl"
-        style={{
-          background: `color-mix(in oklab, ${color} 15%, white)`,
-          color,
-        }}
-      >
-        <FallbackIcon className="h-6 w-6" />
-      </div>
-    );
-  }
-  return null;
+  return iconBox;
 }
 
 function NosotrosPage() {
   const { content, getText } = useSiteContent();
 
-  const chip = getText("about_chip", "Nuestra historia");
-  const title = getText("about_title", "Un taller 3D con alma");
+  const chip = getText("about_chip") || "Nuestra historia";
+  const title = getText("about_title") || "Un taller 3D con alma";
   const subtitle = getText("about_subtitle", "");
-  const about = getText("about_long", "") || getText("about_short", "");
-  const imageUrl = getText("about_image_url", "") || content?.site_logo_url?.trim();
+  const about =
+    getText("about_long") ||
+    getText("about_short") ||
+    "Diseño, ingeniería y fabricación aditiva desde Bogotá, Colombia, con asesoría técnica cercana en cada proyecto.";
+  const imageUrl = getText("about_image_url") || content?.site_logo_url?.trim() || "";
   const businessName = content?.site_business_name?.trim() || "Will Design 3D";
   const fallbackWhatsapp = getContactInfo(content).whatsapp;
   const globalDefaultMessage = getText("whatsapp_default_message", "");
 
+  const parseNum = (val: string) => {
+    const n = Number(val);
+    return val.trim() !== "" && Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : undefined;
+  };
+
   // Misión
-  const missionTitle = getText("about_mission_title", "Misión");
-  const missionText = getText("about_mission_text", "Democratizar la impresión 3D en Colombia con calidad profesional, precios justos y asesoría real.");
+  const missionTitle = getText("about_mission_title") || "Misión";
+  const missionText =
+    getText("about_mission_text") ||
+    "Democratizar la impresión 3D en Colombia con calidad profesional, precios justos y asesoría real.";
   const missionMedia = getText("about_mission_image_url", "");
   const missionCtaText = getText("about_mission_cta_text", "");
   const missionCtaUrl = getText("about_mission_cta_url", "");
   const missionCtaMedia = getText("about_mission_cta_media_url", "");
-  const missionCtaMediaMode = getText("about_mission_cta_media_mode", "fill");
+  const missionCtaMediaMode = getText("about_mission_cta_media_mode") || "fill";
+  const missionCtaMediaFit = getText("about_mission_cta_media_fit") || "cover";
   const missionCtaIconUrl = getText("about_mission_cta_icon_url", "");
-  const missionCtaIconPos = getText("about_mission_cta_icon_position", "none");
+  const missionCtaIconPos = getText("about_mission_cta_icon_position") || "none";
+  const missionCtaIconShape = getText("about_mission_cta_icon_shape") || "circle";
   const missionCtaTextColor = getText("about_mission_cta_text_color", "");
   const missionCtaCustomHex = getText("about_mission_cta_custom_hex", "");
-  const missionActionType = getText("about_mission_cta_action_type", "whatsapp");
+  const missionCtaShade = parseNum(getText("about_mission_cta_shade", ""));
+  const missionCtaWidth = (getText("about_mission_cta_width") || "auto") as "auto" | "full";
+  const missionActionType = getText("about_mission_cta_action_type") || "whatsapp";
   const missionWaMsg = getText("about_mission_cta_whatsapp_message", "");
   const missionWaImg = getText("about_mission_cta_whatsapp_image_url", "");
 
   // Visión
-  const visionTitle = getText("about_vision_title", "Visión");
-  const visionText = getText("about_vision_text", "Ser el referente colombiano en impresión 3D de gran formato para arte, industria y educación.");
+  const visionTitle = getText("about_vision_title") || "Visión";
+  const visionText =
+    getText("about_vision_text") ||
+    "Ser el referente colombiano en impresión 3D de gran formato para arte, industria y educación.";
   const visionMedia = getText("about_vision_image_url", "");
   const visionCtaText = getText("about_vision_cta_text", "");
   const visionCtaUrl = getText("about_vision_cta_url", "");
   const visionCtaMedia = getText("about_vision_cta_media_url", "");
-  const visionCtaMediaMode = getText("about_vision_cta_media_mode", "fill");
+  const visionCtaMediaMode = getText("about_vision_cta_media_mode") || "fill";
+  const visionCtaMediaFit = getText("about_vision_cta_media_fit") || "cover";
   const visionCtaIconUrl = getText("about_vision_cta_icon_url", "");
-  const visionCtaIconPos = getText("about_vision_cta_icon_position", "none");
+  const visionCtaIconPos = getText("about_vision_cta_icon_position") || "none";
+  const visionCtaIconShape = getText("about_vision_cta_icon_shape") || "circle";
   const visionCtaTextColor = getText("about_vision_cta_text_color", "");
   const visionCtaCustomHex = getText("about_vision_cta_custom_hex", "");
-  const visionActionType = getText("about_vision_cta_action_type", "whatsapp");
+  const visionCtaShade = parseNum(getText("about_vision_cta_shade", ""));
+  const visionCtaWidth = (getText("about_vision_cta_width") || "auto") as "auto" | "full";
+  const visionActionType = getText("about_vision_cta_action_type") || "whatsapp";
   const visionWaMsg = getText("about_vision_cta_whatsapp_message", "");
   const visionWaImg = getText("about_vision_cta_whatsapp_image_url", "");
 
   // Valores
-  const valuesTitle = getText("about_values_title", "Valores");
-  const valuesText = getText("about_values_text", "Cercanía, honestidad técnica, y ese cariño que solo un taller familiar (con perro incluido) puede ofrecer.");
+  const valuesTitle = getText("about_values_title") || "Valores";
+  const valuesText =
+    getText("about_values_text") ||
+    "Cercanía, honestidad técnica, y ese cariño que solo un taller familiar (con perro incluido) puede ofrecer.";
   const valuesMedia = getText("about_values_image_url", "");
 
-
   // Kiara
-  const kiaraTitle = getText("about_kiara_title", "Kiara, nuestra directora de operaciones 🐾");
-  const kiaraSubtitle = getText("about_kiara_subtitle", "La verdadera jefa");
-  const kiaraText = getText("about_kiara_text", "Pastora alemana de pura raza, aficionada a robar filamento y certificada en levantar el ánimo del equipo. Supervisa cada impresión, aunque su método favorito de control de calidad sea olfatear las piezas al terminar.");
-  const kiaraMedia = getText("about_kiara_image_url", "") || kiaraAsset.url;
+  const kiaraTitle = getText("about_kiara_title") || "Kiara, nuestra directora de operaciones 🐾";
+  const kiaraSubtitle = getText("about_kiara_subtitle") || "La verdadera jefa";
+  const kiaraText =
+    getText("about_kiara_text") ||
+    "Pastora alemana de pura raza, aficionada a robar filamento y certificada en levantar el ánimo del equipo. Supervisa cada impresión, aunque su método favorito de control de calidad sea olfatear las piezas al terminar.";
+  const kiaraMedia = getText("about_kiara_image_url") || kiaraAsset.url;
 
   // Taller
-  const workshopTitle = getText("about_workshop_title", "Equipo profesional en Bogotá");
-  const workshopSubtitle = getText("about_workshop_subtitle", "Nuestro taller");
+  const workshopTitle = getText("about_workshop_title") || "Equipo profesional en Bogotá";
+  const workshopSubtitle = getText("about_workshop_subtitle") || "Nuestro taller";
   const workshopText = getText("about_workshop_text", "");
   const workshopMedia = getText("about_workshop_image_url", "");
-  const workshopAddress = getText("about_workshop_address", "Bogotá, Colombia · Atención por cita previa.");
+  const workshopAddress =
+    getText("about_workshop_address") || "Bogotá, Colombia · Atención por cita previa.";
 
 
   function handleSectionWaClick(itemTitle: string, itemBody: string, customMsg?: string, customMedia?: string, logic?: string, phone?: string, imageKey?: string) {
@@ -191,8 +219,18 @@ function NosotrosPage() {
             )}
           </div>
           {imageUrl && (
-            <div className="hidden h-48 w-48 overflow-hidden rounded-3xl border border-border shadow-lg md:block">
-              <ProductMedia src={imageUrl} alt={businessName} className="h-full w-full object-cover" />
+            <div className="hidden h-48 w-48 overflow-hidden rounded-3xl border border-border bg-card shadow-lg md:block">
+              <ProductMedia
+                src={imageUrl}
+                alt={businessName}
+                className="h-full w-full object-cover"
+                fallback={
+                  <div className="flex h-full w-full flex-col items-center justify-center p-4 text-center">
+                    <Factory className="h-10 w-10 text-[var(--brand-teal)]" aria-hidden="true" />
+                    <span className="mt-2 text-xs font-bold text-muted-foreground">{businessName}</span>
+                  </div>
+                }
+              />
             </div>
           )}
         </div>
@@ -218,34 +256,61 @@ function NosotrosPage() {
                     missionActionType === "whatsapp"
                       ? missionCtaUrl || ""
                       : missionActionType === "cotizador"
-                      ? "/cotizador"
-                      : missionCtaUrl || "/cotizador",
+                        ? "/cotizador"
+                        : missionCtaUrl || "/cotizador",
                   whatsapp_message: missionWaMsg,
                   whatsapp_image_url: missionWaImg,
                   text_color: missionCtaTextColor || undefined,
                   custom_hex: missionCtaCustomHex || "var(--brand-orange)",
                   media_url: missionCtaMediaMode === "fill" ? missionCtaMedia : undefined,
                   media_mode: missionCtaMediaMode as any,
+                  media_fit: missionCtaMediaFit as any,
                   icon_url: missionCtaIconUrl || (missionCtaMediaMode === "icon" ? missionCtaMedia : undefined),
-                  icon_position: missionCtaIconPos !== "none" ? (missionCtaIconPos as any) : (missionCtaMediaMode === "icon" ? "left" : "none"),
+                  icon_position:
+                    missionCtaIconPos !== "none"
+                      ? (missionCtaIconPos as any)
+                      : missionCtaMediaMode === "icon"
+                        ? "left"
+                        : "none",
+                  icon_shape: missionCtaIconShape as any,
+                  shade: missionCtaShade,
                   variant: "default",
-                  width: "auto",
+                  width: missionCtaWidth,
                   position: "left",
                 }}
                 onClick={
                   missionActionType === "whatsapp"
-                    ? () => handleSectionWaClick(missionTitle, missionText, missionWaMsg, missionWaImg, content?.about_mission_cta_whatsapp_image_logic, missionCtaUrl, "about_mission_cta_whatsapp_image_url")
+                    ? () =>
+                        handleSectionWaClick(
+                          missionTitle,
+                          missionText,
+                          missionWaMsg,
+                          missionWaImg,
+                          content?.about_mission_cta_whatsapp_image_logic,
+                          missionCtaUrl,
+                          "about_mission_cta_whatsapp_image_url",
+                        )
                     : undefined
                 }
               />
             ) : (
               <button
                 type="button"
-                onClick={() => handleSectionWaClick(missionTitle, missionText, missionWaMsg, missionCtaMedia)}
-                className="inline-flex items-center gap-1.5 text-xs font-bold transition hover:opacity-80"
+                onClick={() =>
+                  handleSectionWaClick(
+                    missionTitle,
+                    missionText,
+                    missionWaMsg,
+                    missionWaImg || missionCtaMedia,
+                    content?.about_mission_cta_whatsapp_image_logic,
+                    missionCtaUrl,
+                    "about_mission_cta_whatsapp_image_url",
+                  )
+                }
+                className="inline-flex items-center gap-1.5 text-xs font-bold transition hover:opacity-80 cursor-pointer"
                 style={{ color: "var(--brand-orange)" }}
               >
-                <MessageCircle className="h-3.5 w-3.5" />
+                <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
                 Consultar por WhatsApp
               </button>
             )}
@@ -270,34 +335,61 @@ function NosotrosPage() {
                     visionActionType === "whatsapp"
                       ? visionCtaUrl || ""
                       : visionActionType === "cotizador"
-                      ? "/cotizador"
-                      : visionCtaUrl || "/cotizador",
+                        ? "/cotizador"
+                        : visionCtaUrl || "/cotizador",
                   whatsapp_message: visionWaMsg,
                   whatsapp_image_url: visionWaImg,
                   text_color: visionCtaTextColor || undefined,
                   custom_hex: visionCtaCustomHex || "var(--brand-teal)",
                   media_url: visionCtaMediaMode === "fill" ? visionCtaMedia : undefined,
                   media_mode: visionCtaMediaMode as any,
+                  media_fit: visionCtaMediaFit as any,
                   icon_url: visionCtaIconUrl || (visionCtaMediaMode === "icon" ? visionCtaMedia : undefined),
-                  icon_position: visionCtaIconPos !== "none" ? (visionCtaIconPos as any) : (visionCtaMediaMode === "icon" ? "left" : "none"),
+                  icon_position:
+                    visionCtaIconPos !== "none"
+                      ? (visionCtaIconPos as any)
+                      : visionCtaMediaMode === "icon"
+                        ? "left"
+                        : "none",
+                  icon_shape: visionCtaIconShape as any,
+                  shade: visionCtaShade,
                   variant: "default",
-                  width: "auto",
+                  width: visionCtaWidth,
                   position: "left",
                 }}
                 onClick={
                   visionActionType === "whatsapp"
-                    ? () => handleSectionWaClick(visionTitle, visionText, visionWaMsg, visionWaImg, content?.about_vision_cta_whatsapp_image_logic, visionCtaUrl, "about_vision_cta_whatsapp_image_url")
+                    ? () =>
+                        handleSectionWaClick(
+                          visionTitle,
+                          visionText,
+                          visionWaMsg,
+                          visionWaImg,
+                          content?.about_vision_cta_whatsapp_image_logic,
+                          visionCtaUrl,
+                          "about_vision_cta_whatsapp_image_url",
+                        )
                     : undefined
                 }
               />
             ) : (
               <button
                 type="button"
-                onClick={() => handleSectionWaClick(visionTitle, visionText, visionWaMsg, visionCtaMedia)}
-                className="inline-flex items-center gap-1.5 text-xs font-bold transition hover:opacity-80"
+                onClick={() =>
+                  handleSectionWaClick(
+                    visionTitle,
+                    visionText,
+                    visionWaMsg,
+                    visionWaImg || visionCtaMedia,
+                    content?.about_vision_cta_whatsapp_image_logic,
+                    visionCtaUrl,
+                    "about_vision_cta_whatsapp_image_url",
+                  )
+                }
+                className="inline-flex items-center gap-1.5 text-xs font-bold transition hover:opacity-80 cursor-pointer"
                 style={{ color: "var(--brand-teal)" }}
               >
-                <MessageCircle className="h-3.5 w-3.5" />
+                <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
                 Consultar por WhatsApp
               </button>
             )}
@@ -317,10 +409,10 @@ function NosotrosPage() {
             <button
               type="button"
               onClick={() => handleSectionWaClick(valuesTitle, valuesText, "", valuesMedia)}
-              className="inline-flex items-center gap-1.5 text-xs font-bold transition hover:opacity-80"
+              className="inline-flex items-center gap-1.5 text-xs font-bold transition hover:opacity-80 cursor-pointer"
               style={{ color: "var(--brand-wine)" }}
             >
-              <MessageCircle className="h-3.5 w-3.5" />
+              <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
               Consultar por WhatsApp
             </button>
           </div>
@@ -330,11 +422,17 @@ function NosotrosPage() {
       {/* Kiara story */}
       <section className="border-y border-border bg-muted/30">
         <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 py-14 sm:px-6 md:grid-cols-[auto_minmax(0,1fr)] md:py-20">
-          <div className="relative h-48 w-48 overflow-hidden rounded-full shadow-xl ring-4 ring-[var(--brand-orange)] md:h-60 md:w-60 shrink-0">
+          <div className="relative h-48 w-48 overflow-hidden rounded-full bg-card shadow-xl ring-4 ring-[var(--brand-orange)] md:h-60 md:w-60 shrink-0">
             <ProductMedia
               src={kiaraMedia}
               alt={kiaraTitle}
               className="h-full w-full object-cover"
+              fallback={
+                <div className="flex h-full w-full flex-col items-center justify-center bg-muted/60 p-4 text-center">
+                  <PawPrint className="h-12 w-12 text-[var(--brand-orange)]" aria-hidden="true" />
+                  <span className="mt-2 text-xs font-bold text-foreground">Kiara</span>
+                </div>
+              }
             />
           </div>
           <div>
@@ -378,28 +476,63 @@ function NosotrosPage() {
           </div>
 
           <div className="relative min-h-64 h-full w-full overflow-hidden rounded-3xl border border-border bg-card shadow-xl flex items-center justify-center p-4">
-            {workshopMedia && workshopMedia.trim() ? (
-              <ProductMedia
-                src={workshopMedia.trim()}
-                alt={workshopTitle}
-                className="h-full w-full min-h-64 max-h-[400px] object-cover rounded-2xl"
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center p-8 text-center space-y-4">
-                <img
-                  src="/logo.png"
-                  alt={businessName}
-                  width={128}
-                  height={128}
-                  loading="lazy"
-                  decoding="async"
-                  className="h-32 w-auto object-contain opacity-80"
-                />
-                <span className="text-xs font-semibold text-muted-foreground">
-                  {businessName} — {workshopTitle}
-                </span>
-              </div>
-            )}
+            {(() => {
+              const siteLogoUrl = content?.site_logo_url?.trim();
+              const iconFallback = (
+                <div className="flex flex-col items-center justify-center p-8 text-center space-y-3">
+                  <div
+                    className="grid h-16 w-16 place-items-center rounded-2xl border border-border/60"
+                    style={{
+                      background: "color-mix(in oklab, var(--brand-teal) 14%, transparent)",
+                      color: "var(--brand-teal)",
+                    }}
+                  >
+                    <Factory className="h-8 w-8" aria-hidden="true" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-foreground">{businessName}</p>
+                    <p className="text-xs font-medium text-muted-foreground">{workshopTitle}</p>
+                  </div>
+                </div>
+              );
+              const workshopFallback = siteLogoUrl ? (
+                <div className="flex flex-col items-center justify-center p-8 text-center space-y-4">
+                  <ProductMedia
+                    src={siteLogoUrl}
+                    alt={businessName}
+                    className="h-28 w-auto max-w-[200px] object-contain"
+                    fallback={
+                      <div
+                        className="grid h-16 w-16 place-items-center rounded-2xl border border-border/60"
+                        style={{
+                          background: "color-mix(in oklab, var(--brand-teal) 14%, transparent)",
+                          color: "var(--brand-teal)",
+                        }}
+                      >
+                        <Factory className="h-8 w-8" aria-hidden="true" />
+                      </div>
+                    }
+                  />
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    {businessName} — {workshopTitle}
+                  </span>
+                </div>
+              ) : (
+                iconFallback
+              );
+
+              if (workshopMedia && workshopMedia.trim()) {
+                return (
+                  <ProductMedia
+                    src={workshopMedia.trim()}
+                    alt={workshopTitle}
+                    className="h-full w-full min-h-64 max-h-[400px] object-cover rounded-2xl"
+                    fallback={workshopFallback}
+                  />
+                );
+              }
+              return workshopFallback;
+            })()}
           </div>
         </div>
       </section>

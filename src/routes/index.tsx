@@ -562,16 +562,16 @@ function AboutPreview() {
   const router = useRouter();
   const { content, getText } = useSiteContent();
 
-  const chip = getText("about_chip", "Nosotros");
-  const title = getText("about_title", "Pasión por la Impresión 3D de Gran Formato");
-  const subtitle = getText("about_subtitle", "Diseño, ingeniería y fabricación aditiva desde Bogotá, Colombia.");
+  const chip = getText("about_chip") || "Nosotros";
+  const title = getText("about_title") || "Pasión por la Impresión 3D de Gran Formato";
+  const subtitle = getText("about_subtitle") || "Diseño, ingeniería y fabricación aditiva desde Bogotá, Colombia.";
   const shortDesc = getText("about_short", "");
   const image = getText("about_image_url", "");
 
 
-  const ctaText = getText("about_cta_text", "Conoce más sobre nosotros");
-  const ctaUrl = getText("about_cta_url", "/nosotros");
-  const ctaActionType = getText("about_cta_action_type", "link");
+  const ctaText = getText("about_cta_text") || "Conoce más sobre nosotros";
+  const ctaUrl = getText("about_cta_url") || "/nosotros";
+  const ctaActionType = getText("about_cta_action_type") || "link";
   const ctaWhatsappMsg = getText("about_cta_whatsapp_message", "");
   const ctaWhatsappLogic = getText("about_cta_whatsapp_image_logic", "auto");
   const ctaWhatsappImg = getText("about_cta_whatsapp_image_url", "");
@@ -622,22 +622,47 @@ function AboutPreview() {
       <div className="mx-auto max-w-4xl space-y-10">
         {/* Imagen en contenedor aspect-[4/3] con rounded-[32px] y stats flotantes */}
         <div className="relative overflow-hidden rounded-[32px] border border-border bg-muted shadow-2xl aspect-[4/3] flex items-center justify-center">
-          {image ? (
-            <ProductMedia src={image} alt={title} className="h-full w-full object-cover" />
-          ) : (
-            <div className="flex flex-col items-center justify-center p-8 text-center space-y-3">
-              <img
-                src="/logo.png"
-                alt="Will Design 3D"
-                width={160}
-                height={160}
-                loading="lazy"
-                decoding="async"
-                className="h-32 sm:h-40 w-auto opacity-70 object-contain"
+          {(() => {
+            const siteLogoUrl = content?.site_logo_url?.trim();
+            const iconBox = (
+              <div className="flex flex-col items-center justify-center p-8 text-center space-y-3">
+                <div
+                  className="grid h-16 w-16 place-items-center rounded-2xl border border-border/60"
+                  style={{
+                    background: "color-mix(in oklab, var(--brand-teal) 14%, transparent)",
+                    color: "var(--brand-teal)",
+                  }}
+                >
+                  <Boxes className="h-8 w-8" aria-hidden="true" />
+                </div>
+                <span className="text-xs font-semibold text-muted-foreground">{title}</span>
+              </div>
+            );
+            const fallbackNode = siteLogoUrl ? (
+              <div className="flex flex-col items-center justify-center p-8 text-center space-y-3">
+                <ProductMedia
+                  src={siteLogoUrl}
+                  alt={content?.site_business_name?.trim() || "Will Design 3D"}
+                  className="h-32 sm:h-40 w-auto object-contain"
+                  fallback={iconBox}
+                />
+                <span className="text-xs font-semibold text-muted-foreground">{title}</span>
+              </div>
+            ) : (
+              iconBox
+            );
+
+            return image ? (
+              <ProductMedia
+                src={image}
+                alt={title}
+                className="h-full w-full object-cover"
+                fallback={fallbackNode}
               />
-              <span className="text-xs font-semibold text-muted-foreground">{title}</span>
-            </div>
-          )}
+            ) : (
+              fallbackNode
+            );
+          })()}
 
         </div>
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 const VIDEO_EXT = /\.(mp4|webm|mov|m4v|ogv)(\?|#|$)/i;
 
@@ -13,15 +13,29 @@ export function ProductMedia({
   alt = "",
   className,
   thumb = false,
+  fallback,
 }: {
   src: string;
   alt?: string;
   className?: string;
   /** Miniatura: video quieto sin reproducir para no gastar datos. */
   thumb?: boolean;
+  /** Contenido alternativo si la imagen o el video fallan al cargar. */
+  fallback?: ReactNode;
 }) {
   const mediaRef = useRef<HTMLVideoElement | null>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    const el = imgRef.current;
+    if (!isVideoUrl(src) && el && el.complete && el.naturalWidth === 0) {
+      setFailed(true);
+    } else {
+      setFailed(false);
+    }
+  }, [src]);
 
   useEffect(() => {
     if (!isVideoUrl(src) || thumb) return;
@@ -49,6 +63,10 @@ export function ProductMedia({
     return () => observer.disconnect();
   }, [src, thumb]);
 
+  if (failed && fallback !== undefined) {
+    return <>{fallback}</>;
+  }
+
   if (isVideoUrl(src)) {
     return thumb ? (
       <video
@@ -56,6 +74,7 @@ export function ProductMedia({
         muted
         playsInline
         preload="metadata"
+        onError={() => setFailed(true)}
         className={className}
         aria-label={alt}
       />
@@ -67,6 +86,7 @@ export function ProductMedia({
         muted
         playsInline
         preload="metadata"
+        onError={() => setFailed(true)}
         className={className}
         aria-label={alt}
         autoPlay={isVisible}
@@ -76,10 +96,13 @@ export function ProductMedia({
 
   return (
     <img
+      ref={imgRef}
       src={src}
       alt={alt}
       width={800}
       height={600}
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
       className={className}
       loading="lazy"
       decoding="async"
