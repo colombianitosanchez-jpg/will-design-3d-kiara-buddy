@@ -55,6 +55,7 @@ import { Route as RSlugRouteImport } from './routes/r.$slug'
 import { Route as TSlugRouteImport } from './routes/t.$slug'
 import { Route as TiendaIndexRouteImport } from './routes/tienda.index'
 import { Route as TiendaSlugRouteImport } from './routes/tienda.$slug'
+import { Route as ApiPublicWompiWebhookRouteImport } from './routes/api/public/wompi-webhook'
 import { Route as ApiPublicHooksPaymentWebhookRouteImport } from './routes/api/public/hooks/payment-webhook'
 import { Route as ApiPublicHooksProcessNotificationsRouteImport } from './routes/api/public/hooks/process-notifications'
 
@@ -288,6 +289,11 @@ const TiendaSlugRoute = TiendaSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => TiendaRoute,
 } as any)
+const ApiPublicWompiWebhookRoute = ApiPublicWompiWebhookRouteImport.update({
+  id: '/api/public/wompi-webhook',
+  path: '/api/public/wompi-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksPaymentWebhookRoute =
   ApiPublicHooksPaymentWebhookRouteImport.update({
     id: '/api/public/hooks/payment-webhook',
@@ -348,6 +354,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/panel/': typeof PanelIndexRoute
   '/tienda/': typeof TiendaIndexRoute
+  '/api/public/wompi-webhook': typeof ApiPublicWompiWebhookRoute
   '/api/public/hooks/payment-webhook': typeof ApiPublicHooksPaymentWebhookRoute
   '/api/public/hooks/process-notifications': typeof ApiPublicHooksProcessNotificationsRoute
 }
@@ -395,6 +402,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/panel': typeof PanelIndexRoute
   '/tienda': typeof TiendaIndexRoute
+  '/api/public/wompi-webhook': typeof ApiPublicWompiWebhookRoute
   '/api/public/hooks/payment-webhook': typeof ApiPublicHooksPaymentWebhookRoute
   '/api/public/hooks/process-notifications': typeof ApiPublicHooksProcessNotificationsRoute
 }
@@ -446,6 +454,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/panel/': typeof PanelIndexRoute
   '/tienda/': typeof TiendaIndexRoute
+  '/api/public/wompi-webhook': typeof ApiPublicWompiWebhookRoute
   '/api/public/hooks/payment-webhook': typeof ApiPublicHooksPaymentWebhookRoute
   '/api/public/hooks/process-notifications': typeof ApiPublicHooksProcessNotificationsRoute
 }
@@ -498,6 +507,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/panel/'
     | '/tienda/'
+    | '/api/public/wompi-webhook'
     | '/api/public/hooks/payment-webhook'
     | '/api/public/hooks/process-notifications'
   fileRoutesByTo: FileRoutesByTo
@@ -545,6 +555,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/panel'
     | '/tienda'
+    | '/api/public/wompi-webhook'
     | '/api/public/hooks/payment-webhook'
     | '/api/public/hooks/process-notifications'
   id:
@@ -595,6 +606,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/panel/'
     | '/tienda/'
+    | '/api/public/wompi-webhook'
     | '/api/public/hooks/payment-webhook'
     | '/api/public/hooks/process-notifications'
   fileRoutesById: FileRoutesById
@@ -621,6 +633,7 @@ export interface RootRouteChildren {
   PedidoTokenRoute: typeof PedidoTokenRoute
   RSlugRoute: typeof RSlugRoute
   TSlugRoute: typeof TSlugRoute
+  ApiPublicWompiWebhookRoute: typeof ApiPublicWompiWebhookRoute
   ApiPublicHooksPaymentWebhookRoute: typeof ApiPublicHooksPaymentWebhookRoute
   ApiPublicHooksProcessNotificationsRoute: typeof ApiPublicHooksProcessNotificationsRoute
 }
@@ -949,6 +962,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TiendaSlugRouteImport
       parentRoute: typeof TiendaRoute
     }
+    '/api/public/wompi-webhook': {
+      id: '/api/public/wompi-webhook'
+      path: '/api/public/wompi-webhook'
+      fullPath: '/api/public/wompi-webhook'
+      preLoaderRoute: typeof ApiPublicWompiWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/payment-webhook': {
       id: '/api/public/hooks/payment-webhook'
       path: '/api/public/hooks/payment-webhook'
@@ -1063,6 +1083,7 @@ const rootRouteChildren: RootRouteChildren = {
   PedidoTokenRoute: PedidoTokenRoute,
   RSlugRoute: RSlugRoute,
   TSlugRoute: TSlugRoute,
+  ApiPublicWompiWebhookRoute: ApiPublicWompiWebhookRoute,
   ApiPublicHooksPaymentWebhookRoute: ApiPublicHooksPaymentWebhookRoute,
   ApiPublicHooksProcessNotificationsRoute:
     ApiPublicHooksProcessNotificationsRoute,

@@ -86,11 +86,19 @@ export const getNotificationAdminData = createServerFn({ method: "GET" })
 
     const rawTemplates = ((s?.templates ?? {}) as Record<string, string>) || {};
     const rawEvents = ((s?.events ?? {}) as Record<string, boolean>) || {};
-    const {
-      _telegram_bot_token,
-      _telegram_chat_id,
-      ...cleanTemplates
-    } = rawTemplates;
+    const { _telegram_bot_token: _legacyT, _telegram_chat_id: _legacyC, ...cleanTemplates } = rawTemplates;
+    let _telegram_bot_token = "";
+    let _telegram_chat_id = "";
+    if (role === "super_admin") {
+      const { data: secrets } = await supabaseAdmin
+        .from("integration_secrets")
+        .select("key, value")
+        .in("key", ["telegram_bot_token", "telegram_chat_id"]);
+      for (const r of secrets ?? []) {
+        if (r.key === "telegram_bot_token") _telegram_bot_token = r.value;
+        if (r.key === "telegram_chat_id") _telegram_chat_id = r.value;
+      }
+    }
 
     const mergedTemplates: Record<string, string> = {
       ...DEFAULT_ORDER_TEMPLATES,
@@ -177,12 +185,14 @@ export const saveNotificationSettingsAdmin = createServerFn({ method: "POST" })
     for (const [k, v] of Object.entries(data.templates)) {
       if (!k.startsWith("_telegram_")) safeTemplates[k] = v;
     }
-    if (data.telegram_bot_token) {
-      safeTemplates._telegram_bot_token = data.telegram_bot_token;
-    }
-    if (data.telegram_chat_id) {
-      safeTemplates._telegram_chat_id = data.telegram_chat_id;
-    }
+    const { error: secErr } = await supabaseAdmin.from("integration_secrets").upsert(
+      [
+        { key: "telegram_bot_token", value: data.telegram_bot_token, updated_at: new Date().toISOString() },
+        { key: "telegram_chat_id", value: data.telegram_chat_id, updated_at: new Date().toISOString() },
+      ],
+      { onConflict: "key" },
+    );
+    if (secErr) throw new Error(secErr.message);
 
     const { error } = await supabaseAdmin
       .from("notification_settings")
@@ -212,7 +222,10 @@ export const sendTelegramTestAdmin = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data, context }) => {
-    await assertTeamRole(context as never);
+    const testRole = await assertTeamRole(context as never);
+    if (testRole !== "super_admin") {
+      throw new Error("Solo un Super Admin puede probar la conexión de Telegram");
+    }
     const { sendTelegramNotification } = await import("@/lib/telegram.server");
 
     const nowText = new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" });

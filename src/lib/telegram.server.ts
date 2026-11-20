@@ -26,10 +26,14 @@ export async function getTelegramConfig(): Promise<TelegramConfig> {
       .limit(1)
       .maybeSingle();
 
-    const templates = (data?.templates ?? {}) as Record<string, unknown>;
     const events = (data?.events ?? {}) as Record<string, unknown>;
-    const dbToken = typeof templates._telegram_bot_token === "string" ? templates._telegram_bot_token.trim() : "";
-    const dbChatId = typeof templates._telegram_chat_id === "string" ? templates._telegram_chat_id.trim() : "";
+    const { data: secrets } = await supabaseAdmin
+      .from("integration_secrets")
+      .select("key, value")
+      .in("key", ["telegram_bot_token", "telegram_chat_id"]);
+    const map = new Map((secrets ?? []).map((r) => [r.key, (r.value ?? "").trim()]));
+    const dbToken = map.get("telegram_bot_token") ?? "";
+    const dbChatId = map.get("telegram_chat_id") ?? "";
 
     return {
       botToken: dbToken || envToken,

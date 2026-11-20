@@ -106,12 +106,13 @@ export const Route = createFileRoute("/api/public/wompi-webhook")({
           customer_name: string;
           total_cop: number;
           payment_method_name: string | null;
+          payment_status: string;
         } | null = null;
 
         if (uuidMatch) {
           const { data } = await supabaseAdmin
             .from("orders")
-            .select("id, customer_name, total_cop, payment_method_name")
+            .select("id, customer_name, total_cop, payment_method_name, payment_status")
             .or(`id.eq.${ref},public_token.eq.${ref}`)
             .maybeSingle();
           orderRow = data;
@@ -120,7 +121,7 @@ export const Route = createFileRoute("/api/public/wompi-webhook")({
           if (cleanCode.length >= 8) {
             const { data: candidates } = await supabaseAdmin
               .from("orders")
-              .select("id, customer_name, total_cop, payment_method_name")
+              .select("id, customer_name, total_cop, payment_method_name, payment_status")
               .order("created_at", { ascending: false })
               .limit(100);
             orderRow =
@@ -134,6 +135,21 @@ export const Route = createFileRoute("/api/public/wompi-webhook")({
 
         const txStatus = tx.status.toUpperCase();
         if (txStatus === "APPROVED") {
+          if (orderRow.payment_status === "pagado") {
+            return Response.json({ ok: true, already_paid: true, order_id: orderRow.id });
+          }
+          const expectedCents = Math.round(orderRow.total_cop * 100);
+          if (typeof tx.amount_in_cents !== "number" || tx.amount_in_cents < expectedCents) {
+            await supabaseAdmin
+              .from("orders")
+              .update({
+                payment_status: "comprobante_enviado",
+                payment_reference: `Wompi ${tx.id}`,
+                payment_note: `Wompi aprobó ${(tx.amount_in_cents ?? 0) / 100} COP pero el pedido es de ${orderRow.total_cop} COP. Revisar manualmente.`,
+              })
+              .eq("id", orderRow.id);
+            return Response.json({ ok: true, amount_mismatch: true, order_id: orderRow.id });
+          }
           const { error } = await supabaseAdmin
             .from("orders")
             .update({
@@ -158,7 +174,7 @@ export const Route = createFileRoute("/api/public/wompi-webhook")({
           } catch (err) {
             console.error("[Telegram] Wompi webhook alert error:", err);
           }
-        } else if (["DECLINED", "VOIDED", "ERROR"].includes(txStatus)) {
+        } else if (["DECLINED", "VOIDED", "ERROR"].includes(txStatus) && orderRow.payment_status !== "pagado") {
           await supabaseAdmin
             .from("orders")
             .update({
