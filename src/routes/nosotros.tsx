@@ -9,7 +9,7 @@ import { useSiteContent } from "@/hooks/use-site-content";
 import { StatCollection } from "@/components/StatCollection";
 import { ProductMedia } from "@/components/ProductMedia";
 import { UnifiedButton } from "@/components/UnifiedButton";
-import { getCanonicalBaseUrl, getSeo } from "@/lib/seo";
+import { getCanonicalBaseUrl, resolvePageSeo } from "@/lib/seo";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/nosotros")({
@@ -17,16 +17,10 @@ export const Route = createFileRoute("/nosotros")({
     const siteContent = await context.queryClient.ensureQueryData(siteContentQuery());
     return { siteContent };
   },
-  head: ({ loaderData }: any) => {
+  head: ({ loaderData }: { loaderData?: { siteContent?: Record<string, string> } }) => {
     const siteContent = loaderData?.siteContent;
     const canonicalUrl = `${getCanonicalBaseUrl(siteContent)}/nosotros`;
-    const seo = getSeo(
-      {
-        title: siteContent?.site_title ? `Nosotros · ${siteContent.site_title}` : "Nosotros — Will Design 3D",
-        about_short: siteContent?.about_short,
-      },
-      siteContent
-    );
+    const seo = resolvePageSeo("nosotros", siteContent);
 
     const metaTags: Array<Record<string, string>> = [
       { title: seo.title },

@@ -4,9 +4,11 @@ import {
   buildLlmsTxt,
   buildRobotsTxt,
   buildSeoFromContent,
+  buildServicesJsonLd,
   buildSitemapXml,
   getCanonicalBaseUrl,
   getRobotsContent,
+  resolvePageSeo,
 } from "./seo";
 
 describe("Arquitectura SEO y dominio canónico", () => {
@@ -182,5 +184,146 @@ describe("Arquitectura SEO y dominio canónico", () => {
       loaderData: { siteContent: customContent },
     });
     expect(cotizadorHead.links).toEqual([{ rel: "canonical", href: "https://custom.will3d.co/cotizador" }]);
+  });
+
+  it("buildServicesJsonLd genera Schema.org ItemList para servicios activos y omite lista vacía", () => {
+    expect(buildServicesJsonLd([], {})).toBeNull();
+    expect(buildServicesJsonLd([{ id: "1", title: "Oculto", is_active: false }], {})).toBeNull();
+
+    const jsonLd = buildServicesJsonLd(
+      [
+        {
+          id: "svc-1",
+          slug: "impresion-fdm",
+          title: "Impresión 3D FDM",
+          lead: "Prototipos funcionales en PLA y PETG.",
+          is_active: true,
+        },
+        {
+          id: "svc-2",
+          slug: "",
+          title: "Escaneo 3D",
+          lead: "",
+          is_active: true,
+        },
+      ],
+      {
+        site_canonical_domain: "https://mi3d.com/",
+        site_business_name: "Will Design Studio",
+        site_area_served: "Medellín, Colombia",
+      },
+    );
+
+    expect(jsonLd).toEqual({
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      name: "Servicios de Impresión 3D y Fabricación Digital",
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          item: {
+            "@type": "Service",
+            name: "Impresión 3D FDM",
+            description: "Prototipos funcionales en PLA y PETG.",
+            url: "https://mi3d.com/servicios#impresion-fdm",
+            provider: {
+              "@type": "LocalBusiness",
+              name: "Will Design Studio",
+              url: "https://mi3d.com/",
+            },
+            areaServed: "Medellín, Colombia",
+          },
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          item: {
+            "@type": "Service",
+            name: "Escaneo 3D",
+            description: "Escaneo 3D",
+            url: "https://mi3d.com/servicios#svc-2",
+            provider: {
+              "@type": "LocalBusiness",
+              name: "Will Design Studio",
+              url: "https://mi3d.com/",
+            },
+            areaServed: "Medellín, Colombia",
+          },
+        },
+      ],
+    });
+  });
+
+  it("la ruta /servicios emite script JSON-LD ItemList solo cuando hay servicios activos", async () => {
+    const { Route: ServiciosRoute } = await import("@/routes/servicios");
+    type ServiciosHeadCaller = (ctx: {
+      loaderData: {
+        siteContent: Record<string, string>;
+        siteServices: Array<{ id: string; slug: string; title: string; lead: string; is_active: boolean }>;
+      };
+    }) => {
+      meta: Array<{ name?: string; property?: string; content?: string }>;
+      scripts?: Array<{ type: string; children: string }>;
+    };
+
+    const emptyHead = (ServiciosRoute.options.head as unknown as ServiciosHeadCaller)({
+      loaderData: { siteContent: {}, siteServices: [] },
+    });
+    expect(emptyHead.scripts).toBeUndefined();
+
+    const populatedHead = (ServiciosRoute.options.head as unknown as ServiciosHeadCaller)({
+      loaderData: {
+        siteContent: { site_canonical_domain: "https://will3d.co" },
+        siteServices: [
+          {
+            id: "s1",
+            slug: "diseno-cad",
+            title: "Diseño CAD 3D",
+            lead: "Modelado técnico de piezas mecánicas.",
+            is_active: true,
+          },
+        ],
+      },
+    });
+    expect(populatedHead.scripts).toHaveLength(1);
+    const parsed = JSON.parse(populatedHead.scripts?.[0]?.children || "{}");
+    expect(parsed["@type"]).toBe("ItemList");
+    expect(parsed.itemListElement[0].item.url).toBe("https://will3d.co/servicios#diseno-cad");
+    expect(parsed.itemListElement[0].item.areaServed).toBe("Bogotá, Colombia");
+  });
+
+  it("resolvePageSeo aplica overrides granulares por página y descarta imágenes animadas", async () => {
+    const content: Record<string, string> = {
+      site_title: "Will Design 3D",
+      site_description: "Descripción global",
+      site_meta_thumbnail_url: "https://cdn.example.com/global-og.jpg",
+      seo_servicios_title: "Servicios Industriales 3D",
+      seo_servicios_description: "Impresión FDM, SLA y diseño mecánico a medida.",
+      seo_servicios_image: "https://cdn.example.com/anim.gif",
+      seo_cotizador_title: "Cotiza tu pieza 3D hoy",
+      seo_cotizador_image: "https://cdn.example.com/cotizador-og.png",
+    };
+
+    const serviciosSeo = resolvePageSeo("servicios", content);
+    expect(serviciosSeo.title).toBe("Servicios Industriales 3D");
+    expect(serviciosSeo.description).toBe("Impresión FDM, SLA y diseño mecánico a medida.");
+    expect(serviciosSeo.image).toBe("https://cdn.example.com/global-og.jpg");
+
+    const cotizadorSeo = resolvePageSeo("cotizador", content);
+    expect(cotizadorSeo.title).toBe("Cotiza tu pieza 3D hoy");
+    expect(cotizadorSeo.image).toBe("https://cdn.example.com/cotizador-og.png");
+
+    const { Route: ServiciosRoute } = await import("@/routes/servicios");
+    type HeadCaller = (ctx: { loaderData: { siteContent: Record<string, string> } }) => {
+      meta: Array<{ title?: string; name?: string; property?: string; content?: string }>;
+    };
+    const serviciosHead = (ServiciosRoute.options.head as unknown as HeadCaller)({
+      loaderData: { siteContent: content },
+    });
+    expect(serviciosHead.meta.find((m) => "title" in m)?.title).toBe("Servicios Industriales 3D");
+    expect(serviciosHead.meta.find((m) => m.property === "og:image")?.content).toBe(
+      "https://cdn.example.com/global-og.jpg",
+    );
   });
 });

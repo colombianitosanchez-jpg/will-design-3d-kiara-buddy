@@ -25,7 +25,7 @@ import { accentTokensFor, resolveServicePrimaryAction } from "@/lib/quoter-ui";
 import { supabase } from "@/integrations/supabase/client";
 import { parseProductButtons } from "@/lib/product-buttons";
 import { ProductButtons } from "@/components/ProductButtons";
-import { getCanonicalBaseUrl, getSeo } from "@/lib/seo";
+import { buildServicesJsonLd, getCanonicalBaseUrl, resolvePageSeo, type ServiceJsonLdInput } from "@/lib/seo";
 
 export const Route = createFileRoute("/servicios")({
   loader: async ({ context }) => {
@@ -35,21 +35,18 @@ export const Route = createFileRoute("/servicios")({
     ]);
     return { siteContent, siteServices };
   },
-  head: ({ loaderData }: any) => {
+  head: ({
+    loaderData,
+  }: {
+    loaderData?: {
+      siteContent?: Record<string, string>;
+      siteServices?: ServiceJsonLdInput[];
+    };
+  }) => {
     const siteContent = loaderData?.siteContent;
     const canonicalUrl = `${getCanonicalBaseUrl(siteContent)}/servicios`;
-    const seo = getSeo(
-      {
-        title: siteContent?.services_section_title
-          ? `${siteContent.services_section_title} · ${siteContent?.site_title || "Will Design 3D"}`
-          : siteContent?.site_title
-            ? `Servicios 3D · ${siteContent.site_title}`
-            : "Servicios 3D — Will Design 3D",
-        description:
-          siteContent?.services_section_subtitle || siteContent?.services_page_description,
-      },
-      siteContent,
-    );
+    const seo = resolvePageSeo("servicios", siteContent);
+    const servicesJsonLd = buildServicesJsonLd(loaderData?.siteServices, siteContent);
 
     const metaTags: Array<Record<string, string>> = [
       { title: seo.title },
@@ -71,6 +68,16 @@ export const Route = createFileRoute("/servicios")({
     return {
       meta: metaTags,
       links: [{ rel: "canonical", href: canonicalUrl }],
+      ...(servicesJsonLd
+        ? {
+            scripts: [
+              {
+                type: "application/ld+json",
+                children: JSON.stringify(servicesJsonLd),
+              },
+            ],
+          }
+        : {}),
     };
   },
   component: ServiciosPage,

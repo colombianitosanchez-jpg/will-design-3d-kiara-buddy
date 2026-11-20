@@ -1,22 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { InstagramFeed } from "@/components/InstagramFeed";
 import { siteContentQuery } from "@/lib/catalog";
-import { getCanonicalBaseUrl, getSeo } from "@/lib/seo";
+import { getCanonicalBaseUrl, resolvePageSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/galeria")({
   loader: async ({ context }) => {
     const siteContent = await context.queryClient.ensureQueryData(siteContentQuery());
     return { siteContent };
   },
-  head: ({ loaderData }: any) => {
+  head: ({ loaderData }: { loaderData?: { siteContent?: Record<string, string> } }) => {
     const siteContent = loaderData?.siteContent;
     const canonicalUrl = `${getCanonicalBaseUrl(siteContent)}/galeria`;
-    const seo = getSeo(
-      {
-        title: siteContent?.site_title ? `Galería de Proyectos · ${siteContent.site_title}` : "Galería de Proyectos — Will Design 3D",
-      },
-      siteContent
-    );
+    const seo = resolvePageSeo("galeria", siteContent);
 
     const metaTags: Array<Record<string, string>> = [
       { title: seo.title },

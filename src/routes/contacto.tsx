@@ -6,23 +6,18 @@ import { MessageCircle, Instagram, MapPin, Mail, Send } from "lucide-react";
 import { toast } from "sonner";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 import { openExternalUrl } from "@/lib/whatsapp";
-import { getCanonicalBaseUrl, getSeo } from "@/lib/seo";
+import { getCanonicalBaseUrl, resolvePageSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/contacto")({
   loader: async ({ context }) => {
     const siteContent = await context.queryClient.ensureQueryData(siteContentQuery());
     return { siteContent };
   },
-  head: ({ loaderData }: any) => {
+  head: ({ loaderData }: { loaderData?: { siteContent?: Record<string, string> } }) => {
     const siteContent = loaderData?.siteContent;
     const baseUrl = getCanonicalBaseUrl(siteContent);
     const canonicalUrl = `${baseUrl}/contacto`;
-    const seo = getSeo(
-      {
-        title: siteContent?.site_title ? `Contacto · ${siteContent.site_title}` : "Contacto — Will Design 3D",
-      },
-      siteContent
-    );
+    const seo = resolvePageSeo("contacto", siteContent);
     const businessName = siteContent?.site_business_name || "Will Design 3D";
     const areaServed = siteContent?.site_area_served || "";
 

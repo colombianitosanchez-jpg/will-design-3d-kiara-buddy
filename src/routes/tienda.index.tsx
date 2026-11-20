@@ -30,7 +30,7 @@ import {
 } from "@/lib/catalog";
 import { ProductCard } from "@/components/ProductCard";
 import { getMatchingVariants, type ProductVariant } from "@/lib/product-variants";
-import { getCanonicalBaseUrl, getSeo } from "@/lib/seo";
+import { getCanonicalBaseUrl, resolvePageSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/tienda/")({
   validateSearch: (
@@ -49,15 +49,10 @@ export const Route = createFileRoute("/tienda/")({
     ]);
     return { siteContent };
   },
-  head: ({ loaderData }: any) => {
+  head: ({ loaderData }: { loaderData?: { siteContent?: Record<string, string> } }) => {
     const siteContent = loaderData?.siteContent;
     const canonicalUrl = `${getCanonicalBaseUrl(siteContent)}/tienda`;
-    const seo = getSeo(
-      {
-        title: siteContent?.site_title ? `Tienda · ${siteContent.site_title}` : "Tienda — Will Design 3D",
-      },
-      siteContent
-    );
+    const seo = resolvePageSeo("tienda", siteContent);
 
     const metaTags: Array<Record<string, string>> = [
       { title: seo.title },

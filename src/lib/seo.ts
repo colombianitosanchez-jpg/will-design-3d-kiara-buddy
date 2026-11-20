@@ -260,6 +260,207 @@ export function getSeo(
   };
 }
 
+export type GranularSeoPageKey =
+  | "home"
+  | "tienda"
+  | "servicios"
+  | "cotizador"
+  | "galeria"
+  | "nosotros"
+  | "contacto";
+
+export const GRANULAR_SEO_PAGE_KEYS: Record<
+  GranularSeoPageKey,
+  { titleKey: string; descriptionKey: string; imageKey: string }
+> = {
+  home: {
+    titleKey: "seo_home_title",
+    descriptionKey: "seo_home_description",
+    imageKey: "seo_home_image",
+  },
+  tienda: {
+    titleKey: "seo_tienda_title",
+    descriptionKey: "seo_tienda_description",
+    imageKey: "seo_tienda_image",
+  },
+  servicios: {
+    titleKey: "seo_servicios_title",
+    descriptionKey: "seo_servicios_description",
+    imageKey: "seo_servicios_image",
+  },
+  cotizador: {
+    titleKey: "seo_cotizador_title",
+    descriptionKey: "seo_cotizador_description",
+    imageKey: "seo_cotizador_image",
+  },
+  galeria: {
+    titleKey: "seo_galeria_title",
+    descriptionKey: "seo_galeria_description",
+    imageKey: "seo_galeria_image",
+  },
+  nosotros: {
+    titleKey: "seo_nosotros_title",
+    descriptionKey: "seo_nosotros_description",
+    imageKey: "seo_nosotros_image",
+  },
+  contacto: {
+    titleKey: "seo_contacto_title",
+    descriptionKey: "seo_contacto_description",
+    imageKey: "seo_contacto_image",
+  },
+};
+
+export function resolvePageSeo(
+  page: GranularSeoPageKey,
+  siteContent?: Record<string, string> | null,
+): SeoResult {
+  const keys = GRANULAR_SEO_PAGE_KEYS[page];
+  const baseOverride: PageSeoInput = {
+    seo_title: siteContent?.[keys.titleKey],
+    seo_description: siteContent?.[keys.descriptionKey],
+    seo_image: siteContent?.[keys.imageKey],
+  };
+
+  if (page === "home") {
+    return getSeo(
+      {
+        ...baseOverride,
+        hero_title: siteContent?.hero_title,
+        hero_subtitle: siteContent?.hero_subtitle,
+        hero_image_url: siteContent?.hero_image_url,
+      },
+      siteContent,
+    );
+  }
+
+  if (page === "tienda") {
+    return getSeo(
+      {
+        ...baseOverride,
+        title: siteContent?.site_title
+          ? `Tienda · ${siteContent.site_title}`
+          : "Tienda — Will Design 3D",
+      },
+      siteContent,
+    );
+  }
+
+  if (page === "servicios") {
+    return getSeo(
+      {
+        ...baseOverride,
+        title: siteContent?.services_section_title
+          ? `${siteContent.services_section_title} · ${siteContent?.site_title || "Will Design 3D"}`
+          : siteContent?.site_title
+            ? `Servicios 3D · ${siteContent.site_title}`
+            : "Servicios 3D — Will Design 3D",
+        description:
+          siteContent?.services_section_subtitle || siteContent?.services_page_description,
+      },
+      siteContent,
+    );
+  }
+
+  if (page === "cotizador") {
+    return getSeo(
+      {
+        ...baseOverride,
+        title: siteContent?.site_title
+          ? `Cotizador 3D · ${siteContent.site_title}`
+          : "Cotizador de Impresión 3D en línea — Will Design 3D",
+        description:
+          "Calcula al instante el precio de tu impresión 3D, diseño, escaneo o post-procesado. Ajusta material, tamaño y acabado y recibe tu cotización por WhatsApp.",
+      },
+      siteContent,
+    );
+  }
+
+  if (page === "galeria") {
+    return getSeo(
+      {
+        ...baseOverride,
+        title: siteContent?.site_title
+          ? `Galería de Proyectos · ${siteContent.site_title}`
+          : "Galería de Proyectos — Will Design 3D",
+      },
+      siteContent,
+    );
+  }
+
+  if (page === "nosotros") {
+    return getSeo(
+      {
+        ...baseOverride,
+        title: siteContent?.site_title
+          ? `Nosotros · ${siteContent.site_title}`
+          : "Nosotros — Will Design 3D",
+        about_short: siteContent?.about_short,
+      },
+      siteContent,
+    );
+  }
+
+  return getSeo(
+    {
+      ...baseOverride,
+      title: siteContent?.site_title
+        ? `Contacto · ${siteContent.site_title}`
+        : "Contacto — Will Design 3D",
+    },
+    siteContent,
+  );
+}
+
+export interface ServiceJsonLdInput {
+  id?: string | null;
+  slug?: string | null;
+  title?: string | null;
+  lead?: string | null;
+  is_active?: boolean | null;
+}
+
+export function buildServicesJsonLd(
+  services?: ServiceJsonLdInput[] | null,
+  siteContent?: Record<string, string> | null,
+) {
+  const activeServices = (services ?? []).filter(
+    (s) => s && s.is_active !== false && Boolean(s.title?.trim()),
+  );
+  if (activeServices.length === 0) return null;
+
+  const baseUrl = getCanonicalBaseUrl(siteContent);
+  const providerName = siteContent?.site_business_name?.trim() || "Will Design 3D";
+  const areaServed = siteContent?.site_area_served?.trim() || "Bogotá, Colombia";
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "Servicios de Impresión 3D y Fabricación Digital",
+    itemListElement: activeServices.map((service, index) => {
+      const fragment = (service.slug || service.id || "").trim();
+      const url = fragment ? `${baseUrl}/servicios#${fragment}` : `${baseUrl}/servicios`;
+      const description = productPlainText(service.lead) || service.title!.trim();
+
+      return {
+        "@type": "ListItem",
+        position: index + 1,
+        item: {
+          "@type": "Service",
+          name: service.title!.trim(),
+          description,
+          url,
+          provider: {
+            "@type": "LocalBusiness",
+            name: providerName,
+            url: `${baseUrl}/`,
+          },
+          areaServed,
+        },
+      };
+    }),
+  };
+}
+
 export type SeoPageType =
   | 'home'
   | 'producto'
@@ -270,6 +471,16 @@ export type SeoPageType =
   | 'contacto'
   | 'tienda';
 
+export type SeoItemInput = {
+  name?: string;
+  title?: string;
+  short?: string;
+  description?: string;
+  lead?: string;
+  image_url?: string | null;
+  images?: Array<string | null> | null;
+};
+
 /**
  * Genera datos SEO de forma 100% dinámico-programática desde la clave de página
  * y los datos de contenido del sitio o ítem individual.
@@ -277,7 +488,7 @@ export type SeoPageType =
 export function buildSeoFromContent(
   page: SeoPageType,
   content: Record<string, string>,
-  item?: any
+  item?: SeoItemInput | null,
 ) {
   const globalTitle = content.site_title?.trim() || "Will Design 3D";
   const globalDesc = content.site_description?.trim() || content.site_description_fallback?.trim() || "";
@@ -288,9 +499,9 @@ export function buildSeoFromContent(
   let image = globalImage;
 
   if (page === 'home') {
-    title = content.hero_title?.trim() || globalTitle;
-    description = content.hero_subtitle?.trim() || globalDesc;
-    image = firstStaticShareImage([content.hero_image_url, globalImage]);
+    title = content.seo_home_title?.trim() || content.hero_title?.trim() || globalTitle;
+    description = content.seo_home_description?.trim() || content.hero_subtitle?.trim() || globalDesc;
+    image = firstStaticShareImage([content.seo_home_image, content.hero_image_url, globalImage]);
   } else if (page === 'producto' && item) {
     title = item.name ? `${item.name} | ${globalTitle}` : globalTitle;
     const cleanDesc = item.short || item.description?.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
@@ -302,18 +513,33 @@ export function buildSeoFromContent(
       description = item.lead?.trim() || globalDesc;
       image = firstStaticShareImage([item.image_url, globalImage]);
     } else {
-      title = content.services_section_title ? `${content.services_section_title} | ${globalTitle}` : `Servicios | ${globalTitle}`;
-      description = content.services_section_subtitle?.trim() || globalDesc;
+      title =
+        content.seo_servicios_title?.trim() ||
+        (content.services_section_title
+          ? `${content.services_section_title} | ${globalTitle}`
+          : `Servicios | ${globalTitle}`);
+      description =
+        content.seo_servicios_description?.trim() ||
+        content.services_section_subtitle?.trim() ||
+        globalDesc;
+      image = firstStaticShareImage([content.seo_servicios_image, globalImage]);
     }
   } else if (page === 'nosotros') {
-    title = `Nosotros | ${globalTitle}`;
-    description = content.about_short?.trim() || globalDesc;
+    title = content.seo_nosotros_title?.trim() || `Nosotros | ${globalTitle}`;
+    description = content.seo_nosotros_description?.trim() || content.about_short?.trim() || globalDesc;
+    image = firstStaticShareImage([content.seo_nosotros_image, globalImage]);
   } else if (page === 'galeria') {
-    title = `Galería | ${globalTitle}`;
+    title = content.seo_galeria_title?.trim() || `Galería | ${globalTitle}`;
+    description = content.seo_galeria_description?.trim() || globalDesc;
+    image = firstStaticShareImage([content.seo_galeria_image, globalImage]);
   } else if (page === 'contacto') {
-    title = `Contacto | ${globalTitle}`;
+    title = content.seo_contacto_title?.trim() || `Contacto | ${globalTitle}`;
+    description = content.seo_contacto_description?.trim() || globalDesc;
+    image = firstStaticShareImage([content.seo_contacto_image, globalImage]);
   } else if (page === 'tienda') {
-    title = `Tienda | ${globalTitle}`;
+    title = content.seo_tienda_title?.trim() || `Tienda | ${globalTitle}`;
+    description = content.seo_tienda_description?.trim() || globalDesc;
+    image = firstStaticShareImage([content.seo_tienda_image, globalImage]);
   } else if (page === 'marca') {
     title = globalTitle;
   }

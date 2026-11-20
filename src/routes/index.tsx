@@ -26,7 +26,7 @@ import { parseHeroButtons, type HeroButtonItem } from "@/lib/hero-buttons";
 import { parseAboutButtons, type AboutButtonItem } from "@/lib/about-buttons";
 import { getActiveTheme } from "@/lib/theme";
 import { getWhatsAppPayloadForButton } from "@/lib/whatsapp-buttons";
-import { getCanonicalBaseUrl, getSeo } from "@/lib/seo";
+import { getCanonicalBaseUrl, resolvePageSeo } from "@/lib/seo";
 import type { ButtonIconShape } from "@/lib/product-buttons";
 import { motion } from "framer-motion";
 import { StatCollection } from "@/components/StatCollection";
@@ -77,16 +77,9 @@ export const Route = createFileRoute("/")({
       ]);
     return { siteContent, products, heroCarousel, siteServices, categories, menuItems };
   },
-  head: ({ loaderData }: any) => {
+  head: ({ loaderData }: { loaderData?: { siteContent?: Record<string, string> } }) => {
     const siteContent = loaderData?.siteContent;
-    const seo = getSeo(
-      {
-        hero_title: siteContent?.hero_title,
-        hero_subtitle: siteContent?.hero_subtitle,
-        hero_image_url: siteContent?.hero_image_url,
-      },
-      siteContent
-    );
+    const seo = resolvePageSeo("home", siteContent);
 
     const canonicalUrl = getCanonicalBaseUrl(siteContent);
 

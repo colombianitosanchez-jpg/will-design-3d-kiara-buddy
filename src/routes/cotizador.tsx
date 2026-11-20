@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { Quoter } from "@/components/Quoter";
 import { siteContentQuery } from "@/lib/catalog";
-import { getCanonicalBaseUrl, getSeo } from "@/lib/seo";
+import { getCanonicalBaseUrl, resolvePageSeo } from "@/lib/seo";
 
 const searchSchema = z.object({
   servicio: z.string().max(80).optional(),
@@ -14,19 +14,10 @@ export const Route = createFileRoute("/cotizador")({
     const siteContent = await context.queryClient.ensureQueryData(siteContentQuery());
     return { siteContent };
   },
-  head: ({ loaderData }: any) => {
+  head: ({ loaderData }: { loaderData?: { siteContent?: Record<string, string> } }) => {
     const siteContent = loaderData?.siteContent;
     const canonicalUrl = `${getCanonicalBaseUrl(siteContent)}/cotizador`;
-    const seo = getSeo(
-      {
-        title: siteContent?.site_title
-          ? `Cotizador 3D · ${siteContent.site_title}`
-          : "Cotizador de Impresión 3D en línea — Will Design 3D",
-        description:
-          "Calcula al instante el precio de tu impresión 3D, diseño, escaneo o post-procesado. Ajusta material, tamaño y acabado y recibe tu cotización por WhatsApp.",
-      },
-      siteContent,
-    );
+    const seo = resolvePageSeo("cotizador", siteContent);
 
     const metaTags: Array<Record<string, string>> = [
       { title: seo.title },

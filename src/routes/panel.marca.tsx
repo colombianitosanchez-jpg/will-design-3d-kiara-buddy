@@ -15,6 +15,7 @@ import {
   Trash2,
   Plus,
   GripVertical,
+  ChevronDown,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -32,7 +33,7 @@ import {
   type ThemeAnimation,
   type ColorToken,
 } from "@/lib/theme";
-import { getCanonicalBaseUrl } from "@/lib/seo";
+import { getCanonicalBaseUrl, resolvePageSeo, type GranularSeoPageKey } from "@/lib/seo";
 import {
   DndContext,
   closestCenter,
@@ -142,6 +143,175 @@ const MARCA_FIELDS: FieldDef[] = [
     tab: "seo",
     group: "SEO Global Fallback",
   },
+  // --------------------------------------------------- SEO Granular por Página
+  {
+    key: "seo_home_title",
+    label: "Título SEO — Inicio",
+    type: "text",
+    help: "Opcional. Si queda vacío, usa el título del Hero o el título global.",
+    tab: "seo",
+    group: "SEO por Página · Inicio (/)",
+  },
+  {
+    key: "seo_home_description",
+    label: "Descripción SEO — Inicio",
+    type: "textarea",
+    help: "Opcional. Si queda vacío, usa el subtítulo del Hero o la descripción global.",
+    tab: "seo",
+    group: "SEO por Página · Inicio (/)",
+  },
+  {
+    key: "seo_home_image",
+    label: "Imagen Social (OG) — Inicio",
+    type: "image",
+    help: "Opcional. Imagen estática (JPG/PNG, 1200×630 recomendado) para compartir en WhatsApp y redes.",
+    tab: "seo",
+    group: "SEO por Página · Inicio (/)",
+  },
+  {
+    key: "seo_tienda_title",
+    label: "Título SEO — Tienda",
+    type: "text",
+    help: "Opcional. Si queda vacío, genera 'Tienda · Título Global'.",
+    tab: "seo",
+    group: "SEO por Página · Tienda (/tienda)",
+  },
+  {
+    key: "seo_tienda_description",
+    label: "Descripción SEO — Tienda",
+    type: "textarea",
+    help: "Opcional. Si queda vacío, usa la descripción global.",
+    tab: "seo",
+    group: "SEO por Página · Tienda (/tienda)",
+  },
+  {
+    key: "seo_tienda_image",
+    label: "Imagen Social (OG) — Tienda",
+    type: "image",
+    help: "Opcional. Imagen estática (JPG/PNG) para compartir la tienda.",
+    tab: "seo",
+    group: "SEO por Página · Tienda (/tienda)",
+  },
+  {
+    key: "seo_servicios_title",
+    label: "Título SEO — Servicios",
+    type: "text",
+    help: "Opcional. Si queda vacío, usa el título de la sección de servicios o 'Servicios 3D'.",
+    tab: "seo",
+    group: "SEO por Página · Servicios (/servicios)",
+  },
+  {
+    key: "seo_servicios_description",
+    label: "Descripción SEO — Servicios",
+    type: "textarea",
+    help: "Opcional. Si queda vacío, usa el subtítulo o descripción de servicios.",
+    tab: "seo",
+    group: "SEO por Página · Servicios (/servicios)",
+  },
+  {
+    key: "seo_servicios_image",
+    label: "Imagen Social (OG) — Servicios",
+    type: "image",
+    help: "Opcional. Imagen estática (JPG/PNG) para compartir Servicios.",
+    tab: "seo",
+    group: "SEO por Página · Servicios (/servicios)",
+  },
+  {
+    key: "seo_cotizador_title",
+    label: "Título SEO — Cotizador",
+    type: "text",
+    help: "Opcional. Si queda vacío, genera 'Cotizador 3D · Título Global'.",
+    tab: "seo",
+    group: "SEO por Página · Cotizador (/cotizador)",
+  },
+  {
+    key: "seo_cotizador_description",
+    label: "Descripción SEO — Cotizador",
+    type: "textarea",
+    help: "Opcional. Si queda vacío, usa la descripción predeterminada del cotizador.",
+    tab: "seo",
+    group: "SEO por Página · Cotizador (/cotizador)",
+  },
+  {
+    key: "seo_cotizador_image",
+    label: "Imagen Social (OG) — Cotizador",
+    type: "image",
+    help: "Opcional. Imagen estática (JPG/PNG) para compartir el cotizador.",
+    tab: "seo",
+    group: "SEO por Página · Cotizador (/cotizador)",
+  },
+  {
+    key: "seo_galeria_title",
+    label: "Título SEO — Galería",
+    type: "text",
+    help: "Opcional. Si queda vacío, genera 'Galería de Proyectos · Título Global'.",
+    tab: "seo",
+    group: "SEO por Página · Galería (/galeria)",
+  },
+  {
+    key: "seo_galeria_description",
+    label: "Descripción SEO — Galería",
+    type: "textarea",
+    help: "Opcional. Si queda vacío, usa la descripción global.",
+    tab: "seo",
+    group: "SEO por Página · Galería (/galeria)",
+  },
+  {
+    key: "seo_galeria_image",
+    label: "Imagen Social (OG) — Galería",
+    type: "image",
+    help: "Opcional. Imagen estática (JPG/PNG) para compartir la galería.",
+    tab: "seo",
+    group: "SEO por Página · Galería (/galeria)",
+  },
+  {
+    key: "seo_nosotros_title",
+    label: "Título SEO — Nosotros",
+    type: "text",
+    help: "Opcional. Si queda vacío, genera 'Nosotros · Título Global'.",
+    tab: "seo",
+    group: "SEO por Página · Nosotros (/nosotros)",
+  },
+  {
+    key: "seo_nosotros_description",
+    label: "Descripción SEO — Nosotros",
+    type: "textarea",
+    help: "Opcional. Si queda vacío, usa la reseña corta de Nosotros o la descripción global.",
+    tab: "seo",
+    group: "SEO por Página · Nosotros (/nosotros)",
+  },
+  {
+    key: "seo_nosotros_image",
+    label: "Imagen Social (OG) — Nosotros",
+    type: "image",
+    help: "Opcional. Imagen estática (JPG/PNG) para compartir Nosotros.",
+    tab: "seo",
+    group: "SEO por Página · Nosotros (/nosotros)",
+  },
+  {
+    key: "seo_contacto_title",
+    label: "Título SEO — Contacto",
+    type: "text",
+    help: "Opcional. Si queda vacío, genera 'Contacto · Título Global'.",
+    tab: "seo",
+    group: "SEO por Página · Contacto (/contacto)",
+  },
+  {
+    key: "seo_contacto_description",
+    label: "Descripción SEO — Contacto",
+    type: "textarea",
+    help: "Opcional. Si queda vacío, usa la descripción global.",
+    tab: "seo",
+    group: "SEO por Página · Contacto (/contacto)",
+  },
+  {
+    key: "seo_contacto_image",
+    label: "Imagen Social (OG) — Contacto",
+    type: "image",
+    help: "Opcional. Imagen estática (JPG/PNG) para compartir Contacto.",
+    tab: "seo",
+    group: "SEO por Página · Contacto (/contacto)",
+  },
 
   // ----------------------------------------------------------------- Empresa
   { key: "site_area_served", label: "Área o Ciudad de Servicio (JSON-LD)", type: "text", help: "Ej: Bogotá, Colombia", tab: "empresa", group: "Ubicación y Cobertura" },
@@ -161,7 +331,7 @@ const MARCA_FIELDS: FieldDef[] = [
 ];
 
 function SeoPreviewCard({ values }: { values: Record<string, string> }) {
-  const [selectedPage, setSelectedPage] = useState<"home" | "store" | "services" | "gallery" | "about" | "contact">("home");
+  const [selectedPage, setSelectedPage] = useState<GranularSeoPageKey>("home");
 
   const baseUrl = getCanonicalBaseUrl(values);
   const hostLabel = (() => {
@@ -172,50 +342,23 @@ function SeoPreviewCard({ values }: { values: Record<string, string> }) {
     }
   })();
 
-  const globalTitle = values.site_title || "Will Design 3D";
-  const globalDesc = values.site_description || "";
-  const globalImg = values.site_meta_thumbnail_url || values.site_logo_url || "";
-
-  const pageMap = {
-    home: {
-      url: `${baseUrl}/`,
-      title: values.hero_title || globalTitle,
-      desc: values.hero_subtitle || globalDesc,
-      img: values.hero_image_url || globalImg,
-    },
-    store: {
-      url: `${baseUrl}/tienda`,
-      title: `Tienda · ${globalTitle}`,
-      desc: globalDesc,
-      img: globalImg,
-    },
-    services: {
-      url: `${baseUrl}/servicios`,
-      title: values.services_section_title ? `${values.services_section_title} · ${globalTitle}` : `Servicios 3D · ${globalTitle}`,
-      desc: values.services_section_subtitle || globalDesc,
-      img: globalImg,
-    },
-    gallery: {
-      url: `${baseUrl}/galeria`,
-      title: `Galería de Proyectos · ${globalTitle}`,
-      desc: globalDesc,
-      img: globalImg,
-    },
-    about: {
-      url: `${baseUrl}/nosotros`,
-      title: `Nosotros · ${globalTitle}`,
-      desc: values.about_short || globalDesc,
-      img: globalImg,
-    },
-    contact: {
-      url: `${baseUrl}/contacto`,
-      title: `Contacto · ${globalTitle}`,
-      desc: globalDesc,
-      img: globalImg,
-    },
+  const pathMap: Record<GranularSeoPageKey, string> = {
+    home: "/",
+    tienda: "/tienda",
+    servicios: "/servicios",
+    cotizador: "/cotizador",
+    galeria: "/galeria",
+    nosotros: "/nosotros",
+    contacto: "/contacto",
   };
 
-  const curr = pageMap[selectedPage];
+  const resolved = resolvePageSeo(selectedPage, values);
+  const curr = {
+    url: `${baseUrl}${pathMap[selectedPage]}`,
+    title: resolved.title,
+    desc: resolved.description,
+    img: resolved.image,
+  };
 
   return (
     <Card className="border-2 border-primary/30 bg-card mb-6">
@@ -229,17 +372,18 @@ function SeoPreviewCard({ values }: { values: Record<string, string> }) {
               Simulación de cómo ven Google, WhatsApp y Facebook tus enlaces al compartirlos.
             </CardDescription>
           </div>
-          <Select value={selectedPage} onValueChange={(v: any) => setSelectedPage(v)}>
-            <SelectTrigger className="w-48">
+          <Select value={selectedPage} onValueChange={(v) => setSelectedPage(v as GranularSeoPageKey)}>
+            <SelectTrigger className="w-56">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="home">Página de Inicio (/)</SelectItem>
-              <SelectItem value="store">Tienda (/tienda)</SelectItem>
-              <SelectItem value="services">Servicios (/servicios)</SelectItem>
-              <SelectItem value="gallery">Galería (/galeria)</SelectItem>
-              <SelectItem value="about">Nosotros (/nosotros)</SelectItem>
-              <SelectItem value="contact">Contacto (/contacto)</SelectItem>
+              <SelectItem value="tienda">Tienda (/tienda)</SelectItem>
+              <SelectItem value="servicios">Servicios (/servicios)</SelectItem>
+              <SelectItem value="cotizador">Cotizador (/cotizador)</SelectItem>
+              <SelectItem value="galeria">Galería (/galeria)</SelectItem>
+              <SelectItem value="nosotros">Nosotros (/nosotros)</SelectItem>
+              <SelectItem value="contacto">Contacto (/contacto)</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -290,6 +434,52 @@ function SeoPreviewCard({ values }: { values: Record<string, string> }) {
           </div>
         </div>
       </CardContent>
+    </Card>
+  );
+}
+
+function CollapsibleSeoGroupCard({
+  title,
+  configuredCount,
+  totalCount,
+  children,
+}: {
+  title: string;
+  configuredCount: number;
+  totalCount: number;
+  children: React.ReactNode;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <Card>
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        aria-expanded={isOpen}
+        className="flex w-full items-center justify-between gap-4 px-6 py-4 text-left transition-colors hover:bg-muted/40"
+      >
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="text-base font-bold text-foreground">{title}</span>
+          <span
+            className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${
+              configuredCount > 0
+                ? "bg-primary/15 text-primary"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
+            {configuredCount > 0
+              ? `${configuredCount}/${totalCount} personalizados`
+              : "Automático (Fallback)"}
+          </span>
+        </div>
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${
+            isOpen ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+      {isOpen && <CardContent className="space-y-6 border-t border-border pt-6">{children}</CardContent>}
     </Card>
   );
 }
@@ -898,16 +1088,33 @@ function MarcaAdmin() {
                   </CardHeader>
                 </Card>
               )}
-              {groups.map((group) => (
-                <Card key={group}>
-                  <CardHeader>
-                    <CardTitle className="text-base">{group}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {tabFields.filter((f) => f.group === group).map(renderField)}
-                  </CardContent>
-                </Card>
-              ))}
+              {groups.map((group) => {
+                const groupFields = tabFields.filter((f) => f.group === group);
+                const isPageSeoGroup = group.startsWith("SEO por Página · ");
+                if (isPageSeoGroup) {
+                  const configuredCount = groupFields.filter((f) => Boolean(values[f.key]?.trim())).length;
+                  return (
+                    <CollapsibleSeoGroupCard
+                      key={group}
+                      title={group}
+                      configuredCount={configuredCount}
+                      totalCount={groupFields.length}
+                    >
+                      {groupFields.map(renderField)}
+                    </CollapsibleSeoGroupCard>
+                  );
+                }
+                return (
+                  <Card key={group}>
+                    <CardHeader>
+                      <CardTitle className="text-base">{group}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {groupFields.map(renderField)}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </TabsContent>
           );
         })}
