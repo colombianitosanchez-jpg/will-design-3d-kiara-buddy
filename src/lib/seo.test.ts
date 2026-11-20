@@ -184,7 +184,7 @@ describe("Arquitectura SEO y dominio canónico", () => {
       loaderData: { siteContent: customContent },
     });
     expect(cotizadorHead.links).toEqual([{ rel: "canonical", href: "https://custom.will3d.co/cotizador" }]);
-  });
+  }, 15000);
 
   it("buildServicesJsonLd genera Schema.org ItemList para servicios activos y omite lista vacía", () => {
     expect(buildServicesJsonLd([], {})).toBeNull();

@@ -23,7 +23,7 @@ export function StatCollection({ collection }: { collection: StatCollectionKey }
       const clickable = Boolean(item.action_type && item.action_type !== "none");
       function act() {
         if (item.action_type === "whatsapp") {
-          const payload = getWhatsAppPayloadForButton({ ...item, whatsapp_image_key: statShareKey(collection, index) }, undefined, undefined, `Hola, me interesa ${item.k}.`, content.whatsapp_default_message);
+          const payload = getWhatsAppPayloadForButton({ ...item, whatsapp_image_key: statShareKey(collection, index) }, undefined, undefined, `Hola, me interesa ${item.k}.`, content.whatsapp_default_message, content);
           const url = waLink(pickWhatsapp(item.action_value, getContactInfo(content).whatsapp), payload.formattedText);
           if (!url) { toast.error("Configura WhatsApp en /panel/marca"); return; }
           openExternalUrl(url);

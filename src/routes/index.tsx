@@ -167,7 +167,8 @@ function Hero() {
         btn.media_url || image,
         content?.site_logo_url,
         effectiveFallback,
-        globalDefaultMessage
+        globalDefaultMessage,
+        content
       );
       const targetPhone = pickWhatsapp(btn.whatsapp_number || actionVal, fallbackWhatsapp);
       const waUrl = waLink(targetPhone, payload.formattedText);
@@ -215,7 +216,8 @@ function Hero() {
         stat.whatsapp_image_url || stat.media_url || stat.bgImageUrl || image,
         content?.site_logo_url,
         defaultMsg,
-        globalDefaultMessage
+        globalDefaultMessage,
+        content
       );
       const url = waLink(num, payload.formattedText);
       if (!url) {
@@ -586,7 +588,8 @@ function AboutPreview() {
         btn.media_url || image,
         content?.site_logo_url,
         effectiveFallback,
-        globalDefaultMessage
+        globalDefaultMessage,
+        content
       );
       const targetPhone = pickWhatsapp(btn.whatsapp_number || actionVal, fallbackWhatsapp);
       const waUrl = waLink(targetPhone, payload.formattedText);

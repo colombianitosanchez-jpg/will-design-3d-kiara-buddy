@@ -704,7 +704,8 @@ function SortableHeroStatCard({
     mediaUrl || content?.hero_image_url || "",
     content?.site_logo_url,
     `Hola Will Design 3D, me interesa la consulta sobre: ${item.k || ""} (${item.v || ""}).`,
-    content?.whatsapp_default_message || ""
+    content?.whatsapp_default_message || "",
+    content
   );
 
   const actionType = item.action_type || "none";
@@ -1790,7 +1791,8 @@ function CTAButtonGroup({
     mediaUrl || values["hero_image_url"] || "",
     values["site_logo_url"],
     "Hola Will, me interesa cotizar...",
-    globalDefaultMsg
+    globalDefaultMsg,
+    values
   );
 
   const isVid = /\.(mp4|webm|quicktime)($|\?)/i.test(mediaUrl);
@@ -2421,7 +2423,8 @@ function SortableHeroButtonItemCard({
     mediaUrl || content?.hero_image_url || "",
     content?.site_logo_url,
     "Hola Will Design 3D, me interesa cotizar del Hero",
-    content?.whatsapp_default_message || ""
+    content?.whatsapp_default_message || "",
+    content
   );
 
   return (

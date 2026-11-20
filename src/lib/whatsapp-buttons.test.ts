@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import {
   getWhatsAppPayloadForButton,
   replaceTemplatePlaceholders,
+  resolvePublicSiteOrigin,
   toAbsoluteUrl,
   isStorageMediaUrl,
   WHATSAPP_REF_ALIASES,
@@ -379,5 +380,53 @@ describe("mensaje limpio (solo texto)", () => {
     );
     expect(p.formattedText).toBe("Hola Will");
     expect(p.mediaToSend).toBe("");
+  });
+});
+
+describe("Dominio dinámico en enlaces de WhatsApp", () => {
+  test("resolvePublicSiteOrigin usa site_canonical_domain del panel o fallback oficial", () => {
+    expect(resolvePublicSiteOrigin(undefined)).toBe("https://will-design-3d.lovable.app");
+    expect(resolvePublicSiteOrigin({})).toBe("https://will-design-3d.lovable.app");
+    expect(
+      resolvePublicSiteOrigin({ site_canonical_domain: "https://willdesign3d.co///" }),
+    ).toBe("https://willdesign3d.co");
+    expect(resolvePublicSiteOrigin({ site_url: "tienda3d.com/" })).toBe("https://tienda3d.com");
+  });
+
+  test("enlaces /r/... y /ref?img=... usan el dominio canónico oficial cuando se pasa siteContent", () => {
+    const customSite = { site_canonical_domain: "https://willdesign3d.co/" };
+    const storageUrl =
+      "https://pizulwniobctfiedefiu.supabase.co/storage/v1/object/sign/site-media/hero.webp?token=xyz";
+
+    const shortPayload = getWhatsAppPayloadForButton(
+      {
+        whatsapp_message: "Hola Will",
+        whatsapp_image_url: storageUrl,
+        whatsapp_image_key: "hero_cta_whatsapp_image_url",
+      },
+      "",
+      null,
+      undefined,
+      undefined,
+      customSite,
+    );
+    expect(shortPayload.formattedText).toBe("Hola Will\n\nhttps://willdesign3d.co/r/hero");
+
+    const refPayload = getWhatsAppPayloadForButton(
+      {
+        whatsapp_message: "Mira {media}",
+        whatsapp_image_url: storageUrl,
+      },
+      "",
+      null,
+      undefined,
+      undefined,
+      customSite,
+    );
+    expect(refPayload.formattedText).toBe(
+      `Mira https://willdesign3d.co/ref?img=${encodeURIComponent(storageUrl)}`,
+    );
+
+    expect(toAbsoluteUrl("/promo.jpg", customSite)).toBe("https://willdesign3d.co/promo.jpg");
   });
 });

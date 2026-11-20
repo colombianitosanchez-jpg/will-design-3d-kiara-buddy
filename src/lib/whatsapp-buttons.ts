@@ -1,4 +1,5 @@
 import { firstStaticShareImage } from "./share-image";
+import { DEFAULT_SITE_URL, getCanonicalBaseUrl } from "./seo";
 
 export type ButtonWhatsAppConfig = {
   whatsapp_message?: string;
@@ -8,7 +9,24 @@ export type ButtonWhatsAppConfig = {
   whatsapp_image_key?: string;
 };
 
-export const PUBLIC_SITE_ORIGIN = "https://will-design-3d.lovable.app";
+export const PUBLIC_SITE_ORIGIN = DEFAULT_SITE_URL;
+
+export function resolvePublicSiteOrigin(siteContent?: Record<string, string> | null): string {
+  const hasConfiguredDomain = Boolean(
+    siteContent?.site_canonical_domain?.trim() || siteContent?.site_url?.trim(),
+  );
+  if (hasConfiguredDomain) {
+    return getCanonicalBaseUrl(siteContent);
+  }
+  if (
+    typeof window !== "undefined" &&
+    window.location?.origin &&
+    /^https?:\/\//i.test(window.location.origin)
+  ) {
+    return window.location.origin.replace(/\/+$/, "");
+  }
+  return PUBLIC_SITE_ORIGIN;
+}
 
 export const WHATSAPP_REF_ALIASES: Record<string, string> = {
   hero_cta_whatsapp_image_url: "hero",
@@ -46,15 +64,15 @@ export type WhatsAppPayload = {
   formattedText: string;
 };
 
-export function toAbsoluteUrl(url?: string | null): string {
+export function toAbsoluteUrl(
+  url?: string | null,
+  siteContent?: Record<string, string> | null,
+): string {
   if (!url) return "";
   const trimmed = url.trim();
   if (!trimmed) return "";
   if (/^https?:\/\//i.test(trimmed)) return trimmed;
-  const origin =
-    typeof window !== "undefined" && window.location?.origin
-      ? window.location.origin
-      : "https://will-design-3d.lovable.app";
+  const origin = resolvePublicSiteOrigin(siteContent);
   return `${origin}${trimmed.startsWith("/") ? trimmed : `/${trimmed}`}`;
 }
 
@@ -121,7 +139,8 @@ export function getWhatsAppPayloadForButton(
   currentSectionMedia?: string | null,
   logoUrl?: string | null,
   defaultMessage?: string,
-  globalDefaultMessage?: string
+  globalDefaultMessage?: string,
+  siteContent?: Record<string, string> | null
 ): WhatsAppPayload {
   const mainMedia = (currentSectionMedia || "").trim();
   const logic = buttonConfig.whatsapp_image_logic || "auto";
@@ -149,10 +168,10 @@ export function getWhatsAppPayloadForButton(
   }
 
   // Hay imagen explícita configurada
-  const mediaToSend = toAbsoluteUrl(explicitImage);
+  const mediaToSend = toAbsoluteUrl(explicitImage, siteContent);
 
-  // Siempre el dominio publicado: el robot de WhatsApp no puede entrar a la vista previa.
-  const origin = PUBLIC_SITE_ORIGIN;
+  // Dominio canónico oficial configurado en /panel/marca, o window.location.origin, o fallback oficial.
+  const origin = resolvePublicSiteOrigin(siteContent);
   const imageKey = (buttonConfig.whatsapp_image_key || "").trim();
   const isStorageMedia = isStorageMediaUrl(mediaToSend);
 

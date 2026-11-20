@@ -238,7 +238,8 @@ function NosotrosPage() {
         btn.media_url || imageUrl,
         content?.site_logo_url,
         effectiveFallback,
-        globalDefaultMessage
+        globalDefaultMessage,
+        content
       );
       const targetPhone = pickWhatsapp(btn.whatsapp_number || actionVal, fallbackWhatsapp);
       const waUrl = waLink(targetPhone, payload.formattedText);
@@ -271,7 +272,8 @@ function NosotrosPage() {
       customMedia || imageUrl,
       content?.site_logo_url,
       `Hola Will Design 3D, me interesa saber más sobre ${itemTitle}: ${itemBody}`,
-      globalDefaultMessage
+      globalDefaultMessage,
+      content
     );
     const url = waLink(pickWhatsapp(phone, fallbackWhatsapp), payload.formattedText);
     if (!url) {

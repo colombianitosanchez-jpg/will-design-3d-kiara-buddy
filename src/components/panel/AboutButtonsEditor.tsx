@@ -131,6 +131,7 @@ function SortableAboutButtonItemCard({
     content?.site_logo_url,
     "Hola Will Design 3D, me interesa conocer más sobre ustedes.",
     content?.whatsapp_default_message || "",
+    content,
   );
 
   return (

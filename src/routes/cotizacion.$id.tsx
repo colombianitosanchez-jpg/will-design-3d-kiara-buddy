@@ -1,6 +1,15 @@
+import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { FileText } from "lucide-react";
+import { FileText, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useCart } from "@/lib/cart";
 import { formatCOP } from "@/lib/catalog";
 import { getSavedQuote } from "@/lib/saved-quotes.functions";
@@ -45,13 +54,13 @@ function QuoteMessage({ title }: { title: string }) {
 
 function QuotePage() {
   const quote = Route.useLoaderData();
-  const { addItem, clear } = useCart();
+  const { items: cartItems, addItem, clear } = useCart();
   const navigate = useNavigate();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   if (!quote) return <QuoteMessage title="Esta cotización no existe" />;
 
-  function addAll() {
-    clear();
+  function appendQuoteItems() {
     for (const i of quote!.items) {
       addItem(
         {
@@ -69,6 +78,25 @@ function QuotePage() {
       );
     }
     void navigate({ to: "/carrito" });
+  }
+
+  function addAll() {
+    if (cartItems.length > 0) {
+      setConfirmOpen(true);
+      return;
+    }
+    appendQuoteItems();
+  }
+
+  function handleMergeCart() {
+    setConfirmOpen(false);
+    appendQuoteItems();
+  }
+
+  function handleReplaceCart() {
+    setConfirmOpen(false);
+    clear();
+    appendQuoteItems();
   }
 
   const date = new Date(quote.created_at).toLocaleDateString("es-CO", {
@@ -128,6 +156,29 @@ function QuotePage() {
           Los valores son estimados y se confirman al revisar los archivos o la idea final.
         </p>
       </div>
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5 text-primary" />
+              Ya tienes productos en tu carrito
+            </DialogTitle>
+            <DialogDescription>
+              Actualmente tienes {cartItems.length}{" "}
+              {cartItems.length === 1 ? "ítem guardado" : "ítems guardados"} en tu carrito. ¿Qué deseas hacer con esta cotización?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="outline" onClick={handleReplaceCart}>
+              Reemplazar carrito
+            </Button>
+            <Button type="button" onClick={handleMergeCart}>
+              Sumar a mi carrito
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
