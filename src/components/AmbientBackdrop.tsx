@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import type { AmbientEffectType } from "@/lib/theme";
+import {
+  clampOverlayOpacity,
+  type AmbientEffectType,
+  type ThemeBackground,
+} from "@/lib/theme";
 
 type SnowFlake = {
   x: number;
@@ -93,10 +97,79 @@ function SnowCanvas({ intensity }: { intensity: number }) {
   );
 }
 
+function MultimediaBackgroundLayer({ background }: { background: ThemeBackground }) {
+  const [mediaFailed, setMediaFailed] = useState(false);
+  const mediaUrl = background.mediaUrl?.trim();
+
+  useEffect(() => {
+    setMediaFailed(false);
+  }, [mediaUrl]);
+
+  if (!mediaUrl || background.type === "solid" || mediaFailed) {
+    return null;
+  }
+
+  const fit = background.fit ?? (background.type === "pattern" ? "repeat" : "cover");
+  const isVideo =
+    background.type === "video" || /\.(mp4|webm|mov)(\?|$)/i.test(mediaUrl);
+  const isRepeat = background.type === "pattern" || fit === "repeat";
+  const fitClass = fit === "contain" ? "object-contain" : "object-cover";
+  const overlayOpacity = clampOverlayOpacity(background.overlayOpacity, 45) / 100;
+  const overlayColor = background.overlayColor?.trim() || "#000000";
+
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+    >
+      {isVideo ? (
+        <video
+          src={mediaUrl}
+          autoPlay
+          loop
+          muted
+          playsInline
+          onError={() => setMediaFailed(true)}
+          className={`h-full w-full object-center ${fitClass}`}
+        />
+      ) : isRepeat ? (
+        <div
+          className="h-full w-full"
+          style={{
+            backgroundImage: `url("${mediaUrl}")`,
+            backgroundRepeat: "repeat",
+            backgroundPosition: "center",
+          }}
+        />
+      ) : (
+        <img
+          src={mediaUrl}
+          alt=""
+          decoding="async"
+          onError={() => setMediaFailed(true)}
+          className={`h-full w-full object-center ${fitClass}`}
+        />
+      )}
+
+      {overlayOpacity > 0 && (
+        <div
+          className="pointer-events-none absolute inset-0 transition-opacity"
+          style={{
+            backgroundColor: overlayColor,
+            opacity: overlayOpacity,
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
 export function AmbientBackdrop({
+  background,
   effect,
   intensity = 55,
 }: {
+  background?: ThemeBackground;
   effect?: AmbientEffectType;
   intensity?: number;
 }) {
@@ -106,35 +179,48 @@ export function AmbientBackdrop({
     setMounted(true);
   }, []);
 
-  if (!mounted || !effect || effect === "none") {
+  if (!mounted) {
+    return null;
+  }
+
+  const hasMediaBackground = Boolean(
+    background && background.type !== "solid" && background.mediaUrl?.trim(),
+  );
+  const hasAmbientEffect = Boolean(effect && effect !== "none");
+
+  if (!hasMediaBackground && !hasAmbientEffect) {
     return null;
   }
 
   const normalizedIntensity = Math.max(10, Math.min(100, Math.round(intensity)));
   const opacityFactor = normalizedIntensity / 100;
 
-  if (effect === "snow") {
-    return <SnowCanvas intensity={normalizedIntensity} />;
-  }
-
-  if (effect === "grid") {
-    return (
-      <div
-        aria-hidden="true"
-        className="ambient-grid pointer-events-none fixed inset-0 z-0 overflow-hidden"
-        style={{ opacity: Math.min(0.42, 0.12 + opacityFactor * 0.3) }}
-      />
-    );
-  }
-
   return (
-    <div
-      aria-hidden="true"
-      className="ambient-aurora pointer-events-none fixed inset-0 z-0 overflow-hidden"
-      style={{ opacity: Math.min(0.45, 0.14 + opacityFactor * 0.3) }}
-    >
-      <div className="ambient-aurora-blob ambient-aurora-blob-1" />
-      <div className="ambient-aurora-blob ambient-aurora-blob-2" />
-    </div>
+    <>
+      {hasMediaBackground && background && (
+        <MultimediaBackgroundLayer background={background} />
+      )}
+
+      {effect === "snow" && <SnowCanvas intensity={normalizedIntensity} />}
+
+      {effect === "grid" && (
+        <div
+          aria-hidden="true"
+          className="ambient-grid pointer-events-none fixed inset-0 z-0 overflow-hidden"
+          style={{ opacity: Math.min(0.42, 0.12 + opacityFactor * 0.3) }}
+        />
+      )}
+
+      {effect === "aurora" && (
+        <div
+          aria-hidden="true"
+          className="ambient-aurora pointer-events-none fixed inset-0 z-0 overflow-hidden"
+          style={{ opacity: Math.min(0.45, 0.14 + opacityFactor * 0.3) }}
+        >
+          <div className="ambient-aurora-blob ambient-aurora-blob-1" />
+          <div className="ambient-aurora-blob ambient-aurora-blob-2" />
+        </div>
+      )}
+    </>
   );
 }

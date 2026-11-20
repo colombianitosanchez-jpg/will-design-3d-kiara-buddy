@@ -38,6 +38,7 @@ function ThemeApplier() {
   }, [activeTheme]);
   return (
     <AmbientBackdrop
+      background={activeTheme.background}
       effect={activeTheme.ambient?.effect}
       intensity={activeTheme.ambient?.intensity}
     />
@@ -208,7 +209,7 @@ function RootComponent() {
       <ThemeApplier />
       <AuthProvider>
         <CartProvider>
-          <div className="relative flex min-h-screen flex-col bg-background text-foreground">
+          <div className="relative flex min-h-screen flex-col text-foreground">
             <LiveBanner />
             <SiteHeader />
             <main className="relative z-10 flex-1">

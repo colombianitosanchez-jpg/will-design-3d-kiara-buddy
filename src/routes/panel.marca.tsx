@@ -19,6 +19,8 @@ import {
   Eye,
   EyeOff,
   Sparkles,
+  Image as ImageIcon,
+  RotateCcw,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -33,23 +35,24 @@ import {
   THEME_RADIUS_TOKENS,
   THEME_BUTTON_STYLE_LABELS,
   AMBIENT_EFFECT_LABELS,
+  THEME_BACKGROUND_TYPE_LABELS,
+  THEME_BACKGROUND_FIT_LABELS,
   resolveThemes,
   ensureThemePalette,
   normalizeTheme,
   clampAmbientIntensity,
+  clampOverlayOpacity,
   type SiteTheme,
   type ThemeAnimation,
   type ThemeBorderRadius,
   type ThemeButtonStyle,
   type AmbientEffectType,
+  type ThemeBackgroundType,
+  type ThemeBackgroundFit,
   type ColorToken,
 } from "@/lib/theme";
 import { getCanonicalBaseUrl, resolvePageSeo, type GranularSeoPageKey } from "@/lib/seo";
-import {
-  ContactBlocksOrderEditor,
-  ContactChannelsEditor,
-  ContactSocialLinksEditor,
-} from "@/components/panel/CompanyContactEditors";
+import { CompanyDataAccordion } from "@/components/panel/CompanyContactEditors";
 import {
   DndContext,
   closestCenter,
@@ -660,12 +663,73 @@ function PaletteEditor({
   );
 }
 
+function ThemeColorControl({
+  label,
+  hint,
+  value,
+  fallback,
+  onChange,
+  onReset,
+}: {
+  label: string;
+  hint?: string;
+  value?: string;
+  fallback: string;
+  onChange: (hex: string) => void;
+  onReset?: () => void;
+}) {
+  const effective = value && value.trim() ? value.trim() : fallback;
+  const pickerHex = effective.startsWith("#") && (effective.length === 7 || effective.length === 4)
+    ? effective
+    : fallback;
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-3 space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <Label className="text-xs font-bold text-foreground">{label}</Label>
+        {onReset && value && (
+          <button
+            type="button"
+            onClick={onReset}
+            className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground cursor-pointer"
+            title="Restaurar valor automático"
+          >
+            <RotateCcw className="h-3 w-3" /> Auto
+          </button>
+        )}
+      </div>
+      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
+      <div className="flex items-center gap-2">
+        <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-lg border border-border">
+          <input
+            type="color"
+            value={pickerHex}
+            onChange={(e) => onChange(e.target.value)}
+            aria-label={label}
+            className="absolute -inset-2 h-12 w-12 cursor-pointer border-0"
+          />
+        </div>
+        <Input
+          value={value ?? ""}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={`Automático (${fallback})`}
+          className="h-8 text-xs font-mono"
+        />
+      </div>
+    </div>
+  );
+}
+
 function ThemeManagerTab({
   values,
   onChange,
+  onUploadMedia,
+  uploadingKey,
 }: {
   values: Record<string, string>;
   onChange: (patch: Record<string, string>) => void;
+  onUploadMedia: (key: string, file: File) => Promise<string | null>;
+  uploadingKey: string | null;
 }) {
   const activeThemeId = values.active_theme_id || "default";
   const themes = resolveThemes(values.custom_themes);
@@ -681,12 +745,15 @@ function ThemeManagerTab({
     const baseNormalized = baseTheme ? normalizeTheme(baseTheme) : normalizeTheme(PRESET_THEMES[0]);
     const newTheme = normalizeTheme({
       id: newId,
-      name: baseTheme ? `${baseTheme.name} (Copia)` : "Nuevo Tema Personalizado",
+      name: baseTheme ? `${baseTheme.name} (Copia)` : "Nuevo Tema Libre Multimedia",
       description: baseTheme
         ? `Versión personalizada basada en ${baseTheme.name}`
-        : "Tema personalizado editable con paleta, bordes y ambiente en vivo",
+        : "Tema personalizado libre con fondos multimedia, velo de contraste y colores de texto",
       isPreset: false,
       colors: ensureThemePalette(baseNormalized.colors),
+      background: baseNormalized.background
+        ? { ...baseNormalized.background }
+        : { type: "solid", mediaUrl: "", fit: "cover", overlayOpacity: 0, overlayColor: "#000000" },
       buttonStyle: { ...baseNormalized.buttonStyle },
       ambient: baseNormalized.ambient ? { ...baseNormalized.ambient } : { effect: "none", intensity: 55 },
       customCss: baseNormalized.customCss || "",
@@ -740,14 +807,79 @@ function ThemeManagerTab({
     toast.success("Tema eliminado");
   }
 
+  async function handleUploadBackgroundMedia(file: File) {
+    if (!editingTheme) return;
+    const url = await onUploadMedia(`theme-bg-${editingTheme.id}`, file);
+    if (!url) return;
+    const isVideo = file.type.startsWith("video/") || /\.(mp4|webm|mov)$/i.test(file.name);
+    const isGif = file.type === "image/gif" || /\.gif$/i.test(file.name);
+    const inferredType: ThemeBackgroundType = isVideo
+      ? "video"
+      : isGif
+        ? "gif"
+        : editingTheme.background?.type === "pattern"
+          ? "pattern"
+          : "image";
+
+    handleSaveEditingTheme({
+      ...editingTheme,
+      background: {
+        ...editingTheme.background,
+        type: inferredType,
+        mediaUrl: url,
+        fit: inferredType === "pattern" ? "repeat" : editingTheme.background?.fit ?? "cover",
+        overlayOpacity:
+          typeof editingTheme.background?.overlayOpacity === "number" &&
+          editingTheme.background.overlayOpacity > 0
+            ? editingTheme.background.overlayOpacity
+            : 45,
+        overlayColor: editingTheme.background?.overlayColor || "#000000",
+      },
+    });
+  }
+
+  async function handleUploadButtonMedia(file: File) {
+    if (!editingTheme) return;
+    const url = await onUploadMedia(`theme-btn-${editingTheme.id}`, file);
+    if (!url) return;
+    const isVideo = file.type.startsWith("video/") || /\.(mp4|webm|mov)$/i.test(file.name);
+    const isGif = file.type === "image/gif" || /\.gif$/i.test(file.name);
+    const isLottie = file.type === "application/json" || /\.json$/i.test(file.name);
+
+    handleSaveEditingTheme({
+      ...editingTheme,
+      buttonStyle: {
+        ...editingTheme.buttonStyle,
+        mediaUrl: url,
+        mediaType: isVideo ? "video" : isGif ? "gif" : isLottie ? "lottie" : "image",
+        overlayOpacity: editingTheme.buttonStyle.overlayOpacity ?? 35,
+      },
+    });
+  }
+
+  const editingBg = editingTheme?.background ?? {
+    type: "solid" as ThemeBackgroundType,
+    mediaUrl: "",
+    fit: "cover" as ThemeBackgroundFit,
+    overlayOpacity: 0,
+    overlayColor: "#000000",
+  };
+  const bgUploadKey = editingTheme ? `theme-bg-${editingTheme.id}` : "";
+  const btnUploadKey = editingTheme ? `theme-btn-${editingTheme.id}` : "";
+
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle>Selector de Tema Visual Activo</CardTitle>
-          <CardDescription>
-            Elige la paleta, radio de bordes, estilo global de botones y efectos ambientales en vivo aplicados a todo el sitio web.
-          </CardDescription>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+          <div>
+            <CardTitle>Estudio Libre de Temas Multimedia</CardTitle>
+            <CardDescription>
+              Crea temas de temporada libres (Navidad, Black Friday, Aniversario) subiendo imágenes, GIFs, videos o patrones propios y controlando cada color de texto.
+            </CardDescription>
+          </div>
+          <Button onClick={() => handleCreateTheme()}>
+            <Plus className="mr-1.5 h-4 w-4" /> Crear Tema Libre
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -757,7 +889,7 @@ function ThemeManagerTab({
               const palette = ensureThemePalette(t.colors).palette;
               const radiusLabel = THEME_RADIUS_TOKENS[t.buttonStyle.globalRadius ?? "default"].label;
               const btnStyleLabel = THEME_BUTTON_STYLE_LABELS[t.buttonStyle.visualStyle ?? "solid"];
-              const ambientLabel = AMBIENT_EFFECT_LABELS[t.ambient?.effect ?? "none"];
+              const bgLabel = THEME_BACKGROUND_TYPE_LABELS[t.background?.type ?? "solid"];
 
               return (
                 <div
@@ -770,7 +902,7 @@ function ThemeManagerTab({
                     <div className="flex items-start justify-between gap-2">
                       <h3 className="font-bold text-sm">{t.name}</h3>
                       <span className="shrink-0 text-[11px] font-semibold text-muted-foreground">
-                        {t.isPreset ? "Oficial" : "Custom"}
+                        {t.isPreset ? "Oficial" : "Libre"}
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{t.description}</p>
@@ -787,7 +919,7 @@ function ThemeManagerTab({
                     </div>
 
                     <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-                      {radiusLabel} · {btnStyleLabel} · {ambientLabel}
+                      Fondo: {bgLabel} · {radiusLabel} · {btnStyleLabel}
                     </p>
                   </div>
 
@@ -823,12 +955,6 @@ function ThemeManagerTab({
               );
             })}
           </div>
-
-          <div className="mt-4">
-            <Button variant="outline" onClick={() => handleCreateTheme()}>
-              + Crear Nuevo Tema Personalizado
-            </Button>
-          </div>
         </CardContent>
       </Card>
 
@@ -838,14 +964,15 @@ function ThemeManagerTab({
             <div>
               <CardTitle>Editando Tema: {editingTheme.name}</CardTitle>
               <CardDescription>
-                Personaliza paleta de colores, radio global, estilo visual de botones y ambiente en vivo.
+                Sube fondos multimedia reales (imagen, GIF, video o patrón), calibra el velo de legibilidad y personaliza cada color de texto y botón.
               </CardDescription>
             </div>
             <Button variant="ghost" size="sm" onClick={() => setEditingTheme(null)}>
               Cerrar editor
             </Button>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-8">
+            {/* 1. Identidad */}
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <Label className="text-xs font-semibold">Nombre del Tema</Label>
@@ -869,6 +996,370 @@ function ThemeManagerTab({
               </div>
             </div>
 
+            {/* 2. Fondo Multimedia Libre + Velo de Legibilidad */}
+            <div className="rounded-2xl border border-border bg-muted/20 p-4 sm:p-5 space-y-4">
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <ImageIcon className="h-3.5 w-3.5 text-primary" /> Fondo Multimedia Global y Contraste
+                </h4>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Elige un color sólido o sube una imagen, GIF animado, video en bucle (MP4/WebM) o textura en mosaico. Ajusta el velo para garantizar la lectura de todos los textos.
+                </p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <Label className="text-xs font-semibold">Tipo de Fondo</Label>
+                  <Select
+                    value={editingBg.type}
+                    onValueChange={(val: ThemeBackgroundType) =>
+                      handleSaveEditingTheme({
+                        ...editingTheme,
+                        background: {
+                          ...editingBg,
+                          type: val,
+                          fit: val === "pattern" ? "repeat" : editingBg.fit || "cover",
+                          overlayOpacity:
+                            val === "solid"
+                              ? 0
+                              : editingBg.overlayOpacity || 45,
+                        },
+                      })
+                    }
+                  >
+                    <SelectTrigger className="mt-1.5">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(Object.keys(THEME_BACKGROUND_TYPE_LABELS) as ThemeBackgroundType[]).map((bt) => (
+                        <SelectItem key={bt} value={bt}>
+                          {THEME_BACKGROUND_TYPE_LABELS[bt]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {editingBg.type !== "solid" && (
+                  <div>
+                    <Label className="text-xs font-semibold">Ajuste en Pantalla</Label>
+                    <Select
+                      value={editingBg.fit || "cover"}
+                      onValueChange={(val: ThemeBackgroundFit) =>
+                        handleSaveEditingTheme({
+                          ...editingTheme,
+                          background: { ...editingBg, fit: val },
+                        })
+                      }
+                    >
+                      <SelectTrigger className="mt-1.5">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(Object.keys(THEME_BACKGROUND_FIT_LABELS) as ThemeBackgroundFit[]).map((bf) => (
+                          <SelectItem key={bf} value={bf}>
+                            {THEME_BACKGROUND_FIT_LABELS[bf]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+
+              {editingBg.type !== "solid" && (
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button asChild variant="outline" size="sm" type="button">
+                      <label className="cursor-pointer">
+                        <Upload className="mr-2 h-4 w-4" />
+                        {uploadingKey === bgUploadKey
+                          ? "Subiendo archivo…"
+                          : "Subir imagen / GIF / video"}
+                        <input
+                          type="file"
+                          accept="image/*,video/mp4,video/webm"
+                          className="hidden"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) void handleUploadBackgroundMedia(f);
+                          }}
+                        />
+                      </label>
+                    </Button>
+
+                    {editingBg.mediaUrl && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          handleSaveEditingTheme({
+                            ...editingTheme,
+                            background: { ...editingBg, mediaUrl: "" },
+                          })
+                        }
+                      >
+                        Quitar archivo
+                      </Button>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-semibold">URL del medio (o pega una URL directa)</Label>
+                    <Input
+                      value={editingBg.mediaUrl ?? ""}
+                      onChange={(e) =>
+                        handleSaveEditingTheme({
+                          ...editingTheme,
+                          background: { ...editingBg, mediaUrl: e.target.value },
+                        })
+                      }
+                      placeholder="https://… (se completa automáticamente al subir)"
+                      className="mt-1 text-xs"
+                    />
+                  </div>
+
+                  {/* Velo / Overlay de legibilidad */}
+                  <div className="grid gap-4 rounded-xl border border-border bg-card p-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold">Color del Velo Superpuesto (Contraste)</Label>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-lg border border-border">
+                          <input
+                            type="color"
+                            value={editingBg.overlayColor || "#000000"}
+                            onChange={(e) =>
+                              handleSaveEditingTheme({
+                                ...editingTheme,
+                                background: { ...editingBg, overlayColor: e.target.value },
+                              })
+                            }
+                            aria-label="Color del velo superpuesto"
+                            className="absolute -inset-2 h-12 w-12 cursor-pointer border-0"
+                          />
+                        </div>
+                        <Input
+                          value={editingBg.overlayColor || "#000000"}
+                          onChange={(e) =>
+                            handleSaveEditingTheme({
+                              ...editingTheme,
+                              background: { ...editingBg, overlayColor: e.target.value },
+                            })
+                          }
+                          className="h-8 w-28 text-xs font-mono"
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-[11px]"
+                          onClick={() =>
+                            handleSaveEditingTheme({
+                              ...editingTheme,
+                              background: { ...editingBg, overlayColor: "#000000" },
+                            })
+                          }
+                        >
+                          Velo oscuro
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-[11px]"
+                          onClick={() =>
+                            handleSaveEditingTheme({
+                              ...editingTheme,
+                              background: { ...editingBg, overlayColor: "#ffffff" },
+                            })
+                          }
+                        >
+                          Velo claro
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs font-semibold">
+                        <span>Opacidad del Velo (Legibilidad)</span>
+                        <span className="font-mono text-primary">
+                          {clampOverlayOpacity(editingBg.overlayOpacity, 45)}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={0}
+                        max={90}
+                        step={5}
+                        value={clampOverlayOpacity(editingBg.overlayOpacity, 45)}
+                        onChange={(e) =>
+                          handleSaveEditingTheme({
+                            ...editingTheme,
+                            background: { ...editingBg, overlayOpacity: Number(e.target.value) },
+                          })
+                        }
+                        className="mt-2 w-full accent-primary cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 3. Control Total de Textos y Superficies */}
+            <div className="space-y-3">
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Control Total de Textos y Superficies
+                </h4>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Define el color exacto de títulos, textos generales, subtítulos, tarjetas y texto de botones para asegurar contraste perfecto sobre tu fondo.
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <ThemeColorControl
+                  label="Fondo base (--background)"
+                  value={editingTheme.colors.background}
+                  fallback="#ffffff"
+                  onChange={(hex) =>
+                    handleSaveEditingTheme({
+                      ...editingTheme,
+                      colors: {
+                        ...editingTheme.colors,
+                        background: hex,
+                        palette: ensureThemePalette(editingTheme.colors).palette.map((c) =>
+                          c.id === "background" ? { ...c, hex } : c,
+                        ),
+                      },
+                    })
+                  }
+                />
+                <ThemeColorControl
+                  label="Texto principal"
+                  value={editingTheme.colors.foreground}
+                  fallback="#1c1917"
+                  onChange={(hex) =>
+                    handleSaveEditingTheme({
+                      ...editingTheme,
+                      colors: { ...editingTheme.colors, foreground: hex },
+                    })
+                  }
+                  onReset={() =>
+                    handleSaveEditingTheme({
+                      ...editingTheme,
+                      colors: { ...editingTheme.colors, foreground: undefined },
+                    })
+                  }
+                />
+                <ThemeColorControl
+                  label="Títulos y encabezados"
+                  value={editingTheme.colors.headingColor}
+                  fallback="#1c1917"
+                  onChange={(hex) =>
+                    handleSaveEditingTheme({
+                      ...editingTheme,
+                      colors: { ...editingTheme.colors, headingColor: hex },
+                    })
+                  }
+                  onReset={() =>
+                    handleSaveEditingTheme({
+                      ...editingTheme,
+                      colors: { ...editingTheme.colors, headingColor: undefined },
+                    })
+                  }
+                />
+                <ThemeColorControl
+                  label="Subtítulos y texto suave"
+                  value={editingTheme.colors.mutedForeground}
+                  fallback="#6b7280"
+                  onChange={(hex) =>
+                    handleSaveEditingTheme({
+                      ...editingTheme,
+                      colors: { ...editingTheme.colors, mutedForeground: hex },
+                    })
+                  }
+                  onReset={() =>
+                    handleSaveEditingTheme({
+                      ...editingTheme,
+                      colors: { ...editingTheme.colors, mutedForeground: undefined },
+                    })
+                  }
+                />
+                <ThemeColorControl
+                  label="Fondo de tarjetas"
+                  value={editingTheme.colors.card}
+                  fallback="#ffffff"
+                  onChange={(hex) =>
+                    handleSaveEditingTheme({
+                      ...editingTheme,
+                      colors: { ...editingTheme.colors, card: hex },
+                    })
+                  }
+                  onReset={() =>
+                    handleSaveEditingTheme({
+                      ...editingTheme,
+                      colors: { ...editingTheme.colors, card: undefined },
+                    })
+                  }
+                />
+                <ThemeColorControl
+                  label="Texto dentro de tarjetas"
+                  value={editingTheme.colors.cardForeground}
+                  fallback="#1c1917"
+                  onChange={(hex) =>
+                    handleSaveEditingTheme({
+                      ...editingTheme,
+                      colors: { ...editingTheme.colors, cardForeground: hex },
+                    })
+                  }
+                  onReset={() =>
+                    handleSaveEditingTheme({
+                      ...editingTheme,
+                      colors: { ...editingTheme.colors, cardForeground: undefined },
+                    })
+                  }
+                />
+                <ThemeColorControl
+                  label="Texto en botón principal"
+                  value={editingTheme.buttonStyle.textColor ?? editingTheme.colors.primaryForeground}
+                  fallback="#ffffff"
+                  onChange={(hex) =>
+                    handleSaveEditingTheme({
+                      ...editingTheme,
+                      colors: { ...editingTheme.colors, primaryForeground: hex },
+                      buttonStyle: { ...editingTheme.buttonStyle, textColor: hex },
+                    })
+                  }
+                  onReset={() =>
+                    handleSaveEditingTheme({
+                      ...editingTheme,
+                      colors: { ...editingTheme.colors, primaryForeground: undefined },
+                      buttonStyle: { ...editingTheme.buttonStyle, textColor: undefined },
+                    })
+                  }
+                />
+                <ThemeColorControl
+                  label="Bordes y separadores"
+                  value={editingTheme.colors.border}
+                  fallback="#e5e7eb"
+                  onChange={(hex) =>
+                    handleSaveEditingTheme({
+                      ...editingTheme,
+                      colors: { ...editingTheme.colors, border: hex },
+                    })
+                  }
+                  onReset={() =>
+                    handleSaveEditingTheme({
+                      ...editingTheme,
+                      colors: { ...editingTheme.colors, border: undefined },
+                    })
+                  }
+                />
+              </div>
+            </div>
+
+            {/* 4. Paleta de Colores Dinámica con @dnd-kit */}
             <div>
               <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
                 Paleta de Colores Dinámica (Arrastra para reordenar)
@@ -887,187 +1378,401 @@ function ThemeManagerTab({
               />
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Bordes y Radio Global (--radius)
-                </Label>
-                <Select
-                  value={editingTheme.buttonStyle.globalRadius || "default"}
-                  onValueChange={(val: ThemeBorderRadius) =>
-                    handleSaveEditingTheme({
-                      ...editingTheme,
-                      buttonStyle: { ...editingTheme.buttonStyle, globalRadius: val },
-                    })
-                  }
-                >
-                  <SelectTrigger className="mt-1.5">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(Object.keys(THEME_RADIUS_TOKENS) as ThemeBorderRadius[]).map((rk) => (
-                      <SelectItem key={rk} value={rk}>
-                        {THEME_RADIUS_TOKENS[rk].label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {/* 5. Botones Globales (Multimedia, Bordes, Estilo y Efectos Opcionales) */}
+            <div className="rounded-2xl border border-border bg-muted/20 p-4 sm:p-5 space-y-5">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Botones Globales, Bordes y Decoración Opcional
+              </h4>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <Label className="text-xs font-semibold">Bordes y Radio Global (--radius)</Label>
+                  <Select
+                    value={editingTheme.buttonStyle.globalRadius || "default"}
+                    onValueChange={(val: ThemeBorderRadius) =>
+                      handleSaveEditingTheme({
+                        ...editingTheme,
+                        buttonStyle: { ...editingTheme.buttonStyle, globalRadius: val },
+                      })
+                    }
+                  >
+                    <SelectTrigger className="mt-1.5">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(Object.keys(THEME_RADIUS_TOKENS) as ThemeBorderRadius[]).map((rk) => (
+                        <SelectItem key={rk} value={rk}>
+                          {THEME_RADIUS_TOKENS[rk].label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-xs font-semibold">Estilo Visual de Botones</Label>
+                  <Select
+                    value={editingTheme.buttonStyle.visualStyle || "solid"}
+                    onValueChange={(val: ThemeButtonStyle) =>
+                      handleSaveEditingTheme({
+                        ...editingTheme,
+                        buttonStyle: { ...editingTheme.buttonStyle, visualStyle: val },
+                      })
+                    }
+                  >
+                    <SelectTrigger className="mt-1.5">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(Object.keys(THEME_BUTTON_STYLE_LABELS) as ThemeButtonStyle[]).map((sk) => (
+                        <SelectItem key={sk} value={sk}>
+                          {THEME_BUTTON_STYLE_LABELS[sk]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-xs font-semibold">Animación de Botones (Opcional)</Label>
+                  <Select
+                    value={editingTheme.buttonStyle.animation || "none"}
+                    onValueChange={(val: ThemeAnimation) =>
+                      handleSaveEditingTheme({
+                        ...editingTheme,
+                        buttonStyle: { ...editingTheme.buttonStyle, animation: val },
+                      })
+                    }
+                  >
+                    <SelectTrigger className="mt-1.5">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sin animación</SelectItem>
+                      <SelectItem value="neon_glow">Neón Cyberpunk</SelectItem>
+                      <SelectItem value="cyber_pulse">Pulso Dinámico</SelectItem>
+                      <SelectItem value="shimmer">Brillo Shimmer</SelectItem>
+                      <SelectItem value="festive_sparkle">Destello Festivo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-xs font-semibold">Efecto Ambiental Extra (Opcional)</Label>
+                  <Select
+                    value={editingTheme.ambient?.effect || "none"}
+                    onValueChange={(val: AmbientEffectType) =>
+                      handleSaveEditingTheme({
+                        ...editingTheme,
+                        ambient: {
+                          effect: val,
+                          intensity: clampAmbientIntensity(editingTheme.ambient?.intensity),
+                        },
+                      })
+                    }
+                  >
+                    <SelectTrigger className="mt-1.5">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(Object.keys(AMBIENT_EFFECT_LABELS) as AmbientEffectType[]).map((ak) => (
+                        <SelectItem key={ak} value={ak}>
+                          {AMBIENT_EFFECT_LABELS[ak]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              <div>
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Estilo Visual de Botones
-                </Label>
-                <Select
-                  value={editingTheme.buttonStyle.visualStyle || "solid"}
-                  onValueChange={(val: ThemeButtonStyle) =>
-                    handleSaveEditingTheme({
-                      ...editingTheme,
-                      buttonStyle: { ...editingTheme.buttonStyle, visualStyle: val },
-                    })
-                  }
-                >
-                  <SelectTrigger className="mt-1.5">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(Object.keys(THEME_BUTTON_STYLE_LABELS) as ThemeButtonStyle[]).map((sk) => (
-                      <SelectItem key={sk} value={sk}>
-                        {THEME_BUTTON_STYLE_LABELS[sk]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {editingTheme.ambient?.effect && editingTheme.ambient.effect !== "none" && (
+                <div className="rounded-xl border border-border bg-card p-4">
+                  <div className="flex items-center justify-between text-xs font-semibold">
+                    <span>Intensidad del Efecto Ambiental</span>
+                    <span className="font-mono text-primary">
+                      {clampAmbientIntensity(editingTheme.ambient.intensity)}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={10}
+                    max={100}
+                    step={5}
+                    value={clampAmbientIntensity(editingTheme.ambient.intensity)}
+                    onChange={(e) =>
+                      handleSaveEditingTheme({
+                        ...editingTheme,
+                        ambient: {
+                          effect: editingTheme.ambient?.effect ?? "none",
+                          intensity: Number(e.target.value),
+                        },
+                      })
+                    }
+                    className="mt-2 w-full accent-primary cursor-pointer"
+                  />
+                </div>
+              )}
 
-              <div>
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Animación de Botones
-                </Label>
-                <Select
-                  value={editingTheme.buttonStyle.animation || "none"}
-                  onValueChange={(val: ThemeAnimation) =>
-                    handleSaveEditingTheme({
-                      ...editingTheme,
-                      buttonStyle: { ...editingTheme.buttonStyle, animation: val },
-                    })
-                  }
-                >
-                  <SelectTrigger className="mt-1.5">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Sin Animación</SelectItem>
-                    <SelectItem value="neon_glow">Neón Cyberpunk ⚡</SelectItem>
-                    <SelectItem value="cyber_pulse">Pulso Dinámico 💫</SelectItem>
-                    <SelectItem value="shimmer">Brillo Shimmer ✨</SelectItem>
-                    <SelectItem value="festive_sparkle">Destello Festivo 🌟</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Multimedia propia para botones globales */}
+              <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-bold text-foreground">Fondo Multimedia en Botones (Opcional)</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Sube una textura, GIF, video o animación Lottie para aplicarla como fondo global de los botones.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button asChild variant="outline" size="sm" type="button">
+                      <label className="cursor-pointer">
+                        <Upload className="mr-1.5 h-3.5 w-3.5" />
+                        {uploadingKey === btnUploadKey ? "Subiendo…" : "Subir fondo de botón"}
+                        <input
+                          type="file"
+                          accept="image/*,video/mp4,video/webm,application/json,.json"
+                          className="hidden"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) void handleUploadButtonMedia(f);
+                          }}
+                        />
+                      </label>
+                    </Button>
+                    {editingTheme.buttonStyle.mediaUrl && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          handleSaveEditingTheme({
+                            ...editingTheme,
+                            buttonStyle: { ...editingTheme.buttonStyle, mediaUrl: "" },
+                          })
+                        }
+                      >
+                        Quitar
+                      </Button>
+                    )}
+                  </div>
+                </div>
 
-              <div>
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Efecto Ambiental en Vivo
-                </Label>
-                <Select
-                  value={editingTheme.ambient?.effect || "none"}
-                  onValueChange={(val: AmbientEffectType) =>
-                    handleSaveEditingTheme({
-                      ...editingTheme,
-                      ambient: {
-                        effect: val,
-                        intensity: clampAmbientIntensity(editingTheme.ambient?.intensity),
-                      },
-                    })
-                  }
-                >
-                  <SelectTrigger className="mt-1.5">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(Object.keys(AMBIENT_EFFECT_LABELS) as AmbientEffectType[]).map((ak) => (
-                      <SelectItem key={ak} value={ak}>
-                        {AMBIENT_EFFECT_LABELS[ak]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {editingTheme.buttonStyle.mediaUrl && (
+                  <div className="grid gap-3 sm:grid-cols-3 pt-1">
+                    <div>
+                      <Label className="text-[11px] font-semibold">Tipo de Medio</Label>
+                      <Select
+                        value={editingTheme.buttonStyle.mediaType || "image"}
+                        onValueChange={(val: "image" | "gif" | "video" | "lottie") =>
+                          handleSaveEditingTheme({
+                            ...editingTheme,
+                            buttonStyle: { ...editingTheme.buttonStyle, mediaType: val },
+                          })
+                        }
+                      >
+                        <SelectTrigger className="mt-1 h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="image">Imagen</SelectItem>
+                          <SelectItem value="gif">GIF</SelectItem>
+                          <SelectItem value="video">Video MP4/WebM</SelectItem>
+                          <SelectItem value="lottie">Lottie JSON</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label className="text-[11px] font-semibold">Ajuste</Label>
+                      <Select
+                        value={editingTheme.buttonStyle.mediaFit || "cover"}
+                        onValueChange={(val: "cover" | "contain" | "fill") =>
+                          handleSaveEditingTheme({
+                            ...editingTheme,
+                            buttonStyle: { ...editingTheme.buttonStyle, mediaFit: val },
+                          })
+                        }
+                      >
+                        <SelectTrigger className="mt-1 h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cover">Cubrir (Cover)</SelectItem>
+                          <SelectItem value="contain">Contener (Contain)</SelectItem>
+                          <SelectItem value="fill">Estirar (Fill)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between text-[11px] font-semibold">
+                        <span>Velo en botón</span>
+                        <span className="font-mono text-primary">
+                          {editingTheme.buttonStyle.overlayOpacity ?? 35}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={0}
+                        max={85}
+                        step={5}
+                        value={editingTheme.buttonStyle.overlayOpacity ?? 35}
+                        onChange={(e) =>
+                          handleSaveEditingTheme({
+                            ...editingTheme,
+                            buttonStyle: {
+                              ...editingTheme.buttonStyle,
+                              overlayOpacity: Number(e.target.value),
+                            },
+                          })
+                        }
+                        className="mt-2.5 w-full accent-primary cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            {editingTheme.ambient?.effect && editingTheme.ambient.effect !== "none" && (
-              <div className="rounded-xl border border-border bg-muted/30 p-4">
-                <div className="flex items-center justify-between text-xs font-semibold">
-                  <span>Intensidad del Efecto Ambiental</span>
-                  <span className="font-mono text-primary">
-                    {clampAmbientIntensity(editingTheme.ambient.intensity)}%
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={10}
-                  max={100}
-                  step={5}
-                  value={clampAmbientIntensity(editingTheme.ambient.intensity)}
-                  onChange={(e) =>
-                    handleSaveEditingTheme({
-                      ...editingTheme,
-                      ambient: {
-                        effect: editingTheme.ambient?.effect ?? "none",
-                        intensity: Number(e.target.value),
-                      },
-                    })
-                  }
-                  className="mt-2 w-full accent-primary cursor-pointer"
-                />
-              </div>
-            )}
-
-            {/* Vista Previa en Vivo del Tema */}
+            {/* 6. Vista Previa en Vivo del Tema */}
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                <Sparkles className="h-3.5 w-3.5 text-primary" /> Vista Previa en Vivo del Tema
+                <Sparkles className="h-3.5 w-3.5 text-primary" /> Vista Previa en Vivo del Tema (Fondo, Velo, Textos y Botones)
               </div>
               <div
-                className="border p-5 transition-all"
+                className="relative overflow-hidden border p-6 transition-all"
                 style={{
-                  background: editingTheme.colors.background,
+                  backgroundColor: editingTheme.colors.background,
                   color: editingTheme.colors.foreground || undefined,
                   borderRadius:
                     THEME_RADIUS_TOKENS[editingTheme.buttonStyle.globalRadius ?? "default"].cssRadius,
                   borderColor: editingTheme.colors.border || "var(--border)",
                 }}
               >
-                <p className="text-sm font-black">Tarjeta de ejemplo con tu radio y colores</p>
-                <p className="mt-1 text-xs opacity-80">
-                  Estilo de botones: {THEME_BUTTON_STYLE_LABELS[editingTheme.buttonStyle.visualStyle ?? "solid"]} ·{" "}
-                  Ambiente: {AMBIENT_EFFECT_LABELS[editingTheme.ambient?.effect ?? "none"]}
-                </p>
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    className="btn-primary unified-theme-btn px-5 py-2.5 text-xs"
+                {editingBg.type !== "solid" && editingBg.mediaUrl && (
+                  <>
+                    {editingBg.type === "video" || /\.(mp4|webm|mov)(\?|$)/i.test(editingBg.mediaUrl) ? (
+                      <video
+                        src={editingBg.mediaUrl}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className={`pointer-events-none absolute inset-0 h-full w-full ${
+                          editingBg.fit === "contain" ? "object-contain" : "object-cover"
+                        }`}
+                      />
+                    ) : editingBg.type === "pattern" || editingBg.fit === "repeat" ? (
+                      <div
+                        className="pointer-events-none absolute inset-0"
+                        style={{
+                          backgroundImage: `url("${editingBg.mediaUrl}")`,
+                          backgroundRepeat: "repeat",
+                          backgroundPosition: "center",
+                        }}
+                      />
+                    ) : (
+                      <img
+                        src={editingBg.mediaUrl}
+                        alt=""
+                        className={`pointer-events-none absolute inset-0 h-full w-full ${
+                          editingBg.fit === "contain" ? "object-contain" : "object-cover"
+                        }`}
+                      />
+                    )}
+                    <div
+                      className="pointer-events-none absolute inset-0"
+                      style={{
+                        backgroundColor: editingBg.overlayColor || "#000000",
+                        opacity: clampOverlayOpacity(editingBg.overlayOpacity, 45) / 100,
+                      }}
+                    />
+                  </>
+                )}
+
+                <div className="relative z-10 space-y-4">
+                  <div>
+                    <h5
+                      className="text-lg font-black"
+                      style={{ color: editingTheme.colors.headingColor || editingTheme.colors.foreground || undefined }}
+                    >
+                      Título de ejemplo sobre tu fondo
+                    </h5>
+                    <p
+                      className="mt-1 text-xs"
+                      style={{ color: editingTheme.colors.mutedForeground || undefined }}
+                    >
+                      Subtítulo secundario · Verifica aquí la legibilidad del texto antes de publicar.
+                    </p>
+                  </div>
+
+                  <div
+                    className="border p-4"
                     style={{
-                      background: editingTheme.colors.brandOrange,
+                      backgroundColor: editingTheme.colors.card || "var(--card)",
+                      color: editingTheme.colors.cardForeground || editingTheme.colors.foreground || undefined,
+                      borderColor: editingTheme.colors.border || "var(--border)",
                       borderRadius:
-                        THEME_RADIUS_TOKENS[editingTheme.buttonStyle.globalRadius ?? "default"].buttonRadius,
+                        THEME_RADIUS_TOKENS[editingTheme.buttonStyle.globalRadius ?? "default"].cssRadius,
                     }}
                   >
-                    Botón Principal
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-outline unified-theme-btn px-5 py-2.5 text-xs"
-                    style={{
-                      borderColor: editingTheme.colors.brandTeal,
-                      color: editingTheme.colors.brandTeal,
-                      borderRadius:
-                        THEME_RADIUS_TOKENS[editingTheme.buttonStyle.globalRadius ?? "default"].buttonRadius,
-                    }}
-                  >
-                    Botón Secundario
-                  </button>
+                    <p className="text-xs font-bold">Tarjeta de contenido de muestra</p>
+                    <p className="mt-0.5 text-[11px] opacity-80">
+                      Texto dentro de tarjeta con contraste configurable.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      className="btn-primary unified-theme-btn relative overflow-hidden px-5 py-2.5 text-xs"
+                      style={{
+                        background: editingTheme.colors.brandOrange,
+                        color:
+                          editingTheme.buttonStyle.textColor ||
+                          editingTheme.colors.primaryForeground ||
+                          "#ffffff",
+                        borderRadius:
+                          THEME_RADIUS_TOKENS[editingTheme.buttonStyle.globalRadius ?? "default"].buttonRadius,
+                      }}
+                    >
+                      {editingTheme.buttonStyle.mediaUrl &&
+                        (editingTheme.buttonStyle.mediaType === "video" ? (
+                          <video
+                            src={editingTheme.buttonStyle.mediaUrl}
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+                          />
+                        ) : editingTheme.buttonStyle.mediaType !== "lottie" ? (
+                          <img
+                            src={editingTheme.buttonStyle.mediaUrl}
+                            alt=""
+                            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+                          />
+                        ) : null)}
+                      {editingTheme.buttonStyle.mediaUrl && (
+                        <span
+                          className="pointer-events-none absolute inset-0 bg-black"
+                          style={{ opacity: (editingTheme.buttonStyle.overlayOpacity ?? 35) / 100 }}
+                        />
+                      )}
+                      <span className="relative z-10">Botón Principal</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-outline unified-theme-btn px-5 py-2.5 text-xs"
+                      style={{
+                        borderColor: editingTheme.colors.brandTeal,
+                        color: editingTheme.colors.brandTeal,
+                        borderRadius:
+                          THEME_RADIUS_TOKENS[editingTheme.buttonStyle.globalRadius ?? "default"].buttonRadius,
+                      }}
+                    >
+                      Botón Secundario
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1132,7 +1837,7 @@ function MarcaAdmin() {
     }
   }
 
-  async function uploadImage(key: string, file: File) {
+  async function uploadMediaFile(key: string, file: File): Promise<string | null> {
     setUploadingKey(key);
     try {
       if (file.size > 50 * 1024 * 1024) throw new Error("El archivo supera 50MB");
@@ -1141,12 +1846,20 @@ function MarcaAdmin() {
       if (up.error) throw up.error;
       const signed = await supabase.storage.from("site-media").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
       if (signed.error) throw signed.error;
-      setValues((v) => ({ ...v, [key]: signed.data.signedUrl }));
-      toast.success("Imagen subida");
+      toast.success("Archivo multimedia subido");
+      return signed.data.signedUrl;
     } catch (e) {
       toast.error("Error al subir", { description: (e as Error).message });
+      return null;
     } finally {
       setUploadingKey(null);
+    }
+  }
+
+  async function uploadImage(key: string, file: File) {
+    const signedUrl = await uploadMediaFile(key, file);
+    if (signedUrl) {
+      setValues((v) => ({ ...v, [key]: signedUrl }));
     }
   }
 
@@ -1307,86 +2020,67 @@ function MarcaAdmin() {
           return (
             <TabsContent key={tab} value={tab} className="mt-6 space-y-6">
               {tab === "seo" && <SeoPreviewCard values={values} />}
-              {tab === "empresa" && (
+
+              {tab === "empresa" ? (
                 <>
-                  <Card className="border-2 border-primary/20 bg-card mb-4">
-                    <CardHeader className="py-4">
-                      <CardTitle className="text-sm font-bold flex items-center gap-2">
-                        <Globe className="h-4 w-4 text-primary" /> Fuente Única de Verdad — Datos de Contacto
-                      </CardTitle>
-                      <CardDescription className="text-xs">
-                        Los datos configurados aquí se usan globalmente en el sitio (Header, Footer, página de Contacto y JSON-LD). Para editar la narración o reseña "Nosotros", dirígete a{" "}
-                        <a href="/panel/contenido" className="font-semibold text-primary underline">
-                          /panel/contenido
-                        </a>.
-                      </CardDescription>
-                    </CardHeader>
-                  </Card>
-
-                  <ContactBlocksOrderEditor
-                    rawOrder={values.contact_blocks_order}
-                    onChange={(serialized) =>
-                      setValues((v) => ({ ...v, contact_blocks_order: serialized }))
-                    }
-                  />
-
-                  <ContactChannelsEditor
+                  <CompanyDataAccordion
                     values={values}
                     onPatch={(patch) => setValues((v) => ({ ...v, ...patch }))}
+                    locationFieldsContent={visibleFields.map(renderField)}
                   />
 
-                  <ContactSocialLinksEditor
-                    values={values}
-                    onPatch={(patch) => setValues((v) => ({ ...v, ...patch }))}
-                  />
+                  {legacyFields.length > 0 && (
+                    <details className="rounded-2xl border border-border bg-card">
+                      <summary className="cursor-pointer list-none px-6 py-4 text-sm font-bold text-foreground flex items-center justify-between">
+                        <span>Campos legados de respaldo (sincronizados automáticamente)</span>
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      </summary>
+                      <div className="space-y-6 border-t border-border px-6 py-6">
+                        {legacyFields.map(renderField)}
+                      </div>
+                    </details>
+                  )}
                 </>
-              )}
-
-              {groups.map((group) => {
-                const groupFields = visibleFields.filter((f) => f.group === group);
-                const isPageSeoGroup = group.startsWith("SEO por Página · ");
-                if (isPageSeoGroup) {
-                  const configuredCount = groupFields.filter((f) => Boolean(values[f.key]?.trim())).length;
+              ) : (
+                groups.map((group) => {
+                  const groupFields = visibleFields.filter((f) => f.group === group);
+                  const isPageSeoGroup = group.startsWith("SEO por Página · ");
+                  if (isPageSeoGroup) {
+                    const configuredCount = groupFields.filter((f) => Boolean(values[f.key]?.trim())).length;
+                    return (
+                      <CollapsibleSeoGroupCard
+                        key={group}
+                        title={group}
+                        configuredCount={configuredCount}
+                        totalCount={groupFields.length}
+                      >
+                        {groupFields.map(renderField)}
+                      </CollapsibleSeoGroupCard>
+                    );
+                  }
                   return (
-                    <CollapsibleSeoGroupCard
-                      key={group}
-                      title={group}
-                      configuredCount={configuredCount}
-                      totalCount={groupFields.length}
-                    >
-                      {groupFields.map(renderField)}
-                    </CollapsibleSeoGroupCard>
+                    <Card key={group}>
+                      <CardHeader>
+                        <CardTitle className="text-base">{group}</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        {groupFields.map(renderField)}
+                      </CardContent>
+                    </Card>
                   );
-                }
-                return (
-                  <Card key={group}>
-                    <CardHeader>
-                      <CardTitle className="text-base">{group}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      {groupFields.map(renderField)}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-
-              {tab === "empresa" && legacyFields.length > 0 && (
-                <details className="rounded-2xl border border-border bg-card">
-                  <summary className="cursor-pointer list-none px-6 py-4 text-sm font-bold text-foreground flex items-center justify-between">
-                    <span>Campos legados de respaldo (sincronizados automáticamente)</span>
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  </summary>
-                  <div className="space-y-6 border-t border-border px-6 py-6">
-                    {legacyFields.map(renderField)}
-                  </div>
-                </details>
+                })
               )}
             </TabsContent>
           );
         })}
 
         <TabsContent value="temas" className="mt-6">
-          <ThemeManagerTab values={values} onChange={(patch) => setValues((v) => ({ ...v, ...patch }))} />
+          <ThemeManagerTab
+            values={values}
+            onChange={(patch) => setValues((v) => ({ ...v, ...patch }))}
+            onUploadMedia={uploadMediaFile}
+            uploadingKey={uploadingKey}
+          />
         </TabsContent>
       </Tabs>
     </div>

@@ -7,6 +7,7 @@ import { useCart } from "@/lib/cart";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { getContactInfo, waLink, formatCOP, type Product } from "@/lib/catalog";
 import { openExternalUrl } from "@/lib/whatsapp";
+import { getActiveTheme } from "@/lib/theme";
 import { cartLineKey } from "@/lib/payment-rules";
 import { OrderQuickCaptureModal } from "@/components/OrderQuickCaptureModal";
 import {
@@ -129,9 +130,32 @@ export function UnifiedButton({
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
 
   // Fusionar estilo legado con estilo unificado y override de accesibilidad
+  const activeTheme = getActiveTheme(content);
   const baseUnified = productButtonToUnified(button);
+  const hasLocalMedia = Boolean(
+    baseUnified.bgImageUrl ||
+      styleOverride?.bgImageUrl ||
+      button.animation_type === "image" ||
+      button.animation_type === "video" ||
+      button.animation_type === "lottie",
+  );
+  const themeBtnMedia = !hasLocalMedia ? activeTheme.buttonStyle.mediaUrl?.trim() : "";
+  const themeBtnMediaType = activeTheme.buttonStyle.mediaType ?? "image";
+  const themeUnifiedMediaOverride: Partial<UnifiedButtonStyle> = themeBtnMedia
+    ? {
+        bgImageUrl: themeBtnMedia,
+        type:
+          themeBtnMediaType === "video"
+            ? "videoFill"
+            : themeBtnMediaType === "lottie"
+              ? "lottieFill"
+              : "imageFill",
+      }
+    : {};
+
   const unifiedStyle: UnifiedButtonStyle = {
     ...baseUnified,
+    ...themeUnifiedMediaOverride,
     ...styleOverride,
     ...(typeof button.shade === "number" ? { shade: button.shade } : {}),
   };
@@ -141,6 +165,13 @@ export function UnifiedButton({
     button.text,
     button.action_type,
   );
+
+  const effectiveButtonOverlay =
+    !hasLocalMedia &&
+    themeBtnMedia &&
+    typeof activeTheme.buttonStyle.overlayOpacity === "number"
+      ? activeTheme.buttonStyle.overlayOpacity
+      : a11y.overlayOpacity;
 
   const isFillMedia =
     (unifiedStyle.type === "imageFill" ||
@@ -277,10 +308,13 @@ export function UnifiedButton({
     : "rounded-[var(--btn-radius,0.75rem)]";
 
   const widthClass = button.width === "full" ? "w-full" : "w-auto";
+  const effectiveMediaFit = !hasLocalMedia && themeBtnMedia
+    ? (activeTheme.buttonStyle.mediaFit ?? "cover")
+    : button.media_fit;
   const fitClass =
-    button.media_fit === "contain"
+    effectiveMediaFit === "contain"
       ? "object-contain"
-      : button.media_fit === "fill"
+      : effectiveMediaFit === "fill"
       ? "object-fill"
       : "object-cover";
   const iconShapeConfig = getIconShapeStyle(button.icon_shape);
@@ -304,7 +338,12 @@ export function UnifiedButton({
         aria-label={a11y.ariaLabel || button.text}
         disabled={!interactive}
         onClick={handleAction}
-        style={{ color: a11y.textColor }}
+        style={{
+          color:
+            !button.text_color && !styleOverride?.textColor && activeTheme.buttonStyle.textColor
+              ? activeTheme.buttonStyle.textColor
+              : a11y.textColor,
+        }}
         className={`unified-theme-btn relative overflow-hidden cursor-pointer select-none border border-black/10 shadow-md transition-all ${widthClass} ${roundedClass} ${a11y.tapTargetClass} ${a11y.focusClass} ${animClass} ${className}`}
       >
         {/* CAPA DE COLOR DE FONDO: la opacidad solo afecta al fondo, nunca al texto */}
@@ -354,7 +393,7 @@ export function UnifiedButton({
             {/* OVERLAY OSCURO AUTOMÁTICO PARA ACCESIBILIDAD WCAG */}
             <div
               className="pointer-events-none absolute inset-0 z-0 bg-black transition-opacity"
-              style={{ opacity: a11y.overlayOpacity / 100 }}
+              style={{ opacity: effectiveButtonOverlay / 100 }}
             />
           </span>
         )}

@@ -1,3 +1,6 @@
+import { useId, useState, type ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   DndContext,
   closestCenter,
@@ -16,6 +19,12 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
+  ArrowUpDown,
+  CheckCircle2,
+  ChevronDown,
+  CircleDashed,
+  ExternalLink,
+  Eye,
   Globe,
   GripVertical,
   Mail,
@@ -130,9 +139,11 @@ function SortableBlockRow({
 export function ContactBlocksOrderEditor({
   rawOrder,
   onChange,
+  embedded = false,
 }: {
   rawOrder?: string;
   onChange: (serialized: string) => void;
+  embedded?: boolean;
 }) {
   const order = parseContactBlocksOrder(rawOrder);
   const sensors = useSensors(
@@ -150,6 +161,25 @@ export function ContactBlocksOrderEditor({
     }
   }
 
+  const content = (
+    <div className="space-y-3">
+      <p className="text-xs text-muted-foreground">
+        El orden de estas tarjetas define el orden exacto en que se muestran en tu página pública de contacto. Arrastra y suelta para reorganizar.
+      </p>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={order} strategy={verticalListSortingStrategy}>
+          <div className="space-y-2.5">
+            {order.map((blockKey, idx) => (
+              <SortableBlockRow key={blockKey} blockKey={blockKey} index={idx} />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+    </div>
+  );
+
+  if (embedded) return content;
+
   return (
     <Card>
       <CardHeader>
@@ -158,17 +188,7 @@ export function ContactBlocksOrderEditor({
           El orden de estas tarjetas define el orden exacto en que se muestran en tu página pública de contacto. Arrastra y suelta para reorganizar.
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={order} strategy={verticalListSortingStrategy}>
-            <div className="space-y-2.5">
-              {order.map((blockKey, idx) => (
-                <SortableBlockRow key={blockKey} blockKey={blockKey} index={idx} />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
-      </CardContent>
+      <CardContent>{content}</CardContent>
     </Card>
   );
 }
@@ -315,9 +335,11 @@ function SortableChannelRow({
 export function ContactChannelsEditor({
   values,
   onPatch,
+  embedded = false,
 }: {
   values: Record<string, string>;
   onPatch: (patch: Record<string, string>) => void;
+  embedded?: boolean;
 }) {
   const channels = parseContactChannels(values.contact_channels, values);
   const sensors = useSensors(
@@ -395,6 +417,45 @@ export function ContactChannelsEditor({
     }
   }
 
+  const listBody = (
+    <div className="space-y-4">
+      {embedded && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs text-muted-foreground">
+            Agrega múltiples líneas de atención (Ventas, Taller, Soporte) y elige cuál recibe los pedidos rápidos.
+          </p>
+          <Button type="button" size="sm" variant="outline" onClick={handleAdd}>
+            <Plus className="mr-1.5 h-4 w-4" /> Agregar canal
+          </Button>
+        </div>
+      )}
+
+      {channels.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+          No hay canales configurados. Pulsa "Agregar canal" para crear el primero.
+        </div>
+      ) : (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={channels.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-3">
+              {channels.map((ch) => (
+                <SortableChannelRow
+                  key={ch.id}
+                  channel={ch}
+                  onUpdate={handleUpdate}
+                  onSetPrimary={handleSetPrimary}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
+    </div>
+  );
+
+  if (embedded) return listBody;
+
   return (
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
@@ -408,29 +469,7 @@ export function ContactChannelsEditor({
           <Plus className="mr-1.5 h-4 w-4" /> Agregar canal
         </Button>
       </CardHeader>
-      <CardContent>
-        {channels.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-            No hay canales configurados. Pulsa "Agregar canal" para crear el primero.
-          </div>
-        ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={channels.map((c) => c.id)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-3">
-                {channels.map((ch) => (
-                  <SortableChannelRow
-                    key={ch.id}
-                    channel={ch}
-                    onUpdate={handleUpdate}
-                    onSetPrimary={handleSetPrimary}
-                    onDelete={handleDelete}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
-        )}
-      </CardContent>
+      <CardContent>{listBody}</CardContent>
     </Card>
   );
 }
@@ -533,9 +572,11 @@ function SortableSocialRow({
 export function ContactSocialLinksEditor({
   values,
   onPatch,
+  embedded = false,
 }: {
   values: Record<string, string>;
   onPatch: (patch: Record<string, string>) => void;
+  embedded?: boolean;
 }) {
   const links = parseSocialLinks(values.contact_social_links, values);
   const sensors = useSensors(
@@ -587,6 +628,44 @@ export function ContactSocialLinksEditor({
     }
   }
 
+  const body = (
+    <div className="space-y-4">
+      {embedded && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs text-muted-foreground">
+            Añade y ordena tus perfiles de Instagram, TikTok, YouTube, Facebook, X, LinkedIn o enlaces propios.
+          </p>
+          <Button type="button" size="sm" variant="outline" onClick={handleAdd}>
+            <Plus className="mr-1.5 h-4 w-4" /> Agregar red social
+          </Button>
+        </div>
+      )}
+
+      {links.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+          No hay redes configuradas. Pulsa "Agregar red social" para añadir un perfil.
+        </div>
+      ) : (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={links.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-3">
+              {links.map((s) => (
+                <SortableSocialRow
+                  key={s.id}
+                  social={s}
+                  onUpdate={handleUpdate}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
+    </div>
+  );
+
+  if (embedded) return body;
+
   return (
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
@@ -600,28 +679,318 @@ export function ContactSocialLinksEditor({
           <Plus className="mr-1.5 h-4 w-4" /> Agregar red social
         </Button>
       </CardHeader>
-      <CardContent>
-        {links.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-            No hay redes configuradas. Pulsa "Agregar red social" para añadir un perfil.
-          </div>
-        ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={links.map((s) => s.id)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-3">
-                {links.map((s) => (
-                  <SortableSocialRow
-                    key={s.id}
-                    social={s}
-                    onUpdate={handleUpdate}
-                    onDelete={handleDelete}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
-        )}
-      </CardContent>
+      <CardContent>{body}</CardContent>
     </Card>
+  );
+}
+
+type CompanySubCardId = "orden" | "canales" | "redes" | "ubicacion";
+
+function CompanyCollapsibleSubCard({
+  index,
+  title,
+  subtitle,
+  statusLabel,
+  isConfigured,
+  icon,
+  isOpen,
+  onToggle,
+  children,
+}: {
+  index: number;
+  title: string;
+  subtitle: string;
+  statusLabel: string;
+  isConfigured: boolean;
+  icon: ReactNode;
+  isOpen: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  const uid = useId();
+  const headerId = `${uid}-header`;
+  const panelId = `${uid}-panel`;
+
+  return (
+    <div
+      className={`overflow-hidden rounded-2xl border bg-card transition-colors ${
+        isOpen ? "border-primary/40" : "border-border hover:border-border/80"
+      }`}
+    >
+      <button
+        id={headerId}
+        type="button"
+        aria-expanded={isOpen}
+        aria-controls={panelId}
+        onClick={onToggle}
+        className={`flex w-full cursor-pointer select-none items-center gap-3 p-3.5 text-left transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:px-4 ${
+          isOpen ? "bg-muted/20" : ""
+        }`}
+      >
+        <span
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-colors ${
+            isConfigured
+              ? "border-primary/25 bg-primary/10 text-primary"
+              : "border-border bg-muted/50 text-muted-foreground"
+          }`}
+        >
+          {icon}
+        </span>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold tabular-nums text-muted-foreground">
+              0{index + 1}.
+            </span>
+            <span className="text-sm font-bold text-foreground">{title}</span>
+          </div>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">{subtitle}</p>
+        </div>
+
+        <span
+          className={`hidden shrink-0 items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium tabular-nums sm:inline-flex ${
+            isConfigured
+              ? "border-primary/25 bg-primary/10 text-primary"
+              : "border-border bg-muted/50 text-muted-foreground"
+          }`}
+        >
+          {isConfigured ? (
+            <CheckCircle2 className="h-3 w-3 shrink-0" aria-hidden="true" />
+          ) : (
+            <CircleDashed className="h-3 w-3 shrink-0" aria-hidden="true" />
+          )}
+          <span>{statusLabel}</span>
+        </span>
+
+        <ChevronDown
+          aria-hidden="true"
+          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none ${
+            isOpen ? "rotate-180 text-primary" : ""
+          }`}
+        />
+      </button>
+
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            id={panelId}
+            role="region"
+            aria-labelledby={headerId}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-6 border-t border-border/60 bg-card p-4 sm:p-5">
+              <div className="flex items-center justify-between gap-2 sm:hidden">
+                <span
+                  className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium tabular-nums ${
+                    isConfigured
+                      ? "border-primary/25 bg-primary/10 text-primary"
+                      : "border-border bg-muted/50 text-muted-foreground"
+                  }`}
+                >
+                  {isConfigured ? (
+                    <CheckCircle2 className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  ) : (
+                    <CircleDashed className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  )}
+                  <span>{statusLabel}</span>
+                </span>
+              </div>
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+export function CompanyDataAccordion({
+  values,
+  onPatch,
+  locationFieldsContent,
+}: {
+  values: Record<string, string>;
+  onPatch: (patch: Record<string, string>) => void;
+  locationFieldsContent: ReactNode;
+}) {
+  const [openCards, setOpenCards] = useState<Set<CompanySubCardId>>(() => new Set());
+
+  const channels = parseContactChannels(values.contact_channels, values);
+  const socialLinks = parseSocialLinks(values.contact_social_links, values);
+  const blocksOrder = parseContactBlocksOrder(values.contact_blocks_order);
+  const hasLocationText = Boolean(
+    values.contact_location_text?.trim() ||
+      values.contact_location_short?.trim() ||
+      values.site_area_served?.trim(),
+  );
+  const hasMapEmbed = Boolean(values.contact_map_embed_url?.trim());
+  const isCustomOrder = Boolean(values.contact_blocks_order?.trim());
+
+  const orderLabels: Record<ContactBlockKey, string> = {
+    canales: "Canales",
+    mapa: "Mapa",
+    redes: "Redes",
+    formulario: "Formulario",
+  };
+  const orderSummaryText = blocksOrder.map((k) => orderLabels[k]).join(" · ");
+
+  const locationStatusLabel = hasLocationText && hasMapEmbed
+    ? "Dirección y mapa"
+    : hasLocationText
+      ? "Solo dirección"
+      : hasMapEmbed
+        ? "Solo mapa"
+        : "Pendiente";
+
+  function toggleCard(id: CompanySubCardId) {
+    setOpenCards((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const quickTabs: Array<{
+    id: CompanySubCardId;
+    num: string;
+    shortTitle: string;
+    configured: boolean;
+  }> = [
+    { id: "orden", num: "01", shortTitle: "Orden en /contacto", configured: isCustomOrder },
+    { id: "canales", num: "02", shortTitle: `Canales (${channels.length})`, configured: channels.length > 0 },
+    { id: "redes", num: "03", shortTitle: `Redes (${socialLinks.length})`, configured: socialLinks.length > 0 },
+    { id: "ubicacion", num: "04", shortTitle: "Ubicación y Mapa", configured: hasLocationText || hasMapEmbed },
+  ];
+
+  return (
+    <div className="space-y-5">
+      {/* Barra de resumen superior */}
+      <div className="rounded-2xl border border-border bg-muted/30 p-4 space-y-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <p className="text-sm font-bold text-foreground">
+              Fuente Única de Verdad — Datos de Empresa y Contacto
+            </p>
+            <p className="text-xs text-muted-foreground tabular-nums">
+              <span className="font-semibold text-foreground">{channels.length}</span>{" "}
+              {channels.length === 1 ? "canal directo configurado" : "canales directos configurados"}
+              {" · "}
+              <span className="font-semibold text-foreground">{socialLinks.length}</span>{" "}
+              {socialLinks.length === 1 ? "red social enlazada" : "redes sociales enlazadas"}
+              {" · "}
+              Ubicación: <span className="font-semibold text-foreground">{locationStatusLabel}</span>
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              Orden en /contacto: <span className="font-medium text-foreground">{orderSummaryText}</span>
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <Button asChild variant="outline" size="sm" className="h-8 gap-1.5 text-xs whitespace-nowrap">
+              <Link to="/contacto" target="_blank" rel="noopener noreferrer">
+                <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+                <span>Ver /contacto</span>
+                <ExternalLink className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+
+        <div
+          className="flex flex-wrap items-center gap-1.5 border-t border-border/60 pt-3"
+          aria-label="Accesos rápidos a bloques de empresa"
+        >
+          {quickTabs.map((tab) => {
+            const isOpen = openCards.has(tab.id);
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => toggleCard(tab.id)}
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                  isOpen
+                    ? "border-primary bg-primary/15 text-primary"
+                    : tab.configured
+                      ? "border-border bg-card text-foreground hover:bg-muted/50"
+                      : "border-border/70 bg-background/60 text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {tab.configured ? (
+                  <CheckCircle2 className="h-3 w-3 shrink-0 text-primary" aria-hidden="true" />
+                ) : (
+                  <CircleDashed className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden="true" />
+                )}
+                <span className="tabular-nums text-muted-foreground">{tab.num}</span>
+                <span>{tab.shortTitle}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 4 Sub-tarjetas colapsables */}
+      <div className="space-y-3">
+        <CompanyCollapsibleSubCard
+          index={0}
+          title="Orden de Bloques en /contacto"
+          subtitle="Arrastra para definir la secuencia visual de Canales, Mapa, Redes y Formulario"
+          statusLabel={isCustomOrder ? "Personalizado" : "Predeterminado"}
+          isConfigured={isCustomOrder}
+          icon={<ArrowUpDown className="h-4 w-4" aria-hidden="true" />}
+          isOpen={openCards.has("orden")}
+          onToggle={() => toggleCard("orden")}
+        >
+          <ContactBlocksOrderEditor
+            embedded
+            rawOrder={values.contact_blocks_order}
+            onChange={(serialized) => onPatch({ contact_blocks_order: serialized })}
+          />
+        </CompanyCollapsibleSubCard>
+
+        <CompanyCollapsibleSubCard
+          index={1}
+          title="Canales Directos de Contacto"
+          subtitle="Líneas de WhatsApp (ventas/taller), teléfonos y correos electrónicos"
+          statusLabel={`${channels.length} ${channels.length === 1 ? "canal" : "canales"}`}
+          isConfigured={channels.length > 0}
+          icon={<Phone className="h-4 w-4" aria-hidden="true" />}
+          isOpen={openCards.has("canales")}
+          onToggle={() => toggleCard("canales")}
+        >
+          <ContactChannelsEditor embedded values={values} onPatch={onPatch} />
+        </CompanyCollapsibleSubCard>
+
+        <CompanyCollapsibleSubCard
+          index={2}
+          title="Redes Sociales Oficiales"
+          subtitle="Perfiles ordenables con íconos oficiales de Instagram, TikTok, YouTube, X y más"
+          statusLabel={`${socialLinks.length} ${socialLinks.length === 1 ? "red" : "redes"}`}
+          isConfigured={socialLinks.length > 0}
+          icon={<Globe className="h-4 w-4" aria-hidden="true" />}
+          isOpen={openCards.has("redes")}
+          onToggle={() => toggleCard("redes")}
+        >
+          <ContactSocialLinksEditor embedded values={values} onPatch={onPatch} />
+        </CompanyCollapsibleSubCard>
+
+        <CompanyCollapsibleSubCard
+          index={3}
+          title="Ubicación Física y Google Maps"
+          subtitle="Dirección del taller, ciudad para JSON-LD y mapa embebido con vista previa"
+          statusLabel={locationStatusLabel}
+          isConfigured={hasLocationText || hasMapEmbed}
+          icon={<MapPin className="h-4 w-4" aria-hidden="true" />}
+          isOpen={openCards.has("ubicacion")}
+          onToggle={() => toggleCard("ubicacion")}
+        >
+          <div className="space-y-6">{locationFieldsContent}</div>
+        </CompanyCollapsibleSubCard>
+      </div>
+    </div>
   );
 }

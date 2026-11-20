@@ -6,6 +6,16 @@ export type ThemeAnimation = "none" | "neon_glow" | "cyber_pulse" | "shimmer" | 
 export type ThemeBorderRadius = "square" | "soft" | "default" | "round" | "pill";
 export type ThemeButtonStyle = "solid" | "glass" | "neon" | "cyber_bevel";
 export type AmbientEffectType = "none" | "snow" | "grid" | "aurora";
+export type ThemeBackgroundType = "solid" | "image" | "gif" | "video" | "pattern";
+export type ThemeBackgroundFit = "cover" | "contain" | "repeat";
+
+export type ThemeBackground = {
+  type: ThemeBackgroundType;
+  mediaUrl?: string; // URL firmada de site-media (PNG, JPG, WEBP, GIF, MP4, WebM)
+  fit?: ThemeBackgroundFit; // Ajuste: Pantalla completa (cover), contenido (contain) o mosaico (repeat)
+  overlayOpacity?: number; // 0 a 90% (velo para garantizar legibilidad de textos)
+  overlayColor?: string; // Color del velo (ej: "#000000" para temas oscuros, "#ffffff" para claros)
+};
 
 export type ColorToken = {
   id: string;
@@ -21,6 +31,7 @@ export type ThemeColors = {
   brandWine: string;
   background: string;
   foreground?: string;
+  headingColor?: string;
   card?: string;
   cardForeground?: string;
   primary?: string;
@@ -41,12 +52,16 @@ export type SiteTheme = {
   description: string;
   isPreset?: boolean;
   colors: ThemeColors;
+  background?: ThemeBackground;
   buttonStyle: {
     animation: ThemeAnimation;
     globalRadius?: ThemeBorderRadius;
     visualStyle?: ThemeButtonStyle;
     mediaUrl?: string; // GIF, MP4, WebM, Lottie o Imagen
     mediaType?: "gif" | "video" | "image" | "lottie";
+    mediaFit?: "cover" | "contain" | "fill";
+    overlayOpacity?: number; // 0 a 85% velo de legibilidad en botones multimedia
+    textColor?: string;
   };
   ambient?: {
     effect: AmbientEffectType;
@@ -75,9 +90,23 @@ export const THEME_BUTTON_STYLE_LABELS: Record<ThemeButtonStyle, string> = {
 
 export const AMBIENT_EFFECT_LABELS: Record<AmbientEffectType, string> = {
   none: "Sin efecto ambiental",
-  snow: "Nieve Navideña ❄️",
-  grid: "Cyber Grid ⚡",
-  aurora: "Aurora Boreal 🌌",
+  snow: "Nieve en vivo",
+  grid: "Cyber Grid",
+  aurora: "Aurora Boreal",
+};
+
+export const THEME_BACKGROUND_TYPE_LABELS: Record<ThemeBackgroundType, string> = {
+  solid: "Color sólido",
+  image: "Imagen (PNG / JPG / WEBP)",
+  gif: "GIF animado",
+  video: "Video en bucle (MP4 / WebM)",
+  pattern: "Textura / Patrón en mosaico",
+};
+
+export const THEME_BACKGROUND_FIT_LABELS: Record<ThemeBackgroundFit, string> = {
+  cover: "Pantalla completa (Cover)",
+  contain: "Contenido centrado (Contain)",
+  repeat: "Mosaico repetido (Repeat)",
 };
 
 const VALID_ANIMATIONS = new Set<ThemeAnimation>([
@@ -105,9 +134,24 @@ const VALID_BUTTON_STYLES = new Set<ThemeButtonStyle>([
 
 const VALID_AMBIENT = new Set<AmbientEffectType>(["none", "snow", "grid", "aurora"]);
 
+const VALID_BG_TYPES = new Set<ThemeBackgroundType>([
+  "solid",
+  "image",
+  "gif",
+  "video",
+  "pattern",
+]);
+
+const VALID_BG_FITS = new Set<ThemeBackgroundFit>(["cover", "contain", "repeat"]);
+
 export function clampAmbientIntensity(intensity?: number): number {
   if (typeof intensity !== "number" || !Number.isFinite(intensity)) return 55;
   return Math.max(10, Math.min(100, Math.round(intensity)));
+}
+
+export function clampOverlayOpacity(opacity?: number, fallback = 45): number {
+  if (typeof opacity !== "number" || !Number.isFinite(opacity)) return fallback;
+  return Math.max(0, Math.min(90, Math.round(opacity)));
 }
 
 export function normalizeTheme(theme: SiteTheme): SiteTheme {
@@ -127,14 +171,42 @@ export function normalizeTheme(theme: SiteTheme): SiteTheme {
     ? (rawAmbient.effect as AmbientEffectType)
     : "none";
 
+  const rawBg = (theme.background ?? {}) as Partial<ThemeBackground>;
+  const bgType: ThemeBackgroundType = VALID_BG_TYPES.has(rawBg.type as ThemeBackgroundType)
+    ? (rawBg.type as ThemeBackgroundType)
+    : "solid";
+  const bgFit: ThemeBackgroundFit = VALID_BG_FITS.has(rawBg.fit as ThemeBackgroundFit)
+    ? (rawBg.fit as ThemeBackgroundFit)
+    : bgType === "pattern"
+      ? "repeat"
+      : "cover";
+
   return {
     ...theme,
     colors: ensureThemePalette(theme.colors || {}),
+    background: {
+      type: bgType,
+      mediaUrl: typeof rawBg.mediaUrl === "string" ? rawBg.mediaUrl : "",
+      fit: bgFit,
+      overlayOpacity: clampOverlayOpacity(rawBg.overlayOpacity, bgType === "solid" ? 0 : 45),
+      overlayColor:
+        typeof rawBg.overlayColor === "string" && rawBg.overlayColor.trim()
+          ? rawBg.overlayColor
+          : "#000000",
+    },
     buttonStyle: {
       ...rawBtn,
       animation,
       globalRadius,
       visualStyle,
+      mediaFit:
+        rawBtn.mediaFit === "contain" || rawBtn.mediaFit === "fill" || rawBtn.mediaFit === "cover"
+          ? rawBtn.mediaFit
+          : "cover",
+      overlayOpacity:
+        typeof rawBtn.overlayOpacity === "number" && Number.isFinite(rawBtn.overlayOpacity)
+          ? Math.max(0, Math.min(85, Math.round(rawBtn.overlayOpacity)))
+          : undefined,
     },
     ambient: {
       effect,
@@ -188,6 +260,13 @@ export const PRESET_THEMES: SiteTheme[] = [
         { id: "background", name: "Fondo de Página", hex: "#ffffff" },
       ],
     }),
+    background: {
+      type: "solid",
+      mediaUrl: "",
+      fit: "cover",
+      overlayOpacity: 0,
+      overlayColor: "#000000",
+    },
     buttonStyle: {
       animation: "none",
       globalRadius: "default",
@@ -201,7 +280,7 @@ export const PRESET_THEMES: SiteTheme[] = [
   {
     id: "christmas_new_year",
     name: "Navidad & Fin de Año 🎄",
-    description: "Edición decembrina oficial con rojo navideño, verde pino, acentos dorados y nieve suave en vivo.",
+    description: "Edición decembrina base personalizable: agrega tu propio video o imagen festiva y ajusta los textos.",
     isPreset: true,
     colors: ensureThemePalette({
       brandOrange: "#c81e1e",
@@ -215,6 +294,13 @@ export const PRESET_THEMES: SiteTheme[] = [
         { id: "background", name: "Blanco Nieve", hex: "#fffdf8" },
       ],
     }),
+    background: {
+      type: "solid",
+      mediaUrl: "",
+      fit: "cover",
+      overlayOpacity: 0,
+      overlayColor: "#000000",
+    },
     buttonStyle: {
       animation: "festive_sparkle",
       globalRadius: "round",
@@ -236,6 +322,7 @@ export const PRESET_THEMES: SiteTheme[] = [
       brandWine: "#9d00ff",
       background: "#0f172a",
       foreground: "#f8fafc",
+      headingColor: "#f8fafc",
       card: "#1e293b",
       cardForeground: "#f8fafc",
       muted: "#1e293b",
@@ -248,6 +335,13 @@ export const PRESET_THEMES: SiteTheme[] = [
         { id: "background", name: "Obsidiana Oscuro", hex: "#0f172a" },
       ],
     }),
+    background: {
+      type: "solid",
+      mediaUrl: "",
+      fit: "cover",
+      overlayOpacity: 0,
+      overlayColor: "#000000",
+    },
     buttonStyle: {
       animation: "neon_glow",
       globalRadius: "square",
@@ -280,6 +374,13 @@ export const PRESET_THEMES: SiteTheme[] = [
         { id: "background", name: "Fondo Calidez", hex: "#fefce8" },
       ],
     }),
+    background: {
+      type: "solid",
+      mediaUrl: "",
+      fit: "cover",
+      overlayOpacity: 0,
+      overlayColor: "#000000",
+    },
     buttonStyle: {
       animation: "festive_sparkle",
       globalRadius: "round",
@@ -323,9 +424,33 @@ export function buildThemeGlobalCss(theme: SiteTheme): string {
   const normalized = normalizeTheme(theme);
   const radiusKey = normalized.buttonStyle.globalRadius ?? "default";
   const radiusToken = THEME_RADIUS_TOKENS[radiusKey] ?? THEME_RADIUS_TOKENS.default;
-  const parts: string[] = [
-    `:root { --radius: ${radiusToken.cssRadius}; --btn-radius: ${radiusToken.buttonRadius}; }`,
+  const c = normalized.colors;
+  const rootVars: string[] = [
+    `--radius: ${radiusToken.cssRadius};`,
+    `--btn-radius: ${radiusToken.buttonRadius};`,
   ];
+
+  if (c.foreground) rootVars.push(`--foreground: ${c.foreground};`);
+  if (c.headingColor) rootVars.push(`--theme-heading-color: ${c.headingColor};`);
+  if (c.mutedForeground) rootVars.push(`--muted-foreground: ${c.mutedForeground};`);
+  if (c.card) rootVars.push(`--card: ${c.card};`);
+  if (c.cardForeground) rootVars.push(`--card-foreground: ${c.cardForeground};`);
+  if (c.primaryForeground) rootVars.push(`--primary-foreground: ${c.primaryForeground};`);
+  if (c.secondaryForeground) rootVars.push(`--secondary-foreground: ${c.secondaryForeground};`);
+  if (c.border) rootVars.push(`--border: ${c.border};`);
+  if (normalized.buttonStyle.textColor) {
+    rootVars.push(`--theme-btn-text-color: ${normalized.buttonStyle.textColor};`);
+  }
+
+  const parts: string[] = [`:root { ${rootVars.join(" ")} }`];
+
+  if (c.headingColor) {
+    parts.push(`h1, h2, h3, .theme-heading { color: var(--theme-heading-color); }`);
+  }
+  if (normalized.buttonStyle.textColor) {
+    parts.push(`.btn-primary, .unified-theme-btn { color: var(--theme-btn-text-color); }`);
+  }
+
   if (normalized.customCss?.trim()) {
     parts.push(normalized.customCss);
   }
@@ -353,9 +478,11 @@ export function applyThemeToDocument(theme: SiteTheme) {
   root.dataset.themeButtonStyle = normalized.buttonStyle.visualStyle ?? "solid";
   root.dataset.themeAnimation = normalized.buttonStyle.animation ?? "none";
   root.dataset.themeAmbient = normalized.ambient?.effect ?? "none";
+  root.dataset.themeBgType = normalized.background?.type ?? "solid";
 
   const optionalVarPairs: Array<[string, string | undefined]> = [
     ["--foreground", c.foreground],
+    ["--theme-heading-color", c.headingColor],
     ["--card", c.card],
     ["--card-foreground", c.cardForeground],
     ["--primary", c.primary],
@@ -368,6 +495,7 @@ export function applyThemeToDocument(theme: SiteTheme) {
     ["--accent-foreground", c.accentForeground],
     ["--border", c.border],
     ["--ring", c.ring],
+    ["--theme-btn-text-color", normalized.buttonStyle.textColor],
   ];
 
   for (const [cssVar, val] of optionalVarPairs) {
