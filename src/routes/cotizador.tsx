@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { Quoter } from "@/components/Quoter";
+import { siteContentQuery } from "@/lib/catalog";
+import { getCanonicalBaseUrl, getSeo } from "@/lib/seo";
 
 const searchSchema = z.object({
   servicio: z.string().max(80).optional(),
@@ -8,24 +10,46 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute("/cotizador")({
   validateSearch: searchSchema,
-  head: () => ({
-    meta: [
-      { title: "Cotizador de Impresión 3D en línea — Will Design 3D" },
+  loader: async ({ context }) => {
+    const siteContent = await context.queryClient.ensureQueryData(siteContentQuery());
+    return { siteContent };
+  },
+  head: ({ loaderData }: any) => {
+    const siteContent = loaderData?.siteContent;
+    const canonicalUrl = `${getCanonicalBaseUrl(siteContent)}/cotizador`;
+    const seo = getSeo(
       {
-        name: "description",
-        content:
+        title: siteContent?.site_title
+          ? `Cotizador 3D · ${siteContent.site_title}`
+          : "Cotizador de Impresión 3D en línea — Will Design 3D",
+        description:
           "Calcula al instante el precio de tu impresión 3D, diseño, escaneo o post-procesado. Ajusta material, tamaño y acabado y recibe tu cotización por WhatsApp.",
       },
+      siteContent,
+    );
+
+    const metaTags: Array<Record<string, string>> = [
+      { title: seo.title },
+      { name: "description", content: seo.description },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:title", content: "Cotizador de Impresión 3D en línea — Will Design 3D" },
-      {
-        property: "og:description",
-        content:
-          "Precio estimado al instante para impresión 3D, diseño, escaneo y acabados. 100% configurable por nuestro equipo.",
-      },
-    ],
-  }),
+      { property: "og:title", content: seo.title },
+      { property: "og:description", content: seo.description },
+      { property: "og:url", content: canonicalUrl },
+    ];
+
+    if (seo.image) {
+      metaTags.push(
+        { property: "og:image", content: seo.image },
+        { name: "twitter:image", content: seo.image },
+      );
+    }
+
+    return {
+      meta: metaTags,
+      links: [{ rel: "canonical", href: canonicalUrl }],
+    };
+  },
   component: CotizadorPage,
 });
 

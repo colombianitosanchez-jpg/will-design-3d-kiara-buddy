@@ -1,4 +1,185 @@
 import { firstStaticShareImage } from "./share-image";
+import { productPlainText, productSummary } from "./product-description";
+
+export const DEFAULT_SITE_URL = "https://will-design-3d.lovable.app";
+
+export function getCanonicalBaseUrl(siteContent?: Record<string, string> | null): string {
+  const raw =
+    siteContent?.site_canonical_domain?.trim() ||
+    siteContent?.site_url?.trim() ||
+    DEFAULT_SITE_URL;
+  const stripped = raw.replace(/\/+$/, "");
+  if (!stripped) return DEFAULT_SITE_URL;
+  return /^https?:\/\//i.test(stripped) ? stripped : `https://${stripped}`;
+}
+
+export function getRobotsContent(siteContent?: Record<string, string> | null): "index, follow" | "noindex, nofollow" {
+  return String(siteContent?.site_indexable_global ?? "").trim().toLowerCase() === "false"
+    ? "noindex, nofollow"
+    : "index, follow";
+}
+
+export function buildRobotsTxt(siteContent?: Record<string, string> | null): string {
+  const isBlocked = String(siteContent?.site_indexable_global ?? "").trim().toLowerCase() === "false";
+  if (isBlocked) {
+    return ["User-agent: *", "Disallow: /", ""].join("\n");
+  }
+  const baseUrl = getCanonicalBaseUrl(siteContent);
+  return [
+    "User-agent: *",
+    "Allow: /",
+    "Disallow: /admin",
+    "Disallow: /panel",
+    "Disallow: /auth",
+    "",
+    `Sitemap: ${baseUrl}/sitemap.xml`,
+    "",
+  ].join("\n");
+}
+
+export interface SitemapEntry {
+  path: string;
+  lastmod?: string;
+  changefreq?: "always" | "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "never";
+  priority?: string;
+}
+
+function escapeXml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+export function buildSitemapXml(
+  baseUrl: string,
+  entries: SitemapEntry[],
+): string {
+  const cleanBase = baseUrl.replace(/\/+$/, "");
+  const urls = entries.map((e) =>
+    [
+      "  <url>",
+      `    <loc>${escapeXml(`${cleanBase}${e.path}`)}</loc>`,
+      e.lastmod ? `    <lastmod>${escapeXml(e.lastmod)}</lastmod>` : null,
+      e.changefreq ? `    <changefreq>${escapeXml(e.changefreq)}</changefreq>` : null,
+      e.priority ? `    <priority>${escapeXml(e.priority)}</priority>` : null,
+      "  </url>",
+    ]
+      .filter(Boolean)
+      .join("\n"),
+  );
+
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ...urls,
+    "</urlset>",
+  ].join("\n");
+}
+
+export interface LlmsServiceItem {
+  title: string;
+  slug: string;
+  lead?: string | null;
+}
+
+export interface LlmsProductItem {
+  name: string;
+  slug: string;
+  price_cop: number;
+  short?: string | null;
+  description?: string | null;
+  quote_only?: boolean | null;
+}
+
+function formatCopSimple(amount: number): string {
+  const n = Math.round(Number(amount) || 0);
+  return `$${n.toLocaleString("es-CO")}`;
+}
+
+export function buildLlmsTxt(input: {
+  siteContent?: Record<string, string> | null;
+  services?: LlmsServiceItem[];
+  products?: LlmsProductItem[];
+}): string {
+  const siteContent = input.siteContent ?? {};
+  const baseUrl = getCanonicalBaseUrl(siteContent);
+  const summary =
+    siteContent.site_description?.trim() ||
+    siteContent.hero_subtitle?.trim() ||
+    "Taller especializado en impresión 3D, prototipado rápido, diseño mecánico, escaneo 3D y venta de equipos e insumos en Bogotá, Colombia.";
+
+  const location = siteContent.contact_location_text?.trim() || "Bogotá, Colombia";
+  const waDisplay = siteContent.contact_whatsapp_display?.trim() || "";
+  const waNumber = siteContent.contact_whatsapp?.trim() || "";
+  const waLine =
+    waDisplay && waNumber
+      ? `${waDisplay} (${waNumber})`
+      : waDisplay || waNumber || "Consultar en el sitio web";
+
+  const igHandle = siteContent.contact_instagram_handle?.trim() || "";
+  const igUrl = siteContent.contact_instagram_url?.trim() || "";
+  const igLine =
+    igHandle && igUrl
+      ? `${igHandle} (${igUrl})`
+      : igHandle || igUrl || "https://www.instagram.com/will_design2020";
+
+  const email = siteContent.contact_email?.trim() || "";
+
+  const companyLines = [
+    `- **Ubicación:** ${location}`,
+    `- **WhatsApp:** ${waLine}`,
+    `- **Instagram:** ${igLine}`,
+    ...(email ? [`- **Correo:** ${email}`] : []),
+    `- **Sitio Web:** ${baseUrl}`,
+  ];
+
+  const services = (input.services ?? []).filter((s) => s?.title?.trim() && s?.slug?.trim());
+  const serviceLines = services.length
+    ? services.map((s) => {
+        const desc = productPlainText(s.lead) || "Servicio personalizado de impresión y fabricación 3D.";
+        return `- [${s.title.trim()}](${baseUrl}/servicios#${s.slug.trim()}): ${desc}`;
+      })
+    : [`- [Servicios 3D y Cotizaciones](${baseUrl}/servicios): Impresión 3D FDM y resina, diseño CAD, escaneo y mantenimiento.`];
+
+  const products = (input.products ?? []).filter((p) => p?.name?.trim() && p?.slug?.trim());
+  const productLines = products.length
+    ? products.map((p) => {
+        const pricePart = p.quote_only
+          ? "Bajo cotización."
+          : `${formatCopSimple(p.price_cop)} COP.`;
+        const desc = productSummary({ short: p.short ?? "", description: p.description ?? "" });
+        return `- [${p.name.trim()}](${baseUrl}/tienda/${p.slug.trim()}): ${pricePart}${desc ? ` ${desc}` : ""}`;
+      })
+    : [`- [Catálogo Completo](${baseUrl}/tienda): Impresoras 3D, filamentos, resinas y repuestos disponibles.`];
+
+  return [
+    "# WILL DESIGN 3D — Impresión 3D, Diseño y Prototipado en Bogotá",
+    "",
+    `> ${summary}`,
+    "",
+    "## Información de la Empresa",
+    ...companyLines,
+    "",
+    "## Servicios Principales",
+    ...serviceLines,
+    "",
+    "## Catálogo Destacado de Productos",
+    ...productLines,
+    "",
+    "## Enlaces Principales",
+    `- Inicio: ${baseUrl}/`,
+    `- Servicios y Cotizaciones: ${baseUrl}/servicios`,
+    `- Cotizador en Línea: ${baseUrl}/cotizador`,
+    `- Tienda Virtual: ${baseUrl}/tienda`,
+    `- Galería de Proyectos: ${baseUrl}/galeria`,
+    `- Sobre Nosotros: ${baseUrl}/nosotros`,
+    `- Contacto: ${baseUrl}/contacto`,
+    "",
+  ].join("\n");
+}
 
 export type PageSeoInput = {
   seo_title?: string;
@@ -24,6 +205,8 @@ export type GlobalSeoInput = {
   site_meta_thumbnail_url?: string;
   site_logo_url?: string;
   site_url?: string;
+  site_canonical_domain?: string;
+  site_indexable_global?: string;
   [key: string]: any;
 };
 
@@ -142,6 +325,6 @@ export function buildSeoFromContent(
     ogDescription: description,
     ogImage: image,
     image,
-    canonical: content.site_url || "https://willdesign3d.com",
+    canonical: getCanonicalBaseUrl(content),
   };
 }

@@ -26,7 +26,7 @@ import { parseHeroButtons, type HeroButtonItem } from "@/lib/hero-buttons";
 import { parseAboutButtons, type AboutButtonItem } from "@/lib/about-buttons";
 import { getActiveTheme } from "@/lib/theme";
 import { getWhatsAppPayloadForButton } from "@/lib/whatsapp-buttons";
-import { getSeo } from "@/lib/seo";
+import { getCanonicalBaseUrl, getSeo } from "@/lib/seo";
 import type { ButtonIconShape } from "@/lib/product-buttons";
 import { motion } from "framer-motion";
 import { StatCollection } from "@/components/StatCollection";
@@ -88,7 +88,7 @@ export const Route = createFileRoute("/")({
       siteContent
     );
 
-    const canonicalUrl = "https://will-design-3d.lovable.app";
+    const canonicalUrl = getCanonicalBaseUrl(siteContent);
 
     const metaTags: Array<Record<string, string>> = [
       { title: seo.title },

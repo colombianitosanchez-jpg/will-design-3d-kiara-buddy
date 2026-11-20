@@ -6,7 +6,7 @@ import { MessageCircle, Instagram, MapPin, Mail, Send } from "lucide-react";
 import { toast } from "sonner";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 import { openExternalUrl } from "@/lib/whatsapp";
-import { getSeo } from "@/lib/seo";
+import { getCanonicalBaseUrl, getSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/contacto")({
   loader: async ({ context }) => {
@@ -15,6 +15,8 @@ export const Route = createFileRoute("/contacto")({
   },
   head: ({ loaderData }: any) => {
     const siteContent = loaderData?.siteContent;
+    const baseUrl = getCanonicalBaseUrl(siteContent);
+    const canonicalUrl = `${baseUrl}/contacto`;
     const seo = getSeo(
       {
         title: siteContent?.site_title ? `Contacto · ${siteContent.site_title}` : "Contacto — Will Design 3D",
@@ -29,7 +31,9 @@ export const Route = createFileRoute("/contacto")({
       { name: "description", content: seo.description },
       { property: "og:title", content: seo.title },
       { property: "og:description", content: seo.description },
-      { property: "og:url", content: "https://willdesign3d.com/contacto" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:url", content: canonicalUrl },
     ];
 
     if (seo.image) {
@@ -41,7 +45,7 @@ export const Route = createFileRoute("/contacto")({
 
     return {
       meta: metaTags,
-      links: [{ rel: "canonical", href: "https://willdesign3d.com/contacto" }],
+      links: [{ rel: "canonical", href: canonicalUrl }],
       scripts: [
         {
           type: "application/ld+json",
@@ -49,7 +53,7 @@ export const Route = createFileRoute("/contacto")({
             "@context": "https://schema.org",
             "@type": "LocalBusiness",
             name: businessName,
-            url: "https://willdesign3d.com/",
+            url: `${baseUrl}/`,
             description: seo.description,
             address: {
               "@type": "PostalAddress",

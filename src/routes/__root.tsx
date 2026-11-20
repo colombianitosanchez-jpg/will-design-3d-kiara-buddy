@@ -27,7 +27,7 @@ import { siteContentQuery, categoriesQuery } from "../lib/catalog";
 import { siteServicesQuery } from "./servicios";
 import { menuItemsQuery } from "../lib/menu";
 import { getActiveTheme, applyThemeToDocument } from "../lib/theme";
-import { getSeo } from "../lib/seo";
+import { getCanonicalBaseUrl, getRobotsContent, getSeo } from "../lib/seo";
 
 function ThemeApplier() {
   const { data: content } = useQuery(siteContentQuery());
@@ -112,6 +112,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: ({ loaderData }: any) => {
     const siteContent = loaderData?.siteContent;
     const seo = getSeo(null, siteContent);
+    const baseUrl = getCanonicalBaseUrl(siteContent);
+    const robotsContent = getRobotsContent(siteContent);
     const favicon = siteContent?.site_favicon_url || "/favicon.ico";
     const businessName = siteContent?.site_business_name || "Will Design 3D";
     const areaServed = siteContent?.site_area_served || "";
@@ -123,6 +125,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     const metaTags: Array<Record<string, string>> = [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "robots", content: robotsContent },
       { title },
       { name: "description", content: desc },
       { property: "og:title", content: title },
@@ -149,20 +152,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
             "@graph": [
               {
                 "@type": "Organization",
-                "@id": "https://will-design-3d.lovable.app/#organization",
+                "@id": `${baseUrl}/#organization`,
                 name: businessName,
-                url: "https://will-design-3d.lovable.app/",
+                url: `${baseUrl}/`,
                 description: desc,
                 areaServed: areaServed,
                 sameAs: [instagramUrl],
               },
               {
                 "@type": "WebSite",
-                "@id": "https://will-design-3d.lovable.app/#website",
-                url: "https://will-design-3d.lovable.app/",
+                "@id": `${baseUrl}/#website`,
+                url: `${baseUrl}/`,
                 name: businessName,
                 inLanguage: "es-CO",
-                publisher: { "@id": "https://will-design-3d.lovable.app/#organization" },
+                publisher: { "@id": `${baseUrl}/#organization` },
               },
             ],
           }),

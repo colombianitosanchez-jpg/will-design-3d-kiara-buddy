@@ -32,6 +32,7 @@ import {
   type ThemeAnimation,
   type ColorToken,
 } from "@/lib/theme";
+import { getCanonicalBaseUrl } from "@/lib/seo";
 import {
   DndContext,
   closestCenter,
@@ -102,6 +103,14 @@ const MARCA_FIELDS: FieldDef[] = [
   },
   // --------------------------------------------------------------------- SEO
   {
+    key: "site_canonical_domain",
+    label: "Dominio Canónico Oficial",
+    type: "text",
+    help: "URL base para SEO y metadatos (ej: https://will-design-3d.lovable.app o tu dominio personalizado https://tudominio.com).",
+    tab: "seo",
+    group: "SEO Global",
+  },
+  {
     key: "site_title",
     label: "Título SEO Global del Sitio",
     type: "text",
@@ -154,43 +163,52 @@ const MARCA_FIELDS: FieldDef[] = [
 function SeoPreviewCard({ values }: { values: Record<string, string> }) {
   const [selectedPage, setSelectedPage] = useState<"home" | "store" | "services" | "gallery" | "about" | "contact">("home");
 
+  const baseUrl = getCanonicalBaseUrl(values);
+  const hostLabel = (() => {
+    try {
+      return new URL(baseUrl).hostname.toUpperCase();
+    } catch {
+      return baseUrl.replace(/^https?:\/\//i, "").split("/")[0]?.toUpperCase() || "WILL-DESIGN-3D.LOVABLE.APP";
+    }
+  })();
+
   const globalTitle = values.site_title || "Will Design 3D";
   const globalDesc = values.site_description || "";
   const globalImg = values.site_meta_thumbnail_url || values.site_logo_url || "";
 
   const pageMap = {
     home: {
-      url: "https://willdesign3d.com/",
+      url: `${baseUrl}/`,
       title: values.hero_title || globalTitle,
       desc: values.hero_subtitle || globalDesc,
       img: values.hero_image_url || globalImg,
     },
     store: {
-      url: "https://willdesign3d.com/tienda",
+      url: `${baseUrl}/tienda`,
       title: `Tienda · ${globalTitle}`,
       desc: globalDesc,
       img: globalImg,
     },
     services: {
-      url: "https://willdesign3d.com/servicios",
+      url: `${baseUrl}/servicios`,
       title: values.services_section_title ? `${values.services_section_title} · ${globalTitle}` : `Servicios 3D · ${globalTitle}`,
       desc: values.services_section_subtitle || globalDesc,
       img: globalImg,
     },
     gallery: {
-      url: "https://willdesign3d.com/galeria",
+      url: `${baseUrl}/galeria`,
       title: `Galería de Proyectos · ${globalTitle}`,
       desc: globalDesc,
       img: globalImg,
     },
     about: {
-      url: "https://willdesign3d.com/nosotros",
+      url: `${baseUrl}/nosotros`,
       title: `Nosotros · ${globalTitle}`,
       desc: values.about_short || globalDesc,
       img: globalImg,
     },
     contact: {
-      url: "https://willdesign3d.com/contacto",
+      url: `${baseUrl}/contacto`,
       title: `Contacto · ${globalTitle}`,
       desc: globalDesc,
       img: globalImg,
@@ -259,7 +277,7 @@ function SeoPreviewCard({ values }: { values: Record<string, string> }) {
               </div>
               <div className="p-3">
                 <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider block">
-                  WILLDESIGN3D.COM
+                  {hostLabel}
                 </span>
                 <p className="text-sm font-bold text-foreground line-clamp-1 mt-0.5">
                   {curr.title || <span className="text-muted-foreground italic">Sin título configurado</span>}

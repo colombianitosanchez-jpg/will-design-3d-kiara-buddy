@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { InstagramFeed } from "@/components/InstagramFeed";
 import { siteContentQuery } from "@/lib/catalog";
-import { getSeo } from "@/lib/seo";
+import { getCanonicalBaseUrl, getSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/galeria")({
   loader: async ({ context }) => {
@@ -10,6 +10,7 @@ export const Route = createFileRoute("/galeria")({
   },
   head: ({ loaderData }: any) => {
     const siteContent = loaderData?.siteContent;
+    const canonicalUrl = `${getCanonicalBaseUrl(siteContent)}/galeria`;
     const seo = getSeo(
       {
         title: siteContent?.site_title ? `Galería de Proyectos · ${siteContent.site_title}` : "Galería de Proyectos — Will Design 3D",
@@ -22,7 +23,9 @@ export const Route = createFileRoute("/galeria")({
       { name: "description", content: seo.description },
       { property: "og:title", content: seo.title },
       { property: "og:description", content: seo.description },
-      { property: "og:url", content: "https://willdesign3d.com/galeria" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:url", content: canonicalUrl },
     ];
 
     if (seo.image) {
@@ -34,7 +37,7 @@ export const Route = createFileRoute("/galeria")({
 
     return {
       meta: metaTags,
-      links: [{ rel: "canonical", href: "https://willdesign3d.com/galeria" }],
+      links: [{ rel: "canonical", href: canonicalUrl }],
     };
   },
   component: GaleriaPage,

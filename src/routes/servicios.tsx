@@ -25,7 +25,7 @@ import { accentTokensFor, resolveServicePrimaryAction } from "@/lib/quoter-ui";
 import { supabase } from "@/integrations/supabase/client";
 import { parseProductButtons } from "@/lib/product-buttons";
 import { ProductButtons } from "@/components/ProductButtons";
-import { getSeo } from "@/lib/seo";
+import { getCanonicalBaseUrl, getSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/servicios")({
   loader: async ({ context }) => {
@@ -37,6 +37,7 @@ export const Route = createFileRoute("/servicios")({
   },
   head: ({ loaderData }: any) => {
     const siteContent = loaderData?.siteContent;
+    const canonicalUrl = `${getCanonicalBaseUrl(siteContent)}/servicios`;
     const seo = getSeo(
       {
         title: siteContent?.services_section_title
@@ -55,7 +56,7 @@ export const Route = createFileRoute("/servicios")({
       { name: "description", content: seo.description },
       { property: "og:title", content: seo.title },
       { property: "og:description", content: seo.description },
-      { property: "og:url", content: "https://will-design-3d.lovable.app/servicios" },
+      { property: "og:url", content: canonicalUrl },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ];
@@ -69,7 +70,7 @@ export const Route = createFileRoute("/servicios")({
 
     return {
       meta: metaTags,
-      links: [{ rel: "canonical", href: "https://will-design-3d.lovable.app/servicios" }],
+      links: [{ rel: "canonical", href: canonicalUrl }],
     };
   },
   component: ServiciosPage,
@@ -223,7 +224,7 @@ function ServiciosPage() {
             <ShareButton
               title={`Servicios — ${siteContent?.site_business_name || "Will Design 3D"}`}
               text="Mira nuestros servicios"
-              url="https://will-design-3d.lovable.app/servicios"
+              url={`${getCanonicalBaseUrl(siteContent)}/servicios`}
               label="Compartir"
               className="gap-2 text-muted-foreground"
             />

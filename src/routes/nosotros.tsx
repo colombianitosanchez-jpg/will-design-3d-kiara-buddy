@@ -9,7 +9,7 @@ import { useSiteContent } from "@/hooks/use-site-content";
 import { StatCollection } from "@/components/StatCollection";
 import { ProductMedia } from "@/components/ProductMedia";
 import { UnifiedButton } from "@/components/UnifiedButton";
-import { getSeo } from "@/lib/seo";
+import { getCanonicalBaseUrl, getSeo } from "@/lib/seo";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/nosotros")({
@@ -19,6 +19,7 @@ export const Route = createFileRoute("/nosotros")({
   },
   head: ({ loaderData }: any) => {
     const siteContent = loaderData?.siteContent;
+    const canonicalUrl = `${getCanonicalBaseUrl(siteContent)}/nosotros`;
     const seo = getSeo(
       {
         title: siteContent?.site_title ? `Nosotros · ${siteContent.site_title}` : "Nosotros — Will Design 3D",
@@ -32,7 +33,7 @@ export const Route = createFileRoute("/nosotros")({
       { name: "description", content: seo.description },
       { property: "og:title", content: seo.title },
       { property: "og:description", content: seo.description },
-      { property: "og:url", content: "https://willdesign3d.com/nosotros" },
+      { property: "og:url", content: canonicalUrl },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ];
@@ -46,7 +47,7 @@ export const Route = createFileRoute("/nosotros")({
 
     return {
       meta: metaTags,
-      links: [{ rel: "canonical", href: "https://willdesign3d.com/nosotros" }],
+      links: [{ rel: "canonical", href: canonicalUrl }],
     };
   },
   component: NosotrosPage,

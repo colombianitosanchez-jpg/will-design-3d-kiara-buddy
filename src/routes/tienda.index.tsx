@@ -30,7 +30,7 @@ import {
 } from "@/lib/catalog";
 import { ProductCard } from "@/components/ProductCard";
 import { getMatchingVariants, type ProductVariant } from "@/lib/product-variants";
-import { getSeo } from "@/lib/seo";
+import { getCanonicalBaseUrl, getSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/tienda/")({
   validateSearch: (
@@ -51,6 +51,7 @@ export const Route = createFileRoute("/tienda/")({
   },
   head: ({ loaderData }: any) => {
     const siteContent = loaderData?.siteContent;
+    const canonicalUrl = `${getCanonicalBaseUrl(siteContent)}/tienda`;
     const seo = getSeo(
       {
         title: siteContent?.site_title ? `Tienda · ${siteContent.site_title}` : "Tienda — Will Design 3D",
@@ -65,7 +66,7 @@ export const Route = createFileRoute("/tienda/")({
       { property: "og:description", content: seo.description },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:url", content: "https://willdesign3d.com/tienda" },
+      { property: "og:url", content: canonicalUrl },
     ];
 
     if (seo.image) {
@@ -77,7 +78,7 @@ export const Route = createFileRoute("/tienda/")({
 
     return {
       meta: metaTags,
-      links: [{ rel: "canonical", href: "https://willdesign3d.com/tienda" }],
+      links: [{ rel: "canonical", href: canonicalUrl }],
     };
   },
   component: TiendaPage,
