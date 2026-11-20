@@ -37,6 +37,7 @@
 
 :root {
   --radius: 0.75rem;
+  --btn-radius: 9999px;
   /* Brand palette from the Will Design 3D logo */
   --brand-orange: oklch(0.74 0.17 55);        /* #E88A38-ish */
   --brand-orange-deep: oklch(0.66 0.19 45);
@@ -91,7 +92,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  border-radius: 9999px;
+  border-radius: var(--btn-radius, 9999px);
   padding: 0.85rem 1.6rem;
   font-weight: 600;
   color: var(--primary-foreground);
@@ -112,7 +113,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  border-radius: 9999px;
+  border-radius: var(--btn-radius, 9999px);
   padding: 0.8rem 1.5rem;
   font-weight: 600;
   color: var(--brand-wine);
@@ -286,4 +287,68 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .quoter-workspace * { animation: none !important; transition: none !important; }
+  .ambient-aurora-blob { animation: none !important; }
 }
+
+/* Estilos visuales globales de botones controlados por el Tema Activo */
+[data-theme-button-style="glass"] .btn-primary,
+[data-theme-button-style="glass"] .unified-theme-btn {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  box-shadow: 0 8px 24px -8px color-mix(in oklab, var(--brand-orange) 45%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+[data-theme-button-style="neon"] .btn-primary,
+[data-theme-button-style="neon"] .unified-theme-btn {
+  border: 1px solid color-mix(in oklab, var(--brand-orange) 85%, white);
+  box-shadow: 0 0 14px color-mix(in oklab, var(--brand-orange) 65%, transparent), 0 0 28px color-mix(in oklab, var(--brand-teal) 35%, transparent);
+}
+
+[data-theme-button-style="cyber_bevel"] .btn-primary,
+[data-theme-button-style="cyber_bevel"] .btn-outline,
+[data-theme-button-style="cyber_bevel"] .unified-theme-btn {
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  border-radius: 0 !important;
+  letter-spacing: 0.02em;
+}
+
+/* Efectos ambientales en vivo (Cyber Grid & Aurora) */
+.ambient-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--brand-orange) 35%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--brand-teal) 35%, transparent) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 85% 70% at 50% 30%, #000 40%, transparent 100%);
+}
+
+@keyframes ambient-aurora-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(3%, -4%, 0) scale(1.06); }
+}
+
+.ambient-aurora-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(72px);
+  will-change: transform;
+  animation: ambient-aurora-drift 14s ease-in-out infinite;
+}
+
+.ambient-aurora-blob-1 {
+  top: -12%;
+  left: -8%;
+  width: 56vw;
+  height: 52vh;
+  background: radial-gradient(circle, color-mix(in oklab, var(--brand-teal) 55%, transparent), transparent 70%);
+}
+
+.ambient-aurora-blob-2 {
+  bottom: -14%;
+  right: -10%;
+  width: 54vw;
+  height: 50vh;
+  animation-delay: -7s;
+  background: radial-gradient(circle, color-mix(in oklab, var(--brand-orange) 50%, transparent), transparent 70%);
+}
+

@@ -243,11 +243,18 @@ export function UnifiedButton({
     }
   }
 
+  const globalButtonAnim =
+    typeof document !== "undefined" ? document.documentElement.dataset.themeAnimation : undefined;
+  const effectiveAnim =
+    button.animation_style && button.animation_style !== "none"
+      ? button.animation_style
+      : globalButtonAnim && globalButtonAnim !== "none"
+        ? globalButtonAnim
+        : "none";
+
   // Resolver clase de animación o resplandor neón/pulso
   const animClass =
-    button.animation_style && button.animation_style !== "none"
-      ? `theme-anim-${button.animation_style}`
-      : "";
+    effectiveAnim !== "none" ? `theme-anim-${effectiveAnim}` : "";
 
   // Construcción de estilos dinámicos de fondo
   const bgStyle: React.CSSProperties = {};
@@ -267,7 +274,7 @@ export function UnifiedButton({
 
   const roundedClass = unifiedStyle.rounded
     ? `rounded-${unifiedStyle.rounded}`
-    : "rounded-xl";
+    : "rounded-[var(--btn-radius,0.75rem)]";
 
   const widthClass = button.width === "full" ? "w-full" : "w-auto";
   const fitClass =
@@ -298,7 +305,7 @@ export function UnifiedButton({
         disabled={!interactive}
         onClick={handleAction}
         style={{ color: a11y.textColor }}
-        className={`relative overflow-hidden cursor-pointer select-none border border-black/10 shadow-md transition-all ${widthClass} ${roundedClass} ${a11y.tapTargetClass} ${a11y.focusClass} ${animClass} ${className}`}
+        className={`unified-theme-btn relative overflow-hidden cursor-pointer select-none border border-black/10 shadow-md transition-all ${widthClass} ${roundedClass} ${a11y.tapTargetClass} ${a11y.focusClass} ${animClass} ${className}`}
       >
         {/* CAPA DE COLOR DE FONDO: la opacidad solo afecta al fondo, nunca al texto */}
         {/* Siempre presente: respaldo bajo el fondo vivo (se ve en modo 'contain' o si el video falla) */}

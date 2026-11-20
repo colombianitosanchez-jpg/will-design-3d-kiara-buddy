@@ -2,6 +2,11 @@ import { parseVariants, type ProductVariant } from "@/lib/product-variants";
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { parseProductButtons, type ProductButton } from "@/lib/product-buttons";
+import {
+  parseContactChannels,
+  parseSocialLinks,
+  resolvePrimaryWhatsappChannel,
+} from "@/lib/contact-config";
 
 
 export type Category = {
@@ -361,12 +366,24 @@ export const DEFAULT_CONTACT = {
 
 export function getContactInfo(content: Record<string, string> | undefined) {
   const g = (k: string, d = "") => (content?.[k]?.trim() ? content![k].trim() : d);
+  const channels = parseContactChannels(content?.contact_channels, content);
+  const primaryWa = resolvePrimaryWhatsappChannel(channels, g("contact_whatsapp", ""));
+  const firstEmail = channels.find((c) => c.type === "email" && c.value.trim());
+  const socialLinks = parseSocialLinks(content?.contact_social_links, content);
+  const firstInstagram = socialLinks.find((s) => s.platform === "instagram");
+
+  const resolvedWhatsapp = primaryWa.number || g("contact_whatsapp", "");
+  const resolvedWhatsappDisplay =
+    g("contact_whatsapp_display", "") && !channels.some((c) => c.type === "whatsapp" && c.isPrimaryOrder)
+      ? g("contact_whatsapp_display", "")
+      : primaryWa.display || g("contact_whatsapp_display", "") || resolvedWhatsapp;
+
   return {
-    whatsapp: g("contact_whatsapp", ""),
-    whatsapp_display: g("contact_whatsapp_display", ""),
-    email: g("contact_email", ""),
-    instagram_url: g("contact_instagram_url", ""),
-    instagram_handle: g("contact_instagram_handle", ""),
+    whatsapp: resolvedWhatsapp,
+    whatsapp_display: resolvedWhatsappDisplay,
+    email: g("contact_email", "") || firstEmail?.value || "",
+    instagram_url: g("contact_instagram_url", "") || firstInstagram?.url || "",
+    instagram_handle: g("contact_instagram_handle", "") || firstInstagram?.label || "",
     location_text: g("contact_location_text", ""),
     location_short: g("contact_location_short", ""),
     map_embed_url: g("contact_map_embed_url", ""),

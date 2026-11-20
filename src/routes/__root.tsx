@@ -28,14 +28,20 @@ import { siteServicesQuery } from "./servicios";
 import { menuItemsQuery } from "../lib/menu";
 import { getActiveTheme, applyThemeToDocument } from "../lib/theme";
 import { getCanonicalBaseUrl, getRobotsContent, getSeo } from "../lib/seo";
+import { AmbientBackdrop } from "../components/AmbientBackdrop";
 
 function ThemeApplier() {
   const { data: content } = useQuery(siteContentQuery());
+  const activeTheme = getActiveTheme(content);
   useEffect(() => {
-    const activeTheme = getActiveTheme(content);
     applyThemeToDocument(activeTheme);
-  }, [content]);
-  return null;
+  }, [activeTheme]);
+  return (
+    <AmbientBackdrop
+      effect={activeTheme.ambient?.effect}
+      intensity={activeTheme.ambient?.intensity}
+    />
+  );
 }
 
 
@@ -202,10 +208,10 @@ function RootComponent() {
       <ThemeApplier />
       <AuthProvider>
         <CartProvider>
-          <div className="flex min-h-screen flex-col bg-background text-foreground">
+          <div className="relative flex min-h-screen flex-col bg-background text-foreground">
             <LiveBanner />
             <SiteHeader />
-            <main className="flex-1">
+            <main className="relative z-10 flex-1">
               {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
               <ErrorBoundary label="root_layout">
                 <Outlet />

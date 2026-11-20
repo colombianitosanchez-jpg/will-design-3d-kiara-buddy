@@ -16,6 +16,9 @@ import {
   Plus,
   GripVertical,
   ChevronDown,
+  Eye,
+  EyeOff,
+  Sparkles,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -27,13 +30,26 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   PRESET_THEMES,
+  THEME_RADIUS_TOKENS,
+  THEME_BUTTON_STYLE_LABELS,
+  AMBIENT_EFFECT_LABELS,
   resolveThemes,
   ensureThemePalette,
+  normalizeTheme,
+  clampAmbientIntensity,
   type SiteTheme,
   type ThemeAnimation,
+  type ThemeBorderRadius,
+  type ThemeButtonStyle,
+  type AmbientEffectType,
   type ColorToken,
 } from "@/lib/theme";
 import { getCanonicalBaseUrl, resolvePageSeo, type GranularSeoPageKey } from "@/lib/seo";
+import {
+  ContactBlocksOrderEditor,
+  ContactChannelsEditor,
+  ContactSocialLinksEditor,
+} from "@/components/panel/CompanyContactEditors";
 import {
   DndContext,
   closestCenter,
@@ -66,6 +82,8 @@ type FieldDef = {
   help?: string;
   tab: "identidad" | "seo" | "empresa" | "temas";
   group: string;
+  customEditor?: boolean;
+  legacyFallback?: boolean;
 };
 
 const MARCA_FIELDS: FieldDef[] = [
@@ -319,11 +337,15 @@ const MARCA_FIELDS: FieldDef[] = [
   { key: "contact_location_short", label: "Ubicación Corta (Footer)", type: "text", help: "Ej: Bogotá, Colombia", tab: "empresa", group: "Ubicación y Cobertura" },
   { key: "contact_map_embed_url", label: "URL de Google Maps (Iframe embed)", type: "textarea", help: "URL src del iframe de Google Maps.", tab: "empresa", group: "Ubicación y Cobertura" },
 
-  { key: "contact_whatsapp", label: "WhatsApp (solo números)", type: "text", help: "Ej: 573156724474", tab: "empresa", group: "Canales de Contacto" },
-  { key: "contact_whatsapp_display", label: "WhatsApp Formateado", type: "text", help: "Ej: +57 315 672 4474", tab: "empresa", group: "Canales de Contacto" },
-  { key: "contact_email", label: "Correo Electrónico de Contacto", type: "text", tab: "empresa", group: "Canales de Contacto" },
-  { key: "contact_instagram_url", label: "URL Completa de Instagram", type: "text", help: "Ej: https://www.instagram.com/will_design2020/", tab: "empresa", group: "Canales de Contacto" },
-  { key: "contact_instagram_handle", label: "Usuario de Instagram Visible", type: "text", help: "Ej: @will_design2020", tab: "empresa", group: "Canales de Contacto" },
+  { key: "contact_blocks_order", label: "Orden visual de bloques en /contacto (JSON)", type: "textarea", tab: "empresa", group: "Canales y Redes (Editor)", customEditor: true },
+  { key: "contact_channels", label: "Canales directos dinámicos (JSON)", type: "textarea", tab: "empresa", group: "Canales y Redes (Editor)", customEditor: true },
+  { key: "contact_social_links", label: "Redes sociales dinámicas (JSON)", type: "textarea", tab: "empresa", group: "Canales y Redes (Editor)", customEditor: true },
+
+  { key: "contact_whatsapp", label: "WhatsApp (solo números)", type: "text", help: "Ej: 573156724474", tab: "empresa", group: "Canales de Contacto", legacyFallback: true },
+  { key: "contact_whatsapp_display", label: "WhatsApp Formateado", type: "text", help: "Ej: +57 315 672 4474", tab: "empresa", group: "Canales de Contacto", legacyFallback: true },
+  { key: "contact_email", label: "Correo Electrónico de Contacto", type: "text", tab: "empresa", group: "Canales de Contacto", legacyFallback: true },
+  { key: "contact_instagram_url", label: "URL Completa de Instagram", type: "text", help: "Ej: https://www.instagram.com/will_design2020/", tab: "empresa", group: "Canales de Contacto", legacyFallback: true },
+  { key: "contact_instagram_handle", label: "Usuario de Instagram Visible", type: "text", help: "Ej: @will_design2020", tab: "empresa", group: "Canales de Contacto", legacyFallback: true },
 
   // ------------------------------------------------------------------- Temas
   { key: "custom_themes", label: "Temas Personalizados (JSON)", type: "textarea", tab: "temas", group: "Temas" },
@@ -656,16 +678,19 @@ function ThemeManagerTab({
 
   function handleCreateTheme(baseTheme?: SiteTheme) {
     const newId = `custom_${Date.now()}`;
-    const baseColors = baseTheme ? ensureThemePalette(baseTheme.colors) : ensureThemePalette(PRESET_THEMES[0].colors);
-    const newTheme: SiteTheme = {
+    const baseNormalized = baseTheme ? normalizeTheme(baseTheme) : normalizeTheme(PRESET_THEMES[0]);
+    const newTheme = normalizeTheme({
       id: newId,
-      name: baseTheme ? `${baseTheme.name} (Copia)` : "Nuevo Tema Custom",
-      description: "Tema personalizado editable",
+      name: baseTheme ? `${baseTheme.name} (Copia)` : "Nuevo Tema Personalizado",
+      description: baseTheme
+        ? `Versión personalizada basada en ${baseTheme.name}`
+        : "Tema personalizado editable con paleta, bordes y ambiente en vivo",
       isPreset: false,
-      colors: baseColors,
-      buttonStyle: baseTheme ? { ...baseTheme.buttonStyle } : { animation: "none" },
-      customCss: baseTheme?.customCss || "",
-    };
+      colors: ensureThemePalette(baseNormalized.colors),
+      buttonStyle: { ...baseNormalized.buttonStyle },
+      ambient: baseNormalized.ambient ? { ...baseNormalized.ambient } : { effect: "none", intensity: 55 },
+      customCss: baseNormalized.customCss || "",
+    });
     const customList = themes.filter((t) => !t.isPreset);
     const updatedCustom = [...customList, newTheme];
     onChange({
@@ -684,7 +709,7 @@ function ThemeManagerTab({
     const brandWine = p.find((c) => c.id === "brandWine")?.hex || p[2]?.hex || updated.colors.brandWine;
     const background = p.find((c) => c.id === "background")?.hex || p[3]?.hex || updated.colors.background;
 
-    const normalizedTheme: SiteTheme = {
+    const normalizedTheme = normalizeTheme({
       ...updated,
       colors: {
         ...updated.colors,
@@ -693,7 +718,7 @@ function ThemeManagerTab({
         brandWine,
         background,
       },
-    };
+    });
 
     const customList = themes.filter((t) => !t.isPreset);
     const nextCustom = customList.map((t) => (t.id === normalizedTheme.id ? normalizedTheme : t));
@@ -721,14 +746,19 @@ function ThemeManagerTab({
         <CardHeader>
           <CardTitle>Selector de Tema Visual Activo</CardTitle>
           <CardDescription>
-            Elige la paleta y estilo de botones aplicados a todo el sitio web.
+            Elige la paleta, radio de bordes, estilo global de botones y efectos ambientales en vivo aplicados a todo el sitio web.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 sm:grid-cols-3">
-            {themes.map((t) => {
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {themes.map((rawTheme) => {
+              const t = normalizeTheme(rawTheme);
               const isActive = t.id === activeThemeId;
               const palette = ensureThemePalette(t.colors).palette;
+              const radiusLabel = THEME_RADIUS_TOKENS[t.buttonStyle.globalRadius ?? "default"].label;
+              const btnStyleLabel = THEME_BUTTON_STYLE_LABELS[t.buttonStyle.visualStyle ?? "solid"];
+              const ambientLabel = AMBIENT_EFFECT_LABELS[t.ambient?.effect ?? "none"];
+
               return (
                 <div
                   key={t.id}
@@ -737,15 +767,14 @@ function ThemeManagerTab({
                   }`}
                 >
                   <div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-start justify-between gap-2">
                       <h3 className="font-bold text-sm">{t.name}</h3>
-                      {t.isPreset && (
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                          Prediseñado
-                        </span>
-                      )}
+                      <span className="shrink-0 text-[11px] font-semibold text-muted-foreground">
+                        {t.isPreset ? "Oficial" : "Custom"}
+                      </span>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{t.description}</p>
+
                     <div className="mt-3 flex flex-wrap items-center gap-1.5">
                       {palette.slice(0, 6).map((col) => (
                         <span
@@ -756,6 +785,10 @@ function ThemeManagerTab({
                         />
                       ))}
                     </div>
+
+                    <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+                      {radiusLabel} · {btnStyleLabel} · {ambientLabel}
+                    </p>
                   </div>
 
                   <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -772,7 +805,7 @@ function ThemeManagerTab({
                       variant="outline"
                       onClick={() => handleCreateTheme(t)}
                     >
-                      Duplicar
+                      {t.isPreset ? "Duplicar y personalizar" : "Duplicar"}
                     </Button>
 
                     {!t.isPreset && (
@@ -801,11 +834,11 @@ function ThemeManagerTab({
 
       {editingTheme && !editingTheme.isPreset && (
         <Card className="border-2 border-primary/40">
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between gap-4">
             <div>
               <CardTitle>Editando Tema: {editingTheme.name}</CardTitle>
               <CardDescription>
-                Personaliza la paleta de colores dinámicos y los efectos visuales de los botones.
+                Personaliza paleta de colores, radio global, estilo visual de botones y ambiente en vivo.
               </CardDescription>
             </div>
             <Button variant="ghost" size="sm" onClick={() => setEditingTheme(null)}>
@@ -838,7 +871,7 @@ function ThemeManagerTab({
 
             <div>
               <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-                Paleta de Colores Dinámica (Drag & Drop para reordenar)
+                Paleta de Colores Dinámica (Arrastra para reordenar)
               </h4>
               <PaletteEditor
                 palette={ensureThemePalette(editingTheme.colors).palette}
@@ -854,30 +887,189 @@ function ThemeManagerTab({
               />
             </div>
 
-            <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground my-2">
-                Efectos de Botones
-              </h4>
-              <Select
-                value={editingTheme.buttonStyle.animation || "none"}
-                onValueChange={(val: ThemeAnimation) =>
-                  handleSaveEditingTheme({
-                    ...editingTheme,
-                    buttonStyle: { ...editingTheme.buttonStyle, animation: val },
-                  })
-                }
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Bordes y Radio Global (--radius)
+                </Label>
+                <Select
+                  value={editingTheme.buttonStyle.globalRadius || "default"}
+                  onValueChange={(val: ThemeBorderRadius) =>
+                    handleSaveEditingTheme({
+                      ...editingTheme,
+                      buttonStyle: { ...editingTheme.buttonStyle, globalRadius: val },
+                    })
+                  }
+                >
+                  <SelectTrigger className="mt-1.5">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(THEME_RADIUS_TOKENS) as ThemeBorderRadius[]).map((rk) => (
+                      <SelectItem key={rk} value={rk}>
+                        {THEME_RADIUS_TOKENS[rk].label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Estilo Visual de Botones
+                </Label>
+                <Select
+                  value={editingTheme.buttonStyle.visualStyle || "solid"}
+                  onValueChange={(val: ThemeButtonStyle) =>
+                    handleSaveEditingTheme({
+                      ...editingTheme,
+                      buttonStyle: { ...editingTheme.buttonStyle, visualStyle: val },
+                    })
+                  }
+                >
+                  <SelectTrigger className="mt-1.5">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(THEME_BUTTON_STYLE_LABELS) as ThemeButtonStyle[]).map((sk) => (
+                      <SelectItem key={sk} value={sk}>
+                        {THEME_BUTTON_STYLE_LABELS[sk]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Animación de Botones
+                </Label>
+                <Select
+                  value={editingTheme.buttonStyle.animation || "none"}
+                  onValueChange={(val: ThemeAnimation) =>
+                    handleSaveEditingTheme({
+                      ...editingTheme,
+                      buttonStyle: { ...editingTheme.buttonStyle, animation: val },
+                    })
+                  }
+                >
+                  <SelectTrigger className="mt-1.5">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin Animación</SelectItem>
+                    <SelectItem value="neon_glow">Neón Cyberpunk ⚡</SelectItem>
+                    <SelectItem value="cyber_pulse">Pulso Dinámico 💫</SelectItem>
+                    <SelectItem value="shimmer">Brillo Shimmer ✨</SelectItem>
+                    <SelectItem value="festive_sparkle">Destello Festivo 🌟</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Efecto Ambiental en Vivo
+                </Label>
+                <Select
+                  value={editingTheme.ambient?.effect || "none"}
+                  onValueChange={(val: AmbientEffectType) =>
+                    handleSaveEditingTheme({
+                      ...editingTheme,
+                      ambient: {
+                        effect: val,
+                        intensity: clampAmbientIntensity(editingTheme.ambient?.intensity),
+                      },
+                    })
+                  }
+                >
+                  <SelectTrigger className="mt-1.5">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(AMBIENT_EFFECT_LABELS) as AmbientEffectType[]).map((ak) => (
+                      <SelectItem key={ak} value={ak}>
+                        {AMBIENT_EFFECT_LABELS[ak]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {editingTheme.ambient?.effect && editingTheme.ambient.effect !== "none" && (
+              <div className="rounded-xl border border-border bg-muted/30 p-4">
+                <div className="flex items-center justify-between text-xs font-semibold">
+                  <span>Intensidad del Efecto Ambiental</span>
+                  <span className="font-mono text-primary">
+                    {clampAmbientIntensity(editingTheme.ambient.intensity)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={10}
+                  max={100}
+                  step={5}
+                  value={clampAmbientIntensity(editingTheme.ambient.intensity)}
+                  onChange={(e) =>
+                    handleSaveEditingTheme({
+                      ...editingTheme,
+                      ambient: {
+                        effect: editingTheme.ambient?.effect ?? "none",
+                        intensity: Number(e.target.value),
+                      },
+                    })
+                  }
+                  className="mt-2 w-full accent-primary cursor-pointer"
+                />
+              </div>
+            )}
+
+            {/* Vista Previa en Vivo del Tema */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <Sparkles className="h-3.5 w-3.5 text-primary" /> Vista Previa en Vivo del Tema
+              </div>
+              <div
+                className="border p-5 transition-all"
+                style={{
+                  background: editingTheme.colors.background,
+                  color: editingTheme.colors.foreground || undefined,
+                  borderRadius:
+                    THEME_RADIUS_TOKENS[editingTheme.buttonStyle.globalRadius ?? "default"].cssRadius,
+                  borderColor: editingTheme.colors.border || "var(--border)",
+                }}
               >
-                <SelectTrigger className="mt-1 max-w-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sin Animación</SelectItem>
-                  <SelectItem value="neon_glow">Neón Cyberpunk ⚡</SelectItem>
-                  <SelectItem value="cyber_pulse">Pulso Dinámico 💫</SelectItem>
-                  <SelectItem value="shimmer">Brillo Shimmer ✨</SelectItem>
-                  <SelectItem value="festive_sparkle">Destello Festivo 🌟</SelectItem>
-                </SelectContent>
-              </Select>
+                <p className="text-sm font-black">Tarjeta de ejemplo con tu radio y colores</p>
+                <p className="mt-1 text-xs opacity-80">
+                  Estilo de botones: {THEME_BUTTON_STYLE_LABELS[editingTheme.buttonStyle.visualStyle ?? "solid"]} ·{" "}
+                  Ambiente: {AMBIENT_EFFECT_LABELS[editingTheme.ambient?.effect ?? "none"]}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    className="btn-primary unified-theme-btn px-5 py-2.5 text-xs"
+                    style={{
+                      background: editingTheme.colors.brandOrange,
+                      borderRadius:
+                        THEME_RADIUS_TOKENS[editingTheme.buttonStyle.globalRadius ?? "default"].buttonRadius,
+                    }}
+                  >
+                    Botón Principal
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-outline unified-theme-btn px-5 py-2.5 text-xs"
+                    style={{
+                      borderColor: editingTheme.colors.brandTeal,
+                      color: editingTheme.colors.brandTeal,
+                      borderRadius:
+                        THEME_RADIUS_TOKENS[editingTheme.buttonStyle.globalRadius ?? "default"].buttonRadius,
+                    }}
+                  >
+                    Botón Secundario
+                  </button>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -892,6 +1084,7 @@ function MarcaAdmin() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
+  const [showMapPreview, setShowMapPreview] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -991,6 +1184,45 @@ function MarcaAdmin() {
           />
         )}
 
+        {f.key === "contact_map_embed_url" && (
+          <div className="space-y-3 pt-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowMapPreview((prev) => !prev)}
+            >
+              {showMapPreview ? (
+                <>
+                  <EyeOff className="mr-1.5 h-3.5 w-3.5" /> Ocultar vista previa del mapa
+                </>
+              ) : (
+                <>
+                  <Eye className="mr-1.5 h-3.5 w-3.5" /> Vista previa del mapa
+                </>
+              )}
+            </Button>
+
+            {showMapPreview && (
+              values[f.key]?.trim().startsWith("https://") ? (
+                <div className="overflow-hidden rounded-xl border border-border">
+                  <iframe
+                    src={values[f.key].trim()}
+                    title="Vista previa del mapa de contacto"
+                    className="h-64 w-full border-0"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Ingresa una URL HTTPS válida de Google Maps embed para previsualizar el mapa.
+                </p>
+              )
+            )}
+          </div>
+        )}
+
         {f.type === "image" && (
           <div className="flex flex-wrap items-center gap-4">
             {values[f.key] ? (
@@ -1069,27 +1301,49 @@ function MarcaAdmin() {
 
         {(["identidad", "seo", "empresa"] as const).map((tab) => {
           const tabFields = MARCA_FIELDS.filter((f) => f.tab === tab);
-          const groups = Array.from(new Set(tabFields.map((f) => f.group)));
+          const visibleFields = tabFields.filter((f) => !f.customEditor && !f.legacyFallback);
+          const legacyFields = tabFields.filter((f) => f.legacyFallback);
+          const groups = Array.from(new Set(visibleFields.map((f) => f.group)));
           return (
             <TabsContent key={tab} value={tab} className="mt-6 space-y-6">
               {tab === "seo" && <SeoPreviewCard values={values} />}
               {tab === "empresa" && (
-                <Card className="border-2 border-primary/20 bg-card mb-4">
-                  <CardHeader className="py-4">
-                    <CardTitle className="text-sm font-bold flex items-center gap-2">
-                      <Globe className="h-4 w-4 text-primary" /> Fuente Única de Verdad — Datos de Contacto
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                      Los datos configurados aquí se usan globalmente en el sitio (Header, Footer, página de Contacto y JSON-LD). Para editar la narración o reseña "Nosotros", dirígete a{" "}
-                      <a href="/panel/contenido" className="font-semibold text-primary underline">
-                        /panel/contenido
-                      </a>.
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
+                <>
+                  <Card className="border-2 border-primary/20 bg-card mb-4">
+                    <CardHeader className="py-4">
+                      <CardTitle className="text-sm font-bold flex items-center gap-2">
+                        <Globe className="h-4 w-4 text-primary" /> Fuente Única de Verdad — Datos de Contacto
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Los datos configurados aquí se usan globalmente en el sitio (Header, Footer, página de Contacto y JSON-LD). Para editar la narración o reseña "Nosotros", dirígete a{" "}
+                        <a href="/panel/contenido" className="font-semibold text-primary underline">
+                          /panel/contenido
+                        </a>.
+                      </CardDescription>
+                    </CardHeader>
+                  </Card>
+
+                  <ContactBlocksOrderEditor
+                    rawOrder={values.contact_blocks_order}
+                    onChange={(serialized) =>
+                      setValues((v) => ({ ...v, contact_blocks_order: serialized }))
+                    }
+                  />
+
+                  <ContactChannelsEditor
+                    values={values}
+                    onPatch={(patch) => setValues((v) => ({ ...v, ...patch }))}
+                  />
+
+                  <ContactSocialLinksEditor
+                    values={values}
+                    onPatch={(patch) => setValues((v) => ({ ...v, ...patch }))}
+                  />
+                </>
               )}
+
               {groups.map((group) => {
-                const groupFields = tabFields.filter((f) => f.group === group);
+                const groupFields = visibleFields.filter((f) => f.group === group);
                 const isPageSeoGroup = group.startsWith("SEO por Página · ");
                 if (isPageSeoGroup) {
                   const configuredCount = groupFields.filter((f) => Boolean(values[f.key]?.trim())).length;
@@ -1115,6 +1369,18 @@ function MarcaAdmin() {
                   </Card>
                 );
               })}
+
+              {tab === "empresa" && legacyFields.length > 0 && (
+                <details className="rounded-2xl border border-border bg-card">
+                  <summary className="cursor-pointer list-none px-6 py-4 text-sm font-bold text-foreground flex items-center justify-between">
+                    <span>Campos legados de respaldo (sincronizados automáticamente)</span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  </summary>
+                  <div className="space-y-6 border-t border-border px-6 py-6">
+                    {legacyFields.map(renderField)}
+                  </div>
+                </details>
+              )}
             </TabsContent>
           );
         })}
