@@ -17,10 +17,12 @@ import { Route as ContactoRouteImport } from './routes/contacto'
 import { Route as CotizadorRouteImport } from './routes/cotizador'
 import { Route as FaviconDoticoRouteImport } from './routes/favicon[.]ico'
 import { Route as GaleriaRouteImport } from './routes/galeria'
+import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as NosotrosRouteImport } from './routes/nosotros'
 import { Route as PanelRouteImport } from './routes/panel'
 import { Route as RefRouteImport } from './routes/ref'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as ServiciosRouteImport } from './routes/servicios'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TiendaRouteImport } from './routes/tienda'
@@ -99,6 +101,11 @@ const GaleriaRoute = GaleriaRouteImport.update({
   path: '/galeria',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
+  id: '/llms.txt',
+  path: '/llms.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -117,6 +124,11 @@ const PanelRoute = PanelRouteImport.update({
 const RefRoute = RefRouteImport.update({
   id: '/ref',
   path: '/ref',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ServiciosRoute = ServiciosRouteImport.update({
@@ -316,10 +328,12 @@ export interface FileRoutesByFullPath {
   '/cotizador': typeof CotizadorRoute
   '/favicon.ico': typeof FaviconDoticoRoute
   '/galeria': typeof GaleriaRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/login': typeof LoginRoute
   '/nosotros': typeof NosotrosRoute
   '/panel': typeof PanelRouteWithChildren
   '/ref': typeof RefRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/servicios': typeof ServiciosRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tienda': typeof TiendaRouteWithChildren
@@ -366,9 +380,11 @@ export interface FileRoutesByTo {
   '/cotizador': typeof CotizadorRoute
   '/favicon.ico': typeof FaviconDoticoRoute
   '/galeria': typeof GaleriaRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/login': typeof LoginRoute
   '/nosotros': typeof NosotrosRoute
   '/ref': typeof RefRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/servicios': typeof ServiciosRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/clientes': typeof AdminClientesRoute
@@ -416,10 +432,12 @@ export interface FileRoutesById {
   '/cotizador': typeof CotizadorRoute
   '/favicon.ico': typeof FaviconDoticoRoute
   '/galeria': typeof GaleriaRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/login': typeof LoginRoute
   '/nosotros': typeof NosotrosRoute
   '/panel': typeof PanelRouteWithChildren
   '/ref': typeof RefRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/servicios': typeof ServiciosRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tienda': typeof TiendaRouteWithChildren
@@ -469,10 +487,12 @@ export interface FileRouteTypes {
     | '/cotizador'
     | '/favicon.ico'
     | '/galeria'
+    | '/llms.txt'
     | '/login'
     | '/nosotros'
     | '/panel'
     | '/ref'
+    | '/robots.txt'
     | '/servicios'
     | '/sitemap.xml'
     | '/tienda'
@@ -519,9 +539,11 @@ export interface FileRouteTypes {
     | '/cotizador'
     | '/favicon.ico'
     | '/galeria'
+    | '/llms.txt'
     | '/login'
     | '/nosotros'
     | '/ref'
+    | '/robots.txt'
     | '/servicios'
     | '/sitemap.xml'
     | '/admin/clientes'
@@ -568,10 +590,12 @@ export interface FileRouteTypes {
     | '/cotizador'
     | '/favicon.ico'
     | '/galeria'
+    | '/llms.txt'
     | '/login'
     | '/nosotros'
     | '/panel'
     | '/ref'
+    | '/robots.txt'
     | '/servicios'
     | '/sitemap.xml'
     | '/tienda'
@@ -620,10 +644,12 @@ export interface RootRouteChildren {
   CotizadorRoute: typeof CotizadorRoute
   FaviconDoticoRoute: typeof FaviconDoticoRoute
   GaleriaRoute: typeof GaleriaRoute
+  LlmsDottxtRoute: typeof LlmsDottxtRoute
   LoginRoute: typeof LoginRoute
   NosotrosRoute: typeof NosotrosRoute
   PanelRoute: typeof PanelRouteWithChildren
   RefRoute: typeof RefRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
   ServiciosRoute: typeof ServiciosRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TiendaRoute: typeof TiendaRouteWithChildren
@@ -696,6 +722,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GaleriaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/llms.txt': {
+      id: '/llms.txt'
+      path: '/llms.txt'
+      fullPath: '/llms.txt'
+      preLoaderRoute: typeof LlmsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -722,6 +755,13 @@ declare module '@tanstack/react-router' {
       path: '/ref'
       fullPath: '/ref'
       preLoaderRoute: typeof RefRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/servicios': {
@@ -1070,10 +1110,12 @@ const rootRouteChildren: RootRouteChildren = {
   CotizadorRoute: CotizadorRoute,
   FaviconDoticoRoute: FaviconDoticoRoute,
   GaleriaRoute: GaleriaRoute,
+  LlmsDottxtRoute: LlmsDottxtRoute,
   LoginRoute: LoginRoute,
   NosotrosRoute: NosotrosRoute,
   PanelRoute: PanelRouteWithChildren,
   RefRoute: RefRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
   ServiciosRoute: ServiciosRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TiendaRoute: TiendaRouteWithChildren,
