@@ -1,15 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { assertServiceOrderQuantity } from "./cart-quantity";
 import { formatOrderCode } from "./notification-templates";
+import { kiaraCustomerSchema, computeKiaraQuote, assertKiaraQuotePurchasable } from "./kiara-checkout";
 
-const schema = z.object({
-  customer_name: z.string().trim().min(2).max(120),
-  customer_email: z.string().trim().email().max(160),
-  customer_phone: z.string().trim().max(40).optional().default(""),
-  shipping_address: z.string().trim().min(4).max(300),
-  shipping_city: z.string().trim().max(120).optional().default(""),
-  notes: z.string().trim().max(1000).optional().default(""),
+const schema = kiaraCustomerSchema.extend({
   service_slug: z.string().trim().min(1).max(160),
   answers: z
     .array(z.object({ label: z.string().trim().max(160), value: z.string().trim().max(300) }))
@@ -27,28 +21,20 @@ const schema = z.object({
 export const confirmQuoteOrder = createServerFn({ method: "POST" })
   .validator((data: unknown) => schema.parse(data))
   .handler(async ({ data }) => {
+    const { assertRateLimitFromRequest } = await import("@/lib/rate-limit.server");
+    assertRateLimitFromRequest("orders:create");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { getQuoterServices } = await import("@/lib/quoter.server");
-    const { computeQuote, coerceAnswersDetailed } = await import("@/lib/quoter-core");
+    const { getQuoterServices, getQuotingVars } = await import("@/lib/quoter.server");
 
-    const services = await getQuoterServices();
+    const [services, vars] = await Promise.all([getQuoterServices(), getQuotingVars()]);
     const service = services.find((s) => s.slug === data.service_slug);
     if (!service) throw new Error("El servicio de la cotización ya no está disponible");
-    assertServiceOrderQuantity(service, data.quantity);
 
     const rawAnswers: Record<string, unknown> = {};
     for (const a of data.answers) rawAnswers[a.label] = a.value;
 
-    const { values, missingRequired } = coerceAnswersDetailed(service, rawAnswers);
-    if (missingRequired.length > 0) {
-      throw new Error(
-        `Faltan datos para cotizar ${service.name}: ${missingRequired
-          .map((f) => f.label)
-          .join(", ")}`,
-      );
-    }
-
-    const quote = computeQuote(service, values, data.quantity);
+    const quote = computeKiaraQuote(service, rawAnswers, data.quantity, vars);
+    assertKiaraQuotePurchasable(quote);
     const unitPrice = Math.round(quote.unit_price_cop);
     const total = Math.round(quote.total_cop);
 
@@ -75,7 +61,10 @@ export const confirmQuoteOrder = createServerFn({ method: "POST" })
       quantity: data.quantity,
       unit_price_cop: unitPrice,
     });
-    if (iErr) throw new Error(iErr.message);
+    if (iErr) {
+      await supabaseAdmin.from("orders").delete().eq("id", order.id);
+      throw new Error("No pudimos guardar los artículos del pedido. Intenta de nuevo.");
+    }
 
     try {
       const { notifyTelegramNewOrder } = await import("@/lib/telegram.server");

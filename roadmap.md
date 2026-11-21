@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Corregir captura de servicios sin botones personalizados, precios y validación de pedidos de Kiara, seguimiento y errores de guardado; comprobar pruebas y flujo real.
 - [x] Revisar los tres avisos: los dos primeros ya estaban corregidos; bloquear cambios de cantidad sin recotizar, reemplazar servicios repetidos y rechazar cantidades incompatibles al confirmar (210 pruebas y carrito móvil verificados).
 - [x] Completar guardado de servicios, preguntas y opciones del cotizador sin borrar configuraciones.
 - [x] Unificar cálculos y simulación, validar respuestas y evitar precios desactualizados o compras que necesitan revisión.

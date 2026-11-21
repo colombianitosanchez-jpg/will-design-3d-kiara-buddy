@@ -24,3 +24,5 @@
 - Use Radix dialogs and radio groups for service editing and quote selections to preserve keyboard navigation and focus management.
 - Store integration credentials (Telegram bot token/chat id) only in `integration_secrets` (service-role only, no RLS policies); never inside staff-readable settings JSON.
 - Gateway webhooks mark orders paid only when the reported amount covers `total_cop` and never downgrade an already paid order.
+- Validate Kiara checkout through the shared `kiara-checkout` rules with global quoting variables, and hide internal cost breakdowns; chat and website must charge consistently.
+- Route default service WhatsApp purchase actions through UnifiedButton and quick capture; service requests must be recorded before opening the external chat.

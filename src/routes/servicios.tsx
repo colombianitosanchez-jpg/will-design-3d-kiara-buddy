@@ -18,13 +18,13 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { KiaraTip } from "@/components/KiaraTip";
-import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
-import { openExternalUrl } from "@/lib/whatsapp";
+import { siteContentQuery } from "@/lib/catalog";
 import { quoterServicesQuery, formatCOP } from "@/lib/quoter";
 import { accentTokensFor, resolveServicePrimaryAction } from "@/lib/quoter-ui";
 import { supabase } from "@/integrations/supabase/client";
 import { parseProductButtons } from "@/lib/product-buttons";
 import { ProductButtons } from "@/components/ProductButtons";
+import { UnifiedButton } from "@/components/UnifiedButton";
 import { buildServicesJsonLd, getCanonicalBaseUrl, resolvePageSeo, type ServiceJsonLdInput } from "@/lib/seo";
 
 export const Route = createFileRoute("/servicios")({
@@ -178,7 +178,6 @@ function ServiciosPage() {
     initialData: loaderData?.siteServices,
   });
   const { data: quoterServices } = useQuery(quoterServicesQuery());
-  const contact = getContactInfo(siteContent);
 
   const servicesHeaderTitle =
     siteContent?.services_page_title ||
@@ -345,29 +344,18 @@ function ServiciosPage() {
                       )}
                     </div>
                   ) : (
-                    (() => {
-                      const waHref = waLink(contact.whatsapp, primaryAction.message);
-                      return (
-                        <div className="mt-6 flex flex-wrap items-center gap-3">
-                          <a
-                            href={waHref}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => {
-                              if (typeof window !== "undefined" && window.self !== window.top) {
-                                e.preventDefault();
-                                openExternalUrl(waHref);
-                              }
-                            }}
-                            className="btn-primary inline-flex items-center gap-2 text-sm"
-                          >
-                            <MessageSquare className="h-4 w-4" />
-                            {primaryAction.label}
-                            <ArrowRight className="h-4 w-4" />
-                          </a>
-                        </div>
-                      );
-                    })()
+                    <div className="mt-6 flex flex-wrap items-center gap-3">
+                      <UnifiedButton
+                        button={{ id: `service-${s.dbId}`, text: primaryAction.label, variant: "default", width: "auto", position: "left", action_type: "whatsapp", action_value: "", whatsapp_message: primaryAction.message, capture_order: true }}
+                        service={{ id: s.dbId, slug: s.slug || s.id, title: s.title, note: s.lead }}
+                        extraWhatsappNote={primaryAction.message}
+                        className="text-sm"
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                        {primaryAction.label}
+                        <ArrowRight className="h-4 w-4" />
+                      </UnifiedButton>
+                    </div>
                   )}
                 </div>
 
