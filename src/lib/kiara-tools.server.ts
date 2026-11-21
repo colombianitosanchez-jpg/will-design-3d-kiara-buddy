@@ -287,8 +287,8 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
     const requested = Array.isArray(args.items)
       ? (args.items as Record<string, unknown>[]).slice(0, 20).map((it) => ({
           product_slug: it.product_slug ? slugify(String(it.product_slug)) : "",
-          product_name: String(it.product_name ?? "Proyecto 3D").slice(0, 200),
-          quantity: Math.max(1, Math.round(Number(it.quantity) || 1)),
+          product_name: String(it.product_name ?? "Proyecto 3D").trim().slice(0, 150) || "Proyecto 3D",
+          quantity: Math.min(99, Math.max(1, Math.round(Number(it.quantity) || 1))),
         }))
       : [];
     if (requested.length === 0)
@@ -320,7 +320,7 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
       const found = bySlug.get(r.product_slug) ?? bySlug.get(slugify(r.product_name));
       return {
         product_id: found?.id ?? null,
-        product_name: found?.name ?? r.product_name,
+        product_name: String(found?.name ?? r.product_name).slice(0, 150),
         quantity: r.quantity,
         // Sin producto del catálogo el precio queda en 0 para que el equipo lo confirme.
         unit_price_cop: found ? Math.max(0, Math.round(Number(found.price_cop) || 0)) : 0,
@@ -328,12 +328,21 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
     });
 
     const total = items.reduce((s, it) => s + it.quantity * it.unit_price_cop, 0);
+    if (!Number.isFinite(total) || total <= 0) {
+      return {
+        text: "No pude calcular un total válido para registrar el pedido porque los productos no existen o no tienen precio en el catálogo.",
+        data: null,
+        result: { error: "total_invalido" },
+      };
+    }
 
-    const resolvedName = String(args.customer_name ?? "").trim().slice(0, 120) || "Cliente";
+    const resolvedName = String(args.customer_name ?? "").trim().slice(0, 100) || "Cliente";
     const resolvedEmail = String(args.customer_email ?? "").trim().slice(0, 160);
     const resolvedPhone = args.customer_phone ? String(args.customer_phone).trim().slice(0, 40) : null;
-    const resolvedAddress = String(args.shipping_address ?? "").trim().slice(0, 300) || "Por confirmar";
+    const resolvedAddress = String(args.shipping_address ?? "").trim().slice(0, 200) || "Por confirmar";
     const resolvedCity = args.shipping_city ? String(args.shipping_city).trim().slice(0, 120) : null;
+    const truncatedNotes = args.notes ? String(args.notes).trim().slice(0, 500) : "";
+    const resolvedNotes = `Pedido creado por Kiara.${truncatedNotes ? ` ${truncatedNotes}` : ""}`.slice(0, 500);
 
     const { data: order, error } = await supabaseAdmin
       .from("orders")
@@ -344,7 +353,7 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
         shipping_address: resolvedAddress,
         shipping_city: resolvedCity,
         payment_method_name: "Pedido Asistido Kiara IA",
-        notes: `Pedido creado por Kiara. ${args.notes ? String(args.notes).slice(0, 800) : ""}`.trim(),
+        notes: resolvedNotes,
         total_cop: total,
         status: "pendiente" as const,
       })

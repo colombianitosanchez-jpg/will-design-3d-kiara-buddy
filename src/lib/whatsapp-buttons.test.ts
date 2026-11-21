@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   getWhatsAppPayloadForButton,
   replaceTemplatePlaceholders,
@@ -9,6 +9,7 @@ import {
   REVERSE_REF_ALIASES,
 } from "./whatsapp-buttons";
 import { waLink } from "./catalog";
+import { isSafeExternalUrl, openExternalUrl } from "./whatsapp";
 
 describe("getWhatsAppPayloadForButton Simplified Logic", () => {
   test("Sin imagen configurada: genera texto plano limpio sin ningún enlace ni logo", () => {
@@ -428,5 +429,64 @@ describe("Dominio dinámico en enlaces de WhatsApp", () => {
     );
 
     expect(toAbsoluteUrl("/promo.jpg", customSite)).toBe("https://willdesign3d.co/promo.jpg");
+  });
+});
+
+describe("Blindaje openExternalUrl contra esquemas peligrosos", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  test("isSafeExternalUrl acepta únicamente https://, http://, mailto: y tel:", () => {
+    expect(isSafeExternalUrl("https://wa.me/573156724474")).toBe(true);
+    expect(isSafeExternalUrl("http://localhost:3000/tienda")).toBe(true);
+    expect(isSafeExternalUrl("mailto:ventas@willdesign3d.co")).toBe(true);
+    expect(isSafeExternalUrl("tel:+573156724474")).toBe(true);
+
+    expect(isSafeExternalUrl("javascript:alert(1)")).toBe(false);
+    expect(isSafeExternalUrl("  JaVaScRiPt:alert(document.cookie)")).toBe(false);
+    expect(isSafeExternalUrl("data:text/html,<script>alert(1)</script>")).toBe(false);
+    expect(isSafeExternalUrl("vbscript:msgbox(1)")).toBe(false);
+    expect(isSafeExternalUrl("#")).toBe(false);
+    expect(isSafeExternalUrl("")).toBe(false);
+    expect(isSafeExternalUrl(null)).toBe(false);
+  });
+
+  test("openExternalUrl rechaza URLs con protocolo javascript:, data: y vbscript: sin llamar window.open ni manipular DOM", () => {
+    const openSpy = vi.fn();
+    const createElementSpy = vi.fn();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    vi.stubGlobal("window", { open: openSpy });
+    vi.stubGlobal("document", { createElement: createElementSpy });
+
+    openExternalUrl("javascript:alert(1)");
+    openExternalUrl("  javascript:alert(document.domain)");
+    openExternalUrl("data:text/html,<script>alert(1)</script>");
+    openExternalUrl("vbscript:msgbox(1)");
+    openExternalUrl("#");
+    openExternalUrl("");
+    openExternalUrl(null);
+
+    expect(openSpy).not.toHaveBeenCalled();
+    expect(createElementSpy).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledTimes(4);
+  });
+
+  test("openExternalUrl abre URLs válidas https:// con noopener,noreferrer", () => {
+    const openSpy = vi.fn(() => ({ closed: false }));
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    vi.stubGlobal("window", { open: openSpy });
+
+    openExternalUrl("https://wa.me/573156724474?text=Hola");
+
+    expect(warnSpy).not.toHaveBeenCalled();
+    expect(openSpy).toHaveBeenCalledWith(
+      "https://wa.me/573156724474?text=Hola",
+      "_blank",
+      "noopener,noreferrer",
+    );
   });
 });

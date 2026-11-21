@@ -1,3 +1,16 @@
+const SAFE_EXTERNAL_PROTOCOL = /^(https:\/\/|http:\/\/|mailto:|tel:)/i;
+
+/**
+ * Verifica que una URL externa utilice únicamente esquemas permitidos
+ * (`https://`, `http://`, `mailto:` o `tel:`) y rechaza esquemas activos/inseguros.
+ */
+export function isSafeExternalUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  const trimmed = url.trim();
+  if (!trimmed || trimmed === "#") return false;
+  return SAFE_EXTERNAL_PROTOCOL.test(trimmed);
+}
+
 /**
  * Abre una URL externa (como wa.me o api.whatsapp.com) garantizando que se abra
  * siempre en una pestaña/ventana nueva del navegador (target="_blank", noopener, noreferrer).
@@ -7,10 +20,17 @@
  * (como en el preview de Lovable donde window.self !== window.top).
  */
 export function openExternalUrl(url: string | null | undefined): void {
-  if (!url || typeof window === "undefined") return;
+  if (!url) return;
 
   const trimmed = url.trim();
   if (!trimmed || trimmed === "#") return;
+
+  if (!SAFE_EXTERNAL_PROTOCOL.test(trimmed)) {
+    console.warn("[Seguridad] URL externa bloqueada por protocolo no autorizado:", trimmed);
+    return;
+  }
+
+  if (typeof window === "undefined") return;
 
   try {
     // Si estamos dentro de un iframe o en un navegador estándar, window.open con '_blank' y specs
@@ -28,7 +48,7 @@ export function openExternalUrl(url: string | null | undefined): void {
       a.click();
       document.body.removeChild(a);
     }
-  } catch (err) {
+  } catch {
     // Fallback de enlace DOM si window.open arroja SecurityError en iframe restringido
     try {
       const a = document.createElement("a");

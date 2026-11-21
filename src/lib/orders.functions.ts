@@ -63,6 +63,9 @@ const schema = z
 export const createOrderRequest = createServerFn({ method: "POST" })
   .validator((data: unknown) => schema.parse(data))
   .handler(async ({ data }) => {
+    const { assertRateLimitFromRequest } = await import("@/lib/rate-limit.server");
+    assertRateLimitFromRequest("orders:create");
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     let resolvedProductId: string | null = null;

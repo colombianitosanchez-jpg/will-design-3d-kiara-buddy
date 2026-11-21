@@ -178,7 +178,7 @@ function QuotesTab() {
     if (!q.file_path) return;
     const { data, error } = await supabase.storage
       .from("quote-files")
-      .createSignedUrl(q.file_path, 60 * 10, { download: q.file_name ?? true });
+      .createSignedUrl(q.file_path, 60, { download: q.file_name ?? true });
     if (error || !data) return toast.error("No se pudo generar el enlace: " + error?.message);
     openExternalUrl(data.signedUrl);
   }
