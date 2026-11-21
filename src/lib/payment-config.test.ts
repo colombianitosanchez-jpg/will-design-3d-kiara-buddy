@@ -5,6 +5,7 @@ import {
   getWompiWebhookUrl,
   paymentCategoryForType,
   paymentCategoryLabel,
+  paymentMethodUpsertSchema,
   sanitizePublicPaymentConfig,
 } from "./payment-config";
 
@@ -17,6 +18,49 @@ describe("payment-config", () => {
     expect(paymentCategoryForType("cash_on_delivery")).toBe("cash");
     expect(paymentCategoryForType("cash_point")).toBe("cash");
     expect(paymentCategoryLabel("crypto")).toContain("Cripto");
+  });
+
+  it("exige URL HTTPS válida de payment_url para pasarelas aunque tengan Wompi activo", () => {
+    const missingUrl = paymentMethodUpsertSchema.safeParse({
+      name: "Wompi Tarjetas",
+      type: "gateway_redirect",
+      config: {
+        is_wompi: true,
+        wompi_public_key: "pub_prod_123456",
+        wompi_env: "production",
+      },
+    });
+    expect(missingUrl.success).toBe(false);
+
+    const legacyGatewayMissingUrl = paymentMethodUpsertSchema.safeParse({
+      name: "Wompi Antiguo",
+      type: "gateway",
+      config: {
+        is_wompi: true,
+        wompi_public_key: "pub_test_123",
+      },
+    });
+    expect(legacyGatewayMissingUrl.success).toBe(false);
+
+    const insecureHttpUrl = paymentMethodUpsertSchema.safeParse({
+      name: "Wompi HTTP",
+      type: "gateway_redirect",
+      config: {
+        payment_url: "http://checkout.wompi.co/l/test",
+      },
+    });
+    expect(insecureHttpUrl.success).toBe(false);
+
+    const validGateway = paymentMethodUpsertSchema.safeParse({
+      name: "Wompi",
+      type: "gateway_redirect",
+      config: {
+        is_wompi: true,
+        wompi_public_key: "pub_prod_123456",
+        payment_url: "https://checkout.wompi.co/l/abc123",
+      },
+    });
+    expect(validGateway.success).toBe(true);
   });
 
   it("genera enlaces válidos a exploradores de blockchain TRC20/BEP20", () => {

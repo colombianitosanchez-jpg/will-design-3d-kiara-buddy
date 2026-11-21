@@ -72,6 +72,7 @@ import {
 import {
   getCryptoExplorerUrl,
   getWompiWebhookUrl,
+  isValidHttpsUrl,
   PAYMENT_CATEGORIES,
   paymentCategoryForType,
   paymentCategoryLabel,
@@ -366,6 +367,13 @@ function PagosPage() {
       }
 
       const category = paymentCategoryForType(form.type);
+      if (category === "automatic" && !isValidHttpsUrl(form.payment_url)) {
+        toast.error(
+          "Ingresa una URL HTTPS válida para el link de checkout (ej: https://checkout.wompi.co/l/xxxxx).",
+        );
+        setSaving(false);
+        return;
+      }
       await save({
         data: {
           ...(form.id ? { id: form.id } : {}),
@@ -603,15 +611,20 @@ function PagosPage() {
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-1 md:col-span-2">
                       <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                        URL de pago / Link de checkout {!form.is_wompi ? "*" : "(opcional si usas Widget Wompi)"}
+                        URL de pago / Link de checkout *
                       </Label>
                       <Input
                         type="url"
-                        required={!form.is_wompi}
+                        required
+                        pattern="https://.*"
                         value={form.payment_url}
                         onChange={(e) => setForm({ ...form, payment_url: e.target.value })}
                         placeholder="https://checkout.wompi.co/l/xxxxx"
                       />
+                      <p className="text-[11px] text-muted-foreground">
+                        Ingresa el link de cobro directo (ej: https://checkout.wompi.co/l/xxxxx). El
+                        cliente será redirigido a este enlace para pagar.
+                      </p>
                     </div>
 
                     {form.is_wompi && (

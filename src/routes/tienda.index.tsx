@@ -41,13 +41,16 @@ export const Route = createFileRoute("/tienda/")({
     ...(typeof search.atributo === "string" ? { atributo: search.atributo } : {}),
   }),
   loader: async ({ context }) => {
-    const [siteContent] = await Promise.all([
-      context.queryClient.ensureQueryData(siteContentQuery()),
-      context.queryClient.ensureQueryData(productsQuery()),
-      context.queryClient.ensureQueryData(categoriesQuery()),
-      context.queryClient.ensureQueryData(attributesQuery()),
-    ]);
-    return { siteContent };
+    const [siteContent, products, categories, brands, attributes, categoryAttributes] =
+      await Promise.all([
+        context.queryClient.ensureQueryData(siteContentQuery()),
+        context.queryClient.ensureQueryData(productsQuery()),
+        context.queryClient.ensureQueryData(categoriesQuery()),
+        context.queryClient.ensureQueryData(brandsQuery()),
+        context.queryClient.ensureQueryData(attributesQuery()),
+        context.queryClient.ensureQueryData(categoryAttributesQuery()),
+      ]);
+    return { siteContent, products, categories, brands, attributes, categoryAttributes };
   },
   head: ({ loaderData }: { loaderData?: { siteContent?: Record<string, string> } }) => {
     const siteContent = loaderData?.siteContent;
@@ -80,12 +83,31 @@ export const Route = createFileRoute("/tienda/")({
 });
 
 function TiendaPage() {
-  const { data: products = [], isLoading } = useQuery(productsQuery());
-  const { data: allCategories = [] } = useQuery(categoriesQuery());
-  const { data: brands = [] } = useQuery(brandsQuery());
-  const { data: attributes = [] } = useQuery(attributesQuery());
-  const { data: categoryAttributes = [] } = useQuery(categoryAttributesQuery());
-  const { data: content } = useQuery(siteContentQuery());
+  const loaderData = Route.useLoaderData();
+  const { data: products = [], isLoading } = useQuery({
+    ...productsQuery(),
+    initialData: loaderData?.products,
+  });
+  const { data: allCategories = [] } = useQuery({
+    ...categoriesQuery(),
+    initialData: loaderData?.categories,
+  });
+  const { data: brands = [] } = useQuery({
+    ...brandsQuery(),
+    initialData: loaderData?.brands,
+  });
+  const { data: attributes = [] } = useQuery({
+    ...attributesQuery(),
+    initialData: loaderData?.attributes,
+  });
+  const { data: categoryAttributes = [] } = useQuery({
+    ...categoryAttributesQuery(),
+    initialData: loaderData?.categoryAttributes,
+  });
+  const { data: content } = useQuery({
+    ...siteContentQuery(),
+    initialData: loaderData?.siteContent,
+  });
   const contact = getContactInfo(content);
   const { categoria, marca, atributo } = Route.useSearch();
   const navigate = useNavigate({ from: "/tienda/" });

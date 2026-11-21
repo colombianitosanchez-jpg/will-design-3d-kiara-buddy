@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import {
+  paymentMethodUpsertSchema,
   sanitizePublicPaymentConfig,
   type ExtendedPaymentMethodConfig,
 } from "@/lib/payment-config";
@@ -33,64 +34,7 @@ export type AdminPaymentMethod = PublicPaymentMethod & {
   has_credentials: boolean;
 };
 
-const upsertSchema = z
-  .object({
-    id: z.string().uuid().optional(),
-    name: z.string().trim().min(2).max(120),
-    type: z.enum([
-      "manual_transfer",
-      "gateway",
-      "gateway_redirect",
-      "cash_on_delivery",
-      "cash_point",
-      "crypto",
-    ]),
-    instructions: z.string().trim().max(4000).optional().default(""),
-    qr_image_url: z.string().trim().max(500).optional().default(""),
-    display_order: z.number().int().min(0).max(999).optional().default(0),
-    is_active: z.boolean().optional().default(false),
-    config: z
-      .object({
-        payment_url: z.string().trim().url().max(500).optional(),
-        allowed_zones: z.string().trim().max(300).optional(),
-        is_wompi: z.boolean().optional(),
-        wompi_public_key: z.string().trim().max(200).optional(),
-        wompi_env: z.enum(["sandbox", "production"]).optional(),
-        bank_name: z.string().trim().max(120).optional(),
-        account_number: z.string().trim().max(120).optional(),
-        account_holder: z.string().trim().max(120).optional(),
-        require_proof: z.boolean().optional(),
-        wallet_address: z.string().trim().max(200).optional(),
-        crypto_network: z.enum(["TRC20", "BEP20", "ERC20", "Polygon"]).optional(),
-      })
-      .partial()
-      .optional()
-      .default({}),
-    /** Pares clave/valor. Si viene vacío en una edición, se conservan las credenciales guardadas. */
-    credentials: z
-      .array(z.object({ key: z.string().trim().min(1).max(80), value: z.string().max(2000) }))
-      .max(20)
-      .optional()
-      .default([]),
-  })
-  .superRefine((val, ctx) => {
-    const isGateway = val.type === "gateway" || val.type === "gateway_redirect";
-    const hasWompiKey = Boolean(val.config?.is_wompi && val.config?.wompi_public_key?.trim());
-    if (isGateway && !val.config?.payment_url && !hasWompiKey) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["config", "payment_url"],
-        message: "Indica la URL de pago / link de checkout o tu Llave Pública de Wompi",
-      });
-    }
-    if (val.type === "crypto" && !val.config?.payment_url && !val.config?.wallet_address?.trim()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["config", "wallet_address"],
-        message: "Indica la dirección de billetera (wallet) o el enlace de pago cripto",
-      });
-    }
-  });
+const upsertSchema = paymentMethodUpsertSchema;
 
 async function assertSuperAdmin(context: { supabase: unknown; userId: string }) {
   const supabase = context.supabase as {
