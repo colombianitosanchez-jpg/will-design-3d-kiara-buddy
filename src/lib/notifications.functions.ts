@@ -138,6 +138,13 @@ export const getNotificationAdminData = createServerFn({ method: "GET" })
       settings,
       queue: (q ?? []) as NotificationQueueItem[],
       isSuperAdmin: role === "super_admin",
+      telegram_diagnostics:
+        role === "super_admin"
+          ? {
+              saved_configured: Boolean(_telegram_bot_token?.trim() && _telegram_chat_id?.trim()),
+              tg_new_order_enabled: settings.events.tg_new_order !== false,
+            }
+          : null,
     };
   });
 
@@ -226,7 +233,28 @@ export const sendTelegramTestAdmin = createServerFn({ method: "POST" })
     if (testRole !== "super_admin") {
       throw new Error("Solo un Super Admin puede probar la conexión de Telegram");
     }
-    const { sendTelegramNotification } = await import("@/lib/telegram.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { getTelegramConfig, sendTelegramNotification } = await import("@/lib/telegram.server");
+
+    const token = data.telegram_bot_token.trim();
+    const chatId = data.telegram_chat_id.trim();
+    let autoSaved = false;
+
+    if (token && chatId) {
+      const nowIso = new Date().toISOString();
+      const { error: secErr } = await supabaseAdmin.from("integration_secrets").upsert(
+        [
+          { key: "telegram_bot_token", value: token, updated_at: nowIso },
+          { key: "telegram_chat_id", value: chatId, updated_at: nowIso },
+        ],
+        { onConflict: "key" },
+      );
+      if (secErr) throw new Error(secErr.message);
+      autoSaved = true;
+    }
+
+    const cfg = await getTelegramConfig();
+    const tgNewOrderEnabled = cfg.events["tg_new_order"] !== false;
 
     const nowText = new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" });
     const res = await sendTelegramNotification({
@@ -235,14 +263,16 @@ export const sendTelegramTestAdmin = createServerFn({ method: "POST" })
         "Tu canal de alertas en tiempo real para pedidos, comprobantes y pagos está activo.",
         `🕒 ${nowText}`,
       ].join("\n"),
-      overrideToken: data.telegram_bot_token || undefined,
-      overrideChatId: data.telegram_chat_id || undefined,
     });
 
     if (!res.ok) {
       throw new Error(res.error || "No se pudo enviar el mensaje de prueba a Telegram");
     }
-    return { ok: true as const };
+    return {
+      ok: true as const,
+      autoSaved,
+      tgNewOrderEnabled,
+    };
   });
 
 export const retryQueuedNotificationAdmin = createServerFn({ method: "POST" })

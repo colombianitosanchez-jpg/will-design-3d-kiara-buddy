@@ -1,32 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { assertServiceOrderQuantity } from "./cart-quantity";
-
-const schema = z.object({
-  items: z
-    .array(
-      z.object({
-        product_id: z.string().min(1).max(200),
-        quantity: z.number().int().min(1).max(99),
-        kind: z.enum(["product", "service"]).optional().default("product"),
-        service_slug: z.string().trim().max(120).optional(),
-        answers: z.record(z.string(), z.string().max(400)).optional(),
-      }),
-    )
-    .min(1)
-    .max(40),
-  customer_name: z.string().trim().min(2).max(120),
-  customer_email: z.string().trim().email().max(160),
-  customer_phone: z.string().trim().max(40).optional().default(""),
-  shipping_address: z.string().trim().min(4).max(300),
-  shipping_city: z.string().trim().max(120).optional().default(""),
-  notes: z.string().trim().max(1000).optional().default(""),
-  payment_method_id: z.string().uuid().nullable().optional().default(null),
-});
+import { parseCartOrderInput } from "./order-validation";
 
 /** Crea un pedido público con varios productos (carrito) en las tablas orders / order_items. */
 export const createCartOrder = createServerFn({ method: "POST" })
-  .validator((data: unknown) => schema.parse(data))
+  .validator(parseCartOrderInput)
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -144,8 +123,8 @@ export const createCartOrder = createServerFn({ method: "POST" })
         payment_method_name: paymentMethod?.name ?? null,
         payment_status: "esperando_pago",
         customer_name: data.customer_name,
-        customer_email: data.customer_email,
-        customer_phone: data.customer_phone || null,
+        customer_email: data.resolved_customer_email,
+        customer_phone: data.customer_phone.trim() || null,
         shipping_address: data.shipping_address,
         shipping_city: data.shipping_city || null,
         notes: data.notes ? `Pedido web (carrito): ${data.notes}` : "Pedido web desde el carrito",
@@ -166,8 +145,8 @@ export const createCartOrder = createServerFn({ method: "POST" })
       await notifyTelegramNewOrder({
         orderId: order.id,
         customerName: data.customer_name,
-        customerPhone: data.customer_phone || null,
-        customerEmail: data.customer_email,
+        customerPhone: data.customer_phone.trim() || null,
+        customerEmail: data.customer_email.trim() || null,
         shippingAddress: data.shipping_address,
         shippingCity: data.shipping_city || null,
         totalCop: total,

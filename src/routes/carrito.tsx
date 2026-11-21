@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { useCart } from "@/lib/cart";
 import { canEditCartQuantity } from "@/lib/cart-quantity";
 import { formatCOP, getContactInfo, waLink } from "@/lib/catalog";
+import { normalizeWhatsAppDigits } from "@/lib/notification-templates";
+import { formatReadableOrderError, STRICT_EMAIL_REGEX } from "@/lib/order-validation";
 import { openExternalUrl } from "@/lib/whatsapp";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { cartPaymentRules, createCartOrder } from "@/lib/cart-order.functions";
@@ -205,7 +207,7 @@ function CarritoPage() {
       await navigator.clipboard?.writeText(url);
       toast.success("Enlace de la cotización copiado");
     } catch (err) {
-      toast.error((err as Error).message || "No pudimos guardar la cotización");
+      toast.error(formatReadableOrderError(err));
     } finally {
       setSharing(false);
     }
@@ -214,6 +216,30 @@ function CarritoPage() {
   async function confirm(e: React.FormEvent) {
     e.preventDefault();
     if (!items.length) return;
+
+    if (form.customer_name.trim().length < 2) {
+      toast.error("Por favor ingresa tu nombre completo.");
+      return;
+    }
+    if (form.shipping_address.trim().length < 4) {
+      toast.error("Por favor ingresa la dirección de envío.");
+      return;
+    }
+    const email = form.customer_email.trim();
+    const hasPhone = Boolean(normalizeWhatsAppDigits(form.customer_phone));
+    if (email && !STRICT_EMAIL_REGEX.test(email)) {
+      toast.error(
+        "Ingresa un correo electrónico válido (ej: nombre@correo.com) o déjalo vacío si ingresaste tu WhatsApp.",
+      );
+      return;
+    }
+    if (!email && !hasPhone) {
+      toast.error(
+        "Ingresa tu correo electrónico o un número de WhatsApp válido (mínimo 7 dígitos) para confirmar tu pedido.",
+      );
+      return;
+    }
+
     setSending(true);
     if (methods.length && effectiveMode === "split") {
       try {
@@ -246,7 +272,7 @@ function CarritoPage() {
         setSplitDone(results);
         toast.success("¡Pedidos enviados!");
       } catch (err) {
-        toast.error((err as Error).message || "No pudimos enviar el pedido");
+        toast.error(formatReadableOrderError(err));
       } finally {
         setSending(false);
       }
@@ -279,7 +305,7 @@ function CarritoPage() {
       });
       toast.success("¡Pedido enviado! Te contactaremos muy pronto.");
     } catch (err) {
-      toast.error((err as Error).message || "No pudimos enviar el pedido");
+      toast.error(formatReadableOrderError(err));
     } finally {
       setSending(false);
     }
@@ -539,12 +565,24 @@ function CarritoPage() {
               <input required value={form.customer_name} onChange={(e) => set("customer_name", e.target.value)} className={inputCls} />
             </label>
             <label className="mt-3 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Correo *
-              <input required type="email" value={form.customer_email} onChange={(e) => set("customer_email", e.target.value)} className={inputCls} />
+              Correo (recomendado)
+              <input
+                type="email"
+                value={form.customer_email}
+                onChange={(e) => set("customer_email", e.target.value)}
+                className={inputCls}
+                placeholder="nombre@correo.com"
+              />
+              <span className="mt-1 block text-[11px] font-normal normal-case tracking-normal text-muted-foreground">
+                Recomendado para enviarte confirmación. Si no tienes, ingresa tu WhatsApp.
+              </span>
             </label>
             <label className="mt-3 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               WhatsApp / teléfono
               <input value={form.customer_phone} onChange={(e) => set("customer_phone", e.target.value)} className={inputCls} placeholder="+57 300 000 0000" />
+              <span className="mt-1 block text-[11px] font-normal normal-case tracking-normal text-muted-foreground">
+                Suficiente para confirmar tu pedido (mínimo 7 dígitos).
+              </span>
             </label>
             <label className="mt-3 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Dirección de envío *

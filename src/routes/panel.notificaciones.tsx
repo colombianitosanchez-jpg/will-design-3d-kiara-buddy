@@ -94,6 +94,10 @@ function NotificationsPage() {
   const [testingTg, setTestingTg] = useState(false);
   const [retryingId, setRetryingId] = useState<string | null>(null);
   const [showBotToken, setShowBotToken] = useState(false);
+  const [savedTelegram, setSavedTelegram] = useState<{ token: string; chatId: string }>({
+    token: "",
+    chatId: "",
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -102,6 +106,10 @@ function NotificationsPage() {
       setCfg(res.settings);
       setQueue(res.queue);
       setIsSuperAdmin(res.isSuperAdmin);
+      setSavedTelegram({
+        token: res.settings.telegram_bot_token.trim(),
+        chatId: res.settings.telegram_chat_id.trim(),
+      });
     } catch (err) {
       toast.error((err as Error).message || "No se pudo cargar la configuración");
     } finally {
@@ -131,6 +139,10 @@ function NotificationsPage() {
           telegram_chat_id: cfg.telegram_chat_id,
         },
       });
+      setSavedTelegram({
+        token: cfg.telegram_bot_token.trim(),
+        chatId: cfg.telegram_chat_id.trim(),
+      });
       toast.success("Configuración de alertas y notificaciones guardada");
     } catch (err) {
       toast.error((err as Error).message || "No se pudo guardar");
@@ -143,13 +155,29 @@ function NotificationsPage() {
     if (!cfg) return;
     setTestingTg(true);
     try {
-      await testTgFn({
+      const res = await testTgFn({
         data: {
           telegram_bot_token: cfg.telegram_bot_token,
           telegram_chat_id: cfg.telegram_chat_id,
         },
       });
-      toast.success("¡Mensaje de prueba enviado a Telegram! Revisa tu chat.");
+      if (res.autoSaved) {
+        setSavedTelegram({
+          token: cfg.telegram_bot_token.trim(),
+          chatId: cfg.telegram_chat_id.trim(),
+        });
+      }
+      if (!res.tgNewOrderEnabled) {
+        toast.warning(
+          "Credenciales guardadas y prueba enviada, pero el interruptor 'Nuevos pedidos' está desactivado.",
+        );
+      } else {
+        toast.success(
+          res.autoSaved
+            ? "¡Credenciales guardadas y mensaje de prueba enviado a Telegram!"
+            : "¡Mensaje de prueba enviado a Telegram desde tu configuración guardada!",
+        );
+      }
     } catch (err) {
       toast.error((err as Error).message || "Error al conectar con Telegram");
     } finally {
@@ -219,66 +247,82 @@ function NotificationsPage() {
                 confirmados por Wompi y cambios de estado.
               </CardDescription>
             </div>
-            <Badge variant={cfg.telegram_bot_token && cfg.telegram_chat_id ? "default" : "outline"}>
-              {cfg.telegram_bot_token && cfg.telegram_chat_id ? "Configurado" : "Pendiente"}
-            </Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              {isSuperAdmin &&
+                (cfg.telegram_bot_token.trim() !== savedTelegram.token ||
+                  cfg.telegram_chat_id.trim() !== savedTelegram.chatId) && (
+                  <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                    Cambios sin guardar
+                  </Badge>
+                )}
+              <Badge variant={savedTelegram.token && savedTelegram.chatId ? "default" : "outline"}>
+                {savedTelegram.token && savedTelegram.chatId ? "Guardado y activo" : "Pendiente"}
+              </Badge>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
           {isSuperAdmin ? (
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="tg-bot-token" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Telegram Bot Token
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="tg-bot-token"
-                    type={showBotToken ? "text" : "password"}
-                    value={cfg.telegram_bot_token}
-                    onChange={(e) => setCfg({ ...cfg, telegram_bot_token: e.target.value })}
-                    placeholder="1234567890:ABCdef..."
-                    autoComplete="off"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setShowBotToken((s) => !s)}
-                    aria-label={showBotToken ? "Ocultar token" : "Mostrar token"}
-                  >
-                    {showBotToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
+            <div className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="tg-bot-token" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Telegram Bot Token
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="tg-bot-token"
+                      type={showBotToken ? "text" : "password"}
+                      value={cfg.telegram_bot_token}
+                      onChange={(e) => setCfg({ ...cfg, telegram_bot_token: e.target.value })}
+                      placeholder="1234567890:ABCdef..."
+                      autoComplete="off"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setShowBotToken((s) => !s)}
+                      aria-label={showBotToken ? "Ocultar token" : "Mostrar token"}
+                    >
+                      {showBotToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="tg-chat-id" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Telegram Chat ID
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="tg-chat-id"
-                    value={cfg.telegram_chat_id}
-                    onChange={(e) => setCfg({ ...cfg, telegram_chat_id: e.target.value })}
-                    placeholder="-1001234567890 o 987654321"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={testingTg}
-                    onClick={handleTelegramTest}
-                    className="shrink-0 gap-1.5"
-                  >
-                    {testingTg ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4" />
-                    )}
-                    🧪 Enviar prueba
-                  </Button>
+                <div className="space-y-1.5">
+                  <Label htmlFor="tg-chat-id" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Telegram Chat ID
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="tg-chat-id"
+                      value={cfg.telegram_chat_id}
+                      onChange={(e) => setCfg({ ...cfg, telegram_chat_id: e.target.value })}
+                      placeholder="-1001234567890 o 987654321"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={testingTg}
+                      onClick={handleTelegramTest}
+                      className="shrink-0 gap-1.5"
+                    >
+                      {testingTg ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                      🧪 Enviar prueba
+                    </Button>
+                  </div>
                 </div>
               </div>
+              {cfg.events["tg_new_order"] === false && (
+                <p className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">
+                  El interruptor <strong>Nuevos pedidos</strong> está desactivado. Actívalo abajo y guarda para recibir alertas cuando compren en la tienda o carrito.
+                </p>
+              )}
             </div>
           ) : (
             <p className="rounded-2xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">

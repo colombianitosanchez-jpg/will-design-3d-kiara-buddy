@@ -21,21 +21,30 @@ export async function getTelegramConfig(): Promise<TelegramConfig> {
 
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data } = await supabaseAdmin
-      .from("notification_settings")
-      .select("events, templates")
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
+    const [{ data, error: settingsErr }, { data: secrets, error: secretsErr }] = await Promise.all([
+      supabaseAdmin
+        .from("notification_settings")
+        .select("events, templates")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("integration_secrets")
+        .select("key, value")
+        .in("key", ["telegram_bot_token", "telegram_chat_id"]),
+    ]);
+
+    if (settingsErr) {
+      console.error("[Telegram] Error leyendo notification_settings:", settingsErr.message);
+    }
+    if (secretsErr) {
+      console.error("[Telegram] Error leyendo integration_secrets:", secretsErr.message);
+    }
 
     const events = (data?.events ?? {}) as Record<string, unknown>;
-    const { data: secrets } = await supabaseAdmin
-      .from("integration_secrets")
-      .select("key, value")
-      .in("key", ["telegram_bot_token", "telegram_chat_id"]);
     const map = new Map((secrets ?? []).map((r) => [r.key, (r.value ?? "").trim()]));
-    const dbToken = map.get("telegram_bot_token") ?? "";
-    const dbChatId = map.get("telegram_chat_id") ?? "";
+    const dbToken = (map.get("telegram_bot_token") ?? "").trim();
+    const dbChatId = (map.get("telegram_chat_id") ?? "").trim();
 
     return {
       botToken: dbToken || envToken,
@@ -48,6 +57,15 @@ export async function getTelegramConfig(): Promise<TelegramConfig> {
   }
 }
 
+function stripTelegramHtml(html: string): string {
+  return html
+    .replace(/<a\s+href="([^"]+)"[^>]*>([^<]*)<\/a>/gi, "$2: $1")
+    .replace(/<[^>]+>/g, "")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&amp;", "&");
+}
+
 export async function sendTelegramNotification(params: {
   text: string;
   parse_mode?: "HTML" | "Markdown";
@@ -55,19 +73,19 @@ export async function sendTelegramNotification(params: {
   overrideChatId?: string;
 }): Promise<{ ok: boolean; skipped?: boolean; error?: string }> {
   try {
-    const cfg =
-      params.overrideToken && params.overrideChatId
-        ? { botToken: params.overrideToken.trim(), chatId: params.overrideChatId.trim() }
-        : await getTelegramConfig();
+    const needsConfig = !params.overrideToken?.trim() || !params.overrideChatId?.trim();
+    const cfg = needsConfig ? await getTelegramConfig() : { botToken: "", chatId: "", events: {} };
 
     const token = (params.overrideToken ?? cfg.botToken ?? "").trim();
     const chatId = (params.overrideChatId ?? cfg.chatId ?? "").trim();
 
     if (!token || !chatId) {
+      console.warn("[Telegram] Envío omitido: falta Bot Token o Chat ID guardado.");
       return { ok: false, skipped: true, error: "Bot Token o Chat ID de Telegram no configurado." };
     }
 
-    const res = await fetch(`https://api.telegram.org/bot${encodeURIComponent(token)}/sendMessage`, {
+    const endpoint = `https://api.telegram.org/bot${encodeURIComponent(token)}/sendMessage`;
+    const res = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -81,6 +99,21 @@ export async function sendTelegramNotification(params: {
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       console.error("[Telegram] API error:", res.status, body);
+      // Si Telegram rechaza etiquetas HTML (HTTP 400), reintentar inmediatamente en texto plano
+      if (res.status === 400 && (params.parse_mode ?? "HTML") === "HTML") {
+        const plainRes = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: stripTelegramHtml(params.text),
+            disable_web_page_preview: true,
+          }),
+        });
+        if (plainRes.ok) {
+          return { ok: true };
+        }
+      }
       return { ok: false, error: `Telegram HTTP ${res.status}: ${body.slice(0, 200)}` };
     }
 
@@ -93,8 +126,14 @@ export async function sendTelegramNotification(params: {
 
 async function shouldNotify(eventKey: TelegramEventKey): Promise<TelegramConfig | null> {
   const cfg = await getTelegramConfig();
-  if (!cfg.botToken || !cfg.chatId) return null;
-  if (!isTelegramEventEnabled(cfg.events, eventKey)) return null;
+  if (!cfg.botToken || !cfg.chatId) {
+    console.warn(`[Telegram] Evento ${eventKey} omitido: credenciales no configuradas en integration_secrets.`);
+    return null;
+  }
+  if (!isTelegramEventEnabled(cfg.events, eventKey)) {
+    console.info(`[Telegram] Evento ${eventKey} desactivado en notification_settings.`);
+    return null;
+  }
   return cfg;
 }
 

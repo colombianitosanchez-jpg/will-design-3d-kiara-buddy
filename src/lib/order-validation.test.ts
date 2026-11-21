@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { formatReadableOrderError, parseOrderRequestInput } from "./order-validation";
+import {
+  formatReadableOrderError,
+  parseCartOrderInput,
+  parseOrderRequestInput,
+} from "./order-validation";
 import { buildButtonWhatsappText } from "./product-buttons";
 import { productShareLink } from "./product-share";
 import { buildQuickOrderWhatsappMessage, buildWhatsAppApiUrl } from "./notification-templates";
@@ -72,12 +76,19 @@ describe("order-validation & captura rápida WhatsApp", () => {
     ).toThrow(/identificador del producto/i);
   });
 
-  it("formatReadableOrderError traduce arreglos JSON de Zod e Invalid uuid a español amigable", () => {
+  it("formatReadableOrderError traduce arreglos JSON de Zod e Invalid uuid / Invalid email a español amigable", () => {
     const zodJsonErr = new Error(
       '[ { "validation": "uuid", "code": "invalid_string", "message": "Invalid uuid", "path": [ "variant_id" ] } ]',
     );
     expect(formatReadableOrderError(zodJsonErr)).toBe(
       "Verifica los datos del producto y tus datos de contacto e intenta de nuevo.",
+    );
+
+    const zodEmailErr = new Error(
+      '[ { "validation": "email", "code": "invalid_string", "message": "Invalid email", "path": [ "customer_email" ] } ]',
+    );
+    expect(formatReadableOrderError(zodEmailErr)).toBe(
+      "Ingresa un correo electrónico válido (ej: nombre@correo.com) o déjalo vacío si ya ingresaste tu WhatsApp.",
     );
 
     const customZodErr = new Error(
@@ -90,6 +101,55 @@ describe("order-validation & captura rápida WhatsApp", () => {
     expect(formatReadableOrderError(new Error("Variante no encontrada"))).toBe(
       "Variante no encontrada",
     );
+  });
+
+  it("parseCartOrderInput permite carrito sin correo cuando hay WhatsApp válido y sintetiza correo interno", () => {
+    const parsed = parseCartOrderInput({
+      items: [
+        { product_id: SAMPLE_PRODUCT_ID, quantity: 2, kind: "product" },
+        {
+          product_id: "svc:resina",
+          quantity: 1,
+          kind: "service",
+          service_slug: "impresion-resina",
+          answers: { gramos: "50" },
+        },
+      ],
+      customer_name: "Laura Gómez",
+      customer_email: "   ",
+      customer_phone: "300 415 0204",
+      shipping_address: "cra 28 #86-13",
+      shipping_city: "bogota",
+      notes: "holaa",
+      payment_method_id: "",
+    });
+
+    expect(parsed.customer_email).toBe("");
+    expect(parsed.resolved_customer_email).toBe("whatsapp-573004150204@pedido.willdesign3d.local");
+    expect(parsed.payment_method_id).toBeNull();
+    expect(parsed.items).toHaveLength(2);
+  });
+
+  it("parseCartOrderInput rechaza correo mal formado (sin TLD) o falta de contacto con mensajes en español", () => {
+    expect(() =>
+      parseCartOrderInput({
+        items: [{ product_id: SAMPLE_PRODUCT_ID, quantity: 1 }],
+        customer_name: "Laura Gómez",
+        customer_email: "laura@gmail",
+        customer_phone: "3004150204",
+        shipping_address: "cra 28 #86-13",
+      }),
+    ).toThrow(/correo electrónico válido/i);
+
+    expect(() =>
+      parseCartOrderInput({
+        items: [{ product_id: SAMPLE_PRODUCT_ID, quantity: 1 }],
+        customer_name: "Laura Gómez",
+        customer_email: "",
+        customer_phone: "123",
+        shipping_address: "cra 28 #86-13",
+      }),
+    ).toThrow(/correo electrónico o un número de WhatsApp válido/i);
   });
 
   it("preserva la plantilla preconfigurada del botón, el dominio oficial y la vista previa de foto en captura rápida", () => {
