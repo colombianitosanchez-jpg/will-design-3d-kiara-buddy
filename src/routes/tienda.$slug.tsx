@@ -8,6 +8,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Calculator, MessageCircle, ShieldCheck, Truck, Loader2, ShoppingBag, X, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { createOrderRequest } from "@/lib/orders.functions";
+import { formatReadableOrderError } from "@/lib/order-validation";
+import { buildWhatsAppApiUrl } from "@/lib/notification-templates";
 import useEmblaCarousel from "embla-carousel-react";
 import {
   formatCOP,
@@ -16,7 +18,6 @@ import {
   productsQuery,
   siteContentQuery,
   getContactInfo,
-  waLink,
   applyGlobalWaTemplate,
   type Product,
 } from "@/lib/catalog";
@@ -29,7 +30,7 @@ import { effectiveButtons, variantGallery, resolveVariantProduct } from "@/lib/p
 import { buildButtonWhatsappText } from "@/lib/product-buttons";
 import { lazy, Suspense } from "react";
 import { file3dWaNote, type Dims3D } from "@/lib/file3d-types";
-import { getSeo } from "@/lib/seo";
+import { getCanonicalBaseUrl, getSeo } from "@/lib/seo";
 
 const FileDropzone3D = lazy(() =>
   import("@/components/FileDropzone3D").then((m) => ({ default: m.FileDropzone3D }))
@@ -233,14 +234,23 @@ function ProductPage() {
     if (new URLSearchParams(window.location.search).get("pedir")) setOrderOpen(true);
     return () => window.removeEventListener("wd3d:order-request", open);
   }, []);
-  const waHref = waLink(
+  const canonicalOrigin = getCanonicalBaseUrl(content);
+  const waHref = buildWhatsAppApiUrl(
     contact.whatsapp,
-    buildButtonWhatsappText({ whatsapp_message: applyGlobalWaTemplate(
-      content?.whatsapp_default_message,
-      { producto: product.name, precio: formatCOP(shownPrice), variante: selectedVariant?.name ?? "" },
-      `Hola Will Design 3D, me interesa el producto: ${variantProduct.name} (${formatCOP(shownPrice)}). ¿Está disponible?`,
-    ) }, { name: variantProduct.name, share_url: productShareLink(product, selectedVariant?.id, "") }),
-  );
+    buildButtonWhatsappText(
+      {
+        whatsapp_message: applyGlobalWaTemplate(
+          content?.whatsapp_default_message,
+          { producto: product.name, precio: formatCOP(shownPrice), variante: selectedVariant?.name ?? "" },
+          `Hola Will Design 3D, me interesa el producto: ${variantProduct.name} (${formatCOP(shownPrice)}). ¿Está disponible?`,
+        ),
+      },
+      { name: variantProduct.name, share_url: productShareLink(product, selectedVariant?.id, "", canonicalOrigin) },
+      "",
+      "",
+      content,
+    ),
+  ) ?? undefined;
   const [orderOpen, setOrderOpen] = useState(false);
   const [file3dName, setFile3dName] = useState<string | null>(null);
   const [file3dDims, setFile3dDims] = useState<Dims3D | null>(null);
@@ -338,7 +348,7 @@ function ProductPage() {
             <ShareButton
               title={variantProduct.name}
               text={variantProduct.custom_share_text}
-              url={productShareUrl(product.slug, variantIndex, null)}
+              url={productShareUrl(product.slug, variantIndex, null, canonicalOrigin)}
               className="mt-1 h-9 w-9 shrink-0 text-muted-foreground"
             />
           </div>
@@ -462,7 +472,7 @@ function ProductPage() {
               variantName={selectedVariant?.name ?? null}
               variantId={selectedVariant?.id ?? null}
               className="mt-4"
-              extraWhatsappNote={file3dWaNote(file3dName, file3dDims)}
+              extraWhatsappNote={file3dWaNote(file3dName, file3dDims) || undefined}
               quoteOnly={variantProduct.quote_only}
             />
           )}
@@ -503,7 +513,12 @@ function ProductPage() {
       </section>
 
       {orderOpen && (
-        <OrderRequestModal product={variantProduct} variantName={selectedVariant?.name ?? null} onClose={() => setOrderOpen(false)} />
+        <OrderRequestModal
+          product={variantProduct}
+          variantId={selectedVariant?.id ?? null}
+          variantName={selectedVariant?.name ?? null}
+          onClose={() => setOrderOpen(false)}
+        />
       )}
 
       {related.length > 0 && (
@@ -523,7 +538,17 @@ function ProductPage() {
 const inputCls =
   "mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring";
 
-function OrderRequestModal({ product, variantName, onClose }: { product: Product; variantName: string | null; onClose: () => void }) {
+function OrderRequestModal({
+  product,
+  variantId,
+  variantName,
+  onClose,
+}: {
+  product: Product;
+  variantId?: string | null;
+  variantName: string | null;
+  onClose: () => void;
+}) {
   const submit = useServerFn(createOrderRequest);
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
@@ -547,10 +572,19 @@ function OrderRequestModal({ product, variantName, onClose }: { product: Product
     setSending(true);
     setError(null);
     try {
-      await submit({ data: { ...form, notes: variantName ? `Variante: ${variantName}${form.notes ? `\n${form.notes}` : ""}` : form.notes, product_id: product.id, quantity: Number(form.quantity) || 1 } });
+      const cleanVariantId = variantId?.trim() || "";
+      await submit({
+        data: {
+          ...form,
+          notes: variantName ? `Variante: ${variantName}${form.notes ? `\n${form.notes}` : ""}` : form.notes,
+          product_id: product.id,
+          ...(cleanVariantId ? { variant_id: cleanVariantId } : {}),
+          quantity: Number(form.quantity) || 1,
+        },
+      });
       setDone(true);
     } catch (err) {
-      setError((err as Error).message || "No pudimos enviar tu solicitud.");
+      setError(formatReadableOrderError(err));
     } finally {
       setSending(false);
     }

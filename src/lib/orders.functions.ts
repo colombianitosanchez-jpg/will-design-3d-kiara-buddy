@@ -1,67 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
 import { parseVariants } from "@/lib/product-variants";
 import { formatOrderCode, normalizeWhatsAppDigits } from "@/lib/notification-templates";
-
-const schema = z
-  .object({
-    product_id: z.string().uuid().optional(),
-    variant_id: z.string().uuid().optional().default(""),
-    service_id: z.string().uuid().optional(),
-    service_slug: z.string().trim().max(160).optional().default(""),
-    quantity: z.number().int().min(1).max(99).optional().default(1),
-    customer_name: z.string().trim().min(2, "Ingresa tu nombre completo").max(120),
-    customer_email: z.string().trim().max(160).optional().default(""),
-    customer_phone: z.string().trim().max(40).optional().default(""),
-    shipping_address: z.string().trim().max(300).optional().default(""),
-    shipping_city: z.string().trim().max(120).optional().default(""),
-    notes: z.string().trim().max(1000).optional().default(""),
-    quick_capture: z.boolean().optional().default(false),
-  })
-  .superRefine((val, ctx) => {
-    if (!val.product_id && !val.service_id && !val.service_slug.trim()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["product_id"],
-        message: "Selecciona un producto o servicio válido",
-      });
-    }
-    if (val.quick_capture) {
-      if (!normalizeWhatsAppDigits(val.customer_phone)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["customer_phone"],
-          message: "Ingresa un número de WhatsApp válido (mínimo 7 dígitos)",
-        });
-      }
-      if (val.customer_email && !z.string().email().safeParse(val.customer_email).success) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["customer_email"],
-          message: "Correo inválido",
-        });
-      }
-    } else {
-      if (!z.string().email().safeParse(val.customer_email).success) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["customer_email"],
-          message: "Ingresa un correo electrónico válido",
-        });
-      }
-      if (val.shipping_address.trim().length < 4) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["shipping_address"],
-          message: "Ingresa la dirección de envío",
-        });
-      }
-    }
-  });
+import { parseOrderRequestInput } from "@/lib/order-validation";
 
 /** Crea una solicitud de pedido pública en las mismas tablas orders / order_items del Panel. */
 export const createOrderRequest = createServerFn({ method: "POST" })
-  .validator((data: unknown) => schema.parse(data))
+  .validator(parseOrderRequestInput)
   .handler(async ({ data }) => {
     const { assertRateLimitFromRequest } = await import("@/lib/rate-limit.server");
     assertRateLimitFromRequest("orders:create");

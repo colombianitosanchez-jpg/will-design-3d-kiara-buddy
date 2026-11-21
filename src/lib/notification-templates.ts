@@ -88,6 +88,18 @@ export function buildCustomerWhatsAppUrl(
   return text ? `https://wa.me/${digits}?text=${encodeURIComponent(text)}` : `https://wa.me/${digits}`;
 }
 
+export function buildWhatsAppApiUrl(
+  phone: string | null | undefined,
+  message: string,
+): string | null {
+  const digits = normalizeWhatsAppDigits(phone);
+  if (!digits) return null;
+  const text = message.trim();
+  return text
+    ? `https://api.whatsapp.com/send?phone=${digits}&text=${encodeURIComponent(text)}`
+    : `https://api.whatsapp.com/send?phone=${digits}`;
+}
+
 export interface TemplateContext {
   customerName?: string | null;
   orderId?: string | null;
@@ -135,7 +147,50 @@ export function buildQuickOrderWhatsappMessage(input: {
   shippingCity?: string | null;
   shareUrl?: string | null;
   customNote?: string | null;
+  configuredMessage?: string | null;
 }): string {
+  const configured = input.configuredMessage?.trim();
+  const trimmedShareUrl = input.shareUrl?.trim() || "";
+
+  if (configured) {
+    let text = configured
+      .replaceAll("{{pedido}}", input.orderCode)
+      .replaceAll("{pedido}", input.orderCode)
+      .replaceAll("{{nombre}}", input.customerName.trim())
+      .replaceAll("{nombre}", input.customerName.trim())
+      .replaceAll("{{cliente}}", input.customerName.trim())
+      .replaceAll("{cliente}", input.customerName.trim());
+
+    if (input.totalCop > 0) {
+      const formattedTotal = formatCopCurrency(input.totalCop);
+      text = text.replaceAll("{{total}}", formattedTotal).replaceAll("{total}", formattedTotal);
+    }
+
+    const hasOrderRef = text.includes(input.orderCode);
+    const trailingShareSuffix =
+      trimmedShareUrl && text.endsWith(trimmedShareUrl)
+        ? trimmedShareUrl
+        : "";
+
+    if (trailingShareSuffix) {
+      const bodyWithoutShare = text
+        .slice(0, text.length - trailingShareSuffix.length)
+        .trimEnd();
+      const bodyWithOrder = hasOrderRef
+        ? bodyWithoutShare
+        : `${bodyWithoutShare}\n\nPedido: ${input.orderCode}`;
+      return `${bodyWithOrder}\n\n${trailingShareSuffix}`;
+    }
+
+    if (!hasOrderRef) {
+      text = `${text}\n\nPedido: ${input.orderCode}`;
+    }
+    if (trimmedShareUrl && !text.includes(trimmedShareUrl)) {
+      text = `${text}\n\n${trimmedShareUrl}`;
+    }
+    return text;
+  }
+
   const itemLabel = input.variantName
     ? `${input.productName} (${input.variantName})`
     : input.productName;
@@ -151,8 +206,8 @@ export function buildQuickOrderWhatsappMessage(input: {
   if (input.customNote?.trim()) {
     lines.push(input.customNote.trim());
   }
-  if (input.shareUrl?.trim()) {
-    lines.push(input.shareUrl.trim());
+  if (trimmedShareUrl) {
+    lines.push(trimmedShareUrl);
   }
   return lines.join("\n");
 }

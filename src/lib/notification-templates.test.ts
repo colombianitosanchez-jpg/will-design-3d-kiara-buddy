@@ -7,6 +7,7 @@ import {
   buildTelegramQuoteHtml,
   buildTelegramStatusChangeHtml,
   buildTelegramVoucherHtml,
+  buildWhatsAppApiUrl,
   escapeTelegramHtml,
   expandNotificationTemplate,
   formatOrderCode,
@@ -21,7 +22,7 @@ describe("notification-templates", () => {
     expect(formatOrderCode("#wd-1234abcd")).toBe("#WD-1234ABCD");
   });
 
-  it("normaliza teléfonos colombianos de 10 dígitos y construye enlace wa.me", () => {
+  it("normaliza teléfonos colombianos de 10 dígitos y construye enlaces wa.me y api.whatsapp.com", () => {
     expect(normalizeWhatsAppDigits("300 123 4567")).toBe("573001234567");
     expect(normalizeWhatsAppDigits("+57 315 672 4474")).toBe("573156724474");
     expect(normalizeWhatsAppDigits("123")).toBe("");
@@ -29,6 +30,10 @@ describe("notification-templates", () => {
     const url = buildCustomerWhatsAppUrl("3001234567", "Hola Juan");
     expect(url).toBe("https://wa.me/573001234567?text=Hola%20Juan");
     expect(buildCustomerWhatsAppUrl("", "Hola")).toBeNull();
+
+    const apiUrl = buildWhatsAppApiUrl("3001234567", "Hola Juan");
+    expect(apiUrl).toBe("https://api.whatsapp.com/send?phone=573001234567&text=Hola%20Juan");
+    expect(buildWhatsAppApiUrl("", "Hola")).toBeNull();
   });
 
   it("expande todas las variables {{nombre}}, {{cliente}}, {{pedido}}, {{estado}}, {{total}}, {{guia}} y {{nota}}", () => {
@@ -65,6 +70,21 @@ describe("notification-templates", () => {
     expect(msg).toContain("Soporte Audífonos 3D (Negro Mate)");
     expect(msg).toContain("Mateo Ruiz (Bogotá)");
     expect(msg).toContain("https://will-design-3d.lovable.app/t/soporte");
+  });
+
+  it("conserva el mensaje preconfigurado con {{pedido}} sin mover el enlace de previsualización", () => {
+    const msg = buildQuickOrderWhatsappMessage({
+      orderCode: "#WD-99887766",
+      totalCop: 84000,
+      productName: "PLA +",
+      customerName: "Laura",
+      shareUrl: "https://will-design-3d.lovable.app/t/pla",
+      configuredMessage:
+        "Hola, soy {{nombre}} y quiero confirmar mi pedido {{pedido}} de PLA +\n\nhttps://will-design-3d.lovable.app/t/pla",
+    });
+    expect(msg).toBe(
+      "Hola, soy Laura y quiero confirmar mi pedido #WD-99887766 de PLA +\n\nhttps://will-design-3d.lovable.app/t/pla",
+    );
   });
 
   it("escapa HTML en alertas de Telegram y evalúa flags con fallback true", () => {

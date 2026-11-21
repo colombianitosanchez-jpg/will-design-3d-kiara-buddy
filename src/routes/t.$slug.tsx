@@ -1,7 +1,8 @@
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { productBySlugQuery } from "@/lib/catalog";
+import { productBySlugQuery, siteContentQuery } from "@/lib/catalog";
 import { resolveProductShareImage } from "@/lib/product-share";
+import { DEFAULT_SITE_URL, getCanonicalBaseUrl } from "@/lib/seo";
 
 const idx = (raw: unknown): number | null => {
   const n = Number.parseInt(String(raw ?? ""), 10);
@@ -26,7 +27,10 @@ export const Route = createFileRoute("/t/$slug")({
 
     if (!productSlug) throw notFound();
 
-    const product = await context.queryClient.ensureQueryData(productBySlugQuery(productSlug));
+    const [product, siteContent] = await Promise.all([
+      context.queryClient.ensureQueryData(productBySlugQuery(productSlug)),
+      context.queryClient.ensureQueryData(siteContentQuery()).catch(() => null),
+    ]);
     if (!product) throw notFound();
     const variants = product.variants ?? [];
 
@@ -56,6 +60,7 @@ export const Route = createFileRoute("/t/$slug")({
       title,
       description,
       img: /^https:\/\//i.test(img) ? img : "",
+      canonicalOrigin: getCanonicalBaseUrl(siteContent),
     };
   },
   head: ({ params, loaderData }) => {
@@ -65,6 +70,7 @@ export const Route = createFileRoute("/t/$slug")({
       `${title}. Impresión 3D profesional, filamentos, resinas y equipos en Bogotá.`;
     const img = loaderData?.img || "";
     const shareSlug = params?.slug || loaderData?.slug || "";
+    const canonicalOrigin = loaderData?.canonicalOrigin || DEFAULT_SITE_URL;
     return {
       meta: [
         { title },
@@ -73,7 +79,7 @@ export const Route = createFileRoute("/t/$slug")({
         { property: "og:description", content: desc },
         { property: "og:type", content: "product" },
         ...(shareSlug
-          ? [{ property: "og:url", content: `https://will-design-3d.lovable.app/t/${shareSlug}` }]
+          ? [{ property: "og:url", content: `${canonicalOrigin}/t/${shareSlug}` }]
           : []),
         { name: "twitter:card", content: "summary_large_image" },
         ...(img

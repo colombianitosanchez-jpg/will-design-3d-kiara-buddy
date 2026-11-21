@@ -12,10 +12,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatCOP, waLink, type Product } from "@/lib/catalog";
+import { formatCOP, type Product } from "@/lib/catalog";
 import { createOrderRequest } from "@/lib/orders.functions";
+import { formatReadableOrderError } from "@/lib/order-validation";
 import {
   buildQuickOrderWhatsappMessage,
+  buildWhatsAppApiUrl,
   normalizeWhatsAppDigits,
 } from "@/lib/notification-templates";
 import type { ServiceQuickContext } from "@/lib/product-buttons";
@@ -31,6 +33,7 @@ export interface OrderQuickCaptureModalProps {
   whatsappNumber: string;
   shareUrl?: string | null;
   customNote?: string | null;
+  configuredMessage?: string | null;
 }
 
 export function OrderQuickCaptureModal({
@@ -43,6 +46,7 @@ export function OrderQuickCaptureModal({
   whatsappNumber,
   shareUrl,
   customNote,
+  configuredMessage,
 }: OrderQuickCaptureModalProps) {
   const submitOrder = useServerFn(createOrderRequest);
   const [customerName, setCustomerName] = useState("");
@@ -58,9 +62,15 @@ export function OrderQuickCaptureModal({
 
   if (!product && !service) return null;
   const itemTitle = product?.name ?? service?.title ?? "Solicitud Will Design 3D";
-  const resolvedNote = [customNote?.trim(), service?.whatsappTemplate?.trim()]
-    .filter(Boolean)
-    .join(" — ");
+  const matchedVariant =
+    variantId && product?.variants
+      ? product.variants.find((v) => v.id === variantId) ?? null
+      : null;
+  const displayPrice = matchedVariant?.price_cop ?? product?.price_cop ?? 0;
+  const cleanVariantId = variantId?.trim() || "";
+  const resolvedNote = Array.from(
+    new Set([customNote?.trim(), service?.whatsappTemplate?.trim()].filter(Boolean)),
+  ).join(" — ");
 
   function handleClose(nextOpen: boolean) {
     if (!nextOpen) {
@@ -87,7 +97,12 @@ export function OrderQuickCaptureModal({
     try {
       const res = await submitOrder({
         data: {
-          ...(product ? { product_id: product.id, variant_id: variantId || "" } : {}),
+          ...(product
+            ? {
+                product_id: product.id,
+                ...(cleanVariantId ? { variant_id: cleanVariantId } : {}),
+              }
+            : {}),
           ...(service ? { service_id: service.id, service_slug: service.slug } : {}),
           quantity: 1,
           customer_name: customerName.trim(),
@@ -108,9 +123,10 @@ export function OrderQuickCaptureModal({
         shippingCity: addressOrCity.trim(),
         shareUrl,
         customNote: resolvedNote || service?.note || undefined,
+        configuredMessage,
       });
 
-      const url = waLink(whatsappNumber, message);
+      const url = buildWhatsAppApiUrl(whatsappNumber, message);
       if (!url) {
         toast.error("Configura el WhatsApp de la marca en /panel/marca");
         setSubmitting(false);
@@ -125,7 +141,7 @@ export function OrderQuickCaptureModal({
       toast.success(`Pedido ${res.order_code} registrado. Redirigiendo a WhatsApp…`);
       openExternalUrl(url);
     } catch (err) {
-      setError((err as Error).message || "No pudimos registrar tu pedido. Intenta de nuevo.");
+      setError(formatReadableOrderError(err));
     } finally {
       setSubmitting(false);
     }
@@ -142,7 +158,7 @@ export function OrderQuickCaptureModal({
             {itemTitle}
             {variantName ? ` — ${variantName}` : ""} ·{" "}
             {product ? (
-              <strong className="text-[var(--brand-wine)]">{formatCOP(product.price_cop)}</strong>
+              <strong className="text-[var(--brand-wine)]">{formatCOP(displayPrice)}</strong>
             ) : (
               <strong className="text-[var(--brand-teal-deep)]">Cotización personalizada</strong>
             )}

@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useCart } from "@/lib/cart";
 import { useSiteContent } from "@/hooks/use-site-content";
-import { getContactInfo, waLink, formatCOP, type Product } from "@/lib/catalog";
+import { getContactInfo, formatCOP, type Product } from "@/lib/catalog";
+import { buildWhatsAppApiUrl } from "@/lib/notification-templates";
 import { openExternalUrl } from "@/lib/whatsapp";
 import { getActiveTheme } from "@/lib/theme";
 import { cartLineKey } from "@/lib/payment-rules";
@@ -230,6 +231,11 @@ export function UnifiedButton({
           return;
         }
 
+        const canonicalOrigin = getCanonicalBaseUrl(content);
+        const directShareUrl = product
+          ? productShareLink(shareProduct ?? product, variantId ?? null, button.id, canonicalOrigin)
+          : undefined;
+        const cleanExtraNote = extraWhatsappNote?.trim() || "";
         const text = buildButtonWhatsappText(
           button,
           {
@@ -240,13 +246,14 @@ export function UnifiedButton({
             price: product ? formatCOP(product.price_cop) : "",
             variant_id: variantId ?? null,
             variant_name: variantName ?? null,
-            ...(product ? { share_url: productShareLink(shareProduct ?? product, variantId ?? null, button.id) } : {}),
+            ...(product ? { share_url: directShareUrl ?? "" } : {}),
           },
-          extraWhatsappNote ?? "",
-          globalDefaultMessage
+          cleanExtraNote,
+          globalDefaultMessage,
+          content,
         );
 
-        const url = waLink(number, text);
+        const url = buildWhatsAppApiUrl(number, text);
         if (!url) {
           toast.error("Configura WhatsApp en /panel/marca");
           return;
@@ -444,29 +451,49 @@ export function UnifiedButton({
       {((product && !quoteOnly) || service) &&
         (button.action_type === "whatsapp"
           ? button.capture_order !== false
-          : Boolean(service && !product && ["add_to_cart", "checkout", "order_request"].includes(button.action_type))) && (
-        <OrderQuickCaptureModal
-          open={quickCaptureOpen}
-          onOpenChange={setQuickCaptureOpen}
-          product={product}
-          service={service}
-          variantId={variantId}
-          variantName={variantName}
-          whatsappNumber={
-            button.action_value && button.action_value.replace(/\D/g, "").length >= 7
-              ? button.action_value.trim()
-              : fallbackWhatsapp
-          }
-          shareUrl={
-            product
-              ? productShareLink(shareProduct ?? product, variantId ?? null, button.id)
-              : service
-                ? `${getCanonicalBaseUrl(content)}/servicios#${service.slug}`
-                : undefined
-          }
-          customNote={extraWhatsappNote ?? button.whatsapp_message}
-        />
-      )}
+          : Boolean(service && !product && ["add_to_cart", "checkout", "order_request"].includes(button.action_type))) && (() => {
+        const canonicalOrigin = getCanonicalBaseUrl(content);
+        const modalShareUrl = product
+          ? productShareLink(shareProduct ?? product, variantId ?? null, button.id, canonicalOrigin)
+          : service
+            ? `${canonicalOrigin}/servicios#${service.slug}`
+            : undefined;
+        const cleanExtraNote = extraWhatsappNote?.trim() || "";
+        const configuredWhatsappMessage = buildButtonWhatsappText(
+          button,
+          {
+            name: product?.name ?? service?.title ?? (button.text || ""),
+            slug: product?.slug ?? service?.slug ?? "",
+            image_url: product?.image_url ?? button.media_url ?? null,
+            images: product?.images ?? [],
+            price: product ? formatCOP(product.price_cop) : "",
+            variant_id: variantId ?? null,
+            variant_name: variantName ?? null,
+            ...(product ? { share_url: modalShareUrl ?? "" } : {}),
+          },
+          cleanExtraNote,
+          globalDefaultMessage,
+          content,
+        );
+        return (
+          <OrderQuickCaptureModal
+            open={quickCaptureOpen}
+            onOpenChange={setQuickCaptureOpen}
+            product={product}
+            service={service}
+            variantId={variantId}
+            variantName={variantName}
+            whatsappNumber={
+              button.action_value && button.action_value.replace(/\D/g, "").length >= 7
+                ? button.action_value.trim()
+                : fallbackWhatsapp
+            }
+            shareUrl={modalShareUrl}
+            customNote={cleanExtraNote || undefined}
+            configuredMessage={configuredWhatsappMessage}
+          />
+        );
+      })()}
     </motion.div>
   );
 }

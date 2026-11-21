@@ -272,6 +272,7 @@ export function buildButtonWhatsappText(
   },
   extraNote = "",
   globalDefaultMessage = "",
+  siteContent?: Record<string, string> | null,
 ): string {
   const custom = (button.whatsapp_message ?? "").trim() || globalDefaultMessage.trim();
   // Productos: enlace corto con la jerarquía botón > variante ★ > producto ★.
@@ -282,7 +283,7 @@ export function buildButtonWhatsappText(
       : firstStaticShareImage([button.whatsapp_image_url])
         ? shortenStorageUrl(firstStaticShareImage([button.whatsapp_image_url]))
         : "";
-  const absoluteMedia = resolvedMedia ? toAbsoluteUrl(resolvedMedia) : "";
+  const absoluteMedia = resolvedMedia ? toAbsoluteUrl(resolvedMedia, siteContent) : "";
 
   const base = custom
     ? replaceTemplatePlaceholders(custom, {
@@ -293,8 +294,12 @@ export function buildButtonWhatsappText(
       })
     : `Hola, me interesa el producto: ${product.name}.`;
 
-  const parts = [base.trim()];
-  if (extraNote.trim()) parts.push(extraNote.trim());
+  const cleanExtra = extraNote.trim();
+  const baseTrimmed = base.trim();
+  const parts = [baseTrimmed];
+  if (cleanExtra && cleanExtra !== custom && !baseTrimmed.includes(cleanExtra)) {
+    parts.push(cleanExtra);
+  }
   let text = parts.join(" ");
 
   if (absoluteMedia) {

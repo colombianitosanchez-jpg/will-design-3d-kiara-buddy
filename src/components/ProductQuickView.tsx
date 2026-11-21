@@ -154,7 +154,7 @@ export function ProductQuickView({
                 product={product}
                 shareProduct={parentProduct}
                 buttons={product.custom_buttons}
-                extraWhatsappNote={file3dWaNote(fileName, dims)}
+                extraWhatsappNote={file3dWaNote(fileName, dims) || undefined}
                 quoteOnly={product.quote_only}
                 variantName={selectedVariant?.name}
                 variantId={selectedVariant?.id}

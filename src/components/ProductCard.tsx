@@ -8,10 +8,11 @@ import {
   formatCOP,
   getContactInfo,
   gradientKeyFor,
-  waLink,
   applyGlobalWaTemplate,
   type Product,
 } from "@/lib/catalog";
+import { buildWhatsAppApiUrl } from "@/lib/notification-templates";
+import { getCanonicalBaseUrl } from "@/lib/seo";
 import { openExternalUrl } from "@/lib/whatsapp";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { ProductButtons } from "@/components/ProductButtons";
@@ -39,22 +40,29 @@ export const ProductCard = memo(function ProductCard({ product: parentProduct, v
   const cover = variant?.image_url ?? product.image_url;
   const gradient = GRADIENTS[gradientKeyFor(product.category?.slug)];
   const { content } = useSiteContent();
-  const whatsappUrl = waLink(
-    getContactInfo(content).whatsapp,
-    buildButtonWhatsappText({ whatsapp_message: applyGlobalWaTemplate(
-      content?.whatsapp_default_message,
-      { producto: product.name, precio: formatCOP(variant?.price_cop ?? product.price_cop), variante: variant?.name ?? "" },
-      `Hola, me interesa el producto: ${product.name}`,
-    ) }, { name: product.name, share_url: productShareLink(parentProduct, variant?.id, "") }),
+  const canonicalOrigin = getCanonicalBaseUrl(content);
+  const shareUrl = productShareLink(parentProduct, variant?.id, "", canonicalOrigin);
+  const configuredCardMessage = buildButtonWhatsappText(
+    {
+      whatsapp_message: applyGlobalWaTemplate(
+        content?.whatsapp_default_message,
+        { producto: product.name, precio: formatCOP(variant?.price_cop ?? product.price_cop), variante: variant?.name ?? "" },
+        `Hola, me interesa el producto: ${product.name}`,
+      ),
+    },
+    { name: product.name, share_url: shareUrl },
+    "",
+    "",
+    content,
   );
+  const contactWhatsapp = getContactInfo(content).whatsapp;
+  const whatsappUrl = buildWhatsAppApiUrl(contactWhatsapp, configuredCardMessage) ?? undefined;
   const actionText = product.btn_text?.trim() || "Ver más";
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
   const cardButtons = product.custom_buttons.filter((b) => b.show_on_card !== false);
   const vIdx = variant && product.variants ? product.variants.findIndex((v) => v.id === variant.id) : -1;
   const variantIndex = vIdx >= 0 ? vIdx : null;
-  const shareUrl = productShareLink(parentProduct, variant?.id, "");
-  const contactWhatsapp = getContactInfo(content).whatsapp;
 
   const handleQuickView = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -94,7 +102,7 @@ export const ProductCard = memo(function ProductCard({ product: parentProduct, v
           <ShareButton
             title={product.name}
             text={product.custom_share_text}
-            url={productShareUrl(product.slug, variantIndex, null)}
+            url={productShareUrl(product.slug, variantIndex, null, canonicalOrigin)}
             className="absolute right-2 top-2 h-8 w-8 rounded-full bg-background/80 text-foreground shadow-sm backdrop-blur hover:bg-background"
           />
           <button
@@ -213,6 +221,7 @@ export const ProductCard = memo(function ProductCard({ product: parentProduct, v
           variantName={variant?.name}
           whatsappNumber={contactWhatsapp}
           shareUrl={shareUrl}
+          configuredMessage={configuredCardMessage}
         />
       )}
     </article>
