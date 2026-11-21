@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 import { Package, ShoppingCart, FileText } from "lucide-react";
 
 export const Route = createFileRoute("/panel/")({
@@ -9,6 +10,7 @@ export const Route = createFileRoute("/panel/")({
 });
 
 function PanelHome() {
+  const { isSuperAdmin } = useAuth();
   const [stats, setStats] = useState({ products: 0, orders: 0, pending: 0 });
 
   useEffect(() => {
@@ -36,7 +38,9 @@ function PanelHome() {
     <>
       <h1 className="text-3xl font-black">Panel de administración</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Gestiona productos, pedidos y contenido de la web sin tocar código.
+        {isSuperAdmin
+          ? "Gestiona productos, pedidos y contenido de la web sin tocar código."
+          : "Gestiona productos, pedidos y base de conocimiento del equipo."}
       </p>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
@@ -61,7 +65,9 @@ function PanelHome() {
         <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
           <li>Sube o edita productos en <Link to="/panel/productos" className="font-semibold text-foreground underline">Productos</Link>.</li>
           <li>Revisa y actualiza el estado de las compras en <Link to="/panel/pedidos" className="font-semibold text-foreground underline">Pedidos</Link>.</li>
-          <li>Cambia textos e imágenes del sitio en <Link to="/panel/contenido" className="font-semibold text-foreground underline">Contenido</Link>.</li>
+          {isSuperAdmin && (
+            <li>Cambia textos e imágenes del sitio en <Link to="/panel/contenido" className="font-semibold text-foreground underline">Contenido</Link>.</li>
+          )}
         </ol>
       </div>
     </>

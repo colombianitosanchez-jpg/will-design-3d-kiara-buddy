@@ -21,6 +21,7 @@ import {
   BellRing,
   UsersRound,
   LogOut,
+  ShieldAlert,
   ShieldCheck,
   GalleryHorizontal,
   Lock,
@@ -28,6 +29,7 @@ import {
   GripVertical,
   Palette,
 } from "lucide-react";
+import { isSuperOnlyPanelPath } from "@/lib/panel-access";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -224,6 +226,7 @@ function PanelLayout() {
   }
 
   const dragEnabled = editMode && isSuperAdmin;
+  const isRestrictedRoute = !isSuperAdmin && isSuperOnlyPanelPath(pathname, ALL_LINKS);
 
   return (
     <>
@@ -340,7 +343,28 @@ function PanelLayout() {
             </button>
           )}
         </div>
-        <Outlet />
+        {isRestrictedRoute ? (
+          <div className="flex min-h-[60vh] items-center justify-center py-8">
+            <Card className="w-full max-w-md border-border text-center shadow-sm">
+              <CardHeader className="items-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
+                  <ShieldAlert className="h-8 w-8" />
+                </div>
+                <CardTitle className="mt-3 text-2xl font-black">Acceso Restringido</CardTitle>
+                <CardDescription className="text-sm leading-relaxed">
+                  Esta sección requiere permisos de Super Administrador. Tu cuenta actual tiene rol de Empleado (acceso exclusivo a Productos, Pedidos y Conocimiento).
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button asChild className="w-full bg-[var(--brand-wine)] font-bold text-white hover:opacity-90">
+                  <Link to="/panel">Volver al Dashboard</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          <Outlet />
+        )}
       </div>
     </div>
   </>

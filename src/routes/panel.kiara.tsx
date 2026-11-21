@@ -24,6 +24,8 @@ import {
   Check,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/hooks/use-auth";
+import { getDefaultKiaraTab } from "@/lib/panel-access";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -115,6 +117,17 @@ const LLM_EMPTY: LlmDraft = {
 // MAIN COMPONENT
 // -----------------------------------------------------------------------------
 function KiaraUnifiedAdmin() {
+  const { isSuperAdmin } = useAuth();
+  const [activeTab, setActiveTab] = useState<string>(() => getDefaultKiaraTab(isSuperAdmin));
+
+  useEffect(() => {
+    if (!isSuperAdmin && activeTab !== "knowledge") {
+      setActiveTab("knowledge");
+    }
+  }, [isSuperAdmin, activeTab]);
+
+  const currentTab = isSuperAdmin ? activeTab : "knowledge";
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -124,40 +137,50 @@ function KiaraUnifiedAdmin() {
             Kiara IA — Panel Unificado
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Gestiona la personalidad, imagen, modelo LLM, prompts de sistema y base de conocimientos de Kiara desde un solo lugar.
+            {isSuperAdmin
+              ? "Gestiona la personalidad, imagen, modelo LLM, prompts de sistema y base de conocimientos de Kiara desde un solo lugar."
+              : "Consulta y gestiona la base de conocimientos de Kiara para respuestas comerciales y técnicas."}
           </p>
         </div>
       </div>
 
-      <Tabs defaultValue="perfil" className="w-full">
+      <Tabs value={currentTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="flex h-auto w-full flex-wrap justify-start border-b border-border bg-transparent p-0">
-          <TabsTrigger value="perfil" className="flex items-center gap-2 py-2.5">
-            <Bot className="h-4 w-4" /> Perfil y Saludos
-          </TabsTrigger>
-          <TabsTrigger value="llm" className="flex items-center gap-2 py-2.5">
-            <SlidersHorizontal className="h-4 w-4" /> Proveedor y LLM
-          </TabsTrigger>
-          <TabsTrigger value="prompts" className="flex items-center gap-2 py-2.5">
-            <FileText className="h-4 w-4" /> Prompts de Sistema
-          </TabsTrigger>
-          <TabsTrigger value="conocimiento" className="flex items-center gap-2 py-2.5">
+          {isSuperAdmin && (
+            <>
+              <TabsTrigger value="perfil" className="flex items-center gap-2 py-2.5">
+                <Bot className="h-4 w-4" /> Perfil y Saludos
+              </TabsTrigger>
+              <TabsTrigger value="llm" className="flex items-center gap-2 py-2.5">
+                <SlidersHorizontal className="h-4 w-4" /> Proveedores de IA
+              </TabsTrigger>
+              <TabsTrigger value="prompts" className="flex items-center gap-2 py-2.5">
+                <FileText className="h-4 w-4" /> Prompts del Sistema
+              </TabsTrigger>
+            </>
+          )}
+          <TabsTrigger value="knowledge" className="flex items-center gap-2 py-2.5">
             <Database className="h-4 w-4" /> Base de Conocimiento
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="perfil" className="mt-6">
-          <TabPerfilSaludos />
-        </TabsContent>
+        {isSuperAdmin && (
+          <>
+            <TabsContent value="perfil" className="mt-6">
+              <TabPerfilSaludos />
+            </TabsContent>
 
-        <TabsContent value="llm" className="mt-6">
-          <TabProveedorLlm />
-        </TabsContent>
+            <TabsContent value="llm" className="mt-6">
+              <TabProveedorLlm />
+            </TabsContent>
 
-        <TabsContent value="prompts" className="mt-6">
-          <TabPromptsSistema />
-        </TabsContent>
+            <TabsContent value="prompts" className="mt-6">
+              <TabPromptsSistema />
+            </TabsContent>
+          </>
+        )}
 
-        <TabsContent value="conocimiento" className="mt-6">
+        <TabsContent value="knowledge" className="mt-6">
           <TabBaseConocimiento />
         </TabsContent>
       </Tabs>
