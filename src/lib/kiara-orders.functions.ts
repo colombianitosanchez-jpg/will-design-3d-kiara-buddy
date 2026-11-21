@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { assertServiceOrderQuantity } from "./cart-quantity";
+import { formatOrderCode } from "./notification-templates";
 
 const schema = z.object({
   customer_name: z.string().trim().min(2).max(120),
@@ -59,11 +60,12 @@ export const confirmQuoteOrder = createServerFn({ method: "POST" })
         customer_phone: data.customer_phone || null,
         shipping_address: data.shipping_address,
         shipping_city: data.shipping_city || null,
+        payment_method_name: "Cotización Chat Kiara",
         notes: `Cotización aceptada en el chat de Kiara. ${data.notes}`.trim(),
         total_cop: total,
         status: "pendiente" as const,
       })
-      .select("id")
+      .select("id, public_token")
       .single();
     if (error) throw new Error(error.message);
 
@@ -75,5 +77,29 @@ export const confirmQuoteOrder = createServerFn({ method: "POST" })
     });
     if (iErr) throw new Error(iErr.message);
 
-    return { ok: true as const, order_id: order.id, total_cop: total };
+    try {
+      const { notifyTelegramNewOrder } = await import("@/lib/telegram.server");
+      await notifyTelegramNewOrder({
+        orderId: order.id,
+        customerName: data.customer_name,
+        customerPhone: data.customer_phone || null,
+        customerEmail: data.customer_email,
+        shippingAddress: data.shipping_address,
+        shippingCity: data.shipping_city || null,
+        totalCop: total,
+        paymentMethodName: "Cotización Chat Kiara",
+        items: [{ product_name: service.name, quantity: data.quantity, unit_price_cop: unitPrice }],
+        sourceLabel: "Cotización Chat Kiara",
+      });
+    } catch (tgErr) {
+      console.error("[Kiara confirmQuoteOrder] Error notificando Telegram:", tgErr);
+    }
+
+    return {
+      ok: true as const,
+      order_id: order.id,
+      public_token: order.public_token,
+      order_code: formatOrderCode(order.id),
+      total_cop: total,
+    };
   });

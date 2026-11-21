@@ -4,6 +4,7 @@
 import { computeQuote, coerceAnswersDetailed, formatCOP } from "@/lib/quoter-core";
 import { getQuoterServices, getQuotingVars } from "@/lib/quoter.server";
 import { parseVariants } from "@/lib/product-variants";
+import { formatOrderCode } from "@/lib/notification-templates";
 
 
 export const KIARA_TOOLS = [
@@ -328,19 +329,26 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
 
     const total = items.reduce((s, it) => s + it.quantity * it.unit_price_cop, 0);
 
+    const resolvedName = String(args.customer_name ?? "").trim().slice(0, 120) || "Cliente";
+    const resolvedEmail = String(args.customer_email ?? "").trim().slice(0, 160);
+    const resolvedPhone = args.customer_phone ? String(args.customer_phone).trim().slice(0, 40) : null;
+    const resolvedAddress = String(args.shipping_address ?? "").trim().slice(0, 300) || "Por confirmar";
+    const resolvedCity = args.shipping_city ? String(args.shipping_city).trim().slice(0, 120) : null;
+
     const { data: order, error } = await supabaseAdmin
       .from("orders")
       .insert({
-        customer_name: String(args.customer_name ?? "").slice(0, 120) || "Cliente",
-        customer_email: String(args.customer_email ?? "").slice(0, 160),
-        customer_phone: args.customer_phone ? String(args.customer_phone).slice(0, 40) : null,
-        shipping_address: String(args.shipping_address ?? "").slice(0, 300) || "Por confirmar",
-        shipping_city: args.shipping_city ? String(args.shipping_city).slice(0, 120) : null,
+        customer_name: resolvedName,
+        customer_email: resolvedEmail,
+        customer_phone: resolvedPhone,
+        shipping_address: resolvedAddress,
+        shipping_city: resolvedCity,
+        payment_method_name: "Pedido Asistido Kiara IA",
         notes: `Pedido creado por Kiara. ${args.notes ? String(args.notes).slice(0, 800) : ""}`.trim(),
         total_cop: total,
         status: "pendiente" as const,
       })
-      .select("id")
+      .select("id, public_token")
       .single();
     if (error)
       return {
@@ -353,14 +361,35 @@ export async function runKiaraTool(name: string, rawArgs: string): Promise<ToolO
       .from("order_items")
       .insert(items.map((it) => ({ order_id: order.id, ...it })));
 
+    try {
+      const { notifyTelegramNewOrder } = await import("@/lib/telegram.server");
+      await notifyTelegramNewOrder({
+        orderId: order.id,
+        customerName: resolvedName,
+        customerPhone: resolvedPhone,
+        customerEmail: resolvedEmail || null,
+        shippingAddress: resolvedAddress,
+        shippingCity: resolvedCity,
+        totalCop: total,
+        paymentMethodName: "Pedido Asistido Kiara IA",
+        items,
+        sourceLabel: "Chat Kiara IA",
+      });
+    } catch (tgErr) {
+      console.error("[Kiara create_order] Error notificando Telegram:", tgErr);
+    }
+
+    const orderCode = formatOrderCode(order.id);
     const data = {
       order_id: order.id,
+      public_token: order.public_token,
+      order_code: orderCode,
       total_cop: total,
       items,
-      customer_name: args.customer_name,
+      customer_name: resolvedName,
     };
     return {
-      text: `¡Pedido registrado! Queda como pendiente por ${money(total)}.`,
+      text: `¡Pedido ${orderCode} registrado! Queda como pendiente por ${money(total)}.`,
       data,
       result: data,
     };

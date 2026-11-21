@@ -4,6 +4,7 @@ import {
   buildQuickOrderWhatsappMessage,
   buildTelegramOrderHtml,
   buildTelegramPaymentConfirmedHtml,
+  buildTelegramQuoteHtml,
   buildTelegramStatusChangeHtml,
   buildTelegramVoucherHtml,
   escapeTelegramHtml,
@@ -69,6 +70,7 @@ describe("notification-templates", () => {
   it("escapa HTML en alertas de Telegram y evalúa flags con fallback true", () => {
     expect(escapeTelegramHtml("A <B> & C")).toBe("A &lt;B&gt; &amp; C");
     expect(isTelegramEventEnabled({}, "tg_new_order")).toBe(true);
+    expect(isTelegramEventEnabled({}, "tg_new_quote")).toBe(true);
     expect(isTelegramEventEnabled({ tg_new_order: false }, "tg_new_order")).toBe(false);
 
     const html = buildTelegramOrderHtml({
@@ -109,6 +111,39 @@ describe("notification-templates", () => {
         guia: "TCC-44",
       }),
     ).toContain("TCC-44");
+  });
+
+  it("genera el HTML de Telegram para nuevas cotizaciones 3D con datos del cliente y archivo", () => {
+    const withFile = buildTelegramQuoteHtml({
+      quoteId: "q-123",
+      serviceName: "Impresión FDM",
+      customerName: "Carlos <Pro>",
+      customerPhone: "3156724474",
+      customerEmail: "carlos@ejemplo.com",
+      totalCop: 145000,
+      fileName: "engranaje_v2.stl",
+      answers: [
+        { label: "Material", value: "PETG" },
+        { label: "Relleno", value: "40%" },
+      ],
+    });
+    expect(withFile).toContain("<b>📋 NUEVA COTIZACIÓN 3D SOLICITADA</b>");
+    expect(withFile).toContain("<b>Servicio:</b> Impresión FDM");
+    expect(withFile).toContain("<b>Cliente:</b> Carlos &lt;Pro&gt;");
+    expect(withFile).toContain("<b>WhatsApp / Tel:</b> 3156724474");
+    expect(withFile).toContain("<b>Correo:</b> carlos@ejemplo.com");
+    expect(withFile).toContain("<b>Total Estimado:</b> $145.000");
+    expect(withFile).toContain("<b>Archivo 3D adjunto:</b> engranaje_v2.stl");
+    expect(withFile).toContain("• Material: PETG");
+    expect(withFile).toContain("• Relleno: 40%");
+
+    const withoutFile = buildTelegramQuoteHtml({
+      serviceName: "Diseño 3D",
+      customerName: "Laura",
+      totalCop: 60000,
+      fileName: null,
+    });
+    expect(withoutFile).toContain("<b>Archivo 3D adjunto:</b> Sin archivo adjunto");
   });
 
   it("mapea estados de notifications_queue a etiquetas en español", () => {

@@ -10,11 +10,13 @@ import { openExternalUrl } from "@/lib/whatsapp";
 import { getActiveTheme } from "@/lib/theme";
 import { cartLineKey } from "@/lib/payment-rules";
 import { OrderQuickCaptureModal } from "@/components/OrderQuickCaptureModal";
+import { getCanonicalBaseUrl } from "@/lib/seo";
 import {
   buildButtonWhatsappText,
   ICON_SHAPE_CLIP_PATHS,
   type ProductButton,
   type ButtonIconShape,
+  type ServiceQuickContext,
 } from "@/lib/product-buttons";
 import {
   getBestAccessibility,
@@ -96,6 +98,7 @@ export interface UnifiedButtonProps {
   product?: Product;
   /** Original catalog record, before selected-variant presentation overrides. */
   shareProduct?: Product;
+  service?: ServiceQuickContext;
   className?: string;
   extraWhatsappNote?: string;
   quoteOnly?: boolean;
@@ -111,6 +114,7 @@ export function UnifiedButton({
   styleOverride,
   product,
   shareProduct,
+  service,
   className = "",
   extraWhatsappNote,
   quoteOnly = false,
@@ -217,7 +221,7 @@ export function UnifiedButton({
           Boolean(button.action_value && button.action_value.replace(/\D/g, "").length >= 7);
         const number = hasValidDigits ? button.action_value.trim() : fallbackWhatsapp;
 
-        if (product && !quoteOnly && button.capture_order !== false) {
+        if (((product && !quoteOnly) || service) && button.capture_order !== false) {
           if (!number) {
             toast.error("Configura WhatsApp en /panel/marca");
             return;
@@ -229,8 +233,8 @@ export function UnifiedButton({
         const text = buildButtonWhatsappText(
           button,
           {
-            name: product?.name ?? (button.text || ""),
-            slug: product?.slug ?? "",
+            name: product?.name ?? service?.title ?? (button.text || ""),
+            slug: product?.slug ?? service?.slug ?? "",
             image_url: product?.image_url ?? button.media_url ?? null,
             images: product?.images ?? [],
             price: product ? formatCOP(product.price_cop) : "",
@@ -251,12 +255,28 @@ export function UnifiedButton({
         return;
       }
       case "add_to_cart": {
+        if (service && !product) {
+          if (!fallbackWhatsapp) {
+            toast.error("Configura WhatsApp en /panel/marca");
+            return;
+          }
+          setQuickCaptureOpen(true);
+          return;
+        }
         if (!product || quoteOnly) return;
         addItem(cartPayload());
         toast.success(`${product.name} se añadió al carrito`);
         return;
       }
       case "order_request": {
+        if (service && !product) {
+          if (!fallbackWhatsapp) {
+            toast.error("Configura WhatsApp en /panel/marca");
+            return;
+          }
+          setQuickCaptureOpen(true);
+          return;
+        }
         if (!product || quoteOnly) return;
         if (typeof window !== "undefined" && window.location.pathname === `/tienda/${product.slug}`) {
           window.dispatchEvent(new CustomEvent("wd3d:order-request"));
@@ -266,6 +286,14 @@ export function UnifiedButton({
         return;
       }
       case "checkout": {
+        if (service && !product) {
+          if (!fallbackWhatsapp) {
+            toast.error("Configura WhatsApp en /panel/marca");
+            return;
+          }
+          setQuickCaptureOpen(true);
+          return;
+        }
         if (!product || quoteOnly) return;
         addItem(cartPayload());
         router.navigate({ to: "/carrito" });
@@ -413,11 +441,15 @@ export function UnifiedButton({
           )}
         </span>
       </button>
-      {product && !quoteOnly && button.action_type === "whatsapp" && button.capture_order !== false && (
+      {((product && !quoteOnly) || service) &&
+        (button.action_type === "whatsapp"
+          ? button.capture_order !== false
+          : Boolean(service && !product && ["add_to_cart", "checkout", "order_request"].includes(button.action_type))) && (
         <OrderQuickCaptureModal
           open={quickCaptureOpen}
           onOpenChange={setQuickCaptureOpen}
           product={product}
+          service={service}
           variantId={variantId}
           variantName={variantName}
           whatsappNumber={
@@ -425,8 +457,14 @@ export function UnifiedButton({
               ? button.action_value.trim()
               : fallbackWhatsapp
           }
-          shareUrl={productShareLink(shareProduct ?? product, variantId ?? null, button.id)}
-          customNote={extraWhatsappNote}
+          shareUrl={
+            product
+              ? productShareLink(shareProduct ?? product, variantId ?? null, button.id)
+              : service
+                ? `${getCanonicalBaseUrl(content)}/servicios#${service.slug}`
+                : undefined
+          }
+          customNote={extraWhatsappNote ?? button.whatsapp_message}
         />
       )}
     </motion.div>

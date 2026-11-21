@@ -2,6 +2,7 @@ import { UnifiedButton } from "@/components/UnifiedButton";
 import {
   type ProductButton,
   type ButtonPosition,
+  type ServiceQuickContext,
 } from "@/lib/product-buttons";
 import type { Product } from "@/lib/catalog";
 
@@ -16,6 +17,7 @@ const ORDER: ButtonPosition[] = ["left", "center", "right"];
 export function ProductButtons({
   product,
   shareProduct,
+  service,
   buttons,
   className = "",
   extraWhatsappNote,
@@ -25,6 +27,7 @@ export function ProductButtons({
 }: {
   product?: Product;
   shareProduct?: Product;
+  service?: ServiceQuickContext;
   buttons: ProductButton[];
   className?: string;
   extraWhatsappNote?: string;
@@ -55,6 +58,7 @@ export function ProductButtons({
               button={b}
               product={product}
               shareProduct={shareProduct}
+              service={service}
               extraWhatsappNote={extraWhatsappNote}
               quoteOnly={quoteOnly}
               variantName={variantName}

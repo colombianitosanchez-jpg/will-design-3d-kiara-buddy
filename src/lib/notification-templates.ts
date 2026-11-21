@@ -4,6 +4,7 @@ export const PUBLIC_PANEL_ORDERS_URL = "https://will-design-3d.lovable.app/panel
 
 export type TelegramEventKey =
   | "tg_new_order"
+  | "tg_new_quote"
   | "tg_voucher"
   | "tg_payment_confirmed"
   | "tg_status_change";
@@ -13,6 +14,11 @@ export const TELEGRAM_EVENT_LABELS: { key: TelegramEventKey; label: string; desc
     key: "tg_new_order",
     label: "Nuevos Pedidos",
     description: "Alerta inmediata cuando un cliente finaliza el carrito o compra rápida por WhatsApp.",
+  },
+  {
+    key: "tg_new_quote",
+    label: "Cotizaciones 3D Entrantes",
+    description: "Alerta inmediata cuando un cliente envía una solicitud desde el Cotizador 3D.",
   },
   {
     key: "tg_voucher",
@@ -133,9 +139,13 @@ export function buildQuickOrderWhatsappMessage(input: {
   const itemLabel = input.variantName
     ? `${input.productName} (${input.variantName})`
     : input.productName;
+  const headerLine =
+    input.totalCop > 0
+      ? `Hola Will Design 3D, acabo de registrar mi pedido ${input.orderCode} por ${formatCopCurrency(input.totalCop)}.`
+      : `Hola Will Design 3D, acabo de registrar mi solicitud ${input.orderCode}.`;
   const lines = [
-    `Hola Will Design 3D, acabo de registrar mi pedido ${input.orderCode} por ${formatCopCurrency(input.totalCop)}.`,
-    `Producto: ${itemLabel}`,
+    headerLine,
+    `Producto / Servicio: ${itemLabel}`,
     `Cliente: ${input.customerName.trim()}${input.shippingCity?.trim() ? ` (${input.shippingCity.trim()})` : ""}`,
   ];
   if (input.customNote?.trim()) {
@@ -236,6 +246,45 @@ export function buildTelegramPaymentConfirmedHtml(input: {
     `💳 <b>Canal:</b> ${escapeTelegramHtml(input.gateway || input.paymentMethodName || "Confirmado en panel")}`,
     input.reference ? `🔖 <b>Referencia:</b> <code>${escapeTelegramHtml(input.reference)}</code>` : "",
     `🔗 <a href="${PUBLIC_PANEL_ORDERS_URL}">Abrir Panel de Pedidos</a>`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+export type TelegramQuoteInput = {
+  quoteId?: string | null;
+  serviceName: string;
+  customerName: string;
+  customerPhone?: string | null;
+  customerEmail?: string | null;
+  totalCop: number;
+  fileName?: string | null;
+  answers?: Array<{ label: string; value: string }>;
+  answersList?: string | null;
+  notes?: string | null;
+};
+
+export function buildTelegramQuoteHtml(input: TelegramQuoteInput): string {
+  const answersLines =
+    input.answers && input.answers.length > 0
+      ? input.answers
+          .map((a) => `• ${escapeTelegramHtml(a.label)}: ${escapeTelegramHtml(a.value)}`)
+          .join("\n")
+      : input.answersList?.trim()
+        ? escapeTelegramHtml(input.answersList.trim())
+        : "• Sin detalles técnicos adicionales";
+
+  return [
+    `<b>📋 NUEVA COTIZACIÓN 3D SOLICITADA</b>`,
+    `<b>Servicio:</b> ${escapeTelegramHtml(input.serviceName || "Cotización 3D")}`,
+    `<b>Cliente:</b> ${escapeTelegramHtml(input.customerName)}`,
+    `<b>WhatsApp / Tel:</b> ${escapeTelegramHtml(input.customerPhone || "No registrado")}`,
+    `<b>Correo:</b> ${escapeTelegramHtml(input.customerEmail || "No registrado")}`,
+    `<b>Total Estimado:</b> ${escapeTelegramHtml(formatCopCurrency(input.totalCop))}`,
+    `<b>Archivo 3D adjunto:</b> ${escapeTelegramHtml(input.fileName?.trim() || "Sin archivo adjunto")}`,
+    `<b>Detalles técnicos:</b>\n${answersLines}`,
+    input.notes?.trim() ? `<b>Notas:</b> ${escapeTelegramHtml(input.notes.trim())}` : "",
+    `🔗 <a href="${PUBLIC_PANEL_ORDERS_URL}">Ver cotización en Panel</a>`,
   ]
     .filter(Boolean)
     .join("\n");

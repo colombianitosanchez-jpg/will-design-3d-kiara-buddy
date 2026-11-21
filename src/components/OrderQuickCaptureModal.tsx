@@ -18,12 +18,14 @@ import {
   buildQuickOrderWhatsappMessage,
   normalizeWhatsAppDigits,
 } from "@/lib/notification-templates";
+import type { ServiceQuickContext } from "@/lib/product-buttons";
 import { openExternalUrl } from "@/lib/whatsapp";
 
 export interface OrderQuickCaptureModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  product: Product;
+  product?: Product;
+  service?: ServiceQuickContext;
   variantId?: string | null;
   variantName?: string | null;
   whatsappNumber: string;
@@ -35,6 +37,7 @@ export function OrderQuickCaptureModal({
   open,
   onOpenChange,
   product,
+  service,
   variantId,
   variantName,
   whatsappNumber,
@@ -52,6 +55,12 @@ export function OrderQuickCaptureModal({
     totalCop: number;
     whatsappUrl: string;
   } | null>(null);
+
+  if (!product && !service) return null;
+  const itemTitle = product?.name ?? service?.title ?? "Solicitud Will Design 3D";
+  const resolvedNote = [customNote?.trim(), service?.whatsappTemplate?.trim()]
+    .filter(Boolean)
+    .join(" — ");
 
   function handleClose(nextOpen: boolean) {
     if (!nextOpen) {
@@ -78,14 +87,14 @@ export function OrderQuickCaptureModal({
     try {
       const res = await submitOrder({
         data: {
-          product_id: product.id,
-          variant_id: variantId || "",
+          ...(product ? { product_id: product.id, variant_id: variantId || "" } : {}),
+          ...(service ? { service_id: service.id, service_slug: service.slug } : {}),
           quantity: 1,
           customer_name: customerName.trim(),
           customer_phone: customerPhone.trim(),
           shipping_address: addressOrCity.trim(),
           shipping_city: addressOrCity.trim(),
-          notes: customNote?.trim() || "",
+          notes: resolvedNote || service?.note?.trim() || "",
           quick_capture: true,
         },
       });
@@ -93,12 +102,12 @@ export function OrderQuickCaptureModal({
       const message = buildQuickOrderWhatsappMessage({
         orderCode: res.order_code,
         totalCop: res.total_cop,
-        productName: product.name,
+        productName: itemTitle,
         variantName,
         customerName: customerName.trim(),
         shippingCity: addressOrCity.trim(),
         shareUrl,
-        customNote,
+        customNote: resolvedNote || service?.note || undefined,
       });
 
       const url = waLink(whatsappNumber, message);
@@ -127,12 +136,16 @@ export function OrderQuickCaptureModal({
       <DialogContent className="max-w-md rounded-3xl border-border bg-card p-6 text-foreground">
         <DialogHeader>
           <DialogTitle className="text-xl font-black tracking-tight">
-            Finalizar pedido por WhatsApp
+            {service ? "Solicitar servicio por WhatsApp" : "Finalizar pedido por WhatsApp"}
           </DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground">
-            {product.name}
+            {itemTitle}
             {variantName ? ` — ${variantName}` : ""} ·{" "}
-            <strong className="text-[var(--brand-wine)]">{formatCOP(product.price_cop)}</strong>
+            {product ? (
+              <strong className="text-[var(--brand-wine)]">{formatCOP(product.price_cop)}</strong>
+            ) : (
+              <strong className="text-[var(--brand-teal-deep)]">Cotización personalizada</strong>
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -144,8 +157,12 @@ export function OrderQuickCaptureModal({
                 ¡Pedido {confirmed.orderCode} registrado!
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Total: <strong>{formatCOP(confirmed.totalCop)}</strong>. Si WhatsApp no se abrió
-                automáticamente, presiona el botón de abajo.
+                {confirmed.totalCop > 0 ? (
+                  <>
+                    Total: <strong>{formatCOP(confirmed.totalCop)}</strong>.{" "}
+                  </>
+                ) : null}
+                Si WhatsApp no se abrió automáticamente, presiona el botón de abajo.
               </p>
             </div>
             <div className="flex flex-col gap-2">

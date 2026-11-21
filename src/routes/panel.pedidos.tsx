@@ -162,9 +162,15 @@ function QuotesTab() {
   }, []);
 
   async function updateStatus(id: string, status: string) {
-    const { error } = await supabase.from("quotes").update({ status }).eq("id", id);
-    if (error) return toast.error(error.message);
+    const previous = quotes.find((q) => q.id === id)?.status;
     setQuotes((qs) => qs.map((q) => (q.id === id ? { ...q, status } : q)));
+    const { error } = await supabase.from("quotes").update({ status }).eq("id", id);
+    if (error) {
+      if (previous !== undefined) {
+        setQuotes((qs) => qs.map((q) => (q.id === id ? { ...q, status: previous } : q)));
+      }
+      return toast.error(error.message);
+    }
     toast.success("Estado de cotización actualizado");
   }
 
@@ -175,6 +181,17 @@ function QuotesTab() {
       .createSignedUrl(q.file_path, 60 * 10, { download: q.file_name ?? true });
     if (error || !data) return toast.error("No se pudo generar el enlace: " + error?.message);
     openExternalUrl(data.signedUrl);
+  }
+
+  function contactQuoteWhatsApp(q: Quote) {
+    const serviceLabel = q.service_name || q.size_label || "impresión 3D";
+    const message = `Hola ${q.customer_name}, te escribimos de Will Design 3D sobre tu cotización de ${serviceLabel} (estimada en ${formatCOP(Number(q.estimated_total_cop) || 0)}). ¿Deseas confirmar los detalles para iniciar la producción?`;
+    const url = buildCustomerWhatsAppUrl(q.customer_phone, message);
+    if (!url) {
+      toast.error("Esta cotización no tiene número de celular válido registrado.");
+      return;
+    }
+    openExternalUrl(url);
   }
 
   const filtered = filter === "todos" ? quotes : quotes.filter((q) => q.status === filter);
@@ -218,6 +235,7 @@ function QuotesTab() {
             {filtered.map((q) => {
               const isOpen = !!open[q.id];
               const answers = Array.isArray(q.answers) ? q.answers : [];
+              const hasValidPhone = Boolean(buildCustomerWhatsAppUrl(q.customer_phone, "Hola"));
               return (
                 <li key={q.id} className="p-4 sm:p-5">
                   <div className="flex flex-wrap items-center gap-3">
@@ -232,6 +250,7 @@ function QuotesTab() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-semibold">{q.customer_name}</p>
                       <p className="truncate text-xs text-muted-foreground">
+                        {q.customer_phone ? `${q.customer_phone} · ` : ""}
                         {q.customer_email} · {new Date(q.created_at).toLocaleString("es-CO")}
                       </p>
                     </div>
@@ -257,6 +276,22 @@ function QuotesTab() {
                         </option>
                       ))}
                     </select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={!hasValidPhone}
+                      onClick={() => contactQuoteWhatsApp(q)}
+                      title={
+                        hasValidPhone
+                          ? "Contactar al cliente por WhatsApp"
+                          : "Sin número de celular válido registrado"
+                      }
+                      className="gap-1.5 rounded-full text-xs font-bold text-[var(--brand-teal-deep)]"
+                    >
+                      <MessageCircle className="h-3.5 w-3.5" />
+                      💬 Contactar por WhatsApp
+                    </Button>
                     {q.file_path && (
                       <button
                         type="button"

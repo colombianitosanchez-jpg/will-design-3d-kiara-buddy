@@ -1,9 +1,13 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { CheckCircle2, Loader2, Receipt, ShoppingCart } from "lucide-react";
+import { CheckCircle2, ExternalLink, Loader2, MessageCircle, Receipt, ShoppingCart } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { KiaraOrderData, KiaraProductsData, KiaraServiceQuoteData } from "@/lib/kiara-chat";
 import { confirmQuoteOrder } from "@/lib/kiara-orders.functions";
+import { formatOrderCode } from "@/lib/notification-templates";
+import { getContactInfo, waLink } from "@/lib/catalog";
+import { useSiteContent } from "@/hooks/use-site-content";
+import { openExternalUrl } from "@/lib/whatsapp";
 
 const cop = (n: number) =>
   (Number(n) || 0).toLocaleString("es-CO", {
@@ -15,9 +19,15 @@ const cop = (n: number) =>
 /** Tarjeta interactiva de cotización generada por Kiara, con paso a pedido. */
 export function KiaraQuoteCard({ quote }: { quote: KiaraServiceQuoteData }) {
   const confirm = useServerFn(confirmQuoteOrder);
+  const { content } = useSiteContent();
+  const brandWhatsapp = getContactInfo(content).whatsapp;
   const [openForm, setOpenForm] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [orderId, setOrderId] = useState<string | null>(null);
+  const [createdOrder, setCreatedOrder] = useState<{
+    orderId: string;
+    publicToken?: string;
+    orderCode: string;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
     customer_name: "",
@@ -43,7 +53,11 @@ export function KiaraQuoteCard({ quote }: { quote: KiaraServiceQuoteData }) {
           quantity: quote.quantity,
         },
       });
-      setOrderId(res.order_id);
+      setCreatedOrder({
+        orderId: res.order_id,
+        publicToken: res.public_token,
+        orderCode: res.order_code || formatOrderCode(res.order_id),
+      });
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -84,10 +98,49 @@ export function KiaraQuoteCard({ quote }: { quote: KiaraServiceQuoteData }) {
       </div>
 
 
-      {orderId ? (
-        <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-teal-deep)]">
-          <CheckCircle2 className="h-4 w-4" /> ¡Pedido creado! Te contactamos pronto.
-        </p>
+      {createdOrder ? (
+        <div className="mt-3 space-y-2 rounded-xl border border-[var(--brand-teal)]/40 bg-muted/40 p-2.5">
+          <p className="flex items-center gap-1.5 text-xs font-bold text-[var(--brand-teal-deep)]">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            ¡Pedido {createdOrder.orderCode} registrado!
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {createdOrder.publicToken && (
+              <Link
+                to="/pedido/$token"
+                params={{ token: createdOrder.publicToken }}
+                className="inline-flex flex-1 items-center justify-center gap-1 rounded-full bg-[var(--brand-orange)] px-3 py-1.5 text-[11px] font-bold text-white transition hover:opacity-90"
+              >
+                <ExternalLink className="h-3 w-3" />
+                Ver seguimiento y pagar
+              </Link>
+            )}
+            {brandWhatsapp && (
+              <a
+                href={waLink(
+                  brandWhatsapp,
+                  `Hola Will Design 3D, acabo de confirmar el pedido ${createdOrder.orderCode} (${quote.project_name}) por ${cop(quote.total_cop)} con Kiara. Quiero coordinar el pago y la producción.`,
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(ev) => {
+                  const href = waLink(
+                    brandWhatsapp,
+                    `Hola Will Design 3D, acabo de confirmar el pedido ${createdOrder.orderCode} (${quote.project_name}) por ${cop(quote.total_cop)} con Kiara. Quiero coordinar el pago y la producción.`,
+                  );
+                  if (typeof window !== "undefined" && window.self !== window.top) {
+                    ev.preventDefault();
+                    openExternalUrl(href);
+                  }
+                }}
+                className="inline-flex flex-1 items-center justify-center gap-1 rounded-full bg-[#25D366] px-3 py-1.5 text-[11px] font-bold text-white transition hover:brightness-95"
+              >
+                <MessageCircle className="h-3 w-3" />
+                Coordinar por WhatsApp
+              </a>
+            )}
+          </div>
+        </div>
       ) : openForm ? (
         <form onSubmit={submit} className="mt-3 space-y-2">
           {(
@@ -132,11 +185,22 @@ export function KiaraQuoteCard({ quote }: { quote: KiaraServiceQuoteData }) {
 
 /** Confirmación de pedido creado directamente por Kiara. */
 export function KiaraOrderCard({ order }: { order: KiaraOrderData }) {
+  const { content } = useSiteContent();
+  const brandWhatsapp = getContactInfo(content).whatsapp;
+  const orderCode = order.order_code || formatOrderCode(order.order_id);
+  const waMessage = `Hola Will Design 3D, acabo de registrar mi pedido ${orderCode} por ${cop(order.total_cop)} desde el chat con Kiara. Quiero coordinar el pago y envío.`;
+  const waHref = brandWhatsapp ? waLink(brandWhatsapp, waMessage) : "";
+
   return (
     <div className="mt-2 w-full rounded-2xl border border-[var(--brand-teal)] bg-background p-3 shadow-sm">
-      <p className="flex items-center gap-1.5 text-sm font-bold text-[var(--brand-teal-deep)]">
-        <CheckCircle2 className="h-4 w-4" /> Pedido registrado
-      </p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="flex items-center gap-1.5 text-sm font-bold text-[var(--brand-teal-deep)]">
+          <CheckCircle2 className="h-4 w-4" /> Pedido registrado
+        </p>
+        <span className="rounded-md bg-muted px-2 py-0.5 font-mono text-[10px] font-bold">
+          {orderCode}
+        </span>
+      </div>
       <ul className="mt-2 space-y-1 text-[11px] text-muted-foreground">
         {order.items.map((it, i) => (
           <li key={i} className="flex justify-between gap-2">
@@ -151,9 +215,35 @@ export function KiaraOrderCard({ order }: { order: KiaraOrderData }) {
         <span>Total</span>
         <span>{cop(order.total_cop)}</span>
       </div>
-      <p className="mt-1 text-[10px] text-muted-foreground">
-        Referencia: {order.order_id.slice(0, 8).toUpperCase()}
-      </p>
+      <div className="mt-2.5 flex flex-wrap gap-1.5">
+        {order.public_token && (
+          <Link
+            to="/pedido/$token"
+            params={{ token: order.public_token }}
+            className="inline-flex flex-1 items-center justify-center gap-1 rounded-full bg-[var(--brand-orange)] px-3 py-1.5 text-[11px] font-bold text-white transition hover:opacity-90"
+          >
+            <ExternalLink className="h-3 w-3" />
+            Ver seguimiento y pagar
+          </Link>
+        )}
+        {waHref && (
+          <a
+            href={waHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(ev) => {
+              if (typeof window !== "undefined" && window.self !== window.top) {
+                ev.preventDefault();
+                openExternalUrl(waHref);
+              }
+            }}
+            className="inline-flex flex-1 items-center justify-center gap-1 rounded-full bg-[#25D366] px-3 py-1.5 text-[11px] font-bold text-white transition hover:brightness-95"
+          >
+            <MessageCircle className="h-3 w-3" />
+            Coordinar por WhatsApp
+          </a>
+        )}
+      </div>
     </div>
   );
 }

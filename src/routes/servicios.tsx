@@ -192,6 +192,7 @@ function ServiciosPage() {
   const servicesList =
     dbServices && dbServices.length > 0
       ? dbServices.map((s: any) => ({
+          dbId: s.id,
           id: s.slug || s.id,
           slug: s.slug,
           title: s.title,
@@ -315,7 +316,17 @@ function ServiciosPage() {
 
                   {s.custom_buttons && s.custom_buttons.length > 0 ? (
                     <div className="mt-6">
-                      <ProductButtons buttons={s.custom_buttons} />
+                      <ProductButtons
+                        buttons={s.custom_buttons}
+                        service={{
+                          id: s.dbId,
+                          slug: s.slug || s.id,
+                          title: s.title,
+                          whatsappTemplate: s.whatsapp_template,
+                          note: s.lead,
+                        }}
+                        extraWhatsappNote={s.whatsapp_template || s.lead || undefined}
+                      />
                     </div>
                   ) : primaryAction.kind === "quoter" ? (
                     <div className="mt-6 flex flex-wrap items-center gap-3">

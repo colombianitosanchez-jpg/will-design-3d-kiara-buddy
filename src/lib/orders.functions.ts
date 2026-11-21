@@ -5,8 +5,10 @@ import { formatOrderCode, normalizeWhatsAppDigits } from "@/lib/notification-tem
 
 const schema = z
   .object({
-    product_id: z.string().uuid(),
+    product_id: z.string().uuid().optional(),
     variant_id: z.string().uuid().optional().default(""),
+    service_id: z.string().uuid().optional(),
+    service_slug: z.string().trim().max(160).optional().default(""),
     quantity: z.number().int().min(1).max(99).optional().default(1),
     customer_name: z.string().trim().min(2, "Ingresa tu nombre completo").max(120),
     customer_email: z.string().trim().max(160).optional().default(""),
@@ -17,6 +19,13 @@ const schema = z
     quick_capture: z.boolean().optional().default(false),
   })
   .superRefine((val, ctx) => {
+    if (!val.product_id && !val.service_id && !val.service_slug.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["product_id"],
+        message: "Selecciona un producto o servicio válido",
+      });
+    }
     if (val.quick_capture) {
       if (!normalizeWhatsAppDigits(val.customer_phone)) {
         ctx.addIssue({
@@ -56,22 +65,44 @@ export const createOrderRequest = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: product, error: pErr } = await supabaseAdmin
-      .from("products")
-      .select("id,name,price_cop,active,variants")
-      .eq("id", data.product_id)
-      .maybeSingle();
-    if (pErr) throw new Error(pErr.message);
-    if (!product || !product.active) throw new Error("Producto no disponible");
+    let resolvedProductId: string | null = null;
+    let unitPrice = 0;
+    let itemLabel = "";
+    let isServiceOrder = false;
 
-    let unitPrice = product.price_cop;
-    let itemLabel = product.name;
-    if (data.variant_id) {
-      const variants = parseVariants(product.variants);
-      const variant = variants.find((v) => v.id === data.variant_id);
-      if (!variant) throw new Error("Variante no encontrada");
-      unitPrice = variant.price_cop ?? product.price_cop;
-      itemLabel = `${product.name} — ${variant.name}`;
+    if (data.product_id) {
+      const { data: product, error: pErr } = await supabaseAdmin
+        .from("products")
+        .select("id,name,price_cop,active,variants")
+        .eq("id", data.product_id)
+        .maybeSingle();
+      if (pErr) throw new Error(pErr.message);
+      if (!product || !product.active) throw new Error("Producto no disponible");
+
+      resolvedProductId = product.id;
+      unitPrice = product.price_cop;
+      itemLabel = product.name;
+      if (data.variant_id) {
+        const variants = parseVariants(product.variants);
+        const variant = variants.find((v) => v.id === data.variant_id);
+        if (!variant) throw new Error("Variante no encontrada");
+        unitPrice = variant.price_cop ?? product.price_cop;
+        itemLabel = `${product.name} — ${variant.name}`;
+      }
+    } else {
+      isServiceOrder = true;
+      const serviceQuery = supabaseAdmin
+        .from("site_services")
+        .select("id, slug, title, quoter_service_id, is_active")
+        .eq("is_active", true);
+      const { data: serviceRow, error: sErr } = data.service_id
+        ? await serviceQuery.eq("id", data.service_id).maybeSingle()
+        : await serviceQuery.eq("slug", data.service_slug.trim()).maybeSingle();
+      if (sErr) throw new Error(sErr.message);
+      if (!serviceRow) throw new Error("Servicio no disponible");
+
+      itemLabel = `Servicio: ${serviceRow.title}`;
+      unitPrice = 0;
     }
 
     const total = unitPrice * data.quantity;
@@ -87,12 +118,18 @@ export const createOrderRequest = createServerFn({ method: "POST" })
         customer_phone: data.customer_phone.trim() || null,
         shipping_address: resolvedAddress,
         shipping_city: data.shipping_city.trim() || null,
-        payment_method_name: data.quick_capture ? "Compra rápida WhatsApp" : null,
-        notes: data.notes
-          ? `${data.quick_capture ? "Pedido rápido WhatsApp" : "Solicitud web"}: ${data.notes}`
+        payment_method_name: isServiceOrder
+          ? "Servicio Web WhatsApp"
           : data.quick_capture
-            ? "Pedido rápido desde botón de WhatsApp"
-            : "Solicitud web desde la página de producto",
+            ? "Compra rápida WhatsApp"
+            : null,
+        notes: data.notes
+          ? `${isServiceOrder ? "Solicitud de servicio" : data.quick_capture ? "Pedido rápido WhatsApp" : "Solicitud web"}: ${data.notes}`
+          : isServiceOrder
+            ? `Solicitud rápida de ${itemLabel} por WhatsApp`
+            : data.quick_capture
+              ? "Pedido rápido desde botón de WhatsApp"
+              : "Solicitud web desde la página de producto",
         total_cop: total,
         status: "pendiente",
       })
@@ -102,7 +139,7 @@ export const createOrderRequest = createServerFn({ method: "POST" })
 
     const { error: iErr } = await supabaseAdmin.from("order_items").insert({
       order_id: order.id,
-      product_id: product.id,
+      product_id: resolvedProductId,
       product_name: itemLabel,
       quantity: data.quantity,
       unit_price_cop: unitPrice,
@@ -119,9 +156,17 @@ export const createOrderRequest = createServerFn({ method: "POST" })
         shippingAddress: resolvedAddress,
         shippingCity: data.shipping_city.trim() || null,
         totalCop: total,
-        paymentMethodName: data.quick_capture ? "WhatsApp (Pedido Rápido)" : "Solicitud Web",
+        paymentMethodName: isServiceOrder
+          ? "Servicio Web WhatsApp"
+          : data.quick_capture
+            ? "WhatsApp (Pedido Rápido)"
+            : "Solicitud Web",
         items: [{ product_name: itemLabel, quantity: data.quantity, unit_price_cop: unitPrice }],
-        sourceLabel: data.quick_capture ? "Compra Rápida WhatsApp" : "Ficha Producto",
+        sourceLabel: isServiceOrder
+          ? "Servicio Web WhatsApp"
+          : data.quick_capture
+            ? "Compra Rápida WhatsApp"
+            : "Ficha Producto",
       });
     } catch (err) {
       console.error("[Telegram] Error notificando nuevo pedido:", err);

@@ -133,6 +133,49 @@ async function quoterBlock(): Promise<string> {
   return `## SERVICIOS COTIZABLES (usa la herramienta quote_service con estos slugs)\n${lines.join("\n")}`;
 }
 
+export type SiteServiceContextRow = {
+  title?: string | null;
+  slug?: string | null;
+  lead?: string | null;
+  bullets?: unknown;
+  kiara_tip?: string | null;
+  is_active?: boolean | null;
+};
+
+export function formatSiteServicesBlock(rows: SiteServiceContextRow[] | null | undefined): string {
+  const active = (rows ?? []).filter((r) => r && r.is_active !== false && r.title);
+  if (!active.length) return "";
+
+  const lines = active.map((s) => {
+    const bulletsList = Array.isArray(s.bullets)
+      ? s.bullets.map((b) => String(b ?? "").trim()).filter(Boolean)
+      : [];
+    const bulletsText = bulletsList.length ? bulletsList.join(" · ") : "Sin detalles adicionales";
+    const leadText = String(s.lead ?? "").trim() || "Servicio especializado de impresión 3D";
+    const tipText = String(s.kiara_tip ?? "").trim() || "Consultar con nuestro equipo";
+    return [
+      `- Servicio: ${String(s.title).trim()} (slug: ${String(s.slug ?? "").trim()})`,
+      `  Descripción: ${leadText}`,
+      `  Puntos destacados: ${bulletsText}`,
+      `  Recomendación de Kiara: ${tipText}`,
+    ].join("\n");
+  });
+
+  return `## SERVICIOS DEL TALLER WILL DESIGN 3D\n${lines.join("\n")}`;
+}
+
+/**
+ * Servicios del taller configurados en Panel → Servicios.
+ */
+export async function siteServicesBlock(): Promise<string> {
+  const { data } = await supabaseAdmin
+    .from("site_services")
+    .select("title, slug, lead, bullets, kiara_tip, is_active")
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
+  return formatSiteServicesBlock((data ?? []) as SiteServiceContextRow[]);
+}
+
 const PAYMENT_TYPE_TEXT: Record<string, string> = {
   manual_transfer: "transferencia manual / QR (Nequi, banco)",
   gateway: "pasarela de pago en línea",
@@ -185,7 +228,7 @@ async function paymentBlock(isInternal: boolean): Promise<string> {
 
 /** MODO PÚBLICO: solo catálogo activo + conocimiento público. Nada de pedidos/clientes/costos. */
 async function buildPublicContext(): Promise<string> {
-  const [{ data: products }, kb, quoter, payments] = await Promise.all([
+  const [{ data: products }, kb, quoter, siteServices, payments] = await Promise.all([
     supabaseAdmin
       .from("products")
       .select("name, slug, price_cop, short, stock, variants, categories(name), brands(name)")
@@ -194,6 +237,7 @@ async function buildPublicContext(): Promise<string> {
       .limit(80),
     knowledge(["public_web", "all"]),
     quoterBlock(),
+    siteServicesBlock(),
     paymentBlock(false),
   ]);
 
@@ -212,6 +256,7 @@ async function buildPublicContext(): Promise<string> {
 
   const blocks: string[] = [];
   if (quoter) blocks.push(quoter);
+  if (siteServices) blocks.push(siteServices);
   if (catalog.length) blocks.push(`## CATÁLOGO PÚBLICO\n${catalog.join("\n")}`);
   if (payments) blocks.push(payments);
   if (kb.length) blocks.push(`## PREGUNTAS FRECUENTES E INFORMACIÓN PÚBLICA\n${kb.join("\n\n")}`);
@@ -227,6 +272,7 @@ async function buildInternalContext(): Promise<string> {
     { data: quotes },
     kb,
     quoter,
+    siteServices,
     payments,
   ] = await Promise.all([
     supabaseAdmin
@@ -250,6 +296,7 @@ async function buildInternalContext(): Promise<string> {
       .limit(20),
     knowledge(["internal_team", "all"]),
     quoterBlock(),
+    siteServicesBlock(),
     paymentBlock(true),
   ]);
 
@@ -280,6 +327,7 @@ async function buildInternalContext(): Promise<string> {
 
   const blocks: string[] = [];
   if (quoter) blocks.push(quoter);
+  if (siteServices) blocks.push(siteServices);
   if (kb.length) blocks.push(`## MANUALES Y CONOCIMIENTO INTERNO\n${kb.join("\n\n")}`);
   if (payments) blocks.push(payments);
   if (inventory.length) blocks.push(`## INVENTARIO Y PRECIOS (stock ascendente)\n${inventory.join("\n")}`);

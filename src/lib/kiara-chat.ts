@@ -16,6 +16,8 @@ export type KiaraServiceQuoteData = {
 };
 export type KiaraOrderData = {
   order_id: string;
+  public_token?: string;
+  order_code?: string;
   total_cop: number;
   customer_name?: string;
   items: { product_name: string; quantity: number; unit_price_cop: number }[];

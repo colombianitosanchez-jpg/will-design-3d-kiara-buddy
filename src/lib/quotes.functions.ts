@@ -88,6 +88,31 @@ export const createQuoteRequest = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
+    try {
+      const { notifyTelegramNewQuote } = await import("@/lib/telegram.server");
+      const fallbackDetails: Array<{ label: string; value: string }> = [];
+      if (data.design_state) fallbackDetails.push({ label: "Diseño", value: data.design_state });
+      if (data.size_label) fallbackDetails.push({ label: "Tamaño", value: data.size_label });
+      if (data.material) fallbackDetails.push({ label: "Material", value: data.material });
+      if (data.finish) fallbackDetails.push({ label: "Acabado", value: data.finish });
+      if (trusted.quantity > 1) {
+        fallbackDetails.push({ label: "Cantidad", value: String(trusted.quantity) });
+      }
+      await notifyTelegramNewQuote({
+        quoteId: row.id,
+        serviceName: trusted.service_name || data.design_state || "Cotización 3D",
+        customerName: data.customer_name,
+        customerPhone: data.customer_phone || null,
+        customerEmail: data.customer_email,
+        totalCop: trusted.estimated_total_cop,
+        fileName: data.file_name,
+        answers: trusted.answers.length > 0 ? trusted.answers : fallbackDetails,
+        notes: data.notes,
+      });
+    } catch (tgErr) {
+      console.error("[Telegram] Error notificando nueva cotización:", tgErr);
+    }
+
     return { ok: true as const, quote_id: row.id };
   });
 

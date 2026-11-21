@@ -1,10 +1,12 @@
 import {
   buildTelegramOrderHtml,
   buildTelegramPaymentConfirmedHtml,
+  buildTelegramQuoteHtml,
   buildTelegramStatusChangeHtml,
   buildTelegramVoucherHtml,
   isTelegramEventEnabled,
   type TelegramEventKey,
+  type TelegramQuoteInput,
 } from "@/lib/notification-templates";
 
 export type TelegramConfig = {
@@ -179,5 +181,19 @@ export async function notifyTelegramStatusChange(input: {
     });
   } catch (err) {
     console.error("[Telegram] notifyTelegramStatusChange:", err);
+  }
+}
+
+export async function notifyTelegramNewQuote(input: TelegramQuoteInput): Promise<void> {
+  try {
+    const cfg = await shouldNotify("tg_new_quote");
+    if (!cfg) return;
+    await sendTelegramNotification({
+      text: buildTelegramQuoteHtml(input),
+      overrideToken: cfg.botToken,
+      overrideChatId: cfg.chatId,
+    });
+  } catch (err) {
+    console.error("[Telegram] notifyTelegramNewQuote:", err);
   }
 }

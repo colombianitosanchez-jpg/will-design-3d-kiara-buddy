@@ -98,6 +98,14 @@ export type ProductButton = {
   capture_order?: boolean;
 };
 
+export type ServiceQuickContext = {
+  id?: string;
+  slug: string;
+  title: string;
+  whatsappTemplate?: string | null;
+  note?: string | null;
+};
+
 export const VARIANT_LABELS: Record<ButtonVariant, string> = {
   default: "Principal (naranja)",
   secondary: "Secundario (suave)",
