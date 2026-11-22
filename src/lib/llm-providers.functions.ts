@@ -20,7 +20,7 @@ export type LlmProviderRow = {
 const upsertSchema = z.object({
   id: z.string().uuid().nullable().optional(),
   name: z.string().trim().min(2).max(100),
-  base_url: z.string().trim().url(),
+  base_url: z.string().trim().url().refine(isSafeProviderUrl, "URL no permitida: usa https y un dominio público"),
   model: z.string().trim().min(1).max(100),
   api_key: z.string().trim().max(1000).nullable().optional(),
   priority: z.number().int().min(1).max(99).optional().default(1),
@@ -29,6 +29,22 @@ const upsertSchema = z.object({
   system_prompt: z.string().trim().max(4000).nullable().optional(),
   max_tokens: z.number().int().min(1).max(128000).nullable().optional(),
 });
+
+function isSafeProviderUrl(raw: string): boolean {
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    return false;
+  }
+  if (u.protocol !== "https:" || u.username || u.password) return false;
+  if (u.port && u.port !== "443") return false;
+  const h = u.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (!h.includes(".") || h.includes(":")) return false; // no bare hosts / IPv6 literals
+  if (/^\d+(\.\d+){3}$/.test(h)) return false; // no IPv4 literals
+  if (/(^|\.)(localhost|local|internal|lan|home|corp|intranet)$/.test(h)) return false;
+  return true;
+}
 
 async function assertAdmin(context: { supabase: unknown; userId: string }) {
   const supabase = context.supabase as {
@@ -162,12 +178,16 @@ export const testLlmProvider = createServerFn({ method: "POST" })
       .single();
 
     if (error || !prov) throw new Error("Proveedor no encontrado");
+    if (!isSafeProviderUrl(prov.base_url)) {
+      return { ok: false, ms: 0, message: "URL no permitida: usa https y un dominio público" };
+    }
 
     const start = Date.now();
     try {
       const url = `${prov.base_url.replace(/\/+$/, "")}/chat/completions`;
       const res = await fetch(url, {
         method: "POST",
+        redirect: "manual",
         headers: {
           "Content-Type": "application/json",
           ...(prov.api_key ? { Authorization: `Bearer ${prov.api_key}` } : {}),
