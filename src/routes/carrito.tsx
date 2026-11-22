@@ -9,9 +9,15 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useCart } from "@/lib/cart";
 import { canEditCartQuantity } from "@/lib/cart-quantity";
-import { formatCOP, getContactInfo, waLink } from "@/lib/catalog";
-import { normalizeWhatsAppDigits } from "@/lib/notification-templates";
+import { formatCOP, getContactInfo } from "@/lib/catalog";
+import {
+  buildCartSuccessWhatsappMessage,
+  buildWhatsAppApiUrl,
+  formatOrderCode,
+  normalizeWhatsAppDigits,
+} from "@/lib/notification-templates";
 import { formatReadableOrderError, STRICT_EMAIL_REGEX } from "@/lib/order-validation";
+import { getCanonicalBaseUrl } from "@/lib/seo";
 import { openExternalUrl } from "@/lib/whatsapp";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { cartPaymentRules, createCartOrder } from "@/lib/cart-order.functions";
@@ -67,17 +73,34 @@ function CarritoPage() {
   const [mode, setMode] = useState<"single" | "split">("single");
   const [itemMethod, setItemMethod] = useState<Record<string, string>>({});
   const [splitDone, setSplitDone] = useState<
-    { order_id: string; public_token: string; method: string; total: number; items: string[] }[] | null
+    {
+      order_id: string;
+      public_token: string;
+      method: string;
+      total: number;
+      items: string[];
+      itemLines: Array<{ name: string; quantity: number; unitPriceCop?: number }>;
+      customerName: string;
+      shippingCity: string;
+      shippingAddress: string;
+      notes: string;
+    }[] | null
   >(null);
   const [done, setDone] = useState<{
     order_id: string;
     public_token: string;
+    total_cop: number;
     payment_instructions: string;
     payment_method_name: string | null;
     payment_method_type: string | null;
     qr_image_url: string | null;
     payment_url: string | null;
     allowed_zones: string | null;
+    items: Array<{ name: string; quantity: number; unitPriceCop?: number }>;
+    customerName: string;
+    shippingCity: string;
+    shippingAddress: string;
+    notes: string;
   } | null>(null);
   const [form, setForm] = useState({
     customer_name: "",
@@ -155,13 +178,32 @@ function CarritoPage() {
   const selectedMethod = methods.find((m) => m.id === methodId) ?? null;
   const { content } = useSiteContent();
   const whatsapp = getContactInfo(content).whatsapp;
+  const canonicalOrigin = getCanonicalBaseUrl(content);
 
-  function receiptWaUrl(reference: string, type: string | null) {
-    const text =
-      type === "cash_on_delivery"
-        ? `Hola, acabo de realizar el pedido #${reference}. El método es Pago Contra Entrega.`
-        : `Hola, acabo de realizar el pedido #${reference} en Will Design 3D. Adjunto el comprobante de pago.`;
-    return waLink(whatsapp, text);
+  function buildOrderWaUrl(params: {
+    orderId: string;
+    publicToken: string;
+    totalCop: number;
+    customerName: string;
+    shippingCity?: string;
+    shippingAddress?: string;
+    paymentMethodName?: string | null;
+    items: Array<{ name: string; quantity: number; unitPriceCop?: number }>;
+    notes?: string;
+  }) {
+    const trackingUrl = `${canonicalOrigin}/pedido/${params.publicToken}`;
+    const msg = buildCartSuccessWhatsappMessage({
+      orderCode: formatOrderCode(params.orderId),
+      totalCop: params.totalCop,
+      customerName: params.customerName,
+      shippingCity: params.shippingCity,
+      shippingAddress: params.shippingAddress,
+      paymentMethodName: params.paymentMethodName,
+      items: params.items,
+      trackingUrl,
+      customNote: params.notes,
+    });
+    return buildWhatsAppApiUrl(whatsapp, msg) || "";
   }
 
   // Para pasarelas y cripto: al confirmar, el navegador sale al enlace de pago externo.
@@ -195,7 +237,7 @@ function CarritoPage() {
           })),
         },
       });
-      const url = `${window.location.origin}/cotizacion/${res.id}`;
+      const url = `${canonicalOrigin}/cotizacion/${res.id}`;
       if (typeof navigator !== "undefined" && navigator.share) {
         try {
           await navigator.share({ title: "Cotización Will Design 3D", url });
@@ -241,6 +283,12 @@ function CarritoPage() {
     }
 
     setSending(true);
+    const itemsSnapshot = items.map((i) => ({
+      name: i.name,
+      quantity: i.quantity,
+      unitPriceCop: i.price_cop,
+    }));
+    const formSnapshot = { ...form };
     if (methods.length && effectiveMode === "split") {
       try {
         if (splitGroups.some((g) => !g.method)) throw new Error("Elige un método de pago para cada artículo");
@@ -255,8 +303,8 @@ function CarritoPage() {
                 ...(i.service_slug ? { service_slug: i.service_slug } : {}),
                 ...(i.answers ? { answers: i.answers } : {}),
               })),
-              ...form,
-              notes: `${form.notes ? form.notes + " · " : ""}Pago separado (${splitGroups.length} pedidos)`,
+              ...formSnapshot,
+              notes: `${formSnapshot.notes ? formSnapshot.notes + " · " : ""}Pago separado (${splitGroups.length} pedidos)`,
               payment_method_id: g.method!.id,
             },
           });
@@ -266,6 +314,15 @@ function CarritoPage() {
             method: g.method!.name,
             total: res.total_cop,
             items: g.items.map((i) => `${i.quantity} × ${i.name}`),
+            itemLines: g.items.map((i) => ({
+              name: i.name,
+              quantity: i.quantity,
+              unitPriceCop: i.price_cop,
+            })),
+            customerName: formSnapshot.customer_name,
+            shippingCity: formSnapshot.shipping_city,
+            shippingAddress: formSnapshot.shipping_address,
+            notes: formSnapshot.notes,
           });
         }
         clear();
@@ -288,7 +345,7 @@ function CarritoPage() {
             ...(i.service_slug ? { service_slug: i.service_slug } : {}),
             ...(i.answers ? { answers: i.answers } : {}),
           })),
-          ...form,
+          ...formSnapshot,
           payment_method_id: methodId || null,
         },
       });
@@ -296,14 +353,20 @@ function CarritoPage() {
       setDone({
         order_id: res.order_id,
         public_token: res.public_token,
+        total_cop: res.total_cop,
         payment_instructions: res.payment_instructions,
         payment_method_name: res.payment_method_name,
         payment_method_type: res.payment_method_type ?? selectedMethod?.type ?? null,
         qr_image_url: selectedMethod?.qr_image_url ?? null,
         payment_url: res.payment_url ?? null,
         allowed_zones: res.allowed_zones ?? null,
+        items: itemsSnapshot,
+        customerName: formSnapshot.customer_name,
+        shippingCity: formSnapshot.shipping_city,
+        shippingAddress: formSnapshot.shipping_address,
+        notes: formSnapshot.notes,
       });
-      toast.success("¡Pedido enviado! Te contactaremos muy pronto.");
+      toast.success("¡Pedido enviado! Envía el resumen por WhatsApp para confirmarlo más rápido.");
     } catch (err) {
       toast.error(formatReadableOrderError(err));
     } finally {
@@ -317,45 +380,103 @@ function CarritoPage() {
         <h1 className="text-center text-3xl font-black">¡Gracias por tu pedido! 🐾</h1>
         <p className="mt-3 text-center text-sm text-muted-foreground">
           Lo dividimos en {splitDone.length} pedidos, uno por cada forma de pago. Cada uno se despacha
-          cuando confirmemos su pago. Abre cada uno para ver cómo pagar.
+          cuando confirmemos su pago. Envía cada resumen por WhatsApp o abre tu seguimiento para pagar.
         </p>
         <ul className="mt-8 space-y-4">
-          {splitDone.map((o) => (
-            <li key={o.order_id} className="rounded-3xl border border-border bg-card p-5">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <p className="font-black">
-                  Pedido {o.order_id.slice(0, 8).toUpperCase()} · {o.method}
-                </p>
-                <p className="text-lg font-black text-[var(--brand-wine)]">{formatCOP(o.total)}</p>
-              </div>
-              <ul className="mt-2 text-sm text-muted-foreground">
-                {o.items.map((t) => (
-                  <li key={t}>{t}</li>
-                ))}
-              </ul>
-              <Link to="/pedido/$token" params={{ token: o.public_token }} className="btn-primary mt-4 inline-flex text-sm">
-                Ver cómo pagar este pedido
-              </Link>
-            </li>
-          ))}
+          {splitDone.map((o) => {
+            const splitWaUrl = buildOrderWaUrl({
+              orderId: o.order_id,
+              publicToken: o.public_token,
+              totalCop: o.total,
+              customerName: o.customerName,
+              shippingCity: o.shippingCity,
+              shippingAddress: o.shippingAddress,
+              paymentMethodName: o.method,
+              items: o.itemLines,
+              notes: o.notes,
+            });
+            return (
+              <li key={o.order_id} className="rounded-3xl border border-border bg-card p-5">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="font-black">
+                    Pedido {formatOrderCode(o.order_id)} · {o.method}
+                  </p>
+                  <p className="text-lg font-black text-[var(--brand-wine)]">{formatCOP(o.total)}</p>
+                </div>
+                <ul className="mt-2 text-sm text-muted-foreground">
+                  {o.items.map((t) => (
+                    <li key={t}>{t}</li>
+                  ))}
+                </ul>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  {splitWaUrl && (
+                    <a
+                      href={splitWaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => {
+                        if (typeof window !== "undefined" && window.self !== window.top) {
+                          e.preventDefault();
+                          openExternalUrl(splitWaUrl);
+                        }
+                      }}
+                      className="inline-flex items-center gap-2 rounded-xl bg-[#25D366] px-4 py-2.5 text-sm font-bold text-white shadow transition hover:brightness-95"
+                    >
+                      Enviar pedido por WhatsApp
+                    </a>
+                  )}
+                  <Link to="/pedido/$token" params={{ token: o.public_token }} className="btn-primary inline-flex text-sm">
+                    Ver cómo pagar este pedido
+                  </Link>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       </section>
     );
   }
 
   if (done && isRedirectFlow(done.payment_method_type) && done.payment_url) {
+    const redirectWaUrl = buildOrderWaUrl({
+      orderId: done.order_id,
+      publicToken: done.public_token,
+      totalCop: done.total_cop,
+      customerName: done.customerName,
+      shippingCity: done.shippingCity,
+      shippingAddress: done.shippingAddress,
+      paymentMethodName: done.payment_method_name,
+      items: done.items,
+      notes: done.notes,
+    });
     return (
       <section className="mx-auto max-w-2xl px-4 py-20 text-center sm:px-6">
         <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
         <h1 className="mt-4 text-2xl font-black">Te llevamos a pagar…</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Tu pedido {done.order_id.slice(0, 8).toUpperCase()} quedó registrado. Estamos abriendo{" "}
+          Tu pedido {formatOrderCode(done.order_id)} quedó registrado. Estamos abriendo{" "}
           {done.payment_method_name ?? "la plataforma de pago"} para completar el pago.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <a href={done.payment_url} className="btn-primary inline-flex text-sm">
             Abrir la página de pago
           </a>
+          {redirectWaUrl && (
+            <a
+              href={redirectWaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => {
+                if (typeof window !== "undefined" && window.self !== window.top) {
+                  e.preventDefault();
+                  openExternalUrl(redirectWaUrl);
+                }
+              }}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#25D366] px-4 py-2.5 text-sm font-bold text-white shadow transition hover:brightness-95"
+            >
+              Enviar resumen por WhatsApp
+            </a>
+          )}
           <Link
             to="/pedido/$token"
             params={{ token: done.public_token }}
@@ -369,22 +490,27 @@ function CarritoPage() {
   }
 
   if (done) {
-    const orderRef = done.order_id.slice(0, 8).toUpperCase();
+    const orderCode = formatOrderCode(done.order_id);
     const missingRedirectUrl = isRedirectFlow(done.payment_method_type) && !done.payment_url;
-    const whatsappHref = missingRedirectUrl
-      ? waLink(
-          whatsapp,
-          `Hola, acabo de realizar el pedido #${orderRef} en Will Design 3D${done.payment_method_name ? ` (${done.payment_method_name})` : ""}. Quiero coordinar mi pago por este medio.`,
-        )
-      : receiptWaUrl(orderRef, done.payment_method_type);
+    const whatsappHref = buildOrderWaUrl({
+      orderId: done.order_id,
+      publicToken: done.public_token,
+      totalCop: done.total_cop,
+      customerName: done.customerName,
+      shippingCity: done.shippingCity,
+      shippingAddress: done.shippingAddress,
+      paymentMethodName: done.payment_method_name,
+      items: done.items,
+      notes: done.notes,
+    });
 
     return (
       <section className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6">
         <h1 className="text-3xl font-black">¡Gracias por tu pedido! 🐾</h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          Registramos tu solicitud. Sigue tu pedido y repórtanos el pago desde tu enlace privado.
+          Registramos tu solicitud. Envía el resumen completo a nuestro WhatsApp o sigue tu pedido desde tu enlace privado.
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">Referencia: {orderRef}</p>
+        <p className="mt-1 text-xs font-semibold text-muted-foreground">Pedido: {orderCode}</p>
         {missingRedirectUrl && (done.payment_method_type !== "crypto" || !done.payment_instructions) && (
           <div className="mx-auto mt-5 max-w-xl rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-foreground">
             El link de pago automático está en preparación. Puedes coordinar tu pago por WhatsApp
@@ -413,7 +539,7 @@ function CarritoPage() {
           </div>
         )}
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          {(isManualFlow(done.payment_method_type) || missingRedirectUrl) && (
+          {whatsappHref && (
             <a
               href={whatsappHref}
               target="_blank"
@@ -424,12 +550,16 @@ function CarritoPage() {
                   openExternalUrl(whatsappHref);
                 }
               }}
-              className="inline-flex items-center gap-2 rounded-xl bg-[#25D366] px-5 py-2.5 text-sm font-bold text-white shadow transition hover:brightness-95"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#25D366] px-5 py-3 text-sm font-bold text-white shadow transition hover:brightness-95"
             >
               <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" aria-hidden="true">
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z" />
               </svg>
-              {missingRedirectUrl ? "Coordinar pago por WhatsApp" : "Enviar comprobante por WhatsApp"}
+              {missingRedirectUrl
+                ? "Coordinar pago por WhatsApp"
+                : isManualFlow(done.payment_method_type)
+                  ? "Enviar pedido y comprobante por WhatsApp"
+                  : "Enviar pedido por WhatsApp"}
             </a>
           )}
           <Link

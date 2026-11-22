@@ -11,28 +11,59 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useCart } from "@/lib/cart";
-import { formatCOP } from "@/lib/catalog";
+import { formatCOP, siteContentQuery } from "@/lib/catalog";
 import { getSavedQuote } from "@/lib/saved-quotes.functions";
+import { getCanonicalBaseUrl, getSeo } from "@/lib/seo";
+import { firstStaticShareImage } from "@/lib/share-image";
+import { toAbsoluteUrl } from "@/lib/whatsapp-buttons";
 
 export const Route = createFileRoute("/cotizacion/$id")({
-  loader: ({ params }) => getSavedQuote({ data: { id: params.id } }),
-  head: () => ({
-    meta: [
-      { title: "Cotización | Will Design 3D" },
-      {
-        name: "description",
-        content:
-          "Revisa la cotización de impresión 3D preparada por Will Design 3D y añádela a tu carrito para pagar.",
-      },
-      { property: "og:title", content: "Cotización | Will Design 3D" },
-      {
-        property: "og:description",
-        content: "Cotización de impresión 3D lista para revisar y pagar.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
+  loader: async ({ params, context }) => {
+    const [quote, siteContent] = await Promise.all([
+      getSavedQuote({ data: { id: params.id } }),
+      context.queryClient.ensureQueryData(siteContentQuery()).catch(() => null),
+    ]);
+    return { quote, siteContent };
+  },
+  head: ({ params, loaderData }) => {
+    const quote = loaderData?.quote ?? null;
+    const siteContent = loaderData?.siteContent;
+    const seoGlobal = getSeo(null, siteContent);
+    const businessName = siteContent?.site_business_name?.trim() || "Will Design 3D";
+    const title = quote
+      ? `Cotización N.º ${quote.id.slice(0, 8).toUpperCase()} (${formatCOP(quote.total_price)}) | ${businessName}`
+      : `Cotización | ${businessName}`;
+    const desc = quote
+      ? `${quote.items.length} ${quote.items.length === 1 ? "artículo" : "artículos"} · Total estimado ${formatCOP(quote.total_price)}. Revisa tu cotización preparada por ${businessName} y confírmala en línea.`
+      : `Revisa la cotización de impresión 3D preparada por ${businessName} y añádela a tu carrito para pagar.`;
+    const rawImg = firstStaticShareImage([
+      ...(quote?.items ?? []).map((i) => i.image_url),
+      seoGlobal.image,
+    ]);
+    const ogImage = rawImg ? toAbsoluteUrl(rawImg, siteContent) : "";
+    const ogUrl = params?.id ? `${getCanonicalBaseUrl(siteContent)}/cotizacion/${params.id}` : "";
+
+    return {
+      meta: [
+        { title },
+        { name: "description", content: desc },
+        { property: "og:title", content: title },
+        { property: "og:description", content: desc },
+        { property: "og:type", content: "website" },
+        ...(ogUrl ? [{ property: "og:url", content: ogUrl }] : []),
+        { name: "twitter:card", content: "summary_large_image" },
+        ...(ogImage
+          ? [
+              { property: "og:image", content: ogImage },
+              { property: "og:image:secure_url", content: ogImage },
+              { property: "og:image:width", content: "1200" },
+              { property: "og:image:height", content: "630" },
+              { name: "twitter:image", content: ogImage },
+            ]
+          : []),
+      ],
+    };
+  },
   errorComponent: () => <QuoteMessage title="No pudimos abrir esta cotización" />,
   notFoundComponent: () => <QuoteMessage title="Esta cotización no existe" />,
   component: QuotePage,
@@ -53,7 +84,7 @@ function QuoteMessage({ title }: { title: string }) {
 }
 
 function QuotePage() {
-  const quote = Route.useLoaderData();
+  const { quote } = Route.useLoaderData();
   const { items: cartItems, addItem, clear } = useCart();
   const navigate = useNavigate();
   const [confirmOpen, setConfirmOpen] = useState(false);

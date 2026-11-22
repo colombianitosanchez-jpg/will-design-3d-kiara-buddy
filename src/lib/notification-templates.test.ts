@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildCartSuccessWhatsappMessage,
   buildCustomerWhatsAppUrl,
   buildQuickOrderWhatsappMessage,
   buildTelegramOrderHtml,
@@ -14,6 +15,7 @@ import {
   isTelegramEventEnabled,
   normalizeQueueStatusLabel,
   normalizeWhatsAppDigits,
+  PUBLIC_PANEL_ORDERS_URL,
 } from "./notification-templates";
 
 describe("notification-templates", () => {
@@ -156,6 +158,7 @@ describe("notification-templates", () => {
     expect(withFile).toContain("<b>Archivo 3D adjunto:</b> engranaje_v2.stl");
     expect(withFile).toContain("• Material: PETG");
     expect(withFile).toContain("• Relleno: 40%");
+    expect(withFile).toContain(`${PUBLIC_PANEL_ORDERS_URL}?tab=cotizaciones`);
 
     const withoutFile = buildTelegramQuoteHtml({
       serviceName: "Diseño 3D",
@@ -164,6 +167,34 @@ describe("notification-templates", () => {
       fileName: null,
     });
     expect(withoutFile).toContain("<b>Archivo 3D adjunto:</b> Sin archivo adjunto");
+    expect(withoutFile).toContain(`${PUBLIC_PANEL_ORDERS_URL}?tab=cotizaciones`);
+  });
+
+  it("genera el mensaje enriquecido de WhatsApp para pedidos del carrito (único o dividido)", () => {
+    const msg = buildCartSuccessWhatsappMessage({
+      orderCode: "a1b2c3d4-1111-2222-3333-444455556666",
+      totalCop: 215000,
+      customerName: "Sofía Mendoza",
+      shippingCity: "Bogotá",
+      shippingAddress: "Cra 28 #86-13",
+      paymentMethodName: "Nequi",
+      items: [
+        { name: "Filamento PLA+", quantity: 2, unitPriceCop: 85000 },
+        { name: "Servicio: Impresión FDM", quantity: 1, unitPriceCop: 45000 },
+      ],
+      trackingUrl: "https://willdesign3d.co/pedido/tok-123",
+      customNote: "Entregar en portería",
+    });
+
+    expect(msg).toContain("#WD-A1B2C3D4");
+    expect(msg).toContain("Sofía Mendoza (Bogotá)");
+    expect(msg).toContain("Cra 28 #86-13");
+    expect(msg).toContain("Método de pago: Nequi");
+    expect(msg).toContain("• 2x Filamento PLA+ — $170.000");
+    expect(msg).toContain("• 1x Servicio: Impresión FDM — $45.000");
+    expect(msg).toContain("Total: $215.000");
+    expect(msg).toContain("Notas: Entregar en portería");
+    expect(msg).toContain("https://willdesign3d.co/pedido/tok-123");
   });
 
   it("mapea estados de notifications_queue a etiquetas en español", () => {

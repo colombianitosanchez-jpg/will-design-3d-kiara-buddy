@@ -28,6 +28,7 @@ import { siteServicesQuery } from "./servicios";
 import { menuItemsQuery } from "../lib/menu";
 import { getActiveTheme, applyThemeToDocument } from "../lib/theme";
 import { getCanonicalBaseUrl, getRobotsContent, getSeo } from "../lib/seo";
+import { toAbsoluteUrl } from "../lib/whatsapp-buttons";
 import { AmbientBackdrop } from "../components/AmbientBackdrop";
 
 function ThemeApplier() {
@@ -130,6 +131,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     const title = seo.title;
     const desc = seo.description;
 
+    const ogImage = seo.image ? toAbsoluteUrl(seo.image, siteContent) : "";
+
     const metaTags: Array<Record<string, string>> = [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
@@ -142,6 +145,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: title },
       { name: "twitter:description", content: desc },
+      ...(ogImage
+        ? [
+            { property: "og:image", content: ogImage },
+            { name: "twitter:image", content: ogImage },
+          ]
+        : []),
     ];
 
     return {

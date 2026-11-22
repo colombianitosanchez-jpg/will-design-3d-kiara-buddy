@@ -30,6 +30,9 @@ import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/panel/pedidos")({
   ssr: false,
+  validateSearch: (search: Record<string, unknown>): { tab?: "pedidos" | "cotizaciones" } => ({
+    ...(search.tab === "cotizaciones" || search.tab === "pedidos" ? { tab: search.tab } : {}),
+  }),
   component: PedidosAdmin,
 });
 
@@ -88,7 +91,15 @@ function formatCOP(n: number) {
 }
 
 function PedidosAdmin() {
-  const [tab, setTab] = useState<"pedidos" | "cotizaciones">("pedidos");
+  const search = Route.useSearch();
+  const [tab, setTab] = useState<"pedidos" | "cotizaciones">(
+    search.tab === "cotizaciones" ? "cotizaciones" : "pedidos",
+  );
+  useEffect(() => {
+    if (search.tab === "cotizaciones" || search.tab === "pedidos") {
+      setTab(search.tab);
+    }
+  }, [search.tab]);
   return (
     <>
       <div className="mb-6 flex gap-2">

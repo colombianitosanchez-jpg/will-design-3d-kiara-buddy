@@ -26,6 +26,8 @@ import { parseProductButtons } from "@/lib/product-buttons";
 import { ProductButtons } from "@/components/ProductButtons";
 import { UnifiedButton } from "@/components/UnifiedButton";
 import { buildServicesJsonLd, getCanonicalBaseUrl, resolvePageSeo, type ServiceJsonLdInput } from "@/lib/seo";
+import { firstStaticShareImage } from "@/lib/share-image";
+import { toAbsoluteUrl } from "@/lib/whatsapp-buttons";
 
 export const Route = createFileRoute("/servicios")({
   loader: async ({ context }) => {
@@ -40,13 +42,18 @@ export const Route = createFileRoute("/servicios")({
   }: {
     loaderData?: {
       siteContent?: Record<string, string>;
-      siteServices?: ServiceJsonLdInput[];
+      siteServices?: Array<ServiceJsonLdInput & { image_url?: string | null }>;
     };
   }) => {
     const siteContent = loaderData?.siteContent;
     const canonicalUrl = `${getCanonicalBaseUrl(siteContent)}/servicios`;
     const seo = resolvePageSeo("servicios", siteContent);
     const servicesJsonLd = buildServicesJsonLd(loaderData?.siteServices, siteContent);
+    const serviceFallbackImg = firstStaticShareImage(
+      (loaderData?.siteServices ?? []).map((s) => s.image_url),
+    );
+    const rawOgImage = seo.image || serviceFallbackImg;
+    const ogImage = rawOgImage ? toAbsoluteUrl(rawOgImage, siteContent) : "";
 
     const metaTags: Array<Record<string, string>> = [
       { title: seo.title },
@@ -58,10 +65,13 @@ export const Route = createFileRoute("/servicios")({
       { name: "twitter:card", content: "summary_large_image" },
     ];
 
-    if (seo.image) {
+    if (ogImage) {
       metaTags.push(
-        { property: "og:image", content: seo.image },
-        { name: "twitter:image", content: seo.image },
+        { property: "og:image", content: ogImage },
+        { property: "og:image:secure_url", content: ogImage },
+        { property: "og:image:width", content: "1200" },
+        { property: "og:image:height", content: "630" },
+        { name: "twitter:image", content: ogImage },
       );
     }
 

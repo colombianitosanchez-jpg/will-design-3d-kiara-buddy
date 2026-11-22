@@ -23,6 +23,8 @@ import { formatCOP, gradientKeyFor, type Product } from "@/lib/catalog";
 import { parseVariants, resolveVariantProduct, type ProductVariant } from "@/lib/product-variants";
 import { productDisplayName, productSummary } from "@/lib/product-description";
 import { productShareUrl } from "@/lib/product-share";
+import { useSiteContent } from "@/hooks/use-site-content";
+import { resolvePublicSiteOrigin } from "@/lib/whatsapp-buttons";
 
 const GRADIENTS: Record<string, string> = {
   orange:
@@ -44,6 +46,7 @@ export function ProductQuickView({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { content } = useSiteContent();
   const [fileName, setFileName] = useState<string | null>(null);
   const [dims, setDims] = useState<Dims3D | null>(null);
   const variants = parseVariants(parentProduct.variants ?? []);
@@ -90,7 +93,7 @@ export function ProductQuickView({
                 <ShareButton
                   title={product.name}
                   text={product.custom_share_text}
-                  url={productShareUrl(parentProduct.slug, variantIndex, null)}
+                  url={productShareUrl(parentProduct.slug, variantIndex, null, resolvePublicSiteOrigin(content))}
                   className="-mr-2 -mt-1 h-8 w-8 shrink-0 text-muted-foreground"
                 />
               </div>

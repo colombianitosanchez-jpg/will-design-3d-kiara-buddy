@@ -326,4 +326,101 @@ describe("Arquitectura SEO y dominio canónico", () => {
       "https://cdn.example.com/global-og.jpg",
     );
   });
+
+  it("las rutas /pedido/$token, /cotizacion/$id, /servicios y __root emiten og:image y twitter:image", async () => {
+    type HeadFn = (ctx: Record<string, unknown>) => {
+      meta: Array<Record<string, string>>;
+    };
+    const find = (meta: Array<Record<string, string>>, key: string) =>
+      meta.find((m) => m.property === key || m.name === key)?.content;
+
+    const { Route: RootRoute } = await import("@/routes/__root");
+    const rootHead = (RootRoute.options.head as unknown as HeadFn)({
+      loaderData: {
+        siteContent: {
+          site_canonical_domain: "https://will3d.co",
+          site_logo_url: "/brand-logo.png",
+        },
+      },
+    });
+    expect(find(rootHead.meta, "og:image")).toBe("https://will3d.co/brand-logo.png");
+    expect(find(rootHead.meta, "twitter:image")).toBe("https://will3d.co/brand-logo.png");
+
+    const { Route: PedidoRoute } = await import("@/routes/pedido.$token");
+    const pedidoHead = (PedidoRoute.options.head as unknown as HeadFn)({
+      params: { token: "abc-token" },
+      loaderData: {
+        siteContent: {
+          site_canonical_domain: "https://will3d.co",
+          site_meta_thumbnail_url: "https://cdn.example.com/brand-thumb.png",
+        },
+      },
+    });
+    expect(find(pedidoHead.meta, "robots")).toBe("noindex, nofollow");
+    expect(find(pedidoHead.meta, "og:url")).toBe("https://will3d.co/pedido/abc-token");
+    expect(find(pedidoHead.meta, "og:image")).toBe("https://cdn.example.com/brand-thumb.png");
+    expect(find(pedidoHead.meta, "og:image:secure_url")).toBe("https://cdn.example.com/brand-thumb.png");
+    expect(find(pedidoHead.meta, "og:image:width")).toBe("1200");
+    expect(find(pedidoHead.meta, "og:image:height")).toBe("630");
+    expect(find(pedidoHead.meta, "twitter:image")).toBe("https://cdn.example.com/brand-thumb.png");
+
+    const { Route: CotizacionRoute } = await import("@/routes/cotizacion.$id");
+    const quoteWithItemImg = (CotizacionRoute.options.head as unknown as HeadFn)({
+      params: { id: "12345678-0000-0000-0000-000000000000" },
+      loaderData: {
+        siteContent: {
+          site_canonical_domain: "https://will3d.co",
+          site_logo_url: "https://cdn.example.com/logo.png",
+        },
+        quote: {
+          id: "12345678-0000-0000-0000-000000000000",
+          total_price: 90000,
+          created_at: "2026-11-21T00:00:00Z",
+          items: [
+            { kind: "product", product_id: "p1", name: "PLA+", price_cop: 90000, quantity: 1, image_url: "https://cdn.example.com/pla.jpg" },
+          ],
+        },
+      },
+    });
+    expect(find(quoteWithItemImg.meta, "og:image")).toBe("https://cdn.example.com/pla.jpg");
+    expect(find(quoteWithItemImg.meta, "og:url")).toBe("https://will3d.co/cotizacion/12345678-0000-0000-0000-000000000000");
+
+    const quoteFallbackLogo = (CotizacionRoute.options.head as unknown as HeadFn)({
+      params: { id: "12345678-0000-0000-0000-000000000000" },
+      loaderData: {
+        siteContent: {
+          site_canonical_domain: "https://will3d.co",
+          site_logo_url: "/logo-empresa.png",
+        },
+        quote: {
+          id: "12345678-0000-0000-0000-000000000000",
+          total_price: 50000,
+          created_at: "2026-11-21T00:00:00Z",
+          items: [
+            { kind: "service", product_id: "s1", name: "Diseño CAD", price_cop: 50000, quantity: 1, image_url: null },
+          ],
+        },
+      },
+    });
+    expect(find(quoteFallbackLogo.meta, "og:image")).toBe("https://will3d.co/logo-empresa.png");
+
+    const { Route: ServiciosRoute } = await import("@/routes/servicios");
+    const serviciosFallback = (ServiciosRoute.options.head as unknown as HeadFn)({
+      loaderData: {
+        siteContent: { site_canonical_domain: "https://will3d.co" },
+        siteServices: [
+          {
+            id: "s1",
+            slug: "impresion-fdm",
+            title: "Impresión FDM",
+            lead: "Piezas rápidas",
+            is_active: true,
+            image_url: "https://cdn.example.com/service-fdm.jpg",
+          },
+        ],
+      },
+    });
+    expect(find(serviciosFallback.meta, "og:image")).toBe("https://cdn.example.com/service-fdm.jpg");
+    expect(find(serviciosFallback.meta, "og:image:secure_url")).toBe("https://cdn.example.com/service-fdm.jpg");
+  });
 });

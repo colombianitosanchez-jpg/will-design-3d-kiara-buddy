@@ -5,28 +5,51 @@ import { toast } from "sonner";
 import { CheckCircle2, Clock, Loader2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { formatCOP, getContactInfo, waLink } from "@/lib/catalog";
+import { formatCOP, getContactInfo, siteContentQuery } from "@/lib/catalog";
+import { buildCartSuccessWhatsappMessage, buildWhatsAppApiUrl, formatOrderCode } from "@/lib/notification-templates";
+import { getCanonicalBaseUrl, getSeo } from "@/lib/seo";
+import { toAbsoluteUrl } from "@/lib/whatsapp-buttons";
 import { openExternalUrl } from "@/lib/whatsapp";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { getOrderByToken, reportPayment, type TrackedOrder } from "@/lib/order-tracking.functions";
 import { isManualFlow, isRedirectFlow } from "@/lib/payment-types";
 
 export const Route = createFileRoute("/pedido/$token")({
-  ssr: false,
-  head: () => ({
-    meta: [
-      { title: "Seguimiento de tu pedido | Will Design 3D" },
-      {
-        name: "description",
-        content: "Consulta el estado de tu pedido y reporta tu pago con Will Design 3D.",
-      },
-      { name: "robots", content: "noindex, nofollow" },
-      { property: "og:title", content: "Seguimiento de tu pedido | Will Design 3D" },
-      { property: "og:description", content: "Estado de tu pedido y reporte de pago." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
+  loader: async ({ context }) => {
+    const siteContent = await context.queryClient.ensureQueryData(siteContentQuery()).catch(() => null);
+    return { siteContent };
+  },
+  head: ({ params, loaderData }) => {
+    const siteContent = loaderData?.siteContent;
+    const seo = getSeo(null, siteContent);
+    const ogImage = seo.image ? toAbsoluteUrl(seo.image, siteContent) : "";
+    const businessName = siteContent?.site_business_name?.trim() || "Will Design 3D";
+    const title = `Seguimiento de tu pedido | ${businessName}`;
+    const desc = `Consulta el estado de tu pedido y reporta tu pago con ${businessName}.`;
+    const url = params?.token ? `${getCanonicalBaseUrl(siteContent)}/pedido/${params.token}` : "";
+
+    return {
+      meta: [
+        { title },
+        { name: "description", content: desc },
+        { name: "robots", content: "noindex, nofollow" },
+        { property: "og:title", content: title },
+        { property: "og:description", content: desc },
+        { property: "og:type", content: "website" },
+        ...(url ? [{ property: "og:url", content: url }] : []),
+        { name: "twitter:card", content: "summary_large_image" },
+        ...(ogImage
+          ? [
+              { property: "og:image", content: ogImage },
+              { property: "og:image:secure_url", content: ogImage },
+              { property: "og:image:width", content: "1200" },
+              { property: "og:image:height", content: "630" },
+              { name: "twitter:image", content: ogImage },
+            ]
+          : []),
+      ],
+    };
+  },
   component: SeguimientoPage,
 });
 
@@ -194,10 +217,24 @@ function SeguimientoPage() {
       {isRedirectFlow(order.payment_method_type) && !order.payment_url && !paid && (() => {
         const showPrepNotice =
           order.payment_method_type !== "crypto" || !order.payment_instructions;
-        const u = waLink(
-          getContactInfo(content).whatsapp,
-          `Hola, acabo de realizar el pedido #${order.reference} en Will Design 3D${order.payment_method_name ? ` (${order.payment_method_name})` : ""}. Quiero coordinar mi pago por WhatsApp.`,
-        );
+        const trackingUrl = `${getCanonicalBaseUrl(content)}/pedido/${token}`;
+        const u =
+          buildWhatsAppApiUrl(
+            getContactInfo(content).whatsapp,
+            buildCartSuccessWhatsappMessage({
+              orderCode: formatOrderCode(order.reference),
+              totalCop: order.total_cop,
+              customerName: order.customer_name,
+              paymentMethodName: order.payment_method_name,
+              items: order.items.map((it) => ({
+                name: it.product_name,
+                quantity: it.quantity,
+                unitPriceCop: it.unit_price_cop,
+              })),
+              trackingUrl,
+              customNote: "Quiero coordinar mi pago por WhatsApp.",
+            }),
+          ) || "";
         return (
           <div className="mt-6 space-y-3">
             {showPrepNotice && (
@@ -228,12 +265,27 @@ function SeguimientoPage() {
       })()}
 
       {isManualFlow(order.payment_method_type) && !paid && (() => {
-        const u = waLink(
-          getContactInfo(content).whatsapp,
-          order.payment_method_type === "cash_on_delivery"
-            ? `Hola, acabo de realizar el pedido #${order.reference}. El método es Pago Contra Entrega.`
-            : `Hola, acabo de realizar el pedido #${order.reference} en Will Design 3D. Adjunto el comprobante de pago.`,
-        );
+        const trackingUrl = `${getCanonicalBaseUrl(content)}/pedido/${token}`;
+        const u =
+          buildWhatsAppApiUrl(
+            getContactInfo(content).whatsapp,
+            buildCartSuccessWhatsappMessage({
+              orderCode: formatOrderCode(order.reference),
+              totalCop: order.total_cop,
+              customerName: order.customer_name,
+              paymentMethodName: order.payment_method_name,
+              items: order.items.map((it) => ({
+                name: it.product_name,
+                quantity: it.quantity,
+                unitPriceCop: it.unit_price_cop,
+              })),
+              trackingUrl,
+              customNote:
+                order.payment_method_type === "cash_on_delivery"
+                  ? "Pago Contra Entrega."
+                  : "Adjunto mi comprobante de pago.",
+            }),
+          ) || "";
         return (
           <a
             href={u}

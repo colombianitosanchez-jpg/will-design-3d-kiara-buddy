@@ -234,7 +234,9 @@ export function UnifiedButton({
         const canonicalOrigin = getCanonicalBaseUrl(content);
         const directShareUrl = product
           ? productShareLink(shareProduct ?? product, variantId ?? null, button.id, canonicalOrigin)
-          : undefined;
+          : service && !button.whatsapp_image_url
+            ? `${canonicalOrigin}/servicios#${service.slug}`
+            : undefined;
         const cleanExtraNote = extraWhatsappNote?.trim() || "";
         const text = buildButtonWhatsappText(
           button,
@@ -246,7 +248,7 @@ export function UnifiedButton({
             price: product ? formatCOP(product.price_cop) : "",
             variant_id: variantId ?? null,
             variant_name: variantName ?? null,
-            ...(product ? { share_url: directShareUrl ?? "" } : {}),
+            ...(product || directShareUrl ? { share_url: directShareUrl ?? "" } : {}),
           },
           cleanExtraNote,
           globalDefaultMessage,
@@ -469,7 +471,7 @@ export function UnifiedButton({
             price: product ? formatCOP(product.price_cop) : "",
             variant_id: variantId ?? null,
             variant_name: variantName ?? null,
-            ...(product ? { share_url: modalShareUrl ?? "" } : {}),
+            ...(product || (service && !button.whatsapp_image_url) ? { share_url: modalShareUrl ?? "" } : {}),
           },
           cleanExtraNote,
           globalDefaultMessage,

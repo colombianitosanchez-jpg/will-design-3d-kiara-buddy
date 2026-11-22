@@ -436,7 +436,18 @@ function ProductPage() {
                 Solicitar pedido
               </button>
             )}
-            <a href={waHref} target="_blank" rel="noreferrer" className="btn-outline">
+            <a
+              href={waHref}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => {
+                if (typeof window !== "undefined" && window.self !== window.top) {
+                  e.preventDefault();
+                  openExternalUrl(waHref);
+                }
+              }}
+              className="btn-outline"
+            >
               <MessageCircle className="h-4 w-4" />
               {variantProduct.quote_only ? "Pedir cotización por WhatsApp" : "Consultar por WhatsApp"}
             </a>

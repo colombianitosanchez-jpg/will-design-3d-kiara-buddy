@@ -212,6 +212,61 @@ export function buildQuickOrderWhatsappMessage(input: {
   return lines.join("\n");
 }
 
+export function buildCartSuccessWhatsappMessage(input: {
+  orderCode: string;
+  totalCop: number;
+  customerName: string;
+  shippingCity?: string | null;
+  shippingAddress?: string | null;
+  paymentMethodName?: string | null;
+  items: Array<{ name: string; quantity: number; unitPriceCop?: number }>;
+  trackingUrl?: string | null;
+  customNote?: string | null;
+}): string {
+  const code = formatOrderCode(input.orderCode);
+  const customer = input.customerName.trim() || "Cliente";
+  const city = input.shippingCity?.trim() || "";
+  const address = input.shippingAddress?.trim() || "";
+  const payment = input.paymentMethodName?.trim() || "";
+  const note = input.customNote?.trim() || "";
+  const tracking = input.trackingUrl?.trim() || "";
+
+  const lines: string[] = [
+    `Hola Will Design 3D, acabo de confirmar mi pedido ${code} por ${formatCopCurrency(input.totalCop)}.`,
+    `Cliente: ${customer}${city ? ` (${city})` : ""}`,
+  ];
+
+  if (address) {
+    lines.push(`Dirección: ${address}${city && !address.toLowerCase().includes(city.toLowerCase()) ? `, ${city}` : ""}`);
+  }
+  if (payment) {
+    lines.push(`Método de pago: ${payment}`);
+  }
+
+  if (input.items.length > 0) {
+    lines.push("", "Detalle del pedido:");
+    for (const item of input.items) {
+      const priceSuffix =
+        item.unitPriceCop != null && item.unitPriceCop > 0
+          ? ` — ${formatCopCurrency(item.unitPriceCop * item.quantity)}`
+          : "";
+      lines.push(`• ${item.quantity}x ${item.name}${priceSuffix}`);
+    }
+  }
+
+  lines.push("", `Total: ${formatCopCurrency(input.totalCop)}`);
+
+  if (note) {
+    lines.push(`Notas: ${note}`);
+  }
+
+  if (tracking) {
+    lines.push("", `Seguimiento y pago:\n${tracking}`);
+  }
+
+  return lines.join("\n");
+}
+
 export function escapeTelegramHtml(text: string | null | undefined): string {
   return String(text ?? "")
     .replaceAll("&", "&amp;")
@@ -339,7 +394,7 @@ export function buildTelegramQuoteHtml(input: TelegramQuoteInput): string {
     `<b>Archivo 3D adjunto:</b> ${escapeTelegramHtml(input.fileName?.trim() || "Sin archivo adjunto")}`,
     `<b>Detalles técnicos:</b>\n${answersLines}`,
     input.notes?.trim() ? `<b>Notas:</b> ${escapeTelegramHtml(input.notes.trim())}` : "",
-    `🔗 <a href="${PUBLIC_PANEL_ORDERS_URL}">Ver cotización en Panel</a>`,
+    `🔗 <a href="${PUBLIC_PANEL_ORDERS_URL}?tab=cotizaciones">Ver cotización en Panel</a>`,
   ]
     .filter(Boolean)
     .join("\n");

@@ -419,6 +419,7 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const [lastWhatsappUrl, setLastWhatsappUrl] = useState<string | null>(null);
   const [pricePulse, setPricePulse] = useState(false);
   const [kiaraImgFailed, setKiaraImgFailed] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -569,8 +570,9 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
         },
       );
 
-      setSent(true);
       const url = waLink(contact.whatsapp, msgText);
+      setLastWhatsappUrl(url || null);
+      setSent(true);
       if (!url) {
         toast.error("Configura WhatsApp en /panel/marca");
         return;
@@ -973,10 +975,28 @@ export function Quoter({ initialServiceSlug }: { initialServiceSlug?: string } =
               )}
               {sent && (
                 <div className="space-y-3">
-                  <p className="inline-flex items-center gap-2 rounded-2xl bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
-                    <CheckCircle2 className="h-4 w-4" /> ¡Listo! Guardamos tu cotización y abrimos
-                    WhatsApp con el resumen.
-                  </p>
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+                    <span className="inline-flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 shrink-0" /> ¡Listo! Guardamos tu cotización.
+                    </span>
+                    {lastWhatsappUrl && (
+                      <a
+                        href={lastWhatsappUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => {
+                          if (typeof window !== "undefined" && window.self !== window.top) {
+                            e.preventDefault();
+                            openExternalUrl(lastWhatsappUrl);
+                          }
+                        }}
+                        className="inline-flex items-center gap-2 rounded-xl bg-[#25D366] px-4 py-2 text-xs font-bold text-white shadow transition hover:brightness-95"
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                        Abrir WhatsApp con mi cotización
+                      </a>
+                    )}
+                  </div>
                   {cartItems.length > 0 && (
                     <div className="rounded-2xl border border-[var(--brand-orange)] bg-[color-mix(in_oklab,var(--brand-orange)_10%,white)] p-4 text-sm">
                       <p className="font-bold">
