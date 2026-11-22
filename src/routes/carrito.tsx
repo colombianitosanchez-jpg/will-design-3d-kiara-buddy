@@ -327,7 +327,26 @@ function CarritoPage() {
         }
         clear();
         setSplitDone(results);
-        toast.success("¡Pedidos enviados!");
+        const first = results[0];
+        const firstWaUrl = first
+          ? buildOrderWaUrl({
+              orderId: first.order_id,
+              publicToken: first.public_token,
+              totalCop: first.total,
+              customerName: first.customerName,
+              shippingCity: first.shippingCity,
+              shippingAddress: first.shippingAddress,
+              paymentMethodName: first.method,
+              items: first.itemLines,
+              notes: first.notes,
+            })
+          : "";
+        if (firstWaUrl) {
+          openExternalUrl(firstWaUrl);
+          toast.success("¡Pedidos registrados! Abriendo WhatsApp con tu resumen…");
+        } else {
+          toast.success("¡Pedidos enviados!");
+        }
       } catch (err) {
         toast.error(formatReadableOrderError(err));
       } finally {
@@ -366,7 +385,21 @@ function CarritoPage() {
         shippingAddress: formSnapshot.shipping_address,
         notes: formSnapshot.notes,
       });
-      toast.success("¡Pedido enviado! Envía el resumen por WhatsApp para confirmarlo más rápido.");
+      const autoWaUrl = buildOrderWaUrl({
+        orderId: res.order_id,
+        publicToken: res.public_token,
+        totalCop: res.total_cop,
+        customerName: formSnapshot.customer_name,
+        shippingCity: formSnapshot.shipping_city,
+        shippingAddress: formSnapshot.shipping_address,
+        paymentMethodName: res.payment_method_name,
+        items: itemsSnapshot,
+        notes: formSnapshot.notes,
+      });
+      if (autoWaUrl && !isRedirectFlow(res.payment_method_type ?? selectedMethod?.type)) {
+        openExternalUrl(autoWaUrl);
+      }
+      toast.success("¡Pedido registrado! Abriendo WhatsApp con tu resumen…");
     } catch (err) {
       toast.error(formatReadableOrderError(err));
     } finally {
