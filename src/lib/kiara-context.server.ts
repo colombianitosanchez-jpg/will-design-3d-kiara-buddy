@@ -27,7 +27,7 @@ const RAG_RULES = `\n\nREGLAS DE USO DEL CONTEXTO:
 - Responde en español colombiano, claro y breve (máximo 3 párrafos cortos).`;
 
 
-const MAX_KB_CHARS = 24_000;
+export const MAX_KB_CHARS = 8_000;
 
 export type AuthBoundary = { isInternalTeam: boolean; userId: string | null };
 
@@ -70,8 +70,9 @@ function trimBlock(parts: string[]) {
   let used = 0;
   const out: string[] = [];
   for (const p of parts) {
-    if (used + p.length > MAX_KB_CHARS) break;
-    used += p.length;
+    const sep = out.length ? 2 : 0;
+    if (used + sep + p.length > MAX_KB_CHARS) break;
+    used += sep + p.length;
     out.push(p);
   }
   return out.join("\n\n");
@@ -226,40 +227,52 @@ async function paymentBlock(isInternal: boolean): Promise<string> {
   return parts.join("\n\n");
 }
 
-/** MODO PÚBLICO: solo catálogo activo + conocimiento público. Nada de pedidos/clientes/costos. */
+/** MODO PÚBLICO: resumen ligero de categorías y destacados + conocimiento público. Nada de pedidos/clientes/costos. */
 async function buildPublicContext(): Promise<string> {
-  const [{ data: products }, kb, quoter, siteServices, payments] = await Promise.all([
-    supabaseAdmin
-      .from("products")
-      .select("name, slug, price_cop, short, stock, variants, categories(name), brands(name)")
-      .eq("active", true)
-      .order("featured", { ascending: false })
-      .limit(80),
-    knowledge(["public_web", "all"]),
-    quoterBlock(),
-    siteServicesBlock(),
-    paymentBlock(false),
-  ]);
+  const [{ data: categories }, { data: featured }, kb, quoter, siteServices, payments] =
+    await Promise.all([
+      supabaseAdmin.from("categories").select("name").order("name"),
+      supabaseAdmin
+        .from("products")
+        .select("name, slug, price_cop")
+        .eq("active", true)
+        .eq("featured", true)
+        .limit(6),
+      knowledge(["public_web", "all"]),
+      quoterBlock(),
+      siteServicesBlock(),
+      paymentBlock(false),
+    ]);
 
-  const catalog = (products ?? []).map((p) => {
-    const cat = (p as { categories?: { name?: string } | null }).categories?.name ?? "General";
-    const brand = (p as { brands?: { name?: string } | null }).brands?.name ?? "";
-    const avail = (p.stock ?? 0) > 0 ? "disponible" : "bajo pedido";
-    const activeVariants = parseVariants(p.variants)
-      .filter((v) => v.is_active !== false && v.name.trim())
-      .map((v) => v.name.trim());
-    const variantSuffix = activeVariants.length
-      ? ` — Colores/opciones: ${activeVariants.join(", ")}`
-      : "";
-    return `- ${p.name}${brand ? ` (${brand})` : ""} — ${cat} — ${cop(p.price_cop)} — ${avail} — /tienda/${p.slug}${variantSuffix}${p.short ? `\n  ${p.short}` : ""}`;
-  });
+  const catNames = (categories ?? [])
+    .map((c) => String((c as { name?: string }).name ?? "").trim())
+    .filter(Boolean);
+
+  const featuredLines = (featured ?? [])
+    .slice(0, 6)
+    .map((p) => `- ${p.name} (${cop(p.price_cop)}) — /tienda/${p.slug}`);
+
+  const catalogParts: string[] = [];
+  if (catNames.length) {
+    catalogParts.push(`Categorías principales: ${catNames.join(", ")}`);
+  }
+  if (featuredLines.length) {
+    catalogParts.push(`Productos destacados:\n${featuredLines.join("\n")}`);
+  }
+  catalogParts.push(
+    'IMPORTANTE: Para consultar existencias, precios exactos, colores o variantes de cualquier producto, ejecuta SIEMPRE la herramienta "search_products".',
+  );
+
+  const catalogSummary = `## CATÁLOGO Y LÍNEAS DISPONIBLES\n${catalogParts.join("\n\n")}`;
 
   const blocks: string[] = [];
   if (quoter) blocks.push(quoter);
   if (siteServices) blocks.push(siteServices);
-  if (catalog.length) blocks.push(`## CATÁLOGO PÚBLICO\n${catalog.join("\n")}`);
+  blocks.push(catalogSummary);
   if (payments) blocks.push(payments);
-  if (kb.length) blocks.push(`## PREGUNTAS FRECUENTES E INFORMACIÓN PÚBLICA\n${kb.join("\n\n")}`);
+  if (kb.length) {
+    blocks.push(`## PREGUNTAS FRECUENTES E INFORMACIÓN PÚBLICA\n${kb[0]}`, ...kb.slice(1));
+  }
   if (!blocks.length) return "";
   return `\n\n[INFORMACIÓN PÚBLICA DE WILL DESIGN 3D]\n${trimBlock(blocks)}\n[FIN DE LA INFORMACIÓN PÚBLICA]`;
 }

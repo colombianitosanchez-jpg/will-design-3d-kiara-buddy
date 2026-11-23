@@ -1,5 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
+import {
+  boundPublicMessages,
+  formatProviderErrorDetail,
+  shouldFallback,
+} from "@/lib/kiara-routing";
 
 const bodySchema = z.object({
   messages: z
@@ -23,11 +28,6 @@ type Provider = {
   system_prompt: string | null;
   max_tokens: number | null;
 };
-
-/** Códigos que deben provocar el salto al siguiente proveedor de la cascada. */
-function shouldFallback(status: number) {
-  return status === 429 || status >= 500 || status === 401 || status === 403 || status === 400 || status === 404;
-}
 
 
 const PUBLIC_WINDOW_MS = 60_000;
@@ -102,11 +102,8 @@ export const Route = createFileRoute("/api/kiara")({
               { status: 429 },
             );
           }
-          // Limita el contexto público para acotar el costo por solicitud.
-          parsed.messages = parsed.messages.slice(-12).map((m) => ({
-            ...m,
-            content: m.content.slice(0, 1500),
-          }));
+          // Limita el contexto público a los últimos 6 turnos para acotar tokens por solicitud.
+          parsed.messages = boundPublicMessages(parsed.messages);
         }
 
         const { data: contentRows } = await supabaseAdmin
@@ -213,11 +210,14 @@ export const Route = createFileRoute("/api/kiara")({
             });
 
             if (!upstream.ok || !upstream.body) {
-              const detail = upstream.ok ? "sin cuerpo" : `HTTP ${upstream.status}`;
+              const detail = formatProviderErrorDetail(upstream.ok, upstream.status);
               failures.push(`${p.name}: ${detail}`);
-              console.error(`[kiara] proveedor "${p.name}" falló (${detail}), pasando al siguiente`);
               clearTimeout(timer);
-              if (!upstream.ok && !shouldFallback(upstream.status)) continue;
+              if (upstream.ok || shouldFallback(upstream.status)) {
+                console.error(`[kiara] proveedor "${p.name}" falló (${detail}), pasando al siguiente`);
+                continue;
+              }
+              console.error(`[kiara] proveedor "${p.name}" rechazó la solicitud (${detail}), pasando al siguiente`);
               continue;
             }
 
