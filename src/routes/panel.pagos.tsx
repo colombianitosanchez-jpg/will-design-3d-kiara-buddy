@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -275,11 +276,17 @@ function SortablePaymentRow({
 
 function PagosPage() {
   const { isSuperAdmin, loading: authLoading } = useAuth();
+  const queryClient = useQueryClient();
   const load = useServerFn(listAdminPaymentMethods);
   const save = useServerFn(savePaymentMethod);
   const toggle = useServerFn(togglePaymentMethod);
   const reorder = useServerFn(reorderPaymentMethods);
   const remove = useServerFn(deletePaymentMethod);
+
+  function invalidatePaymentCaches() {
+    void queryClient.invalidateQueries({ queryKey: ["public_payment_methods"] });
+    void queryClient.invalidateQueries({ queryKey: ["cart_payment_rules"] });
+  }
 
   const [rows, setRows] = useState<AdminPaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
@@ -424,6 +431,7 @@ function PagosPage() {
       toast.success("Método de pago guardado");
       setForm(null);
       setShowCreds(false);
+      invalidatePaymentCaches();
       await refresh();
     } catch (err) {
       toast.error((err as Error).message);
@@ -436,6 +444,7 @@ function PagosPage() {
     setRows((r) => r.map((x) => (x.id === m.id ? { ...x, is_active: value } : x)));
     try {
       await toggle({ data: { id: m.id, is_active: value } });
+      invalidatePaymentCaches();
     } catch (err) {
       setRows((r) => r.map((x) => (x.id === m.id ? { ...x, is_active: !value } : x)));
       toast.error((err as Error).message);
@@ -447,6 +456,7 @@ function PagosPage() {
     try {
       await remove({ data: { id: m.id } });
       setRows((r) => r.filter((x) => x.id !== m.id));
+      invalidatePaymentCaches();
       toast.success("Método eliminado");
     } catch (err) {
       toast.error((err as Error).message);
@@ -467,6 +477,7 @@ function PagosPage() {
     setRows(reordered);
     try {
       await reorder({ data: { ordered_ids: reordered.map((r) => r.id) } });
+      invalidatePaymentCaches();
       toast.success("Orden de métodos actualizado");
     } catch (err) {
       toast.error((err as Error).message);

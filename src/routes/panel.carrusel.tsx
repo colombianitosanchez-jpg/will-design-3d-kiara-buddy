@@ -7,11 +7,28 @@ import {
   Loader2,
   UploadCloud,
   Trash2,
-  ArrowUp,
-  ArrowDown,
+  GripVertical,
   Film,
   Image as ImageIcon,
 } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -45,6 +62,12 @@ function CarruselAdmin() {
   const [durations, setDurations] = useState<Record<string, string>>({});
   const [actionUrls, setActionUrls] = useState<Record<string, string>>({});
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   async function load() {
     setLoading(true);
@@ -197,25 +220,30 @@ function CarruselAdmin() {
     refreshPublic();
   }
 
-  async function move(index: number, dir: -1 | 1) {
-    const j = index + dir;
-    if (j < 0 || j >= slides.length) return;
-    const a = slides[index];
-    const b = slides[j];
-    const next = [...slides];
-    next[index] = b;
-    next[j] = a;
-    setSlides(next);
-    const updates = next.map((s, i) =>
-      supabase.from("hero_carousel").update({ display_order: i }).eq("id", s.id),
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = slides.findIndex((s) => s.id === active.id);
+    const newIndex = slides.findIndex((s) => s.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+
+    const reordered = arrayMove(slides, oldIndex, newIndex).map((s, idx) => ({
+      ...s,
+      display_order: idx,
+    }));
+    setSlides(reordered);
+    const results = await Promise.all(
+      reordered.map((s, idx) =>
+        supabase.from("hero_carousel").update({ display_order: idx }).eq("id", s.id),
+      ),
     );
-    const results = await Promise.all(updates);
     const failed = results.find((r) => r.error);
     if (failed?.error) {
       toast.error("No pudimos reordenar", { description: failed.error.message });
       await load();
       return;
     }
+    toast.success("Orden del carrusel actualizado");
     refreshPublic();
   }
 
@@ -294,118 +322,158 @@ function CarruselAdmin() {
               Contenido.
             </p>
           ) : (
-            <ul className="space-y-3">
-              {slides.map((s, i) => (
-                <li
-                  key={s.id}
-                  className="flex flex-wrap items-center gap-4 rounded-2xl border border-border p-3"
-                >
-                  <div className="h-16 w-24 shrink-0 overflow-hidden rounded-xl bg-muted">
-                    {s.media_type === "video" ? (
-                      <video
-                        src={s.media_url}
-                        muted
-                        playsInline
-                        preload="metadata"
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <img src={s.media_url} alt="" className="h-full w-full object-cover" />
-                    )}
-                  </div>
-
-                  <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                    {s.media_type === "video" ? (
-                      <>
-                        <Film className="h-3.5 w-3.5" /> Video
-                      </>
-                    ) : (
-                      <>
-                        <ImageIcon className="h-3.5 w-3.5" /> Foto
-                      </>
-                    )}
-                   </span>
-
-                   <label className="flex items-center gap-2 text-xs font-semibold">
-                     Duración (segundos)
-                     <Input
-                       type="number"
-                       min={1}
-                       max={60}
-                       step={0.5}
-                       className="h-9 w-20"
-                       value={
-                         durations[s.id] ??
-                         String((s.duration_ms || DEFAULT_SLIDE_MS) / 1000)
-                       }
-                       onChange={(e) =>
-                         setDurations((d) => ({ ...d, [s.id]: e.target.value }))
-                       }
-                       onBlur={() => saveDuration(s)}
-                       onKeyDown={(e) => {
-                         if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                       }}
-                     />
-                    </label>
-
-                    <label className="flex min-w-[12rem] flex-1 items-center gap-2 text-xs font-semibold">
-                      URL de destino / Enlace (Opcional)
-                      <Input
-                        type="text"
-                        placeholder="/tienda"
-                        className="h-9 flex-1"
-                        value={actionUrls[s.id] ?? (s.action_url || "")}
-                        onChange={(e) =>
-                          setActionUrls((d) => ({ ...d, [s.id]: e.target.value }))
-                        }
-                        onBlur={() => saveActionUrl(s)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                        }}
-                      />
-                    </label>
-
-                  <div className="ml-auto flex items-center gap-3">
-                    <label className="flex items-center gap-2 text-xs font-semibold">
-                      <Switch checked={s.is_active} onCheckedChange={() => toggleActive(s)} />
-                      {s.is_active ? "Visible" : "Oculto"}
-                    </label>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      type="button"
-                      aria-label="Subir en el orden"
-                      onClick={() => move(i, -1)}
-                      disabled={i === 0}
-                    >
-                      <ArrowUp className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      type="button"
-                      aria-label="Bajar en el orden"
-                      onClick={() => move(i, 1)}
-                      disabled={i === slides.length - 1}
-                    >
-                      <ArrowDown className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      type="button"
-                      aria-label="Eliminar"
-                      onClick={() => remove(s)}
-                    >
-                      <Trash2 className="h-4 w-4 text-red-600" />
-                    </Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={slides.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+                <ul className="space-y-3">
+                  {slides.map((s, index) => (
+                    <SortableSlideItem
+                      key={s.id}
+                      slide={s}
+                      index={index}
+                      durationValue={
+                        durations[s.id] ?? String((s.duration_ms || DEFAULT_SLIDE_MS) / 1000)
+                      }
+                      actionUrlValue={actionUrls[s.id] ?? (s.action_url || "")}
+                      onDurationChange={(val) => setDurations((d) => ({ ...d, [s.id]: val }))}
+                      onDurationSave={() => saveDuration(s)}
+                      onActionUrlChange={(val) => setActionUrls((d) => ({ ...d, [s.id]: val }))}
+                      onActionUrlSave={() => saveActionUrl(s)}
+                      onToggleActive={() => toggleActive(s)}
+                      onRemove={() => remove(s)}
+                    />
+                  ))}
+                </ul>
+              </SortableContext>
+            </DndContext>
           )}
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function SortableSlideItem({
+  slide: s,
+  index,
+  durationValue,
+  actionUrlValue,
+  onDurationChange,
+  onDurationSave,
+  onActionUrlChange,
+  onActionUrlSave,
+  onToggleActive,
+  onRemove,
+}: {
+  slide: HeroSlide;
+  index: number;
+  durationValue: string;
+  actionUrlValue: string;
+  onDurationChange: (val: string) => void;
+  onDurationSave: () => void;
+  onActionUrlChange: (val: string) => void;
+  onActionUrlSave: () => void;
+  onToggleActive: () => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: s.id,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className="flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-background p-3 shadow-2xs"
+    >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        aria-label={`Arrastrar elemento ${index + 1}`}
+        className="cursor-grab touch-none rounded-xl p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing"
+        title="Arrastra para reordenar"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+
+      <div className="h-16 w-24 shrink-0 overflow-hidden rounded-xl bg-muted">
+        {s.media_type === "video" ? (
+          <video
+            src={s.media_url}
+            muted
+            playsInline
+            preload="metadata"
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <img src={s.media_url} alt="" className="h-full w-full object-cover" />
+        )}
+      </div>
+
+      <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        {s.media_type === "video" ? (
+          <>
+            <Film className="h-3.5 w-3.5" /> Video
+          </>
+        ) : (
+          <>
+            <ImageIcon className="h-3.5 w-3.5" /> Foto
+          </>
+        )}
+      </span>
+
+      <label className="flex items-center gap-2 text-xs font-semibold">
+        Duración (segundos)
+        <Input
+          type="number"
+          min={1}
+          max={60}
+          step={0.5}
+          className="h-9 w-20"
+          value={durationValue}
+          onChange={(e) => onDurationChange(e.target.value)}
+          onBlur={onDurationSave}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+          }}
+        />
+      </label>
+
+      <label className="flex min-w-[12rem] flex-1 items-center gap-2 text-xs font-semibold">
+        URL de destino / Enlace (Opcional)
+        <Input
+          type="text"
+          placeholder="/tienda"
+          className="h-9 flex-1"
+          value={actionUrlValue}
+          onChange={(e) => onActionUrlChange(e.target.value)}
+          onBlur={onActionUrlSave}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+          }}
+        />
+      </label>
+
+      <div className="ml-auto flex items-center gap-3">
+        <label className="flex items-center gap-2 text-xs font-semibold">
+          <Switch checked={s.is_active} onCheckedChange={onToggleActive} />
+          {s.is_active ? "Visible" : "Oculto"}
+        </label>
+        <Button
+          variant="outline"
+          size="icon"
+          type="button"
+          aria-label={`Eliminar elemento ${index + 1}`}
+          onClick={onRemove}
+        >
+          <Trash2 className="h-4 w-4 text-red-600" />
+        </Button>
+      </div>
+    </li>
   );
 }

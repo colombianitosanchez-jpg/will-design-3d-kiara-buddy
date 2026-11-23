@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Plus,
@@ -7,12 +9,28 @@ import {
   Trash2,
   Loader2,
   X,
-  ChevronUp,
-  ChevronDown,
+  GripVertical,
   CornerDownRight,
   Sparkles,
   AlertTriangle,
 } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   buildTree,
   menuHref,
@@ -32,6 +50,7 @@ import {
   type Brand,
   type Category,
 } from "@/lib/catalog";
+import { applySiblingOrder, resolveSiblingReorder } from "@/lib/tree-reorder";
 
 export const Route = createFileRoute("/panel/menu")({
   ssr: false,
@@ -65,6 +84,7 @@ function flatten(nodes: Node[], depth = 0): { node: Node; depth: number }[] {
 }
 
 function MenuAdmin() {
+  const queryClient = useQueryClient();
   const [rows, setRows] = useState<Row[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -75,8 +95,18 @@ function MenuAdmin() {
   const [busy, setBusy] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
 
-  async function load() {
-    setLoading(true);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  function invalidateMenuCache() {
+    void queryClient.invalidateQueries({ queryKey: ["menu_items"] });
+  }
+
+  async function load(silent = false) {
+    if (!silent) setLoading(true);
     const [m, c, b, a, p] = await Promise.all([
       supabase
         .from("menu_items")
@@ -101,15 +131,20 @@ function MenuAdmin() {
     setBrands((b.data as Brand[]) ?? []);
     setAttributes((a.data as unknown as Attribute[]) ?? []);
     const counts: Record<string, number> = {};
-    ((p.data as any[]) ?? []).forEach((r) => {
+    ((p.data as { category_id: string | null }[] | null) ?? []).forEach((r) => {
       if (r.category_id) counts[r.category_id] = (counts[r.category_id] ?? 0) + 1;
     });
     setProductCounts(counts);
     setLoading(false);
   }
 
+  async function reloadAndInvalidate() {
+    invalidateMenuCache();
+    await load(true);
+  }
+
   useEffect(() => {
-    load();
+    void load();
   }, []);
 
   const tree = buildTree(rows as MenuItemRow[]) as Node[];
@@ -128,28 +163,34 @@ function MenuAdmin() {
       .eq("id", row.id);
     setBusy(null);
     if (error) return alert(error.message);
-    load();
+    await reloadAndInvalidate();
   }
 
-  async function move(row: Row, dir: -1 | 1) {
-    const siblings = rows
-      .filter((r) => (r.parent_id ?? null) === (row.parent_id ?? null))
-      .sort((a, b) => a.display_order - b.display_order);
-    const idx = siblings.findIndex((s) => s.id === row.id);
-    const target = siblings[idx + dir];
-    if (!target) return;
-    setBusy(row.id);
-    const a = await supabase
-      .from("menu_items")
-      .update({ display_order: target.display_order })
-      .eq("id", row.id);
-    const b = await supabase
-      .from("menu_items")
-      .update({ display_order: row.display_order })
-      .eq("id", target.id);
-    setBusy(null);
-    if (a.error || b.error) return alert((a.error ?? b.error)!.message);
-    load();
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const orderedNodes = items.map(({ node }) => node);
+    const result = resolveSiblingReorder(orderedNodes, String(active.id), String(over.id));
+    if (!result) {
+      toast.info("Solo puedes reordenar ítems dentro del mismo nivel");
+      return;
+    }
+
+    setRows((prev) => applySiblingOrder(prev, result.reorderedSiblings, "display_order"));
+    const results = await Promise.all(
+      result.reorderedSiblings.map((item, idx) =>
+        supabase.from("menu_items").update({ display_order: idx }).eq("id", item.id),
+      ),
+    );
+    const failed = results.find((r) => r.error);
+    if (failed?.error) {
+      toast.error("No se pudo reordenar el menú", { description: failed.error.message });
+      await load(true);
+      return;
+    }
+    toast.success("Orden del menú actualizado");
+    await reloadAndInvalidate();
   }
 
   async function remove(row: Row) {
@@ -162,7 +203,7 @@ function MenuAdmin() {
     const { error } = await supabase.from("menu_items").delete().in("id", [...kids, row.id]);
     setBusy(null);
     if (error) return alert(error.message);
-    load();
+    await reloadAndInvalidate();
   }
 
   /** Crea/completa la rama del menú a partir del árbol de categorías, sin tocar los ítems manuales. */
@@ -203,7 +244,7 @@ function MenuAdmin() {
         created++;
       }
       alert(created ? `Se añadieron ${created} ítem(s) al menú.` : "El menú ya cubre todas las categorías.");
-      load();
+      await reloadAndInvalidate();
     } catch (e) {
       alert((e as Error).message);
     } finally {
@@ -250,98 +291,47 @@ function MenuAdmin() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3">Ítem</th>
-                  <th className="px-4 py-3">Destino</th>
-                  <th className="px-4 py-3">Enlace final</th>
-                  <th className="px-4 py-3">Visible</th>
-                  <th className="px-4 py-3">Orden</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map(({ node, depth }) => {
-                  const href = menuHref(node);
-                  const emptyBranch =
-                    node.target_kind === "category" &&
-                    node.category_id &&
-                    !hasProductsInBranch(node.category_id, categories, productCounts);
-                  return (
-                    <tr key={node.id} className="border-t border-border">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 18}px` }}>
-                          {depth > 0 && <CornerDownRight className="h-3.5 w-3.5 text-muted-foreground" />}
-                          <span className={depth === 0 ? "font-bold" : "font-semibold"}>{node.label}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-xs">
-                        {menuTargetLabel(node)}
-                        {emptyBranch && (
-                          <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
-                            <AlertTriangle className="h-3 w-3" /> sin productos
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">{href ?? "— grupo —"}</td>
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => toggleActive(node)}
-                          disabled={busy === node.id}
-                          role="switch"
-                          aria-checked={node.is_active}
-                          aria-label={`Mostrar ${node.label} en el menú público`}
-                          className={`relative h-6 w-11 rounded-full transition ${
-                            node.is_active ? "bg-[var(--brand-teal-deep)]" : "bg-muted"
-                          }`}
-                        >
-                          <span
-                            className={`absolute top-0.5 h-5 w-5 rounded-full bg-background shadow transition-all ${
-                              node.is_active ? "left-[22px]" : "left-0.5"
-                            }`}
-                          />
-                        </button>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => move(node, -1)}
-                            disabled={busy === node.id}
-                            aria-label="Subir"
-                            className="rounded-lg bg-muted p-1.5 hover:bg-muted/70"
-                          >
-                            <ChevronUp className="h-3 w-3" />
-                          </button>
-                          <button
-                            onClick={() => move(node, 1)}
-                            disabled={busy === node.id}
-                            aria-label="Bajar"
-                            className="rounded-lg bg-muted p-1.5 hover:bg-muted/70"
-                          >
-                            <ChevronDown className="h-3 w-3" />
-                          </button>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
-                        <button
-                          onClick={() => setEditing(node)}
-                          className="mr-2 inline-flex items-center gap-1 rounded-lg bg-muted px-3 py-1.5 text-xs font-semibold hover:bg-muted/70"
-                        >
-                          <Pencil className="h-3 w-3" /> Editar
-                        </button>
-                        <button
-                          onClick={() => remove(node)}
-                          className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100"
-                        >
-                          <Trash2 className="h-3 w-3" /> Borrar
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground">
+                  <tr>
+                    <th className="w-10 px-3 py-3"></th>
+                    <th className="px-4 py-3">Ítem</th>
+                    <th className="px-4 py-3">Destino</th>
+                    <th className="px-4 py-3">Enlace final</th>
+                    <th className="px-4 py-3">Visible</th>
+                    <th className="px-4 py-3"></th>
+                  </tr>
+                </thead>
+                <SortableContext
+                  items={items.map(({ node }) => node.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <tbody>
+                    {items.map(({ node, depth }) => {
+                      const href = menuHref(node);
+                      const emptyBranch =
+                        node.target_kind === "category" &&
+                        node.category_id &&
+                        !hasProductsInBranch(node.category_id, categories, productCounts);
+                      return (
+                        <SortableMenuRow
+                          key={node.id}
+                          node={node}
+                          depth={depth}
+                          href={href}
+                          emptyBranch={Boolean(emptyBranch)}
+                          busy={busy === node.id}
+                          onToggleActive={() => toggleActive(node)}
+                          onEdit={() => setEditing(node)}
+                          onRemove={() => remove(node)}
+                        />
+                      );
+                    })}
+                  </tbody>
+                </SortableContext>
+              </table>
+            </DndContext>
           </div>
         )}
       </div>
@@ -356,11 +346,104 @@ function MenuAdmin() {
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null);
-            load();
+            void reloadAndInvalidate();
           }}
         />
       )}
     </>
+  );
+}
+
+function SortableMenuRow({
+  node,
+  depth,
+  href,
+  emptyBranch,
+  busy,
+  onToggleActive,
+  onEdit,
+  onRemove,
+}: {
+  node: Node;
+  depth: number;
+  href: string | null;
+  emptyBranch: boolean;
+  busy: boolean;
+  onToggleActive: () => void;
+  onEdit: () => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: node.id,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+
+  return (
+    <tr ref={setNodeRef} style={style} className="border-t border-border bg-card">
+      <td className="px-3 py-3 text-center">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          aria-label={`Arrastrar ítem ${node.label}`}
+          className="cursor-grab touch-none rounded-xl p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing"
+          title="Arrastrar para reordenar"
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 18}px` }}>
+          {depth > 0 && <CornerDownRight className="h-3.5 w-3.5 text-muted-foreground" />}
+          <span className={depth === 0 ? "font-bold" : "font-semibold"}>{node.label}</span>
+        </div>
+      </td>
+      <td className="px-4 py-3 text-xs">
+        {menuTargetLabel(node)}
+        {emptyBranch && (
+          <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+            <AlertTriangle className="h-3 w-3" /> sin productos
+          </span>
+        )}
+      </td>
+      <td className="px-4 py-3 text-xs text-muted-foreground">{href ?? "— grupo —"}</td>
+      <td className="px-4 py-3">
+        <button
+          onClick={onToggleActive}
+          disabled={busy}
+          role="switch"
+          aria-checked={node.is_active}
+          aria-label={`Mostrar ${node.label} en el menú público`}
+          className={`relative h-6 w-11 rounded-full transition ${
+            node.is_active ? "bg-[var(--brand-teal-deep)]" : "bg-muted"
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 h-5 w-5 rounded-full bg-background shadow transition-all ${
+              node.is_active ? "left-[22px]" : "left-0.5"
+            }`}
+          />
+        </button>
+      </td>
+      <td className="px-4 py-3 text-right whitespace-nowrap">
+        <button
+          onClick={onEdit}
+          className="mr-2 inline-flex items-center gap-1 rounded-lg bg-muted px-3 py-1.5 text-xs font-semibold hover:bg-muted/70"
+        >
+          <Pencil className="h-3 w-3" /> Editar
+        </button>
+        <button
+          onClick={onRemove}
+          className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100"
+        >
+          <Trash2 className="h-3 w-3" /> Borrar
+        </button>
+      </td>
+    </tr>
   );
 }
 

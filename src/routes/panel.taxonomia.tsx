@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Plus,
@@ -8,9 +10,26 @@ import {
   Loader2,
   X,
   CornerDownRight,
-  ChevronUp,
-  ChevronDown,
+  GripVertical,
 } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   buildCategoryTree,
   flattenCategoryTree,
@@ -21,6 +40,7 @@ import {
   type Category,
   type CategoryAttribute,
 } from "@/lib/catalog";
+import { applySiblingOrder, resolveSiblingReorder } from "@/lib/tree-reorder";
 
 export const Route = createFileRoute("/panel/taxonomia")({
   ssr: false,
@@ -30,6 +50,7 @@ export const Route = createFileRoute("/panel/taxonomia")({
 type Tab = "categorias" | "marcas" | "atributos";
 
 function TaxonomiaAdmin() {
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>("categorias");
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -41,8 +62,15 @@ function TaxonomiaAdmin() {
   });
   const [loading, setLoading] = useState(true);
 
-  async function load() {
-    setLoading(true);
+  function invalidateTaxonomyCaches() {
+    void queryClient.invalidateQueries({ queryKey: ["categories"] });
+    void queryClient.invalidateQueries({ queryKey: ["brands"] });
+    void queryClient.invalidateQueries({ queryKey: ["attributes"] });
+    void queryClient.invalidateQueries({ queryKey: ["category_attributes"] });
+  }
+
+  async function load(silent = false) {
+    if (!silent) setLoading(true);
     const [c, b, a, ca, p] = await Promise.all([
       supabase
         .from("categories")
@@ -61,15 +89,15 @@ function TaxonomiaAdmin() {
     setCategories((c.data as Category[]) ?? []);
     setBrands((b.data as Brand[]) ?? []);
     setAttributes(
-      ((a.data as any[]) ?? []).map((x) => ({
+      ((a.data as (Attribute & { values?: AttributeValue[] })[] | null) ?? []).map((x) => ({
         ...x,
-        values: (x.values ?? []).sort((m: AttributeValue, n: AttributeValue) => m.sort_order - n.sort_order),
-      })) as Attribute[],
+        values: [...(x.values ?? [])].sort((m: AttributeValue, n: AttributeValue) => m.sort_order - n.sort_order),
+      })),
     );
     setCatAttrs((ca.data as CategoryAttribute[]) ?? []);
     const cat: Record<string, number> = {};
     const brand: Record<string, number> = {};
-    ((p.data as any[]) ?? []).forEach((r) => {
+    ((p.data as { category_id: string | null; brand_id: string | null }[] | null) ?? []).forEach((r) => {
       if (r.category_id) cat[r.category_id] = (cat[r.category_id] ?? 0) + 1;
       if (r.brand_id) brand[r.brand_id] = (brand[r.brand_id] ?? 0) + 1;
     });
@@ -77,8 +105,13 @@ function TaxonomiaAdmin() {
     setLoading(false);
   }
 
+  async function reloadAndInvalidate() {
+    invalidateTaxonomyCaches();
+    await load(true);
+  }
+
   useEffect(() => {
-    load();
+    void load();
   }, []);
 
   const tabs: { id: Tab; label: string }[] = [
@@ -121,12 +154,20 @@ function TaxonomiaAdmin() {
           attributes={attributes}
           catAttrs={catAttrs}
           counts={counts.cat}
-          reload={load}
+          onOptimisticCategories={setCategories}
+          onInvalidateCaches={invalidateTaxonomyCaches}
+          reload={reloadAndInvalidate}
         />
       ) : tab === "marcas" ? (
-        <BrandsTab brands={brands} counts={counts.brand} reload={load} />
+        <BrandsTab
+          brands={brands}
+          counts={counts.brand}
+          onOptimisticBrands={setBrands}
+          onInvalidateCaches={invalidateTaxonomyCaches}
+          reload={reloadAndInvalidate}
+        />
       ) : (
-        <AttributesTab attributes={attributes} reload={load} />
+        <AttributesTab attributes={attributes} reload={reloadAndInvalidate} />
       )}
     </>
   );
@@ -139,17 +180,27 @@ function CategoriesTab({
   attributes,
   catAttrs,
   counts,
+  onOptimisticCategories,
+  onInvalidateCaches,
   reload,
 }: {
   categories: Category[];
   attributes: Attribute[];
   catAttrs: CategoryAttribute[];
   counts: Record<string, number>;
-  reload: () => void;
+  onOptimisticCategories: (next: Category[]) => void;
+  onInvalidateCaches: () => void;
+  reload: () => Promise<void> | void;
 }) {
   const [editing, setEditing] = useState<Partial<Category> | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const items = useMemo(() => flattenCategoryTree(buildCategoryTree(categories)), [categories]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   function descendants(id: string): string[] {
     const kids = categories.filter((c) => c.parent_id === id);
@@ -164,21 +215,35 @@ function CategoriesTab({
       .eq("id", c.id);
     setBusy(null);
     if (error) return alert(error.message);
-    reload();
+    await reload();
   }
 
-  async function move(c: Category, dir: -1 | 1) {
-    const siblings = categories
-      .filter((x) => (x.parent_id ?? null) === (c.parent_id ?? null))
-      .sort((a, b) => a.sort_order - b.sort_order);
-    const idx = siblings.findIndex((s) => s.id === c.id);
-    const target = siblings[idx + dir];
-    if (!target) return;
-    setBusy(c.id);
-    await supabase.from("categories").update({ sort_order: target.sort_order }).eq("id", c.id);
-    await supabase.from("categories").update({ sort_order: c.sort_order }).eq("id", target.id);
-    setBusy(null);
-    reload();
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const orderedCategories = items.map((item) => item.category);
+    const result = resolveSiblingReorder(orderedCategories, String(active.id), String(over.id));
+    if (!result) {
+      toast.info("Solo puedes reordenar categorías dentro del mismo nivel");
+      return;
+    }
+
+    onOptimisticCategories(applySiblingOrder(categories, result.reorderedSiblings, "sort_order"));
+    const results = await Promise.all(
+      result.reorderedSiblings.map((cat, index) =>
+        supabase.from("categories").update({ sort_order: index }).eq("id", cat.id),
+      ),
+    );
+    const failed = results.find((r) => r.error);
+    if (failed?.error) {
+      toast.error("No se pudo guardar el orden", { description: failed.error.message });
+      await reload();
+      return;
+    }
+    onInvalidateCaches();
+    toast.success("Orden de categorías guardado");
+    await reload();
   }
 
   async function remove(c: Category) {
@@ -198,7 +263,7 @@ function CategoriesTab({
     const { error } = await supabase.from("categories").delete().in("id", [...kids, c.id]);
     setBusy(null);
     if (error) return alert(error.message);
-    reload();
+    await reload();
   }
 
   return (
@@ -214,69 +279,47 @@ function CategoriesTab({
 
       <div className="mt-4 overflow-hidden rounded-3xl border border-border bg-card">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3">Categoría</th>
-                <th className="px-4 py-3">Slug</th>
-                <th className="px-4 py-3">Atributos</th>
-                <th className="px-4 py-3 text-right">Productos</th>
-                <th className="px-4 py-3">Visible</th>
-                <th className="px-4 py-3">Orden</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map(({ category: c, depth }) => {
-                const attrNames = catAttrs
-                  .filter((ca) => ca.category_id === c.id)
-                  .map((ca) => attributes.find((a) => a.id === ca.attribute_id)?.name)
-                  .filter(Boolean);
-                return (
-                  <tr key={c.id} className="border-t border-border">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 18}px` }}>
-                        {depth > 0 && <CornerDownRight className="h-3.5 w-3.5 text-muted-foreground" />}
-                        <span className={depth === 0 ? "font-bold" : "font-semibold"}>{c.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">{c.slug}</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">
-                      {attrNames.length ? attrNames.join(", ") : "—"}
-                    </td>
-                    <td className="px-4 py-3 text-right">{counts[c.id] ?? 0}</td>
-                    <td className="px-4 py-3">
-                      <Switch on={c.is_active} disabled={busy === c.id} onClick={() => toggleActive(c)} label={c.name} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
-                        <IconBtn label="Subir" onClick={() => move(c, -1)}>
-                          <ChevronUp className="h-3 w-3" />
-                        </IconBtn>
-                        <IconBtn label="Bajar" onClick={() => move(c, 1)}>
-                          <ChevronDown className="h-3 w-3" />
-                        </IconBtn>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <button
-                        onClick={() => setEditing(c)}
-                        className="mr-2 inline-flex items-center gap-1 rounded-lg bg-muted px-3 py-1.5 text-xs font-semibold hover:bg-muted/70"
-                      >
-                        <Pencil className="h-3 w-3" /> Editar
-                      </button>
-                      <button
-                        onClick={() => remove(c)}
-                        className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100"
-                      >
-                        <Trash2 className="h-3 w-3" /> Borrar
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="w-10 px-3 py-3"></th>
+                  <th className="px-4 py-3">Categoría</th>
+                  <th className="px-4 py-3">Slug</th>
+                  <th className="px-4 py-3">Atributos</th>
+                  <th className="px-4 py-3 text-right">Productos</th>
+                  <th className="px-4 py-3">Visible</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <SortableContext
+                items={items.map(({ category }) => category.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <tbody>
+                  {items.map(({ category: c, depth }) => {
+                    const attrNames = catAttrs
+                      .filter((ca) => ca.category_id === c.id)
+                      .map((ca) => attributes.find((a) => a.id === ca.attribute_id)?.name)
+                      .filter(Boolean) as string[];
+                    return (
+                      <SortableCategoryRow
+                        key={c.id}
+                        category={c}
+                        depth={depth}
+                        attrNames={attrNames}
+                        productCount={counts[c.id] ?? 0}
+                        busy={busy === c.id}
+                        onToggle={() => toggleActive(c)}
+                        onEdit={() => setEditing(c)}
+                        onRemove={() => remove(c)}
+                      />
+                    );
+                  })}
+                </tbody>
+              </SortableContext>
+            </table>
+          </DndContext>
         </div>
       </div>
 
@@ -289,11 +332,85 @@ function CategoriesTab({
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null);
-            reload();
+            void reload();
           }}
         />
       )}
     </>
+  );
+}
+
+function SortableCategoryRow({
+  category: c,
+  depth,
+  attrNames,
+  productCount,
+  busy,
+  onToggle,
+  onEdit,
+  onRemove,
+}: {
+  category: Category;
+  depth: number;
+  attrNames: string[];
+  productCount: number;
+  busy: boolean;
+  onToggle: () => void;
+  onEdit: () => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: c.id,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+
+  return (
+    <tr ref={setNodeRef} style={style} className="border-t border-border bg-card">
+      <td className="px-3 py-3 text-center">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          aria-label={`Arrastrar categoría ${c.name}`}
+          className="cursor-grab touch-none rounded-xl p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing"
+          title="Arrastrar para reordenar"
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 18}px` }}>
+          {depth > 0 && <CornerDownRight className="h-3.5 w-3.5 text-muted-foreground" />}
+          <span className={depth === 0 ? "font-bold" : "font-semibold"}>{c.name}</span>
+        </div>
+      </td>
+      <td className="px-4 py-3 text-xs text-muted-foreground">{c.slug}</td>
+      <td className="px-4 py-3 text-xs text-muted-foreground">
+        {attrNames.length ? attrNames.join(", ") : "—"}
+      </td>
+      <td className="px-4 py-3 text-right">{productCount}</td>
+      <td className="px-4 py-3">
+        <Switch on={c.is_active} disabled={busy} onClick={onToggle} label={c.name} />
+      </td>
+      <td className="px-4 py-3 text-right whitespace-nowrap">
+        <button
+          onClick={onEdit}
+          className="mr-2 inline-flex items-center gap-1 rounded-lg bg-muted px-3 py-1.5 text-xs font-semibold hover:bg-muted/70"
+        >
+          <Pencil className="h-3 w-3" /> Editar
+        </button>
+        <button
+          onClick={onRemove}
+          className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100"
+        >
+          <Trash2 className="h-3 w-3" /> Borrar
+        </button>
+      </td>
+    </tr>
   );
 }
 
@@ -465,13 +582,23 @@ function CategoryModal({
 function BrandsTab({
   brands,
   counts,
+  onOptimisticBrands,
+  onInvalidateCaches,
   reload,
 }: {
   brands: Brand[];
   counts: Record<string, number>;
-  reload: () => void;
+  onOptimisticBrands: (next: Brand[]) => void;
+  onInvalidateCaches: () => void;
+  reload: () => Promise<void> | void;
 }) {
   const [editing, setEditing] = useState<Partial<Brand> | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   async function remove(b: Brand) {
     if ((counts[b.id] ?? 0) > 0) {
@@ -481,71 +608,83 @@ function BrandsTab({
     if (!confirm(`¿Eliminar la marca “${b.name}”?`)) return;
     const { error } = await supabase.from("brands").delete().eq("id", b.id);
     if (error) return alert(error.message);
-    reload();
+    await reload();
   }
 
   async function toggle(b: Brand) {
     const { error } = await supabase.from("brands").update({ is_active: !b.is_active }).eq("id", b.id);
     if (error) return alert(error.message);
-    reload();
+    await reload();
+  }
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = brands.findIndex((b) => b.id === active.id);
+    const newIndex = brands.findIndex((b) => b.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+
+    const reordered = arrayMove(brands, oldIndex, newIndex).map((b, idx) => ({
+      ...b,
+      sort_order: idx,
+    }));
+    onOptimisticBrands(reordered);
+    const results = await Promise.all(
+      reordered.map((b, idx) =>
+        supabase.from("brands").update({ sort_order: idx }).eq("id", b.id),
+      ),
+    );
+    const failed = results.find((r) => r.error);
+    if (failed?.error) {
+      toast.error("No se pudo guardar el orden", { description: failed.error.message });
+      await reload();
+      return;
+    }
+    onInvalidateCaches();
+    toast.success("Orden de marcas guardado");
+    await reload();
   }
 
   return (
     <>
       <div className="mt-6 flex justify-end">
         <button
-          onClick={() => setEditing({ name: "", slug: "", is_active: true, sort_order: 0 })}
+          onClick={() => setEditing({ name: "", slug: "", is_active: true, sort_order: brands.length })}
           className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-orange)] px-5 py-2.5 text-sm font-bold text-white hover:opacity-90"
         >
           <Plus className="h-4 w-4" /> Añadir marca
         </button>
       </div>
       <div className="mt-4 overflow-hidden rounded-3xl border border-border bg-card">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground">
-            <tr>
-              <th className="px-4 py-3">Logo</th>
-              <th className="px-4 py-3">Marca</th>
-              <th className="px-4 py-3">Slug</th>
-              <th className="px-4 py-3 text-right">Productos</th>
-              <th className="px-4 py-3">Visible</th>
-              <th className="px-4 py-3"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {brands.map((b) => (
-              <tr key={b.id} className="border-t border-border">
-                <td className="px-4 py-3">
-                  {b.logo_url ? (
-                    <img src={b.logo_url} alt="" className="h-9 w-9 rounded-lg object-contain" />
-                  ) : (
-                    <div className="h-9 w-9 rounded-lg bg-muted" />
-                  )}
-                </td>
-                <td className="px-4 py-3 font-semibold">{b.name}</td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">{b.slug ?? "—"}</td>
-                <td className="px-4 py-3 text-right">{counts[b.id] ?? 0}</td>
-                <td className="px-4 py-3">
-                  <Switch on={b.is_active} onClick={() => toggle(b)} label={b.name} />
-                </td>
-                <td className="px-4 py-3 text-right whitespace-nowrap">
-                  <button
-                    onClick={() => setEditing(b)}
-                    className="mr-2 inline-flex items-center gap-1 rounded-lg bg-muted px-3 py-1.5 text-xs font-semibold hover:bg-muted/70"
-                  >
-                    <Pencil className="h-3 w-3" /> Editar
-                  </button>
-                  <button
-                    onClick={() => remove(b)}
-                    className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100"
-                  >
-                    <Trash2 className="h-3 w-3" /> Borrar
-                  </button>
-                </td>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="w-10 px-3 py-3"></th>
+                <th className="px-4 py-3">Logo</th>
+                <th className="px-4 py-3">Marca</th>
+                <th className="px-4 py-3">Slug</th>
+                <th className="px-4 py-3 text-right">Productos</th>
+                <th className="px-4 py-3">Visible</th>
+                <th className="px-4 py-3"></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <SortableContext items={brands.map((b) => b.id)} strategy={verticalListSortingStrategy}>
+              <tbody>
+                {brands.map((b) => (
+                  <SortableBrandRow
+                    key={b.id}
+                    brand={b}
+                    productCount={counts[b.id] ?? 0}
+                    onToggle={() => toggle(b)}
+                    onEdit={() => setEditing(b)}
+                    onRemove={() => remove(b)}
+                  />
+                ))}
+              </tbody>
+            </SortableContext>
+          </table>
+        </DndContext>
       </div>
 
       {editing && (
@@ -554,11 +693,78 @@ function BrandsTab({
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null);
-            reload();
+            void reload();
           }}
         />
       )}
     </>
+  );
+}
+
+function SortableBrandRow({
+  brand: b,
+  productCount,
+  onToggle,
+  onEdit,
+  onRemove,
+}: {
+  brand: Brand;
+  productCount: number;
+  onToggle: () => void;
+  onEdit: () => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: b.id,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+
+  return (
+    <tr ref={setNodeRef} style={style} className="border-t border-border bg-card">
+      <td className="px-3 py-3 text-center">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          aria-label={`Arrastrar marca ${b.name}`}
+          className="cursor-grab touch-none rounded-xl p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing"
+          title="Arrastrar para reordenar"
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+      </td>
+      <td className="px-4 py-3">
+        {b.logo_url ? (
+          <img src={b.logo_url} alt="" className="h-9 w-9 rounded-lg object-contain" />
+        ) : (
+          <div className="h-9 w-9 rounded-lg bg-muted" />
+        )}
+      </td>
+      <td className="px-4 py-3 font-semibold">{b.name}</td>
+      <td className="px-4 py-3 text-xs text-muted-foreground">{b.slug ?? "—"}</td>
+      <td className="px-4 py-3 text-right">{productCount}</td>
+      <td className="px-4 py-3">
+        <Switch on={b.is_active} onClick={onToggle} label={b.name} />
+      </td>
+      <td className="px-4 py-3 text-right whitespace-nowrap">
+        <button
+          onClick={onEdit}
+          className="mr-2 inline-flex items-center gap-1 rounded-lg bg-muted px-3 py-1.5 text-xs font-semibold hover:bg-muted/70"
+        >
+          <Pencil className="h-3 w-3" /> Editar
+        </button>
+        <button
+          onClick={onRemove}
+          className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100"
+        >
+          <Trash2 className="h-3 w-3" /> Borrar
+        </button>
+      </td>
+    </tr>
   );
 }
 
@@ -981,27 +1187,6 @@ function Switch({
           on ? "left-[22px]" : "left-0.5"
         }`}
       />
-    </button>
-  );
-}
-
-function IconBtn({
-  label,
-  onClick,
-  children,
-}: {
-  label: string;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      aria-label={label}
-      className="rounded-lg bg-muted p-1.5 hover:bg-muted/70"
-      type="button"
-    >
-      {children}
     </button>
   );
 }

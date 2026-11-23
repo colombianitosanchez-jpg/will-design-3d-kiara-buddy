@@ -1,5 +1,6 @@
 import { ProductMedia } from "@/components/ProductMedia";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import React, { useEffect, useMemo, useRef, useState, memo } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -194,6 +195,7 @@ type HierarchyActionPrompt =
     };
 
 function ProductosAdmin() {
+  const queryClient = useQueryClient();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -292,6 +294,9 @@ function ProductosAdmin() {
     setCatAttrs((ca.data as CategoryAttribute[]) ?? []);
     setAttrRows((pav.data as ProductAttrRow[]) ?? []);
     setLoading(false);
+    if (isBackground) {
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
+    }
   }
 
   function handleEditProduct(product: Product, varId?: string | null) {
@@ -1252,6 +1257,7 @@ function ProductModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const queryClient = useQueryClient();
   const [form, setForm] = useState<Partial<Product>>(product);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -1363,6 +1369,7 @@ function ProductModal({
       .single();
     if (error) return alert(error.message);
     set("category_id", data.id);
+    void queryClient.invalidateQueries({ queryKey: ["categories"] });
     alert("Categoría creada. Se verá en toda la tienda al guardar el producto.");
   }
 
@@ -1376,6 +1383,7 @@ function ProductModal({
       .single();
     if (error) return alert(error.message);
     set("brand_id", data.id);
+    void queryClient.invalidateQueries({ queryKey: ["brands"] });
   }
 
   async function uploadToStorage(file: File): Promise<string> {
@@ -1491,6 +1499,7 @@ function ProductModal({
       setHasDraft(false);
       lastSaved.current = snapshot;
       dirty.current = true;
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
     } catch (e) {
       toast.error("No pudimos guardar", { description: (e as Error).message });
     } finally {
