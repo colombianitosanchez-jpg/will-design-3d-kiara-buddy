@@ -59,7 +59,7 @@ export function openExternalUrl(url: string | null | undefined): void {
       a.click();
       document.body.removeChild(a);
     } catch {
-      console.error("No se pudo abrir la URL externa de WhatsApp:", trimmed);
+      console.error("No se pudo abrir el enlace externo de WhatsApp.");
     }
   }
 }
