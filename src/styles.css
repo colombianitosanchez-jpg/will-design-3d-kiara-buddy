@@ -96,14 +96,14 @@
   padding: 0.85rem 1.6rem;
   font-weight: 600;
   color: var(--primary-foreground);
-  background: linear-gradient(135deg, var(--brand-orange), var(--brand-orange-deep));
-  box-shadow: 0 10px 30px -12px color-mix(in oklab, var(--brand-orange) 60%, transparent);
+  background: var(--primary);
+  box-shadow: 0 10px 30px -12px color-mix(in oklab, var(--primary) 60%, transparent);
   transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
   @media (hover: hover) {
    &:hover {
     transform: translateY(-1px);
     filter: brightness(1.05);
-    box-shadow: 0 14px 34px -12px color-mix(in oklab, var(--brand-orange) 70%, transparent);
+    box-shadow: 0 14px 34px -12px color-mix(in oklab, var(--primary) 70%, transparent);
    }
   }
 }
@@ -116,14 +116,14 @@
   border-radius: var(--btn-radius, 9999px);
   padding: 0.8rem 1.5rem;
   font-weight: 600;
-  color: var(--brand-wine);
-  border: 1.5px solid var(--brand-wine);
+  color: var(--secondary);
+  border: 1.5px solid var(--secondary);
   background: transparent;
   transition: background 0.2s ease, color 0.2s ease;
   @media (hover: hover) {
     &:hover {
-      background: var(--brand-wine);
-      color: var(--primary-foreground);
+      background: var(--secondary);
+      color: var(--secondary-foreground);
     }
   }
 }

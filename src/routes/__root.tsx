@@ -26,13 +26,17 @@ import { useQuery } from "@tanstack/react-query";
 import { siteContentQuery, categoriesQuery } from "../lib/catalog";
 import { siteServicesQuery } from "./servicios";
 import { menuItemsQuery } from "../lib/menu";
-import { getActiveTheme, applyThemeToDocument } from "../lib/theme";
+import { getActiveTheme, applyThemeToDocument, buildThemeGlobalCss } from "../lib/theme";
 import { getCanonicalBaseUrl, getRobotsContent, getSeo } from "../lib/seo";
 import { toAbsoluteUrl } from "../lib/whatsapp-buttons";
 import { AmbientBackdrop } from "../components/AmbientBackdrop";
 
 function ThemeApplier() {
-  const { data: content } = useQuery(siteContentQuery());
+  const loaderData = Route.useLoaderData();
+  const { data: content } = useQuery({
+    ...siteContentQuery(),
+    initialData: loaderData?.siteContent,
+  });
   const activeTheme = getActiveTheme(content);
   useEffect(() => {
     applyThemeToDocument(activeTheme);
@@ -118,7 +122,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ]);
     return { siteContent, menuItems, categories, siteServices };
   },
-  head: ({ loaderData }: any) => {
+  head: ({ loaderData }) => {
     const siteContent = loaderData?.siteContent;
     const seo = getSeo(null, siteContent);
     const baseUrl = getCanonicalBaseUrl(siteContent);
@@ -153,6 +157,32 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         : []),
     ];
 
+    const activeTheme = getActiveTheme(siteContent);
+    const themeCss = buildThemeGlobalCss(activeTheme);
+    const bgMediaUrl = activeTheme.background?.mediaUrl?.trim() || "";
+    const hasMediaBg = Boolean(
+      bgMediaUrl && activeTheme.background?.type && activeTheme.background.type !== "solid",
+    );
+    const isVideoBg =
+      activeTheme.background?.type === "video" || /\.(mp4|webm|mov)(\?|$)/i.test(bgMediaUrl);
+    const mediaPreloadLinks = hasMediaBg
+      ? [
+          isVideoBg
+            ? {
+                rel: "preload",
+                as: "video",
+                href: bgMediaUrl,
+                type: /\.webm(\?|$)/i.test(bgMediaUrl) ? "video/webm" : "video/mp4",
+              }
+            : {
+                rel: "preload",
+                as: "image",
+                href: bgMediaUrl,
+                fetchPriority: "high" as const,
+              },
+        ]
+      : [];
+
     return {
       meta: metaTags,
       links: [
@@ -160,6 +190,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         { rel: "icon", href: favicon },
         { rel: "shortcut icon", href: favicon },
         { rel: "apple-touch-icon", href: favicon },
+        ...mediaPreloadLinks,
+      ],
+      styles: [
+        {
+          id: "active-theme-custom-css",
+          children: themeCss,
+        },
       ],
       scripts: [
         {

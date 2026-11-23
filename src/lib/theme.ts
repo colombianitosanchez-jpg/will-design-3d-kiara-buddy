@@ -425,31 +425,61 @@ export function buildThemeGlobalCss(theme: SiteTheme): string {
   const radiusKey = normalized.buttonStyle.globalRadius ?? "default";
   const radiusToken = THEME_RADIUS_TOKENS[radiusKey] ?? THEME_RADIUS_TOKENS.default;
   const c = normalized.colors;
+  const primaryColor = c.primary || c.brandOrange;
+  const primaryFg = c.primaryForeground || normalized.buttonStyle.textColor || "#ffffff";
+  const secondaryColor = c.secondary || c.brandTeal;
+  const secondaryFg = c.secondaryForeground || "#ffffff";
+  const accentColor = c.accent || c.brandWine;
+  const accentFg = c.accentForeground || "#ffffff";
+
   const rootVars: string[] = [
+    `--background: ${c.background};`,
+    `--brand-orange: ${c.brandOrange};`,
+    `--brand-orange-deep: ${c.brandOrange};`,
+    `--primary: ${primaryColor};`,
+    `--primary-foreground: ${primaryFg};`,
+    `--brand-teal: ${c.brandTeal};`,
+    `--secondary: ${secondaryColor};`,
+    `--secondary-foreground: ${secondaryFg};`,
+    `--brand-wine: ${c.brandWine};`,
+    `--accent: ${accentColor};`,
+    `--accent-foreground: ${accentFg};`,
     `--radius: ${radiusToken.cssRadius};`,
     `--btn-radius: ${radiusToken.buttonRadius};`,
   ];
 
+  c.palette.forEach((token) => {
+    if (token?.id && token?.hex) {
+      rootVars.push(`--theme-color-${token.id}: ${token.hex};`);
+    }
+  });
+
   if (c.foreground) rootVars.push(`--foreground: ${c.foreground};`);
   if (c.headingColor) rootVars.push(`--theme-heading-color: ${c.headingColor};`);
+  if (c.muted) rootVars.push(`--muted: ${c.muted};`);
   if (c.mutedForeground) rootVars.push(`--muted-foreground: ${c.mutedForeground};`);
   if (c.card) rootVars.push(`--card: ${c.card};`);
   if (c.cardForeground) rootVars.push(`--card-foreground: ${c.cardForeground};`);
-  if (c.primaryForeground) rootVars.push(`--primary-foreground: ${c.primaryForeground};`);
-  if (c.secondaryForeground) rootVars.push(`--secondary-foreground: ${c.secondaryForeground};`);
   if (c.border) rootVars.push(`--border: ${c.border};`);
+  if (c.ring) rootVars.push(`--ring: ${c.ring};`);
   if (normalized.buttonStyle.textColor) {
     rootVars.push(`--theme-btn-text-color: ${normalized.buttonStyle.textColor};`);
   }
 
   const parts: string[] = [`:root { ${rootVars.join(" ")} }`];
 
-  if (c.headingColor) {
-    parts.push(`h1, h2, h3, .theme-heading { color: var(--theme-heading-color); }`);
-  }
+  parts.push(
+    `h1, h2, h3, h4, h5, h6, .theme-heading { color: var(--theme-heading-color, var(--foreground)); }`,
+  );
+  parts.push(
+    `.btn-primary, .unified-theme-btn {\n  background-color: var(--primary);\n  color: var(--primary-foreground);\n  border-radius: var(--btn-radius, 9999px);\n}`,
+  );
   if (normalized.buttonStyle.textColor) {
     parts.push(`.btn-primary, .unified-theme-btn { color: var(--theme-btn-text-color); }`);
   }
+  parts.push(
+    `.btn-outline {\n  background-color: transparent;\n  border-color: var(--secondary);\n  color: var(--secondary);\n  border-radius: var(--btn-radius, 9999px);\n}`,
+  );
 
   if (normalized.customCss?.trim()) {
     parts.push(normalized.customCss);

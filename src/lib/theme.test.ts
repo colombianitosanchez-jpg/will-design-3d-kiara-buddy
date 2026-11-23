@@ -113,10 +113,128 @@ describe("Sistema de Temas Vivos", () => {
     expect(custom.buttonStyle.mediaUrl).toBe("https://cdn.example.com/btn-spark.gif");
 
     const css = buildThemeGlobalCss(custom);
+    expect(css).toContain("--background: #09090b;");
+    expect(css).toContain("--brand-orange: #f59e0b;");
+    expect(css).toContain("--brand-orange-deep: #f59e0b;");
+    expect(css).toContain("--primary: #f59e0b;");
+    expect(css).toContain("--primary-foreground: #09090b;");
+    expect(css).toContain("--brand-teal: #10b981;");
+    expect(css).toContain("--secondary: #10b981;");
+    expect(css).toContain("--secondary-foreground: #ffffff;");
+    expect(css).toContain("--brand-wine: #111827;");
+    expect(css).toContain("--accent: #111827;");
+    expect(css).toContain("--accent-foreground: #ffffff;");
+    expect(css).toContain("--theme-color-brandOrange: #f59e0b;");
     expect(css).toContain("--foreground: #fafafa;");
     expect(css).toContain("--theme-heading-color: #fde68a;");
     expect(css).toContain("--muted-foreground: #a1a1aa;");
     expect(css).toContain("--card: #18181b;");
     expect(css).toContain("--theme-btn-text-color: #ffffff;");
+    expect(css).toContain("h1, h2, h3, h4, h5, h6, .theme-heading { color: var(--theme-heading-color, var(--foreground)); }");
+    expect(css).toContain("background-color: var(--primary);");
+    expect(css).toContain("border-color: var(--secondary);");
+  });
+
+  it("inyecta CSS activo en head() de __root y precarga video/imagen de fondo", async () => {
+    const { Route: RootRoute } = await import("@/routes/__root");
+    type RootHeadFn = (ctx: { loaderData: { siteContent: Record<string, string> } }) => {
+      links: Array<Record<string, unknown>>;
+      styles?: Array<{ id?: string; children?: string }>;
+    };
+
+    const videoThemeContent = {
+      active_theme_id: "custom_video",
+      custom_themes: JSON.stringify([
+        {
+          id: "custom_video",
+          name: "Video SSR",
+          description: "Fondo en video",
+          colors: {
+            brandOrange: "#e11d48",
+            brandTeal: "#0ea5e9",
+            brandWine: "#312e81",
+            background: "#020617",
+          },
+          background: {
+            type: "video",
+            mediaUrl: "https://cdn.example.com/hero.mp4",
+          },
+          buttonStyle: { animation: "none" },
+        },
+      ]),
+    };
+
+    const videoHead = (RootRoute.options.head as unknown as RootHeadFn)({
+      loaderData: { siteContent: videoThemeContent },
+    });
+    expect(videoHead.styles).toHaveLength(1);
+    expect(videoHead.styles?.[0].id).toBe("active-theme-custom-css");
+    expect(videoHead.styles?.[0].children).toContain("--background: #020617;");
+    expect(videoHead.styles?.[0].children).toContain("--primary: #e11d48;");
+    expect(videoHead.links).toContainEqual({
+      rel: "preload",
+      as: "video",
+      href: "https://cdn.example.com/hero.mp4",
+      type: "video/mp4",
+    });
+
+    const imageThemeContent = {
+      active_theme_id: "custom_img",
+      custom_themes: JSON.stringify([
+        {
+          id: "custom_img",
+          name: "Imagen SSR",
+          description: "Fondo en imagen",
+          colors: { background: "#111827" },
+          background: {
+            type: "image",
+            mediaUrl: "https://cdn.example.com/bg.webp",
+          },
+          buttonStyle: { animation: "none" },
+        },
+      ]),
+    };
+
+    const imageHead = (RootRoute.options.head as unknown as RootHeadFn)({
+      loaderData: { siteContent: imageThemeContent },
+    });
+    expect(imageHead.links).toContainEqual({
+      rel: "preload",
+      as: "image",
+      href: "https://cdn.example.com/bg.webp",
+      fetchPriority: "high",
+    });
+  }, 15000);
+
+  it("AmbientBackdrop renderiza multimedia y efectos CSS en SSR sin bloquear, difiriendo solo SnowCanvas", async () => {
+    const { renderToString } = await import("react-dom/server");
+    const { createElement } = await import("react");
+    const { AmbientBackdrop } = await import("@/components/AmbientBackdrop");
+
+    const videoGridHtml = renderToString(
+      createElement(AmbientBackdrop, {
+        background: {
+          type: "video",
+          mediaUrl: "https://cdn.example.com/loop.mp4",
+          fit: "cover",
+          overlayOpacity: 40,
+          overlayColor: "#000000",
+        },
+        effect: "grid",
+        intensity: 60,
+      }),
+    );
+    expect(videoGridHtml).toContain("<video");
+    expect(videoGridHtml).toContain('preload="auto"');
+    expect(videoGridHtml).toContain("ambient-grid");
+    expect(videoGridHtml).not.toContain("<canvas");
+
+    const snowHtml = renderToString(
+      createElement(AmbientBackdrop, {
+        effect: "snow",
+        intensity: 65,
+      }),
+    );
+    expect(snowHtml).not.toContain("<canvas");
   });
 });

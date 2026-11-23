@@ -129,6 +129,7 @@ function MultimediaBackgroundLayer({ background }: { background: ThemeBackground
           loop
           muted
           playsInline
+          preload="auto"
           onError={() => setMediaFailed(true)}
           className={`h-full w-full object-center ${fitClass}`}
         />
@@ -179,10 +180,6 @@ export function AmbientBackdrop({
     setMounted(true);
   }, []);
 
-  if (!mounted) {
-    return null;
-  }
-
   const hasMediaBackground = Boolean(
     background && background.type !== "solid" && background.mediaUrl?.trim(),
   );
@@ -201,7 +198,7 @@ export function AmbientBackdrop({
         <MultimediaBackgroundLayer background={background} />
       )}
 
-      {effect === "snow" && <SnowCanvas intensity={normalizedIntensity} />}
+      {effect === "snow" && mounted && <SnowCanvas intensity={normalizedIntensity} />}
 
       {effect === "grid" && (
         <div
