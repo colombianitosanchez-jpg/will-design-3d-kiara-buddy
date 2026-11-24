@@ -1,7 +1,7 @@
 import { ProductMedia } from "@/components/ProductMedia";
 import { resolveProductShareImage, productShareLink, productShareUrl } from "@/lib/product-share";
 import { StockIndicator } from "@/components/StockIndicator";
-import { createFileRoute, Link, notFound, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ShareButton } from "@/components/ShareButton";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -31,7 +31,6 @@ import { buildButtonWhatsappText } from "@/lib/product-buttons";
 import { lazy, Suspense } from "react";
 import { file3dWaNote, type Dims3D } from "@/lib/file3d-types";
 import { getCanonicalBaseUrl, getSeo } from "@/lib/seo";
-import { safeEnsureQueryResult } from "@/lib/ssr-resilience";
 
 const FileDropzone3D = lazy(() =>
   import("@/components/FileDropzone3D").then((m) => ({ default: m.FileDropzone3D }))
@@ -45,31 +44,16 @@ export const Route = createFileRoute("/tienda/$slug")({
   }),
   loaderDeps: ({ search }) => ({ v: search.v }),
   loader: async ({ params, context, deps }) => {
-    const productRes = await safeEnsureQueryResult(
-      context.queryClient,
-      productBySlugQuery(params.slug),
-      null,
-      `product_${params.slug}`,
-    );
-    if (!productRes.degraded && !productRes.data) throw notFound();
-    if (!productRes.degraded) {
-      context.queryClient.prefetchQuery(productsQuery());
-    }
-    return {
-      product: productRes.data,
-      variantId: deps.v ?? null,
-      degraded: productRes.degraded,
-    };
+    const product = await context.queryClient.ensureQueryData(productBySlugQuery(params.slug));
+    if (!product) throw notFound();
+    context.queryClient.prefetchQuery(productsQuery());
+    return { product, variantId: deps.v ?? null };
   },
   head: ({ params, loaderData }) => {
-    if (!loaderData?.product) {
+    if (!loaderData) {
       return {
         meta: [
-          {
-            title: loaderData?.degraded
-              ? "Catálogo temporalmente no disponible — Will Design 3D"
-              : "Producto no encontrado — Will Design 3D",
-          },
+          { title: "Producto no encontrado — Will Design 3D" },
           { name: "robots", content: "noindex" },
         ],
       };
@@ -174,45 +158,8 @@ const GRADIENTS: Record<string, string> = {
     "linear-gradient(135deg, color-mix(in oklab, var(--brand-wine) 30%, white), color-mix(in oklab, var(--brand-wine) 70%, white))",
 };
 
-function ProductUnavailable() {
-  const router = useRouter();
-  return (
-    <div className="mx-auto max-w-2xl px-4 py-24 text-center sm:px-6">
-      <h1 className="text-2xl font-black sm:text-3xl">No pudimos cargar este producto</h1>
-      <p className="mt-3 text-sm text-muted-foreground">
-        La conexión con el catálogo no respondió a tiempo. Puedes intentar de nuevo o volver a la tienda.
-      </p>
-      <div className="mt-6 flex flex-wrap justify-center gap-3">
-        <button type="button" onClick={() => router.invalidate()} className="btn-primary text-sm">
-          Reintentar
-        </button>
-        <Link to="/tienda" className="btn-outline text-sm">
-          Volver a la tienda
-        </Link>
-      </div>
-    </div>
-  );
-}
-
 function ProductPage() {
-  const { product, variantId: initialVariantId } = Route.useLoaderData() as {
-    product: Product | null;
-    variantId: string | null;
-    degraded?: boolean;
-  };
-  if (!product) {
-    return <ProductUnavailable />;
-  }
-  return <ProductPageContent product={product} initialVariantId={initialVariantId} />;
-}
-
-function ProductPageContent({
-  product,
-  initialVariantId,
-}: {
-  product: Product;
-  initialVariantId: string | null;
-}) {
+  const { product, variantId: initialVariantId } = Route.useLoaderData() as { product: Product; variantId: string | null };
   const { data: allProducts = [] } = useQuery(productsQuery());
   const related = allProducts
     .filter((p) => p.category?.slug === product.category?.slug && p.slug !== product.slug)

@@ -10,10 +10,10 @@ import { siteContentQuery } from "@/lib/catalog";
 export function useSiteContent() {
   const matches = useMatches() as any[];
   const rootMatch = matches.find((m) => m.loaderData && "siteContent" in m.loaderData)?.loaderData;
+  // Utiliza el caché hidratado por SSR desde el loader de la ruta con queryKey ["site_content"]
   const query = useQuery({
     ...siteContentQuery(),
-    initialData: rootMatch?.backendDegraded ? undefined : rootMatch?.siteContent,
-    placeholderData: rootMatch?.siteContent,
+    initialData: rootMatch?.siteContent,
   });
   const data = query.data ?? {};
 

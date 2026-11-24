@@ -31,7 +31,6 @@ import {
 import { ProductCard } from "@/components/ProductCard";
 import { getMatchingVariants, type ProductVariant } from "@/lib/product-variants";
 import { getCanonicalBaseUrl, resolvePageSeo } from "@/lib/seo";
-import { safeEnsureQueryData } from "@/lib/ssr-resilience";
 
 export const Route = createFileRoute("/tienda/")({
   validateSearch: (
@@ -44,12 +43,12 @@ export const Route = createFileRoute("/tienda/")({
   loader: async ({ context }) => {
     const [siteContent, products, categories, brands, attributes, categoryAttributes] =
       await Promise.all([
-        safeEnsureQueryData(context.queryClient, siteContentQuery(), {} as Record<string, string>, "tienda_site_content"),
-        safeEnsureQueryData(context.queryClient, productsQuery(), [], "tienda_products"),
-        safeEnsureQueryData(context.queryClient, categoriesQuery(), [], "tienda_categories"),
-        safeEnsureQueryData(context.queryClient, brandsQuery(), [], "tienda_brands"),
-        safeEnsureQueryData(context.queryClient, attributesQuery(), [], "tienda_attributes"),
-        safeEnsureQueryData(context.queryClient, categoryAttributesQuery(), [], "tienda_category_attributes"),
+        context.queryClient.ensureQueryData(siteContentQuery()),
+        context.queryClient.ensureQueryData(productsQuery()),
+        context.queryClient.ensureQueryData(categoriesQuery()),
+        context.queryClient.ensureQueryData(brandsQuery()),
+        context.queryClient.ensureQueryData(attributesQuery()),
+        context.queryClient.ensureQueryData(categoryAttributesQuery()),
       ]);
     return { siteContent, products, categories, brands, attributes, categoryAttributes };
   },

@@ -3,7 +3,6 @@ import { z } from "zod";
 import { Quoter } from "@/components/Quoter";
 import { siteContentQuery } from "@/lib/catalog";
 import { getCanonicalBaseUrl, resolvePageSeo } from "@/lib/seo";
-import { safeEnsureQueryData } from "@/lib/ssr-resilience";
 
 const searchSchema = z.object({
   servicio: z.string().max(80).optional(),
@@ -12,12 +11,7 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/cotizador")({
   validateSearch: searchSchema,
   loader: async ({ context }) => {
-    const siteContent = await safeEnsureQueryData(
-      context.queryClient,
-      siteContentQuery(),
-      {} as Record<string, string>,
-      "cotizador_site_content",
-    );
+    const siteContent = await context.queryClient.ensureQueryData(siteContentQuery());
     return { siteContent };
   },
   head: ({ loaderData }: { loaderData?: { siteContent?: Record<string, string> } }) => {

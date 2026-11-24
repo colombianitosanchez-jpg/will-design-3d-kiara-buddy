@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { siteContentQuery, getContactInfo, waLink } from "@/lib/catalog";
 import { openExternalUrl } from "@/lib/whatsapp";
 import { getCanonicalBaseUrl, resolvePageSeo } from "@/lib/seo";
-import { safeEnsureQueryData } from "@/lib/ssr-resilience";
 import {
   parseContactBlocksOrder,
   parseContactChannels,
@@ -19,12 +18,7 @@ import { SOCIAL_PLATFORM_LABELS, SocialPlatformIcon } from "@/components/SocialP
 
 export const Route = createFileRoute("/contacto")({
   loader: async ({ context }) => {
-    const siteContent = await safeEnsureQueryData(
-      context.queryClient,
-      siteContentQuery(),
-      {} as Record<string, string>,
-      "contacto_site_content",
-    );
+    const siteContent = await context.queryClient.ensureQueryData(siteContentQuery());
     return { siteContent };
   },
   head: ({ loaderData }: { loaderData?: { siteContent?: Record<string, string> } }) => {

@@ -30,7 +30,6 @@ import { getActiveTheme, applyThemeToDocument, buildThemeGlobalCss } from "../li
 import { getCanonicalBaseUrl, getRobotsContent, getSeo } from "../lib/seo";
 import { toAbsoluteUrl } from "../lib/whatsapp-buttons";
 import { AmbientBackdrop } from "../components/AmbientBackdrop";
-import { safeEnsureQueryResult } from "../lib/ssr-resilience";
 
 function ThemeApplier() {
   const loaderData = Route.useLoaderData();
@@ -115,23 +114,13 @@ function ErrorComponent({ error, reset }: { error: unknown; reset: () => void })
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   loader: async ({ context }) => {
-    const [siteContentRes, menuItemsRes, categoriesRes, siteServicesRes] = await Promise.all([
-      safeEnsureQueryResult(context.queryClient, siteContentQuery(), {} as Record<string, string>, "site_content"),
-      safeEnsureQueryResult(context.queryClient, menuItemsQuery(), [], "menu_items"),
-      safeEnsureQueryResult(context.queryClient, categoriesQuery(), [], "categories"),
-      safeEnsureQueryResult(context.queryClient, siteServicesQuery(), [], "site_services"),
+    const [siteContent, menuItems, categories, siteServices] = await Promise.all([
+      context.queryClient.ensureQueryData(siteContentQuery()),
+      context.queryClient.ensureQueryData(menuItemsQuery()),
+      context.queryClient.ensureQueryData(categoriesQuery()),
+      context.queryClient.ensureQueryData(siteServicesQuery()),
     ]);
-    return {
-      siteContent: siteContentRes.data,
-      menuItems: menuItemsRes.data,
-      categories: categoriesRes.data,
-      siteServices: siteServicesRes.data,
-      backendDegraded:
-        siteContentRes.degraded ||
-        menuItemsRes.degraded ||
-        categoriesRes.degraded ||
-        siteServicesRes.degraded,
-    };
+    return { siteContent, menuItems, categories, siteServices };
   },
   head: ({ loaderData }) => {
     const siteContent = loaderData?.siteContent;
@@ -261,9 +250,6 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const loaderData = Route.useLoaderData();
-  const router = useRouter();
-  const backendDegraded = Boolean(loaderData?.backendDegraded);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -272,23 +258,6 @@ function RootComponent() {
         <CartProvider>
           <div className="relative flex min-h-screen flex-col text-foreground">
             <LiveBanner />
-            {backendDegraded && (
-              <div
-                role="status"
-                className="relative z-40 border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-center text-xs text-foreground"
-              >
-                <span>
-                  Conexión temporalmente limitada con el catálogo. Algunas secciones pueden mostrarse incompletas.
-                </span>{" "}
-                <button
-                  type="button"
-                  onClick={() => router.invalidate()}
-                  className="ml-2 font-semibold underline underline-offset-2 hover:opacity-80"
-                >
-                  Reintentar
-                </button>
-              </div>
-            )}
             <SiteHeader />
             <main className="relative z-10 flex-1">
               {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
