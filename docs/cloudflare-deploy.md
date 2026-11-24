@@ -113,3 +113,34 @@ Completa estos 4 ajustes en menos de 5 minutos:
   npm run deploy
   ```
 - **Vista previa local en runtime Cloudflare (opcional):** Crea un archivo `.dev.vars` local *(ignorado por Git)* con tus variables de servidor y ejecuta `npm run build && npx wrangler dev`.
+
+---
+
+## 7. Solución de Error 500 / Error 1016 (Supabase no responde)
+
+Si al abrir tu dominio `*.workers.dev` aparece un aviso de conexión limitada o el diagnóstico indica **`error code: 1016`** / **`ENOTFOUND`**, significa que el host de Supabase configurado ya no resuelve en DNS (por pausa en plan gratuito, eliminación o cambio de proyecto).
+
+### Paso 1: Verificar el estado en línea
+Abre en tu navegador:
+`https://<tu-worker>.workers.dev/api/public/health`
+
+- **`supabase.reachable: true` (HTTP 200):** La conexión con Supabase funciona correctamente.
+- **`supabase.errorCode: "CF_1016_ORIGIN_DNS"` o `"ENOTFOUND"`:** El proyecto Supabase configurado en `VITE_SUPABASE_URL` / `SUPABASE_URL` está pausado, eliminado o mal escrito.
+
+### Paso 2: Recuperar o reconectar Supabase
+
+- **Escenario A — Tu proyecto Supabase está pausado (lo más rápido):**
+  1. Ingresa a [supabase.com/dashboard](https://supabase.com/dashboard).
+  2. Busca el proyecto correspondiente al ID configurado (`supabase/config.toml` / variable `SUPABASE_PROJECT_ID`).
+  3. Si aparece como **Paused**, haz clic en **Restore project** y espera 1–2 minutos hasta que vuelva a **Active**.
+  4. Recarga `/api/public/health` y verifica que devuelva `reachable: true`.
+
+- **Escenario B — El proyecto fue eliminado o deseas conectar uno nuevo (gratis, sin tarjeta):**
+  1. Crea un proyecto nuevo en [supabase.com/dashboard](https://supabase.com/dashboard) (plan Free).
+  2. Aplica las migraciones SQL incluidas en `supabase/migrations/` usando Supabase CLI (`npx supabase link --project-ref <NUEVO_ID> && npx supabase db push`) o ejecutando los archivos SQL en orden desde el *SQL Editor*.
+  3. Actualiza las variables en **Cloudflare Dashboard → tu Worker → Settings**:
+     - En **Build → Variables and secrets**: actualiza `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID` y confirma `VITE_SITE_URL` (`https://<tu-worker>.workers.dev`).
+     - En **Variables and secrets (Runtime)**: actualiza `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY` *(Secret)* y `PUBLIC_SITE_URL` (`https://<tu-worker>.workers.dev`).
+  4. En Cloudflare, entra a **Deployments → Retry deployment** (o haz `git push` a `main`) para regenerar el build con las nuevas variables `VITE_*`.
+  5. Configura **Authentication → URL Configuration** en el nuevo proyecto Supabase con tu URL de Cloudflare.
+

@@ -30,6 +30,7 @@ import { getCanonicalBaseUrl, resolvePageSeo } from "@/lib/seo";
 import type { ButtonIconShape } from "@/lib/product-buttons";
 import { motion } from "framer-motion";
 import { StatCollection } from "@/components/StatCollection";
+import { safeEnsureQueryData } from "@/lib/ssr-resilience";
 
 function LottiePlayer({ url, className }: { url: string; className?: string }) {
   const [data, setData] = useState<any>(null);
@@ -68,12 +69,12 @@ export const Route = createFileRoute("/")({
   loader: async ({ context }) => {
     const [siteContent, products, heroCarousel, siteServices, categories, menuItems] =
       await Promise.all([
-        context.queryClient.ensureQueryData(siteContentQuery()),
-        context.queryClient.ensureQueryData(productsQuery()),
-        context.queryClient.ensureQueryData(heroCarouselQuery()),
-        context.queryClient.ensureQueryData(siteServicesQuery()),
-        context.queryClient.ensureQueryData(categoriesQuery()),
-        context.queryClient.ensureQueryData(menuItemsQuery()),
+        safeEnsureQueryData(context.queryClient, siteContentQuery(), {} as Record<string, string>, "home_site_content"),
+        safeEnsureQueryData(context.queryClient, productsQuery(), [], "home_products"),
+        safeEnsureQueryData(context.queryClient, heroCarouselQuery(), [], "home_hero_carousel"),
+        safeEnsureQueryData(context.queryClient, siteServicesQuery(), [], "home_site_services"),
+        safeEnsureQueryData(context.queryClient, categoriesQuery(), [], "home_categories"),
+        safeEnsureQueryData(context.queryClient, menuItemsQuery(), [], "home_menu_items"),
       ]);
     return { siteContent, products, heroCarousel, siteServices, categories, menuItems };
   },

@@ -11,10 +11,16 @@ import { ProductMedia } from "@/components/ProductMedia";
 import { UnifiedButton } from "@/components/UnifiedButton";
 import { getCanonicalBaseUrl, resolvePageSeo } from "@/lib/seo";
 import { toast } from "sonner";
+import { safeEnsureQueryData } from "@/lib/ssr-resilience";
 
 export const Route = createFileRoute("/nosotros")({
   loader: async ({ context }) => {
-    const siteContent = await context.queryClient.ensureQueryData(siteContentQuery());
+    const siteContent = await safeEnsureQueryData(
+      context.queryClient,
+      siteContentQuery(),
+      {} as Record<string, string>,
+      "nosotros_site_content",
+    );
     return { siteContent };
   },
   head: ({ loaderData }: { loaderData?: { siteContent?: Record<string, string> } }) => {

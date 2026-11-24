@@ -28,12 +28,13 @@ import { UnifiedButton } from "@/components/UnifiedButton";
 import { buildServicesJsonLd, getCanonicalBaseUrl, resolvePageSeo, type ServiceJsonLdInput } from "@/lib/seo";
 import { firstStaticShareImage } from "@/lib/share-image";
 import { toAbsoluteUrl } from "@/lib/whatsapp-buttons";
+import { safeEnsureQueryData } from "@/lib/ssr-resilience";
 
 export const Route = createFileRoute("/servicios")({
   loader: async ({ context }) => {
     const [siteContent, siteServices] = await Promise.all([
-      context.queryClient.ensureQueryData(siteContentQuery()),
-      context.queryClient.ensureQueryData(siteServicesQuery()),
+      safeEnsureQueryData(context.queryClient, siteContentQuery(), {} as Record<string, string>, "servicios_site_content"),
+      safeEnsureQueryData(context.queryClient, siteServicesQuery(), [], "servicios_list"),
     ]);
     return { siteContent, siteServices };
   },

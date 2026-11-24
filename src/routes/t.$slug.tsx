@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { productBySlugQuery, siteContentQuery } from "@/lib/catalog";
 import { resolveProductShareImage } from "@/lib/product-share";
 import { DEFAULT_SITE_URL, getCanonicalBaseUrl } from "@/lib/seo";
+import { safeEnsureQueryData, safeEnsureQueryResult } from "@/lib/ssr-resilience";
 
 const idx = (raw: unknown): number | null => {
   const n = Number.parseInt(String(raw ?? ""), 10);
@@ -27,11 +28,23 @@ export const Route = createFileRoute("/t/$slug")({
 
     if (!productSlug) throw notFound();
 
-    const [product, siteContent] = await Promise.all([
-      context.queryClient.ensureQueryData(productBySlugQuery(productSlug)),
-      context.queryClient.ensureQueryData(siteContentQuery()).catch(() => null),
+    const [productRes, siteContent] = await Promise.all([
+      safeEnsureQueryResult(context.queryClient, productBySlugQuery(productSlug), null, `share_${productSlug}`),
+      safeEnsureQueryData(context.queryClient, siteContentQuery(), {} as Record<string, string>, "share_site_content"),
     ]);
-    if (!product) throw notFound();
+    if (!productRes.degraded && !productRes.data) throw notFound();
+    const product = productRes.data;
+    if (!product) {
+      return {
+        slug: productSlug,
+        productSlug,
+        variantId: null,
+        title: "Will Design 3D",
+        description: "Impresión 3D profesional, filamentos, resinas y equipos en Bogotá.",
+        img: "",
+        canonicalOrigin: getCanonicalBaseUrl(siteContent),
+      };
+    }
     const variants = product.variants ?? [];
 
     // Compatibilidad con enlaces viejos ?v=<uuid> o ?v=<num> vs nuevo formato limpio en slug

@@ -2,10 +2,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { InstagramFeed } from "@/components/InstagramFeed";
 import { siteContentQuery } from "@/lib/catalog";
 import { getCanonicalBaseUrl, resolvePageSeo } from "@/lib/seo";
+import { safeEnsureQueryData } from "@/lib/ssr-resilience";
 
 export const Route = createFileRoute("/galeria")({
   loader: async ({ context }) => {
-    const siteContent = await context.queryClient.ensureQueryData(siteContentQuery());
+    const siteContent = await safeEnsureQueryData(
+      context.queryClient,
+      siteContentQuery(),
+      {} as Record<string, string>,
+      "galeria_site_content",
+    );
     return { siteContent };
   },
   head: ({ loaderData }: { loaderData?: { siteContent?: Record<string, string> } }) => {
