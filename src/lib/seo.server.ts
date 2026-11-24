@@ -12,8 +12,8 @@ function getEnv(key: string): string | undefined {
 }
 
 function getSupabaseRestCredentials(): { url: string; key: string } | null {
-  const url = getEnv("VITE_SUPABASE_URL")?.replace(/\/+$/, "");
-  const key = getEnv("VITE_SUPABASE_PUBLISHABLE_KEY");
+  const url = (getEnv("VITE_SUPABASE_URL") || getEnv("SUPABASE_URL"))?.replace(/\/+$/, "");
+  const key = getEnv("VITE_SUPABASE_PUBLISHABLE_KEY") || getEnv("SUPABASE_PUBLISHABLE_KEY");
   if (!url || !key) return null;
   return { url, key };
 }

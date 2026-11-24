@@ -3,10 +3,25 @@ import { productPlainText, productSummary } from "./product-description";
 
 export const DEFAULT_SITE_URL = "https://will-design-3d.lovable.app";
 
+function getConfiguredEnvSiteUrl(): string {
+  const procEnv =
+    typeof process !== "undefined" && process.env
+      ? (process.env as Record<string, string | undefined>)
+      : undefined;
+  const metaEnv = (import.meta as unknown as { env?: Record<string, string | undefined> })?.env;
+  return (
+    procEnv?.PUBLIC_SITE_URL?.trim() ||
+    procEnv?.VITE_SITE_URL?.trim() ||
+    metaEnv?.VITE_SITE_URL?.trim() ||
+    ""
+  );
+}
+
 export function getCanonicalBaseUrl(siteContent?: Record<string, string> | null): string {
   const raw =
     siteContent?.site_canonical_domain?.trim() ||
     siteContent?.site_url?.trim() ||
+    getConfiguredEnvSiteUrl() ||
     DEFAULT_SITE_URL;
   const stripped = raw.replace(/\/+$/, "");
   if (!stripped) return DEFAULT_SITE_URL;
@@ -207,7 +222,7 @@ export type GlobalSeoInput = {
   site_url?: string;
   site_canonical_domain?: string;
   site_indexable_global?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 export type SeoResult = {

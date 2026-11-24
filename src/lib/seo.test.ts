@@ -33,6 +33,27 @@ describe("Arquitectura SEO y dominio canónico", () => {
     );
   });
 
+  it("getCanonicalBaseUrl usa PUBLIC_SITE_URL / VITE_SITE_URL cuando la base de datos no define dominio", () => {
+    const prevPublic = process.env.PUBLIC_SITE_URL;
+    const prevVite = process.env.VITE_SITE_URL;
+    try {
+      process.env.PUBLIC_SITE_URL = "https://will-design-3d.demo.workers.dev/";
+      expect(getCanonicalBaseUrl({})).toBe("https://will-design-3d.demo.workers.dev");
+      expect(
+        getCanonicalBaseUrl({ site_canonical_domain: "https://willdesign3d.com/" }),
+      ).toBe("https://willdesign3d.com");
+
+      delete process.env.PUBLIC_SITE_URL;
+      process.env.VITE_SITE_URL = "will-design-3d.alt.workers.dev/";
+      expect(getCanonicalBaseUrl(undefined)).toBe("https://will-design-3d.alt.workers.dev");
+    } finally {
+      if (prevPublic === undefined) delete process.env.PUBLIC_SITE_URL;
+      else process.env.PUBLIC_SITE_URL = prevPublic;
+      if (prevVite === undefined) delete process.env.VITE_SITE_URL;
+      else process.env.VITE_SITE_URL = prevVite;
+    }
+  });
+
   it("buildSeoFromContent devuelve canonical dinámico con fallback oficial", () => {
     expect(buildSeoFromContent("home", {}).canonical).toBe("https://will-design-3d.lovable.app");
     expect(
